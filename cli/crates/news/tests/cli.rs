@@ -18,8 +18,7 @@ fn news() -> Command {
     cmd
 }
 
-/// Stdout of a successful run. clap prints the binary's file name in `Usage:`, which is `news.exe` on
-/// Windows; that is folded to `news` so snapshots and comparisons are the same on every platform.
+/// Stdout of a successful run, exactly as printed (no per-platform normalisation).
 fn stdout_of(args: &[&str]) -> String {
     let out = news()
         .args(args)
@@ -28,9 +27,7 @@ fn stdout_of(args: &[&str]) -> String {
         .get_output()
         .stdout
         .clone();
-    String::from_utf8(out)
-        .expect("stdout is UTF-8")
-        .replace("news.exe", "news")
+    String::from_utf8(out).expect("stdout is UTF-8")
 }
 
 fn no_ansi() -> impl Predicate<str> {
@@ -166,6 +163,24 @@ fn version_command_help_describes_itself() {
     let help = stdout_of(&["version", "--help"]);
     assert!(help.starts_with("Print the CLI version as JSON"), "{help}");
     assert!(help.contains("Usage: news version"), "{help}");
+}
+
+#[test]
+fn program_is_called_news_on_every_platform() {
+    // clap would otherwise take the name from argv[0], which is `news.exe` on Windows.
+    for args in [
+        ["--help"].as_slice(),
+        ["help"].as_slice(),
+        ["version", "--help"].as_slice(),
+    ] {
+        let out = stdout_of(args);
+        assert!(out.contains("Usage: news "), "{args:?}: {out}");
+        assert!(!out.contains("news.exe"), "{args:?}: {out}");
+    }
+    news().assert().code(2).stderr(
+        predicate::str::contains("Usage: news <COMMAND>")
+            .and(predicate::str::contains("news.exe").not()),
+    );
 }
 
 #[test]

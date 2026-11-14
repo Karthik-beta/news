@@ -4,7 +4,13 @@
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
-#[command(name = "news", version = news_core::VERSION, about = "News agent toolbox")]
+// `bin_name` fixes the name in usage and help; clap would otherwise use argv[0] (`news.exe` on Windows).
+#[command(
+    name = "news",
+    bin_name = "news",
+    version = news_core::VERSION,
+    about = "News agent toolbox"
+)]
 struct Cli {
     #[command(subcommand)]
     command: Command,
