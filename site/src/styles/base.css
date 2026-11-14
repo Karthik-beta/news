@@ -1,0 +1,49 @@
+/* Base styles. Tokens only; see design/typography.md and design/layout.md. Fonts are self-hosted in Phase 3.1. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-ui);
+  line-height: var(--font-line-height-ui);
+}
+
+:focus-visible {
+  outline: var(--border-focus) solid var(--color-focus);
+  outline-offset: 2px;
+}
+::selection {
+  background: var(--color-selection);
+}
+
+.dev {
+  max-width: var(--layout-article);
+  margin: 0 auto;
+  padding-inline: max(var(--gutter), env(safe-area-inset-left, 0px));
+  padding-block: var(--space-10);
+}
+.dev h1 {
+  font-family: var(--font-family-serif);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-fluid-headline-xl);
+  line-height: var(--font-line-height-tight);
+  margin: var(--space-4) 0;
+}
+.dev p {
+  font-family: var(--font-family-serif);
+  font-size: var(--font-size-body);
+  line-height: var(--font-line-height-body);
+}
+.dev .fly {
+  font-family: var(--font-family-sans);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-ui);
+  color: var(--color-brand);
+  margin: 0;
+}

@@ -1,0 +1,10 @@
+[package]
+name = "news-core"
+description = "Shared types for the News pipeline (data points, sources, ledger). Designed in Phase 5."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true

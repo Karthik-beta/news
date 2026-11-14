@@ -40,7 +40,7 @@ It was chosen over five other directions after two rounds of side-by-side specim
 | [tokens/tokens.css](tokens/tokens.css) | CSS custom properties generated from `tokens.json`, light and dark |
 | [tokens/build.mjs](tokens/build.mjs) | Regenerates `tokens.css`: `bun design/tokens/build.mjs` or `node design/tokens/build.mjs` |
 | [brand-board.html](brand-board.html) | One-page visual summary: colours, type, signatures and rules, light and dark |
-| [mockups/mockup-direction-e.html](mockups/mockup-direction-e.html) | Reference mock-up: home page and article page |
+| [mockups/mockup-direction-e.html](mockups/mockup-direction-e.html) | Reference mock-up: home page and article page (the home mock-up predates the "Latest" list) |
 | [mockups/design-directions.html](mockups/design-directions.html) | The six directions that were compared (record of the decision) |
 
 When documents disagree, `tokens.json` wins for values and `principles.md` wins for rules. The mock-ups illustrate; they are not the spec.
@@ -62,6 +62,7 @@ When documents disagree, `tokens.json` wins for values and `principles.md` wins 
 | 14 Nov 2026 | Near-white paper kept (overrides the earlier "tinted paper" preference); crimson as brand only, never "down" |
 | 14 Nov 2026 | Crimson lightened from `#B8152F` to `#C8213A` |
 | 14 Nov 2026 | Chart palettes generated and validated by script for colour-vision deficiency and contrast, both themes |
+| 14 Nov 2026 | Home page becomes dynamic and agent-curated every 2–3 days (server-side data, no rebuild); an automatic "Latest" list added under the lead block (not yet in the mock-up) |
 
 ## Open items
 

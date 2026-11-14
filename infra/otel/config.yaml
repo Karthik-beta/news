@@ -1,0 +1,53 @@
+# OpenTelemetry Collector: receives Claude Code (and pipeline) telemetry and writes it to the
+# `news` database in the shared ClickHouse. See the Technical Design, "Telemetry and local analytics".
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 300
+    spike_limit_mib: 60
+  batch:
+    timeout: 5s
+    send_batch_size: 2000
+
+exporters:
+  clickhouse:
+    endpoint: ${env:NEWS_CH_OTEL_ENDPOINT}
+    database: news
+    username: ${env:NEWS_CH_USER}
+    password: ${env:NEWS_CH_PASSWORD}
+    create_schema: true
+    ttl: 17520h # keep two years
+    timeout: 10s
+    retry_on_failure:
+      enabled: true
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+service:
+  extensions: [health_check]
+  telemetry:
+    logs:
+      level: warn
+  pipelines:
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [clickhouse]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [clickhouse]
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [clickhouse]

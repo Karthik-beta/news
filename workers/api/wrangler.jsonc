@@ -1,0 +1,8 @@
+{
+  // Write API used by news publish (Phase 6). Requires the secret key; never public-writable.
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "news-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "observability": { "enabled": true }
+}

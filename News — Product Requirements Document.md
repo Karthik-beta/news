@@ -157,7 +157,7 @@ Content is organised by category and sub-category, with hub pages that collect r
 
 ### Navigation
 
-- **Home:** latest pages, featured Tier 1 pages, and entry points to each category.
+- **Home:** a dynamic, curated front page. A curation agent picks the lead story, the side stories and each section's stories every 2–3 days (see [Home page curation](#home-page-curation)); an automatic "Latest" list updates with every publish in between. Plus entry points to each category. The home page is assembled on the server from the stored curation; curating it never rebuilds or redeploys the site.
 - **Category and sub-category hubs:** for example Finance → Earnings, Economy → Central banks, Science → Space.
 - **Entity hubs:** one per company, country, central bank or institution, listing all its pages over time. Each quarter's page stays frozen; the hub rolls forward.
 - **Region filter** across hubs (North America, Europe, India, China, Asia, Australia, Global).
@@ -246,6 +246,17 @@ Pages are produced at scale by Claude Code agents on the author's laptop, starte
 - Backfill covers the current year only.
 - Pages are updated in place when sources revise data (restatements, revised statistics).
 
+### Home page curation
+
+The home page is curated, not just a feed of the newest pages.
+
+- **When:** every 2–3 days the author runs a preset curation workflow in Claude Code (one command). There is no fixed schedule; if a run is missed, the last curation stays live.
+- **What the agent decides:** the lead story, the two side stories, which sections appear and in what order, the 3–4 stories in each section, and which existing key figure or mini chart each story shows. It picks for importance, freshness and breadth across categories, regions and page types, with Tier 1 pages first.
+- **What it never does:** write new headlines, summaries or commentary. Every story on the home page uses its own page's fly title, headline, summary and figures, so the home page carries the same citations and wording as the page itself.
+- **Approval:** the workflow checks the curation automatically, shows the author a local preview, and publishes only after the author approves it in the session. Every published curation is versioned and can be rolled back.
+- **Server side, no rebuild:** the curation is stored as data in the cloud database. The home page is rendered on request from that data and cached at the edge; publishing a curation only stores the new version and clears the home page cache. Nothing is rebuilt or redeployed.
+- **Between curations:** curated slots stay as chosen. The "Latest" list updates on every publish. If a curated page is withdrawn, its slot is filled automatically from the best recent pages. The region filter shows the curated stories for that region, topped up with its latest pages.
+
 ### Consistency
 
 Page-type skills, a brand skill and a component library built with Opus 5.5 keep pages consistent while layouts adapt to content. Full details are in the technical design document.
@@ -257,7 +268,7 @@ The full design is in News — Technical Design. In short:
 - **All work and all AI run on the author's laptop:** fetching, parsing, Claude agents, rendering, telemetry. The cloud only stores and serves pages and runs no AI.
 - **Local stack:** a Rust `news` CLI for CPU-heavy work, Bun and Astro for rendering, PostgreSQL with pgvector for the queue and knowledge graph, and the existing ClickHouse (separate database) for telemetry.
 - **Cloud:** Cloudflare R2 serves article pages as static files; AWS DynamoDB is the database of record; Cloudflare D1 holds the search index; Cloudflare Workers run the dynamic pages (home, hubs, latest, categories), the write API, search and the MCP v2 server.
-- **No site rebuilds:** each page is rendered on the laptop and uploaded on its own; dynamic pages are cached at the edge for hours or days and refreshed only where a new page affects them.
+- **No site rebuilds:** each page is rendered on the laptop and uploaded on its own; dynamic pages are cached at the edge for hours or days and refreshed only where a new page affects them. The home page's curation is data, published by the curation workflow and read by the home page at request time.
 - **Free tiers only**, with paid upgrades considered only when the site grows.
 
 ## Distribution
@@ -315,9 +326,9 @@ Phases run in order with no fixed dates; each starts when the previous one's exi
 1. **Phase 0 — Foundations.** Local services (PostgreSQL, OTel Collector, ClickHouse database), Cloudflare and AWS accounts with budget alarms, and a spike proving OpenUI pages render to static HTML.
    - Exit: one page rendered end to end and events reaching ClickHouse.
 2. **Phase 1 — Design and components.** Agree the design direction with the author (using the `frontend-design` skill), then build the component library with Opus 5.5.
-3. **Phase 2 — Content system and tooling.** Design the content system with Opus 5.5; build the Rust `news` CLI, first source connectors, orchestration and telemetry.
-4. **Phase 3 — Launch (v1).** Cloud services live (static pages, dynamic hubs, search, MCP v2, Report an error, analytics); first runs at a low indexing budget.
-   - Exit: site live on `news.karthik.nz`, runs producing 100+ pages each.
+3. **Phase 2 — Content system and tooling.** Design the content system with Opus 5.5; build the Rust `news` CLI, first source connectors, orchestration (including the home page curation workflow) and telemetry.
+4. **Phase 3 — Launch (v1).** Cloud services live (static pages, dynamic hubs, curated dynamic home page, search, MCP v2, Report an error, analytics); first runs at a low indexing budget.
+   - Exit: site live on `news.karthik.nz`, runs producing 100+ pages each, and the home page curated at least once through the workflow.
 5. **Phase 4 — Scale.** Raise volume and indexing budget using telemetry and Search Console; bulk dumps; email newsletter (free tier); social sharing.
 6. **Phase 5 — Future (undecided).** Mobile app rendering the same OpenUI pages, proper branding and domain (with 301 redirects), localization.
 
@@ -336,6 +347,7 @@ Phases run in order with no fixed dates; each starts when the previous one's exi
 | Unclear licence for some sources | Redistribution risk | Licence in the source registry; link and summarise instead of republishing data |
 | Claude usage limits on large runs | Smaller runs | Lean prompts, cached instructions, small briefs; runs resume where they stopped |
 | Hobby priority drops | Site goes stale | Static pages stay online; pages archived in the Internet Archive |
+| Home curation is skipped for a while | Home page looks dated | "Latest" list keeps updating on every publish; withdrawn pages are replaced automatically; the local dashboard flags a curation older than 4 days |
 
 ### Open questions
 

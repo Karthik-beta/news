@@ -1,0 +1,31 @@
+{
+  "name": "news",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "site",
+    "workers/*",
+    "pipeline",
+    "dashboard"
+  ],
+  "scripts": {
+    "setup": "bun scripts/setup.ts",
+    "doctor": "bun scripts/doctor.ts",
+    "infra:up": "docker compose -f infra/docker-compose.yml --env-file .env up -d --wait",
+    "infra:down": "docker compose -f infra/docker-compose.yml --env-file .env down",
+    "infra:logs": "docker compose -f infra/docker-compose.yml --env-file .env logs -f --tail=100",
+    "clickhouse:setup": "bun scripts/clickhouse-setup.ts",
+    "tokens": "bun design/tokens/build.mjs",
+    "dev": "bun --filter @news/site dev",
+    "build": "bun --filter '*' build",
+    "test": "bun --filter '*' test",
+    "typecheck": "bun --filter '*' typecheck",
+    "lint": "biome check .",
+    "format": "biome format --write ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.6.7",
+    "@types/bun": "^1.4.4",
+    "typescript": "^6.0.3"
+  }
+}

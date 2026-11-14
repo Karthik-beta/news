@@ -11,8 +11,9 @@ const light = [];
 const dark = [];
 
 const fmt = (value, type) => {
-  if (value && typeof value === "object" && !Array.isArray(value) && "value" in value) return `${value.value}${value.unit}`;
-  if (Array.isArray(value)) return value.map(v => (/[\s]/.test(v) ? `"${v}"` : v)).join(", ");
+  if (value && typeof value === "object" && !Array.isArray(value) && "value" in value)
+    return `${value.value}${value.unit}`;
+  if (Array.isArray(value)) return value.map((v) => (/[\s]/.test(v) ? `"${v}"` : v)).join(", ");
   if (type === "fontFamily" && typeof value === "string") return value;
   return String(value);
 };

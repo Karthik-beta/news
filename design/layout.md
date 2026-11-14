@@ -108,21 +108,28 @@ The fixed base from the PRD appears on every article page: fly title, headline, 
 │ Page type, region, data date             │ ──────────────── │
 │ ▬━━━━━━━━━━━━━━━ mini chart + key figure │ Fly / Headline   │
 ├══════════════════════════════════════════╧══════════════════┤
+│ Latest   10:42 Fly — headline · 10:15 Fly — headline · …    │  automatic, updates on every publish
+├══════════════════════════════════════════════════════════════┤
 │ Economy                                   All economy pages │  section rule (2px)
 │ ┌story┐  ┌story┐  ┌story┐  ┌story┐                         │  auto-fit, min 220px
 ├══════════════════════════════════════════════════════════════┤
-│ Business …                                                  │
-│ Science …                                                   │
+│ Business …                                                  │  sections and their order chosen
+│ Science …                                                   │  by the curation agent
 ├─────────────────────────────────────────────────────────────┤
 │ footer                                                      │
 └─────────────────────────────────────────────────────────────┘
 ```
 
+- **The home page is curated and dynamic.** A curation agent chooses the lead, the two side stories, which sections appear (3–5), their order, and the 3–4 stories in each, every 2–3 days, through the `curate-home` workflow (Technical Design, "Home page curation"). The page is rendered on the server from the stored curation; nothing is rebuilt.
+- **Curated stories use their page's own words.** Fly title, headline, summary and figures come from the page record, so an updated page updates its home slot. The curator only chooses which existing key figure or mini chart a slot shows.
+- **Latest list:** an automatic strip of the newest 8–10 pages under the lead block, updated on every publish so the page stays fresh between curations. Each entry: time or date (Fira 13, ink-3), fly title and headline on one line, wrapping on phones. A link to the full "Latest" page ends the strip.
 - Lead block: two columns at 1.7fr / 1fr from 820px; stacked below.
-- One lead story, two side stories. Lead and side stories are chosen by tier (Tier 1 first) and freshness.
 - Section rows: `grid-template-columns: repeat(auto-fit, minmax(220px, 1fr))`, 3–4 stories each.
 - Each story in a row: fly title, headline, one key figure (with optional sparkline), one-line summary, page type and region.
-- Story order in a row is by importance, not time.
+- Story order in a row is the curator's order of importance, not time.
+- **Region filter:** shows the curated stories for that region first, topped up with the region's latest pages to fill the same slots.
+- **Gaps:** if a curated page is withdrawn, its slot is filled from the best recent page of the same section; the layout never shows an empty slot.
+- The template's slot counts (1 lead, 2 side, 3–5 sections × 3–4 stories, 8–10 latest) are fixed; the curation fills them, it never changes the layout.
 
 ### Category and sub-category hubs (`/finance`, `/finance/earnings`)
 

@@ -4,7 +4,7 @@ language: en-GB
 tone_instructions: "Be brief and specific. Only flag issues that matter: bugs, security, data accuracy, accessibility and design-system violations. Skip style nitpicks a formatter would fix."
 
 reviews:
-  profile: chill            # light review ("quiet" is lighter still; "assertive" is the heavy option)
+  profile: chill # light review ("quiet" is lighter still; "assertive" is the heavy option)
   request_changes_workflow: false
   high_level_summary: true
   review_status: true
@@ -32,15 +32,15 @@ reviews:
       - "[skip review]"
 
   path_filters:
-    - "!design/tokens/tokens.css"      # generated from tokens.json
-    - "!design/mockups/**"             # reference mock-ups, not production code
+    - "!design/tokens/tokens.css" # generated from tokens.json
+    - "!design/mockups/**" # reference mock-ups, not production code
     - "!**/*.lock"
     - "!**/bun.lockb"
     - "!**/Cargo.lock"
     - "!**/dist/**"
     - "!**/coverage/**"
     - "!**/__snapshots__/**"
-    - "!**/*-snapshots/**"             # Playwright screenshot baselines
+    - "!**/*-snapshots/**" # Playwright screenshot baselines
 
   path_instructions:
     - path: "site/**/*.{ts,tsx,astro,css}"

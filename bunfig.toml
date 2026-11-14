@@ -1,0 +1,4 @@
+# Hoisted layout: every dependency resolves inside this repo's node_modules.
+# (The isolated layout let module resolution climb to C:\Users\Admin\node_modules and pick up stale packages.)
+[install]
+linker = "hoisted"

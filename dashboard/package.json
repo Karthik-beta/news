@@ -1,0 +1,15 @@
+{
+  "name": "@news/dashboard",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"no tests until Phase 8\""
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.4",
+    "typescript": "^6.0.3"
+  }
+}

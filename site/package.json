@@ -1,0 +1,34 @@
+{
+  "name": "@news/site",
+  "type": "module",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "sync-tokens": "bun scripts/sync-tokens.ts",
+    "predev": "bun scripts/sync-tokens.ts",
+    "dev": "bun --bun astro dev --host 127.0.0.1",
+    "prebuild": "bun scripts/sync-tokens.ts",
+    "build": "bun --bun astro build",
+    "preview": "bun --bun astro preview --host 127.0.0.1",
+    "typecheck": "bun --bun astro check",
+    "test": "vitest run",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@astrojs/react": "^7.1.9",
+    "astro": "^7.4.12",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.12",
+    "@axe-core/playwright": "^4.14.0",
+    "@playwright/test": "^1.65.1",
+    "@testing-library/react": "^16.3.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "jsdom": "^31.0.1",
+    "typescript": "^6.0.3",
+    "vitest": "^5.1.0"
+  }
+}

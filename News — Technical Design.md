@@ -13,7 +13,7 @@ This document covers the technical side. Product scope lives in the separate PRD
 1. **Code before tokens.** Fetching, parsing, numbers, checks, rendering and uploads are done by code. The AI only decides what to say and how to lay it out.
 2. **The model never writes numbers.** Pages reference data by ID; code fills in the values. This saves output tokens and prevents made-up figures.
 3. **AI lives only on the laptop.** No model calls in the cloud, at build time or at request time.
-4. **No site rebuilds.** Each page is rendered and uploaded on its own; only affected hubs are refreshed.
+4. **No site rebuilds.** Each page is rendered and uploaded on its own; only affected hubs are refreshed. The home page's curation is data the SSR Worker reads at request time, so curating it never rebuilds or redeploys anything.
 5. **Publishing is separate from indexing.** Every page is public, but only a daily budget of pages is offered to search engines.
 6. **A designed content system, not random generation.** Every page can be traced to why it was chosen and what it was built from.
 7. **Everything is measured.** Every event goes to ClickHouse so the pipeline can be tuned.
@@ -102,7 +102,7 @@ One prompt in Claude Code starts a run. The main session stays small: it plans a
 | Model | Used for |
 | --- | --- |
 | Haiku 5.5 | Classifying and tagging candidates; summarising long parsed text into the brief; the sample quality check; small updates |
-| Sonnet 5.5 | Selection judgement where code scoring is unsure; synthesis; page layout in OpenUI Lang; narrative text |
+| Sonnet 5.5 | Selection judgement where code scoring is unsure; synthesis; page layout in OpenUI Lang; narrative text; home page curation (`NEWS_MODEL_CURATOR`) |
 | Opus 5.5 | Development time only: building the component library, designing the content system, writing skills |
 
 ### Keeping each `claude -p` call lean
@@ -149,6 +149,13 @@ One Rust binary gives agents everything they need, with short help text and comp
 | `news update <page_id>` | Loads an existing page for revision | Current page and new data |
 | `news prune` | Deletes working files for published items | Count |
 | `news stats` | Run and coverage summary | Short table |
+| `news home candidates` | Lists pages eligible for the home page (published since the last curation, plus still-relevant earlier Tier 1 pages) with tier, categories, region, page type, freshness, key figures and recent traffic | Compact candidate list |
+| `news home save <file>` | Stores a draft curation from the curator agent | Draft ID |
+| `news home check <draft>` | Code checks on a draft curation (see Home page curation) | Pass or errors |
+| `news home preview <draft>` | Renders the home page locally with the draft, using the same SSR code as production | Local URL |
+| `news home publish <draft>` | Sends the approved curation to the write API; purges home and region-view caches | Version number |
+| `news home rollback <version>` | Makes an earlier curation live again | Version number |
+| `news home show` | The live curation and its age | Short table |
 
 Every command writes events to ClickHouse. Commands are idempotent, so a failed run can resume.
 
@@ -167,6 +174,7 @@ Every command writes events to ClickHouse. Commands are idempotent, so a failed 
 | `embeddings` (pgvector) | Vectors for candidates and pages, for similarity and de-duplication | Yes |
 | `taxonomy` | Category tree (parent, slug, name, order); pages link to many categories | Yes |
 | `data_points` | Normalized figures with IDs used by page references | Until published |
+| `home_curations` | Draft and published home curations: slots, chosen figures, the curator's internal rationale, check results, approval and publish times | Yes |
 
 ### Taxonomy that can grow
 
@@ -196,6 +204,7 @@ Single-table design, because the free 25 read and 25 write capacity units are sh
 | Entity | `ENT#<id>` | `META` |
 | Taxonomy node | `TAX#<id>` | `META` |
 | Redirect | `URL#<old path>` | `REDIRECT` |
+| Home curation | `HOME#CURATION` | `V#<version>` and `LATEST` |
 
 - Items stay small (metadata, `.oui`, summary). Large data goes to R2 with a pointer, because DynamoDB items are capped at 400 KB.
 - At most one secondary index, planned carefully, because it shares the free capacity.
@@ -241,6 +250,36 @@ The laptop is the build machine, one page at a time. There is no site-wide rebui
 - **Home, category and sub-category hubs, entity hubs, region views, "latest" and search results** are rendered on request by an Astro SSR Worker reading DynamoDB.
 - Responses are **cached at the edge for hours or days.**
 - On each publish, only the affected URLs are purged: the page's hubs, its entity hubs, "latest" and home. Purges are batched to stay within Cloudflare's purge-rate limits.
+- **The home page is curated data, not a build.** The SSR Worker reads the live curation (`HOME#CURATION` / `LATEST`), batch-reads the page records for its slots and the newest entries of `HUB#latest`, and renders the home page from those. Publishing a curation writes a new version and purges the home page and its region views; nothing is rebuilt or redeployed.
+
+### Home page curation
+
+The home page's lead story, side stories and section rows are chosen by a curation agent every 2–3 days, when the author runs the preset `curate-home` workflow in Claude Code. The agent runs on the laptop like every other AI step; the cloud only stores and serves the result.
+
+**The workflow**
+
+1. **Gather.** `news home candidates` returns a compact list of eligible pages: published since the last curation, plus still-relevant earlier Tier 1 pages, with tier, categories, region, page type, age, key figures (by data ID), mini-chart options and recent traffic from analytics.
+2. **Curate.** A curator agent (Sonnet 5.5 by default, `NEWS_MODEL_CURATOR`), using the `news-home-curation` skill, returns a curation as JSON: one lead, two side stories, 3–5 ordered sections with 3–4 stories each, the figure or mini chart each slot shows (chosen from the page's existing data IDs), and a one-line internal rationale per pick (stored, never shown). It writes no new reader-facing text.
+3. **Save and check.** `news home save` stores the draft in PostgreSQL; `news home check` validates it in code:
+   - every page exists, is published and is not withdrawn; no page appears twice;
+   - every chosen figure or chart resolves to the page's own data;
+   - breadth: at least three categories and three regions across the curated slots, no more than two stories about the same entity, at least one non-finance section;
+   - freshness: the lead is no older than 7 days unless it is a Tier 1 page the curator explicitly marks as still leading;
+   - every slot filled; the draft fits the home template's slot counts.
+   Failures go back to the curator with the errors (at most two rounds).
+4. **Preview.** `news home preview` renders the home page locally from the draft with the same SSR code as production, light and dark, at phone and desktop widths, and prints the URL.
+5. **Approve.** The workflow stops and asks the author to approve, change or reject the draft in the Claude Code session. Changes go back to the curator; nothing is published without approval.
+6. **Publish.** `news home publish` sends the curation to the write API (`PUT /v1/home/curation`), which validates it again, writes `HOME#CURATION / V#<n>` and moves `LATEST`, then purges the home page and region views. `news home rollback <version>` makes an earlier version live.
+
+**Between curations**
+
+- Curated slots stay as published. The automatic "Latest" list (newest 8–10 pages from `HUB#latest`) updates with every page publish.
+- A curated page that is withdrawn or deleted is skipped at render time; its slot is filled from the best recent page of the same section by tier and freshness.
+- A curated page that is updated shows its updated title, summary and figures, because slots point at page IDs, not copies.
+- Region views show the curated stories for that region, topped up with that region's latest pages.
+- The local dashboard flags a curation older than `NEWS_HOME_STALE_DAYS` (default 4).
+
+**Curation record** (DynamoDB item, a few KB): version, created and approved times, curator model, the slots (`lead`, `side[2]`, `sections[{category, pages[{page_id, figure_id?, chart_id?}]}]`), and the check results. Rationale stays in PostgreSQL only.
 
 ### Updating a page
 
@@ -260,15 +299,15 @@ The cloud stores and serves; it runs no AI and no content generation.
 | Cloudflare CDN | Serves R2 files and caches SSR responses at the edge |
 | Cloudflare Workers | Astro SSR (home, hubs, latest, categories); write API; search API; MCP v2 server |
 | Cloudflare D1 | Full-text search index (sharded); small lookups |
-| AWS DynamoDB | Database of record: page records and versions, hub listings, entities, taxonomy, redirects |
+| AWS DynamoDB | Database of record: page records and versions, hub listings, entities, taxonomy, redirects, home page curations |
 | Cloudflare Web Analytics | Page analytics, cookieless (beacon behaviour checked at build; server-side zone analytics as fallback) |
 
 ### Workers
 
 | Worker | Purpose | Notes |
 | --- | --- | --- |
-| `site` | Astro SSR for dynamic pages | Reads DynamoDB; edge-cached for hours or days |
-| `api` | Write API used by `news publish` | Single secret key held on the laptop; schema-checked input; writes R2, DynamoDB, D1; triggers cache purges |
+| `site` | Astro SSR for dynamic pages, including the curated home page | Reads DynamoDB (pages, hubs, live curation); edge-cached for hours or days |
+| `api` | Write API used by `news publish` and `news home publish` | Single secret key held on the laptop; schema-checked input; writes R2, DynamoDB, D1; triggers cache purges |
 | `search` | Public search API | Queries D1; popular queries cached at the edge |
 | `mcp` | MCP v2 server (stateless, spec revision 2026-07-28) | Read-only |
 
@@ -336,6 +375,7 @@ There is no manual approval step; the author's prompt is the approval. Quality i
 2. **Haiku spot check on a sample** (`SAMPLE_RATE`, starting at 1 in 20): it compares the page's Markdown with its brief and flags wrong claims, missing context or tone problems.
 3. **Failures** are logged to ClickHouse and the item returns to the queue for an agent to fix.
 4. Pages failing code checks are never published. Spot-check failures on published pages trigger an update.
+5. **Home curations** are the one place with a human approval step: `news home check` runs code checks (see Home page curation), then the author approves the local preview before `news home publish`.
 
 ## Telemetry and local analytics
 
@@ -343,7 +383,7 @@ Every event is recorded in ClickHouse (database `news`, on the shared container)
 
 ### Event sources
 
-- **`news` CLI:** every stage (discover, plan, fetch, parse, brief, save, render, check, publish, prune, update) with duration, status, item, run and error.
+- **`news` CLI:** every stage (discover, plan, fetch, parse, brief, save, render, check, publish, prune, update, and the home curation stages: candidates, curate, check, preview, approve, publish, rollback) with duration, status, item, run and error.
 - **Claude Code:** OpenTelemetry export (tokens, cache reads, cost estimates, tool calls) through an OTel Collector into ClickHouse.
 - **`claude -p` results:** per-call usage from `--output-format json`, tagged with run and item IDs.
 - **Cloud:** Cloudflare Web Analytics and Worker/R2/D1/DynamoDB usage pulled through their APIs.
@@ -362,7 +402,7 @@ Every event is recorded in ClickHouse (database `news`, on the shared container)
 
 ### Local analytics dashboard
 
-A small local bun web app, not published, showing: pages by category, region, type and tier; coverage gaps; queue state; tokens per page by type; failures by stage; index budget use; free-tier usage against limits; and site traffic.
+A small local bun web app, not published, showing: pages by category, region, type and tier; coverage gaps; queue state; tokens per page by type; failures by stage; index budget use; free-tier usage against limits; site traffic; and the live home curation with its age (flagged after `NEWS_HOME_STALE_DAYS`).
 
 ## Configuration and security
 
@@ -375,6 +415,8 @@ A small local bun web app, not published, showing: pages by category, region, ty
 | `SAMPLE_RATE` | Share of pages getting the Haiku spot check | 0.05 |
 | `NEWS_PARALLEL` | Parallel `claude -p` workers | 3 |
 | `NEWS_MODEL_MAIN` / `NEWS_MODEL_LIGHT` | Model per role | Sonnet 5.5 / Haiku 5.5 |
+| `NEWS_MODEL_CURATOR` | Model for the home page curator | Sonnet 5.5 |
+| `NEWS_HOME_STALE_DAYS` | Age at which the dashboard flags the live home curation | 4 |
 | `BACKFILL_FROM` | Earliest date for backfill | Start of the current year |
 
 ### Security
@@ -409,8 +451,8 @@ A rough size estimate is 20–40 KB per page across all formats when compressed,
 4. **Component library (Opus 5.5).** Hundreds of components on top of `@openuidev/react-ui`, plus the component index and per-component specs.
 5. **Content system design (Opus 5.5).** Research and design of the source registry, connectors, scoring, clustering, selection, research packs and synthesis.
 6. **Rust `news` CLI and connectors.** Commands in the toolbox table, the first connectors (SEC EDGAR, FRED, IMF, World Bank, arXiv, central banks), parsing and briefs.
-7. **Cloud.** R2 bucket and domain, DynamoDB table, D1 search shards, Workers (site SSR, API, search, MCP v2), caching and purge.
-8. **Orchestration.** Skills, prompts and the bun runner for `claude -p`; first full run end to end.
+7. **Cloud.** R2 bucket and domain, DynamoDB table, D1 search shards, Workers (site SSR including the curated home page, API including the curation endpoint, search, MCP v2), caching and purge.
+8. **Orchestration.** Skills, prompts and the bun runner for `claude -p`; the `curate-home` workflow (candidates, curator skill, checks, preview, approval, publish, rollback); first full run end to end and first home curation.
 9. **Telemetry and dashboard.** ClickHouse tables and the local analytics app.
 10. **Launch and ramp.** Start with a low indexing budget, then tune using telemetry and Search Console.
 
@@ -427,4 +469,5 @@ A rough size estimate is 20–40 KB per page across all formats when compressed,
 - **Local embedding model:** choice and CPU cost.
 - **Image licensing allow-list:** which sources and licences are accepted automatically.
 - **Prompt-cache behaviour** across back-to-back `claude -p` calls, to confirm savings in telemetry.
+- **Home curation workflow form:** a saved Claude Code workflow in `.claude/workflows/` (run by name) versus a skill-driven slash command; settle when building it, keeping one command for the author and an approval stop before publish.
 - **Note for the PRD:** the PRD now matches this design (category-free URLs, D1 search, cookieless analytics, automated checks instead of per-page review).

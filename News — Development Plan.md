@@ -13,6 +13,7 @@ Read with the [PRD](News%20—%20Product%20Requirements%20Document.md), the [Tec
 - **Sonnet 5.5** does well-specified feature work at volume: source connectors, CLI commands, Workers, page templates, scripts, the telemetry dashboard.
 - Every change lands through a pull request on GitHub, reviewed by an Opus review agent and by CodeRabbit (light profile), with CI green before merge.
 - Phase 2 (design) is complete. The next phases are Foundations and the OpenUI rendering spike, then the component library.
+- The home page is **dynamic and agent-curated** every 2–3 days by a preset `curate-home` workflow that Karthik runs in Claude Code. The curation is server-side data; it never rebuilds the site. Building that workflow is part of this plan (Phases 3–9; see [Home page curation](#home-page-curation-across-the-phases)).
 
 ## Constraints that shape the plan
 
@@ -42,10 +43,11 @@ news/
 ├─ cli/                       Rust `news` CLI (Cargo workspace: core, connectors, commands)
 ├─ workers/                   Cloudflare Workers: api, search, mcp (site SSR lives in site/)
 ├─ pipeline/                  bun runner for `claude -p`, orchestration scripts
-├─ skills/                    runtime skills for the page writers: news-brand and page-type skills
+├─ skills/                    runtime skills for the page writers: news-brand, page-type skills, news-home-curation
 ├─ dashboard/                 local telemetry dashboard (bun web app, localhost only)
 ├─ infra/                     docker-compose, ClickHouse schema, OTel config, DynamoDB/D1 setup
 ├─ .claude/agents/            sub-agent definitions (created in Phase 0)
+├─ .claude/workflows/         preset workflows Karthik runs by name, starting with curate-home (Phase 7)
 └─ .github/workflows/         CI
 ```
 
@@ -123,10 +125,10 @@ Installed in the repo so every session and sub-agent gets them (see [skills/READ
 | `news-review` | `.claude/skills/` | Opus reviewers |
 | `news-source-connector` | `.claude/skills/` | Connector builders (Sonnet) and their Opus reviewers |
 | `news-brand` and seven `page-*` skills | `skills/` | Production page calls only, not development sessions |
-| frontend-design, cloudflare, playwright, rust-analyzer-lsp, clickhouse-best-practices, databases-on-aws, coderabbit, context7 | Plugins, project scope (`.claude/settings.json`) | All development sessions |
+| `news-home-curation` (planned, Phase 7) | `skills/` | The curator agent in the `curate-home` workflow |
+| `curate-home` workflow (planned, Phase 7) | `.claude/workflows/` | Karthik, every 2–3 days |
+| frontend-design, cloudflare, playwright, rust-analyzer-lsp, typescript-lsp, clickhouse-best-practices, databases-on-aws, coderabbit, context7 | Plugins, project scope (`.claude/settings.json`) | All development sessions |
 | dataviz (chart colour validation), skill-creator | Bundled with Claude Code | On demand |
-
-The TypeScript language-server plugin is added in Phase 0 once `site/` exists and `typescript-language-server` is installed.
 
 ## Quality gates (apply to every phase)
 
@@ -156,14 +158,14 @@ The phases follow the Technical Design's build plan. Each starts when the previo
 
 | Work | Agent | Notes |
 |---|---|---|
-| Git repo, `.gitignore`, `.gitattributes`, CodeRabbit config, GitHub remote, branch protection | Orchestrator | **Done** (14 Nov 2026) except branch protection, which needs the first CI workflow |
-| `.claude/agents/` role definitions and a short project `CLAUDE.md` | Opus architect | Keep `CLAUDE.md` tiny (it loads into every session) |
-| Monorepo skeleton: `site/` (Bun + Astro + React), `cli/` (Cargo workspace), `workers/`, `pipeline/`, `infra/` | Sonnet feature builder | Empty packages that build and test |
-| `infra/docker-compose.yml`: PostgreSQL + pgvector, OTel Collector | Sonnet feature builder | Own volumes and ports; nothing touches the existing Neo4j container |
-| ClickHouse: `news` database, `news` user, settings profile and quota on the shared container | Sonnet feature builder, Opus review | Must not affect the other project's database |
-| CI workflow (fast suite skeleton), then branch protection on `main` | Sonnet feature builder | |
+| Git repo, `.gitignore`, `.gitattributes`, CodeRabbit config, GitHub remote, branch protection | Orchestrator | **Done** (14 Nov 2026) except branch protection, which needs the first CI run |
+| `.claude/agents/` role definitions and a short project `CLAUDE.md` | Opus architect | **Done** (10 roles) |
+| Monorepo skeleton: `site/` (Bun + Astro + React), `cli/` (Cargo workspace), `workers/`, `pipeline/`, `dashboard/`, `infra/` | Sonnet feature builder | **Done**: builds, typechecks and tests pass |
+| `infra/docker-compose.yml`: PostgreSQL + pgvector, OTel Collector | Sonnet feature builder | **Done**: PostgreSQL on 5433, collector on 4317/4318 |
+| ClickHouse: `news` database, `news` user, settings profile and quota on the shared container | Sonnet feature builder, Opus review | **Done**; `bun run doctor -- --e2e` proves events reach ClickHouse |
+| CI workflow (fast suite skeleton), then branch protection on `main` | Sonnet feature builder | Workflow written; first run and protection pending a push |
 | Cloudflare and AWS accounts, budget alarms, least-privilege keys | **Karthik** (manual) | Agents never create accounts or handle credentials; Karthik puts keys in the local secrets file |
-| Secrets handling: `.env.example`, local secrets file loader, gitleaks pre-commit hook | Sonnet feature builder, Opus security review | |
+| Secrets handling: `.env.example`, local secrets file loader, gitleaks pre-commit hook | Sonnet feature builder, Opus security review | `.env.example` and generated local `.env` done; gitleaks runs in CI, local hook pending |
 
 **Exit:** local services running; a test event reaches ClickHouse; CI green on `main`; branch protection on.
 
@@ -211,7 +213,7 @@ Order of work, from the families most pages need:
 7. **Page-type components**: PolicyDecision, Finding, Timeline.
 8. **Media**: ImageFigure (with failure fallback), ImageGallery, VideoEmbed (click-to-load, `youtube-nocookie.com`).
 9. **Sources**: SourcesPanel, Badge.
-10. **Lists and navigation**: LeadStory, StoryItem, SectionHead, PageContents, RelatedPages, Pagination.
+10. **Lists and navigation**: LeadStory, StoryItem, SectionHead, LatestList, PageContents, RelatedPages, Pagination. The home-page components take a page ID and an optional figure or chart ID from the curation, and render only the page's own text.
 11. **Controls and states**: Button, TextField, TextArea, Select, Checkbox, SearchField, Tooltip, empty, error, 404 and loading states.
 12. **Extension set**: the remaining components to reach "at least what OpenUI Dashboards offers" (Technical Design), each proposed by the Opus architect with a one-line purpose and approved by Karthik before building.
 
@@ -278,8 +280,9 @@ Screenshot baselines live in the repo; any diff fails the run and must be approv
 
 - Fixture pages: one per page type (earnings, macro release, major report, policy decision, news story, science, explainer), built from real public data, rendered through the full renderer. The Opus tester runs the full matrix on these pages too.
 - Karthik reviews the seven fixture pages side by side before the phase exits (the design system's "real-content test").
+- A fixture **home page** rendered from fixture curations: a normal curation, one with a withdrawn page (slot back-filled), one filtered by region, and an empty "Latest" edge case. The Opus tester runs the full matrix on it.
 
-**Exit:** every component built, specified and signed off by an Opus tester across all areas and all screens; component index and specs available through the CLI stub; the seven fixture pages approved by Karthik.
+**Exit:** every component built, specified and signed off by an Opus tester across all areas and all screens; component index and specs available through the CLI stub; the seven fixture pages and the fixture home page approved by Karthik.
 
 ### Phase 4 — Content system design
 
@@ -293,10 +296,11 @@ Screenshot baselines live in the repo; any diff fails the run and must be approv
 | Breadth-first selection with quotas; tier and indexing priority rules | Opus architect |
 | Research-pack format (the brief): fields, size budget (1–3k tokens), data IDs | Opus architect |
 | Page-type skills (earnings, macro, report, policy, news, science, explainer) (drafts exist in `skills/`; finalise them) and the `news-brand` skill | Opus (judgement and prose) |
+| Home curation design: slot model, candidate signals (tier, freshness, breadth, traffic), the code-check rules, fallback and region-view rules, and the curation record schema, written as an ADR | Opus architect |
 
 Can start in parallel with late Phase 3 (no shared files).
 
-**Exit:** content-system design document and ADRs merged; skills drafted; brief format fixed.
+**Exit:** content-system design document and ADRs merged (including the home curation ADR); skills drafted; brief format fixed.
 
 ### Phase 5 — Rust `news` CLI and connectors
 
@@ -311,25 +315,26 @@ Can start in parallel with late Phase 3 (no shared files).
 | XBRL and unit/currency/fiscal-period parsing | Opus (correctness-critical) |
 | PDF tables via Docling, scanned PDFs via Tesseract | Sonnet feature builder; Opus review |
 | `news check`: render check, data references, value matching, links, required fields, axe-core run, design-system checks | Opus feature builder |
+| `news home` commands: candidates, save, check, preview, publish, rollback, show; the `home_curations` PostgreSQL table | Sonnet feature builder; Opus review of the check rules |
 | Tests for commands and connectors (recorded fixtures, no live network in CI) | Sonnet test writer; Opus reviewer |
 
-**Exit:** `news discover → plan → fetch → parse → brief` works for the first connectors; `render`, `check` and a dry-run `publish` work on fixture items; CI green.
+**Exit:** `news discover → plan → fetch → parse → brief` works for the first connectors; `render`, `check` and a dry-run `publish` work on fixture items; `news home candidates → save → check → preview` works on fixture pages; CI green.
 
 ### Phase 6 — Cloud
 
 | Work | Agent |
 |---|---|
 | R2 bucket, custom domain `news.karthik.nz`, caching rules | Sonnet feature builder (scripts in `infra/`), Karthik applies DNS |
-| DynamoDB single-table design and access patterns | Opus architect |
+| DynamoDB single-table design and access patterns, including `HOME#CURATION` versions and `LATEST` | Opus architect |
 | D1 search shards and FTS5 schema | Sonnet feature builder, Opus review |
-| `api` Worker (write API: secret key, schema validation, R2/DynamoDB/D1 writes, cache purges) | Sonnet feature builder, **Opus security reviewer** |
-| `site` SSR (home, hubs, entity hubs, latest, search results) from the Phase 3 templates | Sonnet feature builder; Opus tester for template visuals |
+| `api` Worker (write API: secret key, schema validation, R2/DynamoDB/D1 writes, cache purges), including `PUT /v1/home/curation` (validates the curation again, writes a new version, moves `LATEST`, purges home and region views) and rollback | Sonnet feature builder, **Opus security reviewer** |
+| `site` SSR (home, hubs, entity hubs, latest, search results) from the Phase 3 templates. The home page reads the live curation and the page records for its slots, adds the automatic "Latest" list, back-fills withdrawn pages and serves region views | Sonnet feature builder; Opus tester for template visuals |
 | `search` Worker | Sonnet feature builder |
 | `mcp` Worker (stateless MCP v2, spec revision 2026-07-28, read-only) | Opus feature builder (new spec), Opus security review |
 | Rate limiting, `robots.txt`, `llms.txt`, sitemaps, RSS/Atom | Sonnet feature builder |
 | Free-tier usage checks and alarms | Sonnet feature builder |
 
-**Exit:** a fixture page published end to end and served from `news.karthik.nz`; hubs, search and MCP answering; security review passed.
+**Exit:** a fixture page published end to end and served from `news.karthik.nz`; hubs, search and MCP answering; publishing a test curation changes the live home page with no build or deploy (verified by checking the deployed Worker version is unchanged); security review passed.
 
 ### Phase 7 — Orchestration
 
@@ -339,9 +344,12 @@ Can start in parallel with late Phase 3 (no shared files).
 | Lean-call configuration: strict empty MCP config, allowed tools, max turns, model per call | Sonnet feature builder, Opus review |
 | Prompts and cached prefix (instructions, brand rules, component index): measure cache hits | Opus (judgement) |
 | Haiku spot-check flow and failure re-queue | Sonnet feature builder |
-| First full run of 10 pages, then 100 | Orchestrator with Karthik |
+| `news-home-curation` skill: how to pick the lead, side stories and sections; breadth and freshness; using only the pages' own text; choosing figures and charts | Opus (judgement and prose) |
+| `curate-home` preset workflow in `.claude/workflows/`: candidates → curator agent → save → check (up to two fix rounds) → local preview → **stop for Karthik's approval** → publish; plus a rollback path. One command for Karthik | Opus (workflow orchestration); Sonnet feature builder for glue scripts |
+| Curator evaluation: fixture candidate sets (busy week, quiet week, one region dominating, a withdrawn lead) with expected properties; check pass rate and breadth measured | Opus |
+| First full run of 10 pages, then 100; then the first real home curation | Orchestrator with Karthik |
 
-**Exit:** one prompt produces 100+ pages that pass checks; token use per page logged.
+**Exit:** one prompt produces 100+ pages that pass checks; token use per page logged; Karthik runs `curate-home` once end to end, approves a curation, and it goes live without a rebuild.
 
 ### Phase 8 — Telemetry and dashboard
 
@@ -351,7 +359,7 @@ Can start in parallel with late Phase 3 (no shared files).
 | OTel Collector pipeline for Claude Code telemetry | Sonnet feature builder |
 | Local dashboard (bun web app, localhost only) using the design system's chart components | Sonnet feature builder; Opus tester for its charts |
 
-**Exit:** dashboard shows pages, coverage, queue, tokens per page, failures, index budget, free-tier usage and traffic.
+**Exit:** dashboard shows pages, coverage, queue, tokens per page, failures, index budget, free-tier usage, traffic, and the live home curation with its age (flagged after `NEWS_HOME_STALE_DAYS`).
 
 ### Phase 9 — Launch and ramp
 
@@ -362,7 +370,23 @@ Can start in parallel with late Phase 3 (no shared files).
 | Launch-day review of 20 random pages against the design system and sources | Opus reviewer |
 | Ramp: tune scoring, budget and prompts from telemetry | Opus with Karthik |
 
-**Exit (PRD v1):** site live on `news.karthik.nz`; runs produce 100+ pages each.
+**Exit (PRD v1):** site live on `news.karthik.nz`; runs produce 100+ pages each; the home page is curated through the workflow.
+
+### Home page curation across the phases
+
+The home page is dynamic and curated by an agent every 2–3 days, when Karthik runs the preset `curate-home` workflow in Claude Code. The curation is data stored in DynamoDB and read by the SSR Worker, so it never rebuilds or redeploys the site. (Requirement: PRD "Home page curation"; design: Technical Design "Home page curation" and design/layout.md.)
+
+| Phase | Curation work | Agent |
+|---|---|---|
+| 3 | Home components (LeadStory, StoryItem, SectionHead, LatestList) take page IDs from a curation; fixture home page tested in all areas and on all screens | Opus builder, Opus tester |
+| 4 | Curation ADR: slots, signals, check rules, fallbacks, record schema | Opus architect |
+| 5 | `news home` commands and the `home_curations` table | Sonnet feature builder, Opus review |
+| 6 | `HOME#CURATION` in DynamoDB; `PUT /v1/home/curation` and rollback; SSR home reading the live curation; purges | Sonnet feature builders, Opus security review, Opus tester |
+| 7 | `news-home-curation` skill; `curate-home` workflow with the approval stop; curator evaluation; first real curation | Opus, Sonnet for glue, Karthik approves |
+| 8 | Dashboard: live curation and its age | Sonnet feature builder |
+| 9 | Launch with a curated home page | Karthik |
+
+**Done means:** Karthik types one command; the workflow gathers candidates, curates, checks, previews and waits; after approval the home page changes within a minute, with no build or deploy, and the previous version can be restored with one command.
 
 ## Risks in the development process
 
@@ -376,21 +400,28 @@ Can start in parallel with late Phase 3 (no shared files).
 | Flaky screenshot tests | Fixed fonts (self-hosted), fixed viewport and device scale, animations off, fixed dates in fixtures |
 | Secrets leak | Agents never handle credentials; gitleaks in pre-commit, CI and CodeRabbit |
 | Hidden costs from free tiers | Budget alarms; usage tracked in the dashboard; no paid services added without Karthik's approval |
+| Curation quietly needs a rebuild after all (for example the home template caches slot data at build time) | Phase 6 exit test publishes a curation and checks the deployed Worker version is unchanged; slots store page IDs only |
+| Curator picks narrowly (one region or category) | Code checks for breadth; fixture evaluations in Phase 7; Karthik approves every curation |
 
 ## Progress checklist
 
 - [x] Phase 2: design system agreed and documented
 - [x] Git repository, CodeRabbit config (light review), GitHub remote
-- [ ] Phase 0: agent definitions, monorepo skeleton, local services, CI, branch protection, accounts (Karthik)
+- [x] Phase 0: agent definitions, monorepo skeleton, local services, ClickHouse `news` database, `.env` handling
+- [ ] Phase 0: first CI run and branch protection; Cloudflare and AWS accounts (Karthik); local gitleaks hook
 - [ ] Phase 1: OpenUI server-rendering spike and ADR
 - [ ] Phase 3.1: foundations
-- [ ] Phase 3.2–3.3: component families and specs
+- [ ] Phase 3.2–3.3: component families and specs (including the home-page components)
 - [ ] Phase 3.4: Opus component testing sign-off, all areas and all screens
-- [ ] Phase 3.5: seven fixture pages approved
+- [ ] Phase 3.5: seven fixture pages and the fixture home page approved
 - [ ] Phase 4: content system design and skills
+- [ ] Phase 4: home curation ADR
 - [ ] Phase 5: CLI and first connectors
+- [ ] Phase 5: `news home` commands
 - [ ] Phase 6: cloud services live
+- [ ] Phase 6: curated home page served from DynamoDB, no rebuild
 - [ ] Phase 7: first 100-page run
+- [ ] Phase 7: `curate-home` workflow built; first curation approved and live
 - [ ] Phase 8: telemetry dashboard
 - [ ] Phase 9: launch
 

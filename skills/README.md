@@ -12,6 +12,7 @@ These skills are for the **production pipeline**: the `claude -p` calls (Sonnet 
 | [page-news-story](page-news-story/SKILL.md) | News stories | Draft, finalised in Phase 4 |
 | [page-science](page-science/SKILL.md) | Science pages | Draft, finalised in Phase 4 |
 | [page-explainer](page-explainer/SKILL.md) | Explainers | Draft, finalised in Phase 4 |
+| news-home-curation | The home page curator in the `curate-home` workflow (every 2–3 days) | Planned: written in Phase 7 (Development Plan) |
 
 ## How the pipeline uses them
 

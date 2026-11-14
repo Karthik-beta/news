@@ -1,0 +1,59 @@
+# News local services. Run from the repo root: `bun run infra:up` (reads .env).
+# ClickHouse is NOT here: it is the shared container from another project (own `news` database and user,
+# set up by `bun run clickhouse:setup`). Nothing here touches the existing Neo4j or other containers.
+name: news
+
+services:
+  postgres:
+    image: pgvector/pgvector:0.8.1-pg17
+    container_name: news-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: news
+      POSTGRES_USER: news
+      POSTGRES_PASSWORD: ${NEWS_PG_PASSWORD:?set NEWS_PG_PASSWORD in .env (run bun run setup)}
+    ports:
+      - "127.0.0.1:${NEWS_PG_PORT:-5433}:5432" # 5432 is the native PostgreSQL 17 on this laptop
+    volumes:
+      - news-pg-data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    command:
+      - postgres
+      - -c
+      - shared_buffers=512MB
+      - -c
+      - work_mem=32MB
+      - -c
+      - max_connections=40
+      - -c
+      - max_parallel_workers_per_gather=1
+    cpus: 2
+    mem_limit: 2g
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U news -d news"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.139.0
+    container_name: news-otel
+    restart: unless-stopped
+    command: ["--config=/etc/otelcol/config.yaml"]
+    environment:
+      NEWS_CH_OTEL_ENDPOINT: ${NEWS_CH_OTEL_ENDPOINT:-http://host.docker.internal:8123}
+      NEWS_CH_USER: ${NEWS_CH_USER:-news}
+      NEWS_CH_PASSWORD: ${NEWS_CH_PASSWORD:?set NEWS_CH_PASSWORD in .env (run bun run setup)}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "127.0.0.1:4317:4317" # OTLP gRPC (Claude Code telemetry)
+      - "127.0.0.1:4318:4318" # OTLP HTTP
+      - "127.0.0.1:13133:13133" # health check
+    volumes:
+      - ./otel/config.yaml:/etc/otelcol/config.yaml:ro
+    cpus: 0.5
+    mem_limit: 384m
+
+volumes:
+  news-pg-data:

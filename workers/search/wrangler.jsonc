@@ -1,0 +1,8 @@
+{
+  // Public search API over D1 (Phase 6). Read-only.
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "news-search",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "observability": { "enabled": true }
+}

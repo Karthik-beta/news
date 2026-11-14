@@ -180,6 +180,12 @@ For commentary and context in Claude's own words.
 ### Section head (`SectionHead`)
 - A 2px ink rule; the section name (`type.headline-l`) on the left; a link "All economy pages" on the right (Fira 14, ink-2, underlined).
 
+### Latest list (`LatestList`)
+- Home only, under the lead block. The automatic list of the newest 8–10 pages (not curated). A section rule, the label "Latest" (Literata 700, 17px), then one line per page: time today or short date (Fira 13, ink-3, tabular), fly title (Fira 600, 14, crimson) and headline (Literata 16) on one line, wrapping on phones; hairlines between items. Ends with a link "All latest pages".
+
+### Home page slots
+- The home page is assembled from a stored curation (see [layout.md](layout.md#home-page-curated-front-page)). `LeadStory`, the side `StoryItem`s and each section's `StoryItem`s receive a page ID and, optionally, the data ID of the figure or chart to show. All text comes from the page record. Components never render curator text.
+
 ### On this page (`PageContents`)
 - In the rail: a 2px ink rule, heading "On this page" (Literata 700, 17px), then links to each chart and section. Plain text links, no numbering.
 
