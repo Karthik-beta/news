@@ -17,3 +17,9 @@ serde_json = "1"
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+assert_cmd = "2.2.2"
+insta = "1.49.0"
+postgres = "0.19.14"
+predicates = "3.1.4"
