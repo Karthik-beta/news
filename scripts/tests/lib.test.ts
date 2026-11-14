@@ -23,8 +23,14 @@ describe("env", () => {
       expect(env("NEWS_TEST_X")).toBe("");
     }));
 
-  test("an empty variable is returned as '' and does not fall back (current behaviour)", () =>
-    withEnv({ NEWS_TEST_X: "" }, () => expect(env("NEWS_TEST_X", "fallback")).toBe("")));
+  test("an empty variable (e.g. `KEY=` in .env) uses the fallback, and '' without one", () =>
+    withEnv({ NEWS_TEST_X: "" }, () => {
+      expect(env("NEWS_TEST_X", "fallback")).toBe("fallback");
+      expect(env("NEWS_TEST_X")).toBe("");
+    }));
+
+  test("a whitespace-only value is kept as set (only an empty value falls back)", () =>
+    withEnv({ NEWS_TEST_X: " " }, () => expect(env("NEWS_TEST_X", "fallback")).toBe(" ")));
 });
 
 describe("mark", () => {
@@ -52,6 +58,12 @@ describe("run", () => {
     expect(r.ok).toBe(false);
     expect(r.status).toBeNull();
     expect(r.out).toBe("");
+  });
+
+  test("a spawn failure is reported in `err` so callers can show why (e.g. docker missing)", () => {
+    const r = run("news-no-such-command-xyz", ["--version"]);
+    expect(r.err).toMatch(/ENOENT|not found/i);
+    expect(r.err).toContain("news-no-such-command-xyz");
   });
 
   test("passes `input` on stdin", () => {
@@ -129,6 +141,24 @@ describe("chQuery", () => {
       const result = await chQuery("SELECT 1");
       expect(result.ok).toBe(false);
       expect(result.body).toContain("ECONNREFUSED");
+    }));
+
+  test("a non-Latin1 password is sent as UTF-8 Basic auth, not a throw", () =>
+    withEnv({ ...ENV, NEWS_CH_PASSWORD: "pässwörd-€-密码" }, async () => {
+      const spy = mockFetch(() => new Response("1"));
+      expect(await chQuery("SELECT 1")).toEqual({ ok: true, body: "1" });
+      const [, init] = spy.mock.calls[0] as [string, RequestInit];
+      const expected = Buffer.from("news:pässwörd-€-密码", "utf8").toString("base64");
+      expect((init.headers as Record<string, string>).authorization).toBe(`Basic ${expected}`);
+    }));
+
+  test("empty NEWS_CH_HTTP and NEWS_CH_USER fall back to the local defaults", () =>
+    withEnv({ ...ENV, NEWS_CH_HTTP: "", NEWS_CH_USER: "" }, async () => {
+      const spy = mockFetch(() => new Response(""));
+      await chQuery("SELECT 1");
+      const [url, init] = spy.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe("http://127.0.0.1:8123");
+      expect((init.headers as Record<string, string>).authorization).toBe(`Basic ${btoa("news:pa:ss word")}`);
     }));
 
   test("an empty response body is ok:true with ''", () =>
