@@ -1,0 +1,88 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# CodeRabbit: light review. Balanced, low-noise feedback focused on correctness, security and the design system.
+language: en-GB
+tone_instructions: "Be brief and specific. Only flag issues that matter: bugs, security, data accuracy, accessibility and design-system violations. Skip style nitpicks a formatter would fix."
+
+reviews:
+  profile: chill            # light review ("quiet" is lighter still; "assertive" is the heavy option)
+  request_changes_workflow: false
+  high_level_summary: true
+  review_status: true
+  commit_status: true
+  collapse_walkthrough: true
+  changed_files_summary: true
+  sequence_diagrams: false
+  estimate_code_review_effort: false
+  related_issues: false
+  related_prs: false
+  suggested_labels: false
+  suggested_reviewers: false
+  poem: false
+  in_progress_fortune: false
+  abort_on_close: true
+
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    drafts: false
+    base_branches:
+      - main
+    ignore_title_keywords:
+      - "WIP"
+      - "[skip review]"
+
+  path_filters:
+    - "!design/tokens/tokens.css"      # generated from tokens.json
+    - "!design/mockups/**"             # reference mock-ups, not production code
+    - "!**/*.lock"
+    - "!**/bun.lockb"
+    - "!**/Cargo.lock"
+    - "!**/dist/**"
+    - "!**/coverage/**"
+    - "!**/__snapshots__/**"
+    - "!**/*-snapshots/**"             # Playwright screenshot baselines
+
+  path_instructions:
+    - path: "site/**/*.{ts,tsx,astro,css}"
+      instructions: |
+        Components must use design tokens only (design/tokens/tokens.css): no literal colours, font sizes or font families.
+        Check against design/components.md and design/charts.md. Crimson (--color-brand / --chart-highlight) must never encode a decrease, loss or "bad".
+        Flag missing accessible names, missing keyboard handling, colour-only meaning, and any chart without title, subtitle, source line and data table.
+        Components take data references, never inline numbers.
+    - path: "cli/**/*.rs"
+      instructions: |
+        Rust `news` CLI. Focus on correctness of parsing (XBRL, units, currencies, fiscal periods), idempotency of commands, error handling and CPU cost.
+        Numbers must never be converted between currencies or units. Flag unwraps on external data.
+    - path: "workers/**"
+      instructions: |
+        Cloudflare Workers. Public endpoints must be read-only. The write API must check its secret key and validate input schemas.
+        Watch free-tier limits: no heavy CPU work per request, cache aggressively, never call AI services.
+    - path: "design/**/*.md"
+      instructions: "Design documentation. Check for contradictions with design/tokens/tokens.json and other design documents. Ignore prose style."
+    - path: "design/tokens/tokens.json"
+      instructions: "Token source of truth. Any chart colour change must state that validate_palette.js was re-run for both themes; text colours must keep >= 4.5:1 contrast on paper and wash."
+    - path: "**/*.md"
+      instructions: "Documentation. Only flag factual errors, broken links or contradictions. No grammar or style nitpicks."
+
+  tools:
+    gitleaks:
+      enabled: true
+    markdownlint:
+      enabled: false
+    languagetool:
+      enabled: false
+    shellcheck:
+      enabled: true
+    yamllint:
+      enabled: true
+    actionlint:
+      enabled: true
+    clippy:
+      enabled: true
+    biome:
+      enabled: true
+    eslint:
+      enabled: true
+
+chat:
+  auto_reply: true

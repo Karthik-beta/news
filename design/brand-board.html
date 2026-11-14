@@ -1,0 +1,378 @@
+<title>News Brand Board</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700&family=Literata:opsz,wght@7..72,400..800&display=swap">
+<style>
+/* Layout: the brand board is itself set in the brand. One reading column of 1120px; sections divided by 2px ink rules; swatches split light | dark. Values mirror design/tokens/tokens.json. */
+:root {
+  --paper: #F4F4F1; --wash: #E9E9E4; --rule: #DADAD4; --ink: #181818; --ink-2: #555551; --ink-3: #656561;
+  --brand: #C8213A; --focus: #065DA0; --control: #8A8A85;
+  --c-highlight: #C8213A; --c-comparison: #065DA0; --c-context: #8DAECB; --c-neutral: #B6B6AF;
+  --serif: "Literata", Georgia, "Times New Roman", serif;
+  --sans: "Fira Sans", "Segoe UI", Roboto, Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #17181A; --wash: #222428; --rule: #313337; --ink: #EDEDEA; --ink-2: #B4B4B0; --ink-3: #9C9C97;
+    --brand: #F4687C; --focus: #8FC0EA; --control: #6E6F73;
+    --c-highlight: #F4687C; --c-comparison: #4E90D2; --c-context: #45556A; --c-neutral: #4C4E53;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #17181A; --wash: #222428; --rule: #313337; --ink: #EDEDEA; --ink-2: #B4B4B0; --ink-3: #9C9C97;
+  --brand: #F4687C; --focus: #8FC0EA; --control: #6E6F73;
+  --c-highlight: #F4687C; --c-comparison: #4E90D2; --c-context: #45556A; --c-neutral: #4C4E53;
+  color-scheme: dark;
+}
+
+body { background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.5; }
+a { color: inherit; text-underline-offset: 3px; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 72px; display: grid; gap: 56px; }
+
+/* Head */
+.head { display: grid; gap: 18px; padding-top: 36px; border-bottom: 1px solid var(--rule); padding-bottom: 28px; }
+.head-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.word { font-family: var(--serif); font-weight: 800; font-variation-settings: "opsz" 72; font-size: clamp(64px, 12vw, 132px); line-height: .9; letter-spacing: -0.03em; color: var(--brand); margin: 0; }
+.head p { margin: 0; max-width: 60ch; }
+.thesis { font-family: var(--serif); font-size: clamp(19px, 2.2vw, 23px); line-height: 1.4; }
+.meta { font-size: 13.5px; color: var(--ink-2); }
+.toggle { font: inherit; font-size: 14px; color: var(--ink); background: var(--paper); border: 1px solid var(--control); border-radius: 5px; padding: 7px 14px; cursor: pointer; }
+
+/* Section frame */
+section.block { display: grid; gap: 22px; border-top: 2px solid var(--ink); padding-top: 12px; }
+.block > h2 { margin: 0; font-family: var(--serif); font-weight: 700; font-size: 23px; line-height: 1.25; }
+.block > .lede { margin: -12px 0 0; color: var(--ink-2); max-width: 66ch; }
+h3.sub { margin: 0 0 10px; font-family: var(--sans); font-weight: 600; font-size: 14px; color: var(--ink-2); }
+
+/* Example */
+.example { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 40px; align-items: start; }
+.fly { margin: 0; font-weight: 600; font-size: 15px; color: var(--brand); }
+.hed { margin: 6px 0 10px; font-family: var(--serif); font-weight: 700; font-variation-settings: "opsz" 60; font-size: clamp(28px, 3.6vw, 40px); line-height: 1.08; letter-spacing: -0.018em; text-wrap: balance; }
+.dek { margin: 0; font-family: var(--serif); font-size: 19px; line-height: 1.45; max-width: 52ch; }
+.byline { margin: 12px 0 0; font-size: 13.5px; color: var(--ink-2); }
+.figs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: 22px; }
+.fig { display: grid; gap: 2px; border-top: 1px solid var(--ink); padding-top: 10px; }
+.fig span:first-child { font-size: 13.5px; color: var(--ink-2); }
+.fig b { font-size: 26px; font-weight: 600; line-height: 1.15; text-decoration: underline dotted var(--ink-3); text-decoration-thickness: 1px; text-underline-offset: 6px; justify-self: start; }
+.fig span:last-child { font-size: 13px; color: var(--ink-2); }
+.src { margin: 10px 0 0; font-size: 12.5px; color: var(--ink-3); }
+
+.chart { margin: 0; display: grid; gap: 8px; border-top: 1px solid var(--brand); padding-top: 16px; position: relative; }
+.chart::before { content: ""; position: absolute; top: -1px; left: 0; width: 36px; height: 7px; background: var(--brand); }
+.c-title { margin: 0; font-weight: 700; font-size: 18px; line-height: 1.3; }
+.c-sub { margin: 0; font-size: 14.5px; color: var(--ink-2); }
+.hb { display: grid; gap: 8px; margin-top: 6px; font-variant-numeric: tabular-nums; }
+.hb-row { display: grid; grid-template-columns: minmax(0, 7.5em) minmax(0, 1fr) 4em; gap: 10px; align-items: center; font-size: 14px; }
+.hb-track { position: relative; height: 22px; }
+.hb-bar { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c-context); }
+.hb-bar.hl { background: var(--c-highlight); }
+.hb-val { position: absolute; top: 50%; transform: translateY(-50%); margin-left: 6px; font-size: 13.5px; }
+.hb-row.hl { font-weight: 600; }
+.hb-chg { text-align: right; color: var(--ink-2); font-size: 13.5px; }
+
+/* Colour */
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px 24px; }
+.sw { display: grid; gap: 8px; }
+.chip { display: grid; grid-template-columns: 1fr 1fr; height: 84px; outline: 1px solid var(--rule); outline-offset: -1px; }
+.chip.big { height: 132px; }
+.chip i { display: block; }
+.sw-name { font-weight: 600; font-size: 14.5px; }
+.sw-meta { font-size: 13px; color: var(--ink-2); font-variant-numeric: tabular-nums; display: flex; justify-content: space-between; gap: 8px; }
+.sw-use { font-size: 13px; color: var(--ink-3); }
+.lead-sw { grid-column: span 2; }
+.split-key { display: flex; gap: 18px; font-size: 13px; color: var(--ink-2); }
+.split-key span::before { content: ""; display: inline-block; width: 22px; height: 10px; margin-right: 6px; vertical-align: -1px; outline: 1px solid var(--rule); }
+.split-key .l::before { background: #F4F4F1; }
+.split-key .d::before { background: #17181A; }
+
+.strip { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 2px; }
+.strip.seq { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.strip div { display: grid; gap: 6px; font-size: 12.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; min-width: 0; }
+.strip div i { display: block; height: 44px; }
+.strip div i.pair { display: grid; grid-template-rows: 1fr 1fr; }
+.strip div i.pair b { display: block; }
+.strip small { overflow-wrap: anywhere; }
+.roles { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px 24px; }
+.role { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 12px; align-items: center; }
+.role i { width: 44px; height: 44px; display: block; }
+.role b { display: block; font-size: 14.5px; }
+.role span { font-size: 13px; color: var(--ink-2); }
+.div-bar { display: grid; grid-template-columns: repeat(11, minmax(0, 1fr)); gap: 2px; }
+.div-bar i { display: block; height: 32px; }
+.div-labels { display: flex; justify-content: space-between; font-size: 13px; color: var(--ink-2); margin-top: 6px; }
+
+/* Type */
+.type { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; }
+.face { display: grid; gap: 10px; align-content: start; }
+.aa { font-size: clamp(88px, 12vw, 140px); line-height: .9; margin: 0; }
+.aa.serif { font-family: var(--serif); font-weight: 700; font-variation-settings: "opsz" 72; letter-spacing: -0.02em; }
+.aa.sans { font-family: var(--sans); font-weight: 600; }
+.face-name { font-weight: 600; font-size: 16px; }
+.face-role { color: var(--ink-2); font-size: 14px; margin: 0; }
+.face .sample-serif { font-family: var(--serif); font-size: 17.5px; line-height: 1.65; margin: 0; max-width: 46ch; }
+.face .sample-sans { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums lining-nums; margin: 0; }
+.face .glyphs { font-size: 15px; color: var(--ink-2); margin: 0; overflow-wrap: anywhere; }
+.scale { display: grid; gap: 0; }
+.scale-row { display: grid; grid-template-columns: minmax(0, 9.5em) minmax(0, 1fr); gap: 16px; align-items: baseline; padding-block: 10px; border-bottom: 1px solid var(--rule); }
+.scale-row > span { font-size: 13px; color: var(--ink-3); }
+.scale-row > p { margin: 0; overflow-wrap: anywhere; }
+
+/* Signatures */
+.sigs { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 32px 40px; }
+.sig { display: grid; gap: 10px; align-content: start; }
+.sig .cap { font-size: 13px; color: var(--ink-3); margin: 0; }
+.note { background: var(--wash); padding: 14px 18px; display: grid; gap: 4px; }
+.note b { font-size: 15px; }
+.note p { margin: 0; font-family: var(--serif); font-size: 15.5px; line-height: 1.55; }
+.note small { color: var(--ink-3); font-size: 12.5px; }
+.badges { display: flex; flex-wrap: wrap; gap: 8px; }
+.badge { font-size: 12px; font-weight: 600; padding: 1px 7px; border-radius: 3px; border: 1px solid currentColor; color: var(--ink-2); }
+.badge.p { color: var(--focus); }
+.badge.c { color: var(--ink-3); }
+.pop { background: var(--paper); border: 1px solid var(--rule); padding: 12px; max-width: 320px; display: grid; gap: 3px; font-size: 13.5px; }
+.pop b { font-size: 16px; }
+.pop span { color: var(--ink-2); }
+.pop a { color: var(--ink); font-size: 13px; }
+.quote { margin: 0; border-left: 2px solid var(--ink); padding-left: 18px; display: grid; gap: 6px; }
+.quote p { margin: 0; font-family: var(--serif); font-size: 19px; line-height: 1.45; }
+.quote cite { font-style: normal; font-size: 13.5px; color: var(--ink-2); }
+.spark { display: flex; align-items: center; gap: 14px; }
+.spark b { font-size: 24px; font-weight: 600; }
+.spark svg { width: 120px; height: 36px; }
+.spark span { font-size: 13px; color: var(--ink-2); }
+
+/* Rules */
+.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 0 40px; }
+.rule-item { display: grid; grid-template-columns: 62px minmax(0, 1fr); gap: 12px; padding-block: 14px; border-bottom: 1px solid var(--rule); }
+.rule-item b { font-size: 13px; font-weight: 600; }
+.rule-item b.yes { color: var(--ink); }
+.rule-item b.no { color: var(--ink-3); text-decoration: line-through; text-decoration-color: var(--ink-3); }
+.rule-item p { margin: 0; }
+
+.files { display: grid; gap: 6px; font-size: 14px; color: var(--ink-2); }
+.files code { font-family: var(--sans); font-weight: 500; color: var(--ink); }
+
+@media (max-width: 860px) {
+  .example, .type { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 600px) {
+  .figs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lead-sw { grid-column: auto; }
+  .strip { grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: 12px; }
+  .strip.seq { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .scale-row { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<main class="wrap">
+  <header class="head">
+    <div class="head-top">
+      <h1 class="word">News</h1>
+      <button type="button" class="toggle" id="theme">Dark mode</button>
+    </div>
+    <p class="thesis">Major company, economic and science reports, turned into visual, fully sourced pages, open to people and AI alike.</p>
+    <p class="meta">Brand board, Direction E. Agreed 14 November 2026. Every value on this page comes from <code>design/tokens/tokens.json</code>. "News" is a working name and a placeholder wordmark.</p>
+  </header>
+
+  <section class="block" aria-labelledby="h-ex">
+    <h2 id="h-ex">The look, in one example</h2>
+    <p class="lede">A meticulous analyst: near-white paper, black ink, one crimson. The numbers speak, and every one of them says where it came from.</p>
+    <div class="example">
+      <div>
+        <p class="fly">Apple's annual results</p>
+        <p class="hed">Services reached a quarter of Apple's sales in fiscal 2024</p>
+        <p class="dek">Net sales rose 2.0% to $391.0 billion. Services grew 12.9%, while iPhone sales were flat.</p>
+        <p class="byline">Built with Claude (AI) · Automated checks · Run by Karthik</p>
+        <div class="figs">
+          <div class="fig"><span>Net sales</span><b>$391.0bn</b><span>Up 2.0%</span></div>
+          <div class="fig"><span>Services</span><b>$96.2bn</b><span>Up 12.9%</span></div>
+          <div class="fig"><span>Gross margin</span><b>46.2%</b><span>Up 2.1 points</span></div>
+          <div class="fig"><span>Net income</span><b>$93.7bn</b><span>Down 3.4%</span></div>
+        </div>
+        <p class="src">Source: Apple Inc., Form 10-K for fiscal 2024, SEC EDGAR</p>
+      </div>
+      <figure class="chart">
+        <p class="c-title">Services was the only large category to grow by double digits</p>
+        <p class="c-sub">Net sales by category, fiscal 2024, US$ billions</p>
+        <div class="hb" role="img" aria-label="iPhone 201.2 billion dollars, up 0.3%; Services 96.2, up 12.9%; Wearables 37.0, down 7.1%; Mac 30.0, up 2.1%; iPad 26.7, down 5.7%.">
+          <div class="hb-row"><span>iPhone</span><div class="hb-track"><div class="hb-bar" style="width:78%"></div><span class="hb-val" style="left:78%">201.2</span></div><span class="hb-chg">+0.3%</span></div>
+          <div class="hb-row hl"><span>Services</span><div class="hb-track"><div class="hb-bar hl" style="width:37.3%"></div><span class="hb-val" style="left:37.3%">96.2</span></div><span class="hb-chg">+12.9%</span></div>
+          <div class="hb-row"><span>Wearables</span><div class="hb-track"><div class="hb-bar" style="width:14.3%"></div><span class="hb-val" style="left:14.3%">37.0</span></div><span class="hb-chg">−7.1%</span></div>
+          <div class="hb-row"><span>Mac</span><div class="hb-track"><div class="hb-bar" style="width:11.6%"></div><span class="hb-val" style="left:11.6%">30.0</span></div><span class="hb-chg">+2.1%</span></div>
+          <div class="hb-row"><span>iPad</span><div class="hb-track"><div class="hb-bar" style="width:10.3%"></div><span class="hb-val" style="left:10.3%">26.7</span></div><span class="hb-chg">−5.7%</span></div>
+        </div>
+        <p class="src">Source: Apple Inc., Form 10-K for fiscal 2024</p>
+      </figure>
+    </div>
+  </section>
+
+  <section class="block" aria-labelledby="h-col">
+    <h2 id="h-col">Colour</h2>
+    <p class="lede">Each chip shows the light value on the left and the dark value on the right. Crimson is the only brand colour, and it never means "down".</p>
+    <div class="split-key"><span class="l">Light</span><span class="d">Dark</span></div>
+    <div class="swatches">
+      <div class="sw lead-sw"><div class="chip big"><i style="background:#C8213A"></i><i style="background:#F4687C"></i></div><div class="sw-name">Crimson (brand)</div><div class="sw-meta"><span>#C8213A</span><span>#F4687C</span></div><div class="sw-use">Wordmark, fly titles, chart rule and tag, the one highlight</div></div>
+      <div class="sw"><div class="chip big"><i style="background:#F4F4F1"></i><i style="background:#17181A"></i></div><div class="sw-name">Paper</div><div class="sw-meta"><span>#F4F4F1</span><span>#17181A</span></div><div class="sw-use">Page and chart background</div></div>
+      <div class="sw"><div class="chip big"><i style="background:#181818"></i><i style="background:#EDEDEA"></i></div><div class="sw-name">Ink</div><div class="sw-meta"><span>#181818</span><span>#EDEDEA</span></div><div class="sw-use">Headlines, text, figures, rules</div></div>
+      <div class="sw"><div class="chip"><i style="background:#555551"></i><i style="background:#B4B4B0"></i></div><div class="sw-name">Ink 2</div><div class="sw-meta"><span>#555551</span><span>#B4B4B0</span></div><div class="sw-use">Summaries, subtitles, labels</div></div>
+      <div class="sw"><div class="chip"><i style="background:#656561"></i><i style="background:#9C9C97"></i></div><div class="sw-name">Ink 3</div><div class="sw-meta"><span>#656561</span><span>#9C9C97</span></div><div class="sw-use">Source lines, metadata, axis ticks</div></div>
+      <div class="sw"><div class="chip"><i style="background:#E9E9E4"></i><i style="background:#222428"></i></div><div class="sw-name">Wash</div><div class="sw-meta"><span>#E9E9E4</span><span>#222428</span></div><div class="sw-use">Notes, footer</div></div>
+      <div class="sw"><div class="chip"><i style="background:#DADAD4"></i><i style="background:#313337"></i></div><div class="sw-name">Rule</div><div class="sw-meta"><span>#DADAD4</span><span>#313337</span></div><div class="sw-use">Hairlines and gridlines</div></div>
+      <div class="sw"><div class="chip"><i style="background:#065DA0"></i><i style="background:#8FC0EA"></i></div><div class="sw-name">Focus</div><div class="sw-meta"><span>#065DA0</span><span>#8FC0EA</span></div><div class="sw-use">Focus ring, primary-source badge</div></div>
+    </div>
+
+    <div>
+      <h3 class="sub">Chart roles: highlight mode, the house default</h3>
+      <div class="roles">
+        <div class="role"><i style="background:var(--c-highlight)"></i><div><b>Highlight</b><span>What the title is about. One per chart.</span></div></div>
+        <div class="role"><i style="background:var(--c-comparison)"></i><div><b>Comparison</b><span>At most one named series beside it</span></div></div>
+        <div class="role"><i style="background:var(--c-context)"></i><div><b>Context</b><span>Everything else; recedes on purpose</span></div></div>
+        <div class="role"><i style="background:var(--c-neutral)"></i><div><b>Neutral</b><span>Deductions, "Other", missing data</span></div></div>
+      </div>
+    </div>
+
+    <div>
+      <h3 class="sub">Categorical palette, used in this order (top light, bottom dark). Validated for colour-blind readers in both themes.</h3>
+      <div class="strip">
+        <div><i class="pair"><b style="background:#065DA0"></b><b style="background:#2470B4"></b></i><span>1 Blue</span><small>#065DA0</small></div>
+        <div><i class="pair"><b style="background:#A14F09"></b><b style="background:#B3622A"></b></i><span>2 Rust</span><small>#A14F09</small></div>
+        <div><i class="pair"><b style="background:#05A4D4"></b><b style="background:#0BA5C0"></b></i><span>3 Sky</span><small>#05A4D4</small></div>
+        <div><i class="pair"><b style="background:#006E30"></b><b style="background:#1B763A"></b></i><span>4 Green</span><small>#006E30</small></div>
+        <div><i class="pair"><b style="background:#8463B8"></b><b style="background:#8667B9"></b></i><span>5 Violet</span><small>#8463B8</small></div>
+        <div><i class="pair"><b style="background:#718109"></b><b style="background:#74841B"></b></i><span>6 Olive</span><small>#718109</small></div>
+        <div><i class="pair"><b style="background:#8B376B"></b><b style="background:#A83E83"></b></i><span>7 Plum</span><small>#8B376B</small></div>
+        <div><i class="pair"><b style="background:#CD9C34"></b><b style="background:#A17924"></b></i><span>8 Gold</span><small>#CD9C34</small></div>
+      </div>
+    </div>
+
+    <div>
+      <h3 class="sub">Sequential blue, for magnitude (maps, heatmaps)</h3>
+      <div class="strip seq">
+        <div><i style="background:#D9EAFC"></i><small>100 #D9EAFC</small></div>
+        <div><i style="background:#AECEF1"></i><small>200 #AECEF1</small></div>
+        <div><i style="background:#7FAFE2"></i><small>300 #7FAFE2</small></div>
+        <div><i style="background:#4E90D2"></i><small>400 #4E90D2</small></div>
+        <div><i style="background:#2672B7"></i><small>500 #2672B7</small></div>
+        <div><i style="background:#085491"></i><small>600 #085491</small></div>
+        <div><i style="background:#003967"></i><small>700 #003967</small></div>
+      </div>
+    </div>
+
+    <div>
+      <h3 class="sub">Diverging: blue above the midpoint, gold below, grey in the middle. Never crimson, never red and green.</h3>
+      <div class="div-bar" aria-hidden="true">
+        <i style="background:#4B3301"></i><i style="background:#6C4C02"></i><i style="background:#906600"></i><i style="background:#B28324"></i><i style="background:#E3C697"></i>
+        <i style="background:#E4E4DF;outline:1px solid var(--rule);outline-offset:-1px"></i>
+        <i style="background:#AECEF1"></i><i style="background:#4E90D2"></i><i style="background:#2672B7"></i><i style="background:#085491"></i><i style="background:#003967"></i>
+      </div>
+      <div class="div-labels"><span>Below</span><span>Midpoint</span><span>Above</span></div>
+    </div>
+  </section>
+
+  <section class="block" aria-labelledby="h-type">
+    <h2 id="h-type">Type</h2>
+    <p class="lede">Two families with clear jobs: the serif carries the journalism, the sans carries the data.</p>
+    <div class="type">
+      <div class="face">
+        <p class="aa serif">Aa</p>
+        <div class="face-name">Literata</div>
+        <p class="face-role">Wordmark, headlines, standfirsts, reading text, notes. Weights 400, 650, 700, 800.</p>
+        <p class="sample-serif">Apple's net sales for the year to 28 September 2024 were $391.0 billion, up 2.0% on fiscal 2023. iPhone remained the largest category at $201.2 billion.</p>
+      </div>
+      <div class="face">
+        <p class="aa sans">Aa</p>
+        <div class="face-name">Fira Sans</div>
+        <p class="face-role">Fly titles, chart titles and labels, key figures, tables, interface. Weights 400, 500, 600, 700.</p>
+        <p class="sample-sans">$391.0bn  46.2%  −5.7%  NT$759.7bn</p>
+        <p class="glyphs">0123456789  $ € £ ¥ ₹ ₩  % −  Q3 FY24  1 Nov 2024</p>
+      </div>
+    </div>
+    <div class="scale">
+      <div class="scale-row"><span>Article headline, 44px</span><p style="font-family:var(--serif);font-weight:700;font-variation-settings:'opsz' 60;font-size:clamp(28px,3.6vw,44px);line-height:1.08;letter-spacing:-0.018em">Inflation fell to 2.4% in September</p></div>
+      <div class="scale-row"><span>Section heading, 23px</span><p style="font-family:var(--serif);font-weight:700;font-size:23px">Economy</p></div>
+      <div class="scale-row"><span>Story headline, 18.5px</span><p style="font-family:var(--serif);font-weight:650;font-size:18.5px">The RBI held its repo rate and changed its stance to neutral</p></div>
+      <div class="scale-row"><span>Standfirst, 20px</span><p style="font-family:var(--serif);font-size:20px;line-height:1.45">The lowest rate since February 2021, according to the Bureau of Labor Statistics.</p></div>
+      <div class="scale-row"><span>Body, 17.5px</span><p style="font-family:var(--serif);font-size:17.5px;line-height:1.65">Total gross margin rose to 46.2% of net sales, from 44.1% a year earlier.</p></div>
+      <div class="scale-row"><span>Key figure, 28px</span><p style="font-weight:600;font-size:28px">$65.6bn</p></div>
+      <div class="scale-row"><span>Chart title, 18px</span><p style="font-weight:700;font-size:18px">Greater China was the only region where sales fell</p></div>
+      <div class="scale-row"><span>Fly title, 15px</span><p style="font-weight:600;font-size:15px;color:var(--brand)">India's monetary policy</p></div>
+      <div class="scale-row"><span>Label, 13.5px</span><p style="font-size:13.5px;color:var(--ink-2)">Net sales by reportable segment, US$ millions, as reported</p></div>
+      <div class="scale-row"><span>Source line, 12.5px</span><p style="font-size:12.5px;color:var(--ink-3)">Source: Apple Inc., Form 10-K for fiscal 2024, SEC EDGAR</p></div>
+    </div>
+  </section>
+
+  <section class="block" aria-labelledby="h-sig">
+    <h2 id="h-sig">Signatures</h2>
+    <p class="lede">The handful of elements that make a page recognisable at a glance. Everything else stays quiet.</p>
+    <div class="sigs">
+      <div class="sig">
+        <figure class="chart" style="padding-bottom:4px"><p class="c-title">The crimson rule and tag</p><p class="c-sub">Across the top of every chart and table</p></figure>
+        <p class="cap">1px crimson line with a 36×7px tag at the left</p>
+      </div>
+      <div class="sig">
+        <div><p class="fly">America's inflation</p><p style="margin:4px 0 0;font-family:var(--serif);font-weight:700;font-size:21px;line-height:1.2">Annual inflation fell to 2.4% in September</p></div>
+        <p class="cap">Fly title: 2–4 words naming the subject, above every headline</p>
+      </div>
+      <div class="sig">
+        <div class="spark"><b>2.4%</b><svg viewBox="0 0 240 60" aria-hidden="true"><polyline points="4,20 33,17 62,7 91,11 120,14 149,24 178,27 207,40 236,43" fill="none" stroke="var(--c-comparison)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="236" cy="43" r="4.5" fill="var(--c-highlight)"/></svg><span>12-month CPI change</span></div>
+        <p class="cap">Key figure with sparkline: latest point in crimson</p>
+      </div>
+      <div class="sig">
+        <div class="pop"><b>$391,035 million</b><span>Apple Inc. Form 10-K, fiscal 2024</span><span>Consolidated statements of operations</span><span>Retrieved 2 November 2024</span><a href="#h-sig">Open the source</a></div>
+        <p class="cap">Citation popover: tap or hover any figure</p>
+      </div>
+      <div class="sig">
+        <div class="note"><b>Why net income fell while sales rose</b><p>Apple recorded a one-time income tax charge of $10.2 billion following the European Commission's State Aid decision.</p><small>Context written by Claude from the 10-K. Figures are from the filing.</small></div>
+        <p class="cap">Note: commentary is always set apart from facts</p>
+      </div>
+      <div class="sig">
+        <blockquote class="quote"><p>"[T]he Committee decided to lower the target range for the federal funds rate by 1/2 percentage point to 4-3/4 to 5 percent."</p><cite>Federal Open Market Committee statement, 18 September 2024</cite></blockquote>
+        <p class="cap">Quote: short, primary sources only, always attributed</p>
+      </div>
+      <div class="sig">
+        <div class="badges"><span class="badge p">Primary</span><span class="badge">Filing</span><span class="badge">Peer-reviewed</span><span class="badge">Preprint</span><span class="badge c">Context</span></div>
+        <p class="cap">Source badges: words first, colour only reinforces</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" aria-labelledby="h-rules">
+    <h2 id="h-rules">Rules</h2>
+    <div class="rules">
+      <div class="rule-item"><b class="yes">Do</b><p>Write changes in words or signed figures: "Up 2.0%", "−5.7%".</p></div>
+      <div class="rule-item"><b class="no">Don't</b><p>Colour rises green or falls red. Crimson never means "down".</p></div>
+      <div class="rule-item"><b class="yes">Do</b><p>Give every chart a takeaway title and a subtitle with the unit.</p></div>
+      <div class="rule-item"><b class="no">Don't</b><p>Use pies, donuts, 3D, gauges or two y-axes.</p></div>
+      <div class="rule-item"><b class="yes">Do</b><p>Show numbers exactly as the source states them, in the original currency and fiscal period.</p></div>
+      <div class="rule-item"><b class="no">Don't</b><p>Convert currencies or units, or add precision the source doesn't have.</p></div>
+      <div class="rule-item"><b class="yes">Do</b><p>Structure pages with thin rules and spacing.</p></div>
+      <div class="rule-item"><b class="no">Don't</b><p>Add shadows, gradients, rounded cards, stock photos or animation.</p></div>
+      <div class="rule-item"><b class="yes">Do</b><p>Highlight one thing per chart and let the rest recede.</p></div>
+      <div class="rule-item"><b class="no">Don't</b><p>Use ALL-CAPS labels, emoji, or our own forecasts and opinions.</p></div>
+    </div>
+  </section>
+
+  <section class="block" aria-labelledby="h-files">
+    <h2 id="h-files">Where the full system lives</h2>
+    <div class="files">
+      <span><code>design/README.md</code> overview, decisions log and open items</span>
+      <span><code>design/tokens/tokens.json</code> every value; <code>tokens.css</code> is generated from it</span>
+      <span><code>design/principles.md</code>, <code>color.md</code>, <code>typography.md</code>, <code>layout.md</code>, <code>charts.md</code>, <code>components.md</code>, <code>content-style.md</code>, <code>accessibility.md</code></span>
+      <span><code>design/brand-skill.md</code> the short rule set for the page-writing agents</span>
+    </div>
+  </section>
+</main>
+
+<script>
+(function () {
+  var root = document.documentElement, btn = document.getElementById('theme');
+  function isDark() { var t = root.getAttribute('data-theme'); return t ? t === 'dark' : !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches); }
+  function label() { btn.textContent = isDark() ? 'Light mode' : 'Dark mode'; }
+  btn.addEventListener('click', function () { root.setAttribute('data-theme', isDark() ? 'light' : 'dark'); label(); });
+  label();
+})();
+</script>

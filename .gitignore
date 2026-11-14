@@ -1,0 +1,42 @@
+# Secrets and local config (never commit)
+.env
+.env.*
+!.env.example
+secrets/
+*.pem
+*.key
+.dev.vars
+.wrangler/
+
+# Pipeline working files (pruned after publish; see Technical Design)
+work/
+
+# Dependencies and build output
+node_modules/
+dist/
+.astro/
+target/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+
+# Python (Docling helper)
+__pycache__/
+.venv/
+
+# Local databases and data volumes
+*.sqlite
+*.sqlite3
+data/
+
+# Claude Code local files
+.claude/settings.local.json
+.claude/worktrees/
+
+# OS and editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
