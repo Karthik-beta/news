@@ -674,7 +674,7 @@ Headlines and summaries carry numbers only as `{ref}` tokens that the renderer f
 | C1 | Parse and render | OpenUI Lang parses; renderer returns HTML, Markdown, JSON | block |
 | C2 | References resolve | Every ref in `.oui`, headline and summary exists in `data.json` with a source | block |
 | C3 | Values match source | Each rendered value equals the data point's `value` through the shared formatter; derived values recomputed from inputs | block |
-| C4 | **Numeric-literal lint** | Model text contains no digit sequence at all, except an entity name containing digits that Roster resolved for this brief and a short allow-list (G7, G20, COVID-19, 5G …). Periods, years and dates are written only as `pd_…` references and rendered by code (§3.8), so there is no year exemption to misuse: "revenue was 2024 USD" is blocked whether or not 2024 is a period in the brief | block |
+| C4 | **Numeric-literal lint** | The lint first finds and removes the draft's reference tokens (`{dp_…}`, `pd_…` and the other five kinds, each validated against the brief by C2), then checks the remaining prose: it may contain no digit sequence at all, except an entity name containing digits that Roster resolved for this brief and a short allow-list (G7, G20, COVID-19, 5G …). Periods, years and dates are written only as `pd_…` references and rendered by code (§3.8), so there is no year exemption to misuse: "revenue was 2024 USD" is blocked whether or not 2024 is a period in the brief | block |
 | C5 | **Direction words** | A sentence pairing a change ref with a direction word ("rose", "fell", "cut", "raised", "unchanged" …, ~60 verbs) must agree with the sign of the value | block |
 | C6 | Quotes verbatim | Every quote is an exact substring of its text block | block |
 | C7 | Period and unit labels | Shown labels equal the source's period label and unit; fiscal labels as the company writes them | block |
@@ -1293,7 +1293,7 @@ Models: `NEWS_MODEL_MAIN` = Sonnet 5.5, `NEWS_MODEL_LIGHT` = Haiku 5.5, `NEWS_MO
 
 **Session permissions** (`.claude/settings.json`, project): allow `Bash(news *)` read and run-scoped commands and `Bash(bun pipeline/* --run *)`; deny `Bash(news publish *)`, `Bash(news home publish *)`, `Bash(news home rollback *)`, `Bash(news run approve *)` and H-tier commands for agents, so Karthik types those or confirms them at the prompt. (Command-text rules are guardrails; approval tokens are the enforcement.)
 
-**Common rules.** Only one active run per preset (`conflict` otherwise). Every preset starts with a preflight: services up (`bun run doctor`), no heavy dev job running, Sitrep not red for the sources it needs, AI budget headroom. Every preset ends with a Wrap written to `runs.summary` and ClickHouse.
+**Common rules.** Only one active run per preset (`conflict` otherwise). Every preset starts with a preflight: services up (`bun run doctor`), no heavy dev job running, Sitrep not red for the sources it needs, AI budget headroom. Diagnostic presets are exempt from the Sitrep check, because looking at red sources is their job: Rollcall's preflight checks only services and AI budget (and Salvage skips the Sitrep check for the sources it is retrying). Every preset ends with a Wrap written to `runs.summary` and ClickHouse.
 
 ### 8.2 Edition
 
