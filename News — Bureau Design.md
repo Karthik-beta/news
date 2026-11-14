@@ -345,7 +345,10 @@ create table data_points (
   dp_id        text primary key,     -- 'dp_' || base32(sha256(series_key|context_key|period|vintage))[0:16]
   context_key  text not null,        -- canonical identity context: sorted XBRL dimension=member pairs,
                                      -- unit, entity scheme, plus any source-specific identity fields
-                                     -- (e.g. SDMX key dimensions); '' when the fact has none. Two facts with
+                                     -- (SEC: the filing's accession number; SDMX: key dimensions);
+                                     -- '' when the fact has none. Two SEC filings filed the same day
+                                     -- therefore never share a dp_id; a restatement is a new dp_id
+                                     -- linked through supersedes. Two facts with
                                      -- the same series, period and filing but different contexts get different IDs.
   series_key   text not null,        -- 'xbrl:0000320193:us-gaap:Revenues', 'fred:CPIAUCSL', 'bls:CUUR0000SA0'
   entity_id    bigint references entities,
@@ -588,6 +591,7 @@ create table run_plans (           -- the Budget
     {"ref": "dv_3ab8", "label": "Change in the 12-month rate", "value": "-0.3", "unit": "pp", "derived": "pp_change"}
   ],
   "series": [{"ref": "sr_cpi_yoy_5y", "label": "CPI-U 12-month change, monthly, 2021–2026", "points": 60}],
+  "periods": [{"ref": "pd_2026_10", "label": "October 2026"}, {"ref": "pd_2021_03", "label": "March 2021"}],
   "context": [{"id": "cx_1", "text": "Lowest 12-month rate since March 2021", "rule": "series_min_since"}],
   "quotes": [{"id": "q_1", "doc": 5521, "block": 3, "text": "The index for shelter rose 0.2 percent in October…"}],
   "source_text": {"untrusted": true, "points": ["…"]},
@@ -599,7 +603,8 @@ create table run_plans (           -- the Budget
 ```
 
 - **Facts carry values** so the writer understands direction and size, but it may output only `ref` tokens. The numeric-literal lint enforces this (C4).
-- **Reference formats.** Fixer issues exactly five kinds of reference, all lower-case `prefix_body` with `_`-separated parts: `dp_…` (data point), `dv_…` (derived value), `sr_…` (series, e.g. `sr_cpi_yoy_5y`), `q_…` (quote) and `cx_…` (context line). The draft schema (§3.9) accepts these and nothing else, and C2 checks each one exists in this brief.
+- **Reference formats.** Fixer issues exactly six kinds of reference, all lower-case `prefix_body` with `_`-separated parts: `dp_…` (data point), `dv_…` (derived value), `sr_…` (series, e.g. `sr_cpi_yoy_5y`), `pd_…` (period label, e.g. `pd_2026_10` for "October 2026"), `q_…` (quote) and `cx_…` (context line). The draft schema (§3.9) accepts these and nothing else, and C2 checks each one exists in this brief.
+- **Periods are references too.** The writer never types a date or year: it writes `pd_…` and code renders the label from the brief, so C4 can forbid digits outright.
 - **Context lines are computed by code** ("lowest since …", "first cut since …", "record in the series"), each with the rule that produced it, so it can be re-checked. They are the news hooks the writer can use without inventing anything.
 - **Untrusted text is fenced**: source text sits under `source_text` with `"untrusted": true`, JSON-encoded; the writer's instructions say it is data, not instructions (§9.3).
 - **Component specs are pre-selected** by code from the page-type skill's typical layout and placed in the cached prefix, so the writer needs no tool calls (D4).
@@ -643,7 +648,7 @@ Why each flag [62][63][68]: `--tools ""` disables all built-in tools (`--allowed
     "fly_title": {"type": "string", "maxLength": 40},
     "summary":   {"type": "string", "minLength": 60, "maxLength": 240},
     "oui":       {"type": "string", "maxLength": 24000},
-    "refs_used": {"type": "array", "items": {"type": "string", "pattern": "^(dp|dv|sr|q|cx)_[a-z0-9]+(_[a-z0-9]+)*$"}},
+    "refs_used": {"type": "array", "items": {"type": "string", "pattern": "^(dp|dv|sr|pd|q|cx)_[a-z0-9]+(_[a-z0-9]+)*$"}},
     "components_used": {"type": "array", "items": {"type": "string"}},
     "angle": {"type": "string", "enum": ["latest-figure", "change", "composition", "trend", "decision", "finding", "comparison", "timeline"]}
   }
@@ -669,7 +674,7 @@ Headlines and summaries carry numbers only as `{ref}` tokens that the renderer f
 | C1 | Parse and render | OpenUI Lang parses; renderer returns HTML, Markdown, JSON | block |
 | C2 | References resolve | Every ref in `.oui`, headline and summary exists in `data.json` with a source | block |
 | C3 | Values match source | Each rendered value equals the data point's `value` through the shared formatter; derived values recomputed from inputs | block |
-| C4 | **Numeric-literal lint** | Model text contains no digit sequence except: a period label that appears verbatim in the brief (a year is allowed only as part of such a label, e.g. "October 2026", "Q4 FY26", or as a bare year that is itself a period label in the brief); an entity name containing digits that Roster resolved for this brief; and a short allow-list (G7, G20, COVID-19, 5G …). There is no blanket exemption for years, so "revenue was 2024 USD" is blocked | block |
+| C4 | **Numeric-literal lint** | Model text contains no digit sequence at all, except an entity name containing digits that Roster resolved for this brief and a short allow-list (G7, G20, COVID-19, 5G …). Periods, years and dates are written only as `pd_…` references and rendered by code (§3.8), so there is no year exemption to misuse: "revenue was 2024 USD" is blocked whether or not 2024 is a period in the brief | block |
 | C5 | **Direction words** | A sentence pairing a change ref with a direction word ("rose", "fell", "cut", "raised", "unchanged" …, ~60 verbs) must agree with the sign of the value | block |
 | C6 | Quotes verbatim | Every quote is an exact substring of its text block | block |
 | C7 | Period and unit labels | Shown labels equal the source's period label and unit; fiscal labels as the company writes them | block |
@@ -1271,7 +1276,7 @@ Models: `NEWS_MODEL_MAIN` = Sonnet 5.5, `NEWS_MODEL_LIGHT` = Haiku 5.5, `NEWS_MO
 
 ### 8.1 How every preset works
 
-**Entry.** Each preset is a project skill in `.claude/skills/<preset>/SKILL.md` with `disable-model-invocation: true`, so Karthik starts it with one slash command and it never loads into other sessions [65]. The skill is short (≈ 20 lines): start the run, loop on `next`, run Ghost when told, ask Karthik at approval stops, print the summary. All logic lives in the `news` CLI (Chief), so every preset is testable without AI (D2).
+**Entry.** There is exactly one user-invoked project skill, `.claude/skills/bureau/SKILL.md`, with `disable-model-invocation: true`, so Karthik starts everything with `/bureau` and it never loads into other sessions [65]. There are no per-preset skills or commands: presets are rows in Chief (code), and `/bureau curate home`, `/bureau run daily` and so on are arguments to the one skill. The skill is short: with no arguments it prints Chief's status board (`news run status`); otherwise it maps `<verb> <object>` (or plain English, confirmed before anything that writes) to a preset id, starts the run, loops on `next`, runs Ghost when told, asks Karthik at approval stops and prints the Wrap. Preset-specific guidance sits in `.claude/skills/bureau/references/<preset>.md` and is read only when that preset runs. All logic lives in the `news` CLI (Chief), so every preset is testable without AI (D2).
 
 ```
 /bureau run daily target=120
@@ -1288,7 +1293,7 @@ Models: `NEWS_MODEL_MAIN` = Sonnet 5.5, `NEWS_MODEL_LIGHT` = Haiku 5.5, `NEWS_MO
 
 **Session permissions** (`.claude/settings.json`, project): allow `Bash(news *)` read and run-scoped commands and `Bash(bun pipeline/* --run *)`; deny `Bash(news publish *)`, `Bash(news home publish *)`, `Bash(news home rollback *)`, `Bash(news run approve *)` and H-tier commands for agents, so Karthik types those or confirms them at the prompt. (Command-text rules are guardrails; approval tokens are the enforcement.)
 
-**Common rules.** Only one active run per preset (`conflict` otherwise). Every preset starts with a preflight: services up (`bun run doctor`), no heavy dev job running, «Source health» not red for the sources it needs, AI budget headroom. Every preset ends with a Wrap written to `runs.summary` and ClickHouse.
+**Common rules.** Only one active run per preset (`conflict` otherwise). Every preset starts with a preflight: services up (`bun run doctor`), no heavy dev job running, Sitrep not red for the sources it needs, AI budget headroom. Every preset ends with a Wrap written to `runs.summary` and ClickHouse.
 
 ### 8.2 Edition
 
