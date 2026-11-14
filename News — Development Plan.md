@@ -42,7 +42,7 @@ news/
 ├─ cli/                       Rust `news` CLI (Cargo workspace: core, connectors, commands)
 ├─ workers/                   Cloudflare Workers: api, search, mcp (site SSR lives in site/)
 ├─ pipeline/                  bun runner for `claude -p`, orchestration scripts
-├─ skills/                    page-type skills and the brand skill (from design/brand-skill.md)
+├─ skills/                    runtime skills for the page writers: news-brand and page-type skills
 ├─ dashboard/                 local telemetry dashboard (bun web app, localhost only)
 ├─ infra/                     docker-compose, ClickHouse schema, OTel config, DynamoDB/D1 setup
 ├─ .claude/agents/            sub-agent definitions (created in Phase 0)
@@ -109,6 +109,24 @@ Orchestrator ──brief──▶ Builder (own worktree, own branch)
 - Exploration of a large area goes to one read-only agent that reports conclusions.
 - Opus for judgement, Sonnet for volume. Don't use Opus to write the 40th connector; don't use Sonnet to decide an architecture.
 - When a plan usage limit is near, finish in-flight tasks, then pause; never start new fan-outs.
+
+### Skills and plugins
+
+Installed in the repo so every session and sub-agent gets them (see [skills/README.md](skills/README.md)).
+
+| Skill or plugin | Where | Loaded by |
+|---|---|---|
+| `news-design-system` | `.claude/skills/` | Every agent doing visual work |
+| `news-component-builder` | `.claude/skills/` | Opus component builders |
+| `news-component-testing` | `.claude/skills/` | Opus component testers only |
+| `news-subagent-workflow` | `.claude/skills/` | The orchestrator |
+| `news-review` | `.claude/skills/` | Opus reviewers |
+| `news-source-connector` | `.claude/skills/` | Connector builders (Sonnet) and their Opus reviewers |
+| `news-brand` and seven `page-*` skills | `skills/` | Production page calls only, not development sessions |
+| frontend-design, cloudflare, playwright, rust-analyzer-lsp, clickhouse-best-practices, databases-on-aws, coderabbit, context7 | Plugins, project scope (`.claude/settings.json`) | All development sessions |
+| dataviz (chart colour validation), skill-creator | Bundled with Claude Code | On demand |
+
+The TypeScript language-server plugin is added in Phase 0 once `site/` exists and `typescript-language-server` is installed.
 
 ## Quality gates (apply to every phase)
 
@@ -274,7 +292,7 @@ Screenshot baselines live in the repo; any diff fails the run and must be approv
 | Clustering and de-duplication (embeddings plus shared entities); choice of local ONNX embedding model, benchmarked on the laptop CPU | Opus spike agent |
 | Breadth-first selection with quotas; tier and indexing priority rules | Opus architect |
 | Research-pack format (the brief): fields, size budget (1–3k tokens), data IDs | Opus architect |
-| Page-type skills (earnings, macro, report, policy, news, science, explainer) and the brand skill from `design/brand-skill.md` | Opus (judgement and prose) |
+| Page-type skills (earnings, macro, report, policy, news, science, explainer) (drafts exist in `skills/`; finalise them) and the `news-brand` skill | Opus (judgement and prose) |
 
 Can start in parallel with late Phase 3 (no shared files).
 

@@ -115,4 +115,4 @@ WCAG 2.2 AA is the floor. Meaning never depends on colour alone. Every chart has
 | Words, numbers, dates, units | [content-style.md](content-style.md) |
 | Accessibility | [accessibility.md](accessibility.md) |
 | Tokens | [tokens/](tokens/) |
-| Rules for the page-writing agents | [brand-skill.md](brand-skill.md) |
+| Rules for the page-writing agents | [skills/news-brand](../skills/news-brand/SKILL.md) |

@@ -1,11 +1,11 @@
 ---
 name: news-brand
-description: Brand and layout rules for writing News pages in OpenUI Lang. Load before choosing components or writing any page text.
+description: "Brand and layout rules for writing News pages in OpenUI Lang. Load before choosing components or writing any page text."
 ---
 
 # News brand rules (for page-writing agents)
 
-Keep this file short: it sits in the cached prompt prefix of every page call. The full design documents are in `design/`; this is the part an agent needs while writing a page.
+Keep this file short: it sits in the cached prompt prefix of every page call. The full design documents are in `design/`; this is the part an agent needs while writing a page. Page-type skills in `skills/page-*` add the rules for each kind of page.
 
 ## Voice
 - Neutral, precise, plain. Report the source; never predict, recommend, rate or judge.

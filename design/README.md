@@ -35,7 +35,7 @@ It was chosen over five other directions after two rounds of side-by-side specim
 | [components.md](components.md) | Visual spec for every component family the library needs |
 | [content-style.md](content-style.md) | Headlines, fly titles, chart titles, numbers, units, dates, interface text |
 | [accessibility.md](accessibility.md) | WCAG 2.2 AA rules as they apply to this site, and testing |
-| [brand-skill.md](brand-skill.md) | The short rule set for the page-writing agents (cached prompt prefix) |
+| [../skills/news-brand/SKILL.md](../skills/news-brand/SKILL.md) | The short rule set for the page-writing agents (cached prompt prefix) |
 | [tokens/tokens.json](tokens/tokens.json) | **Source of truth** for every token (W3C design tokens format; dark values in `$extensions["news.dark"]`) |
 | [tokens/tokens.css](tokens/tokens.css) | CSS custom properties generated from `tokens.json`, light and dark |
 | [tokens/build.mjs](tokens/build.mjs) | Regenerates `tokens.css`: `bun design/tokens/build.mjs` or `node design/tokens/build.mjs` |
@@ -48,7 +48,7 @@ When documents disagree, `tokens.json` wins for values and `principles.md` wins 
 ## How the pieces fit the build plan
 
 1. **Component library (Opus 5.5).** Import `tokens.css`; implement each family in [components.md](components.md) and the chart types in [charts.md](charts.md). Every component reads tokens only.
-2. **Brand skill.** [brand-skill.md](brand-skill.md) becomes the skill the Sonnet page writers load. Keep it under about 1,000 words; it lives in the cached prefix.
+2. **Brand skill.** [skills/news-brand](../skills/news-brand/SKILL.md) is the skill the Sonnet page writers load. Keep it under about 1,000 words; it lives in the cached prefix.
 3. **Quality checks.** Add to `news check`: axe-core with no serious or critical violations in both themes; every chart has a title, subtitle, source line and data table; no literal colours in rendered pages; crimson not used for decreases.
 4. **Astro shell.** Self-host Literata and Fira Sans (see [typography.md](typography.md#loading-the-fonts)); build the masthead, footer, home, hub, entity, search and static templates from [layout.md](layout.md).
 
