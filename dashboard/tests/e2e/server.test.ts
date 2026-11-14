@@ -140,15 +140,24 @@ describe("dashboard server (real process)", () => {
       const code = await Promise.race([proc.exited, Bun.sleep(10_000).then(() => "timeout" as const)]);
       expect(code, `NEWS_DASHBOARD_PORT=${bad}`).not.toBe("timeout");
       expect(code, `NEWS_DASHBOARD_PORT=${bad}`).not.toBe(0);
+      // One readable line naming the variable, not a stack trace.
+      const stderr = (await new Response(proc.stderr).text()).trim();
+      expect(stderr, `NEWS_DASHBOARD_PORT=${bad}`).toContain("NEWS_DASHBOARD_PORT");
+      expect(stderr.split("\n"), `NEWS_DASHBOARD_PORT=${bad}`).toHaveLength(1);
     }
-  });
+  }, 30_000); // four process starts in a row; Bun's 5 s default is too tight on a busy machine
 
-  // BUG (reported, not fixed): an empty NEWS_DASHBOARD_PORT (e.g. `NEWS_DASHBOARD_PORT=` in .env) is read as
-  // Number("") === 0, so Bun picks a random port and the log line announces `http://127.0.0.1:0`. It should
-  // fall back to 4400 or fail. Flip to a plain `test` when it is fixed.
-  test.failing("an empty NEWS_DASHBOARD_PORT does not announce port 0", async () => {
+  test("an empty NEWS_DASHBOARD_PORT falls back to the default port 4400, not a random one", async () => {
     const proc = spawnDashboard("");
-    const announced = await waitForListening(proc);
-    expect(announced).not.toContain("127.0.0.1:0");
+    const result = await Promise.race([
+      waitForListening(proc).then((text) => ({ text })),
+      proc.exited.then((code) => ({ code })),
+    ]);
+    // 4400 may be taken on this machine; then the process must fail on 4400, never fall through to port 0.
+    if ("text" in result && result.text.includes("dashboard on")) {
+      expect(result.text).toContain("http://127.0.0.1:4400");
+    } else {
+      expect(await new Response(proc.stderr).text()).toMatch(/4400/);
+    }
   });
 });
