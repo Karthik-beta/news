@@ -5,32 +5,20 @@
 // 4. Installs JS dependencies, syncs design tokens, builds the Rust CLI.
 // 5. Runs the doctor with the end-to-end telemetry check.
 
-import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { getEnvValue, withLocalSecrets } from "./env-file";
 import { root, run } from "./lib";
 
 const envPath = join(root, ".env");
 const examplePath = join(root, ".env.example");
-const secret = () => randomBytes(24).toString("base64url");
 
-let text = existsSync(envPath) ? readFileSync(envPath, "utf8") : readFileSync(examplePath, "utf8");
-const get = (k: string) => text.match(new RegExp(`^${k}=(.*)$`, "m"))?.[1]?.trim() ?? "";
-const set = (k: string, v: string) => {
-  text = new RegExp(`^${k}=`, "m").test(text)
-    ? text.replace(new RegExp(`^${k}=.*$`, "m"), `${k}=${v}`)
-    : `${text.trimEnd()}\n${k}=${v}\n`;
-};
-
-if (!get("NEWS_PG_PASSWORD")) set("NEWS_PG_PASSWORD", secret());
-if (!get("NEWS_CH_PASSWORD")) set("NEWS_CH_PASSWORD", secret());
-if (!get("DATABASE_URL"))
-  set("DATABASE_URL", `postgres://news:${get("NEWS_PG_PASSWORD")}@127.0.0.1:${get("NEWS_PG_PORT") || "5433"}/news`);
+const text = withLocalSecrets(readFileSync(existsSync(envPath) ? envPath : examplePath, "utf8"));
 writeFileSync(envPath, text);
 console.log("✓ .env ready (local passwords generated where empty)");
 
 // Bun loaded .env before this script ran; reload values for the child processes.
-for (const k of ["NEWS_PG_PASSWORD", "NEWS_CH_PASSWORD", "DATABASE_URL"]) process.env[k] = get(k);
+for (const k of ["NEWS_PG_PASSWORD", "NEWS_CH_PASSWORD", "DATABASE_URL"]) process.env[k] = getEnvValue(text, k);
 
 const step = (label: string, cmd: string, args: string[], cwd = root) => {
   process.stdout.write(`… ${label}\n`);
