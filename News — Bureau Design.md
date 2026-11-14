@@ -270,7 +270,7 @@ create table fetch_state (                      -- one row per polled URL
 );
 ```
 
-**Retention** (proposed change: the TD prunes `work/raw/` after publish). Structured data (JSON, XBRL, CSV, SDMX) is kept 400 days, because it is small and is the proof behind every figure; HTML and PDF 90 days; the SHA-256, URL and locator for ever, so any figure can be re-fetched and re-verified. *(Speculative sizing: 1–3 GB a month compressed for structured data, 5–15 GB a month for PDFs and HTML; ~300 GB is free. Measured in Phase 5.)*
+**Retention** (proposed change: the TD prunes `work/raw/` after publish). Structured data (JSON, XBRL, CSV, SDMX) is kept 400 days, because it is small and is the proof behind every figure; HTML and PDF 90 days; the SHA-256, URL and locator for ever. A figure can be re-fetched and re-verified against the source only while the source still returns the same bytes; after a snapshot expires, a source that has since revised or reformatted its data cannot reproduce the original bytes, so the proof is lost even though the verbatim value stays in the Ledger. *(Speculative sizing: 1–3 GB a month compressed for structured data, 5–15 GB a month for PDFs and HTML; ~300 GB is free. Measured in Phase 5.)*
 
 **Discovery routes per source family** [18]–[38]:
 
@@ -342,7 +342,11 @@ create table calendar_events (
 
 ```sql
 create table data_points (
-  dp_id        text primary key,     -- 'dp_' || base32(sha256(series_key|period|vintage))[0:16]
+  dp_id        text primary key,     -- 'dp_' || base32(sha256(series_key|context_key|period|vintage))[0:16]
+  context_key  text not null,        -- canonical identity context: sorted XBRL dimension=member pairs,
+                                     -- unit, entity scheme, plus any source-specific identity fields
+                                     -- (e.g. SDMX key dimensions); '' when the fact has none. Two facts with
+                                     -- the same series, period and filing but different contexts get different IDs.
   series_key   text not null,        -- 'xbrl:0000320193:us-gaap:Revenues', 'fred:CPIAUCSL', 'bls:CUUR0000SA0'
   entity_id    bigint references entities,
   concept      text not null,        -- source's own concept or measure name
@@ -493,13 +497,14 @@ create index on entity_aliases using gin (alias_norm gin_trgm_ops);
 ```
 candidate ─▶ (1) exact duplicate?  content_sha seen in 30 days → drop (keep provenance link)
           ─▶ (2) near duplicate?   SimHash-64 Hamming ≤ 3 within 7 days → same document group
-          ─▶ (3) event key?        yes → story = that key's story (create if new). Done.
+          ─▶ (3) event key?        yes → story = that key's story (create if new); go to (5)
           ─▶ (4) no key (news, unstructured):
                  embed title + first ~400 tokens → nearest story centroids in a 72 h window (pgvector HNSW)
                  cos ≥ 0.82 and ≥ 1 shared resolved entity              → join
                  0.72 ≤ cos < 0.82, or ≥ 0.82 with no shared entity      → grey zone → A4 (Haiku, batched) or stay separate
                  cos < 0.72                                              → new story
-          ─▶ (5) existing page?   same event key, or cos ≥ 0.85 to a page from the last 30 days with a shared entity
+          ─▶ (5) existing page?   (every candidate that reaches a story runs this check, keyed or not)
+                                     same event key, or cos ≥ 0.85 to a page from the last 30 days with a shared entity
                                    → UPDATE candidate, not a new page
 ```
 
@@ -583,7 +588,7 @@ create table run_plans (           -- the Budget
     {"ref": "dv_3ab8", "label": "Change in the 12-month rate", "value": "-0.3", "unit": "pp", "derived": "pp_change"}
   ],
   "series": [{"ref": "sr_cpi_yoy_5y", "label": "CPI-U 12-month change, monthly, 2021–2026", "points": 60}],
-  "context": [{"id": "cx1", "text": "Lowest 12-month rate since March 2021", "rule": "series_min_since"}],
+  "context": [{"id": "cx_1", "text": "Lowest 12-month rate since March 2021", "rule": "series_min_since"}],
   "quotes": [{"id": "q_1", "doc": 5521, "block": 3, "text": "The index for shelter rose 0.2 percent in October…"}],
   "source_text": {"untrusted": true, "points": ["…"]},
   "media": {"images": [], "video": null},
@@ -594,6 +599,7 @@ create table run_plans (           -- the Budget
 ```
 
 - **Facts carry values** so the writer understands direction and size, but it may output only `ref` tokens. The numeric-literal lint enforces this (C4).
+- **Reference formats.** Fixer issues exactly five kinds of reference, all lower-case `prefix_body` with `_`-separated parts: `dp_…` (data point), `dv_…` (derived value), `sr_…` (series, e.g. `sr_cpi_yoy_5y`), `q_…` (quote) and `cx_…` (context line). The draft schema (§3.9) accepts these and nothing else, and C2 checks each one exists in this brief.
 - **Context lines are computed by code** ("lowest since …", "first cut since …", "record in the series"), each with the rule that produced it, so it can be re-checked. They are the news hooks the writer can use without inventing anything.
 - **Untrusted text is fenced**: source text sits under `source_text` with `"untrusted": true`, JSON-encoded; the writer's instructions say it is data, not instructions (§9.3).
 - **Component specs are pre-selected** by code from the page-type skill's typical layout and placed in the cached prefix, so the writer needs no tool calls (D4).
@@ -637,7 +643,7 @@ Why each flag [62][63][68]: `--tools ""` disables all built-in tools (`--allowed
     "fly_title": {"type": "string", "maxLength": 40},
     "summary":   {"type": "string", "minLength": 60, "maxLength": 240},
     "oui":       {"type": "string", "maxLength": 24000},
-    "refs_used": {"type": "array", "items": {"type": "string", "pattern": "^(dp|dv|sr|q|cx)_[a-z0-9]+$"}},
+    "refs_used": {"type": "array", "items": {"type": "string", "pattern": "^(dp|dv|sr|q|cx)_[a-z0-9]+(_[a-z0-9]+)*$"}},
     "components_used": {"type": "array", "items": {"type": "string"}},
     "angle": {"type": "string", "enum": ["latest-figure", "change", "composition", "trend", "decision", "finding", "comparison", "timeline"]}
   }
@@ -663,7 +669,7 @@ Headlines and summaries carry numbers only as `{ref}` tokens that the renderer f
 | C1 | Parse and render | OpenUI Lang parses; renderer returns HTML, Markdown, JSON | block |
 | C2 | References resolve | Every ref in `.oui`, headline and summary exists in `data.json` with a source | block |
 | C3 | Values match source | Each rendered value equals the data point's `value` through the shared formatter; derived values recomputed from inputs | block |
-| C4 | **Numeric-literal lint** | Model text contains no digit sequence except period labels that appear verbatim in the brief, years 1900–2100, entity names containing digits (from Roster), and a short allow-list (G7, G20, COVID-19, 5G …) | block |
+| C4 | **Numeric-literal lint** | Model text contains no digit sequence except: a period label that appears verbatim in the brief (a year is allowed only as part of such a label, e.g. "October 2026", "Q4 FY26", or as a bare year that is itself a period label in the brief); an entity name containing digits that Roster resolved for this brief; and a short allow-list (G7, G20, COVID-19, 5G …). There is no blanket exemption for years, so "revenue was 2024 USD" is blocked | block |
 | C5 | **Direction words** | A sentence pairing a change ref with a direction word ("rose", "fell", "cut", "raised", "unchanged" …, ~60 verbs) must agree with the sign of the value | block |
 | C6 | Quotes verbatim | Every quote is an exact substring of its text block | block |
 | C7 | Period and unit labels | Shown labels equal the source's period label and unit; fiscal labels as the company writes them | block |
@@ -717,7 +723,7 @@ create table page_refs (page_id text, version int, ref text, primary key (page_i
 
 **Publish interface** (contract with the cloud; same substance as the TD): `PUT /v1/pages/{page_id}` with an `Idempotency-Key` header (Stripe-style keys [6]); body = bundle manifest and files; response `{version, url, purged:[…]}`; `PUT /v1/home/curation` for curations. A token bucket below DynamoDB's 25 write units paces writes (default 5 pages/s, burst 10), and purges are batched.
 
-**Index budget.** Daily: rank published `noindex` pages by `index_priority = score + 10·[Tier 1] + uniqueness` (uniqueness = distinct data series and charts no indexed page has) and promote up to `NEWS_INDEX_PER_DAY`. Code only.
+**Index budget.** Daily: take published `noindex` pages, excluding any flagged `templated` (they stay `noindex` until a writer upgrades them, D10), rank them by `index_priority = score + 10·[Tier 1] + uniqueness` (uniqueness = distinct data series and charts no indexed page has) and promote up to `NEWS_INDEX_PER_DAY`. Code only.
 
 **Failure modes.** 5xx → retry with backoff (safe because of the idempotency key); 4xx validation → `bug` class, dead list; throttling → snooze the publish pool.
 
@@ -811,9 +817,11 @@ Weights live in a versioned config row (`scorer_version`), so every stored score
 adjusted(s) = S(s) · 0.92^n_cat(s) · 0.92^n_region(s) · 0.95^n_type(s) · 0.5^n_entity(s)
 ```
 
-where each `n` counts stories already picked this run in the same category, region, page type or main entity. Loop: pick the highest `adjusted`, update counts, recompute (a lazy max-heap keeps this fast). Stop when `NEWS_TARGET_PAGES` new pages are planned or the best `adjusted` < 35.
+where each `n` counts stories already picked this run in the same category, region, page type or main entity. A story can carry up to three categories (and several regions): its `n_cat(s)` is the **largest** count among its categories (likewise `n_region`), so it is penalised by its most-covered bucket, and picking it increments the count of every category and region it carries. Loop: pick the highest `adjusted`, update counts, recompute (a lazy max-heap keeps this fast).
 
-Hard limits: one category ≤ 35 % of a run; Tier 1 ≤ 20 % of a run (Tier 1 pages cost more tokens); one entity ≤ 2 stories per run.
+**Stopping.** `adjusted` only orders the candidates; it never stops the run. Stop when `NEWS_TARGET_PAGES` new pages are planned, or when no unpicked story with `S ≥ 40` (the Tier 2 floor) remains that the hard limits allow. *(An earlier draft stopped when the best `adjusted` fell below 35. With five categories that caps a run near 65 pages, since even a perfect story's 14th pick in one category is worth 100 × 0.92¹³ ≈ 33.8, so it could never reach the 100-page default.)*
+
+Hard limits: **category cap** = `max(2, ⌈0.35 · NEWS_TARGET_PAGES⌉)` stories per category (35 % of a run, at least 2), counted on each story's primary category; one entity ≤ 2 stories per run; **Tier 1 quota** = `max(1, ⌊0.20 · NEWS_TARGET_PAGES⌋)` pages (Tier 1 pages cost more tokens). A Tier 1 story picked after the quota is used is still planned, but written with Tier 2 treatment (planned tier 2); it is not dropped. A story the category or entity cap blocks is skipped this run and stays queued.
 
 **Tiers:** Tier 1 if `S ≥ 70`, or the main entity has prominence 1 and `S ≥ 60`; Tier 2 if `S ≥ 40`; otherwise stays *queued* (re-scored next run; freshness decays, so stale items fall away, and the Catchup workflow can pick them with F ignored).
 
@@ -842,16 +850,16 @@ Five stories in one run; coverage over the last 7 days: Economy 18 %, Finance 26
 
 Arithmetic for US CPI: `0.30·0.950 + 0.20·0.528 + 0.15·0.841 + 0.15·0.945 + 0.10·0.9 + 0.10·0.033 = 0.285 + 0.106 + 0.126 + 0.142 + 0.090 + 0.003 = 0.752`.
 
-**Selection with a target of 4**, adding a sixth story, US PPI (S = 70.0; Economy, North America, macro):
+**Selection with a target of 4**, adding a sixth story, US PPI (S = 70.0; Economy, North America, macro). Primary categories: CPI, IMF WEO, RBI and PPI are Economy; Apple is Finance; the preprint is Science. With a target of 4 the category cap is `max(2, ⌈0.35 · 4⌉)` = 2 and the Tier 1 quota is `max(1, ⌊0.20 · 4⌋)` = 1.
 
-| Pick | Chosen (adjusted) | Why the others moved |
-| --- | --- | --- |
-| 1 | US CPI (75.2) | — |
-| 2 | IMF WEO (72.5 × 0.92 = 66.7) | PPI now 70 × 0.92 × 0.92 × 0.95 = 56.3 (same category, region and type as CPI) |
-| 3 | Apple (66.6 × 0.92 = 61.3) | RBI 71.2 × 0.92² = 60.3 |
-| 4 | RBI (60.3) | PPI 47.6; arXiv 46.3 |
+| Pick | Chosen (adjusted) | Planned tier | Why the others moved |
+| --- | --- | --- | --- |
+| 1 | US CPI (75.2) | 1 (uses the Tier 1 quota) | — |
+| 2 | IMF WEO (72.5 × 0.92 = 66.7) | 2 (quota used) | PPI now 70 × 0.92 × 0.92 × 0.95 = 56.3 (same category, region and type as CPI) |
+| 3 | Apple (66.6 × 0.92 = 61.3, shares North America with CPI) | 2 (quota used) | Economy now has 2 = the cap, so RBI (would be 71.2 × 0.92² = 60.3) and PPI are blocked |
+| 4 | arXiv preprint (50.3 × 0.92 = 46.3, shares Global with IMF WEO) | 2 | Only unblocked story left |
 
-US PPI scores higher than Apple and RBI on its own, but the run is broader without it. The preprint misses this run, Science's coverage gap grows, and its G rises next time.
+The run stops at the target of 4, with every limit satisfied: Economy 2 of 4 (the cap), one Tier 1 page, no entity twice. RBI and US PPI each score higher than the preprint on their own, but the category cap keeps the run broad; both stay queued and are re-scored next run (Economy's coverage share rises, so its G falls). This table is the Phase 5 test fixture for Desk; the fixture also adds a target-10 case so the entity limit and a Tier 1 quota of 2 are exercised.
 
 ### 4.7 Calibration and tuning
 
@@ -943,23 +951,30 @@ create table pools (
 );
 ```
 
-**Claim** (one statement, safe with concurrent workers [1]):
+**Claim** (one short transaction, safe with concurrent workers [1]). `SKIP LOCKED` alone stops two workers taking the same job, but not two workers both seeing one free slot and each taking a different job, which would exceed `max_running`. So the claim first locks the pool's row, which serialises claimers per pool for the few milliseconds the claim takes; the capacity count is then exact:
 
 ```sql
+begin;
+-- 1. One claimer per pool at a time; others wait here briefly (they do not skip).
+select max_running, paused_until from pools where pool = $1 for update;
+-- 2. With the pool locked, the running count cannot change under us.
 with c as (
   select job_id from jobs
   where pool = $1 and state in ('available','scheduled','retryable','snoozed') and run_after <= now()
     and coalesce((select paused_until from pools where pool = $1), '-infinity') < now()
   order by priority, run_after, job_id
   for update skip locked
-  limit least($2, (select max_running from pools where pool=$1)
-                  - (select count(*) from jobs where pool=$1 and state='running'))
+  limit greatest(0, least($2, (select max_running from pools where pool = $1)
+                             - (select count(*) from jobs where pool = $1 and state = 'running')))
 )
 update jobs j set state = 'running', attempt = j.attempt + 1,
                   lease_until = now() + $3::interval, locked_by = $4
 from c where j.job_id = c.job_id
 returning j.*;
+commit;
 ```
+
+**Releasing a slot.** Capacity is counted from jobs in state `running`, so a slot frees itself the moment a job leaves that state: completion, failure, snooze or cancel each update the job's state in their own transaction. The lease reaper, which moves `running` jobs whose `lease_until` has passed back to `retryable`, takes the same pool lock first, so an expired job's slot and a new claim never race. No separate counter exists, so there is nothing to drift.
 
 **State machine.**
 
@@ -1208,7 +1223,7 @@ Models: `NEWS_MODEL_MAIN` = Sonnet 5.5, `NEWS_MODEL_LIGHT` = Haiku 5.5, `NEWS_MO
 | **A5** | Condense long source text for a brief | Haiku | Text blocks with IDs (fenced, untrusted) + page type + what the brief needs | `{"points": [{"text": str ≤ 200, "support": [block_id]}], "quotes": [{"block": id, "start": int, "end": int}]}` | No digits in `text`; every `support` and quote offset exists; quotes are spans of real blocks; ≤ 12 points | Code extract: first paragraph + headings + sentences with entity mentions | 1 turn; ≤ 1.5k output | ~10–20 |
 | **A6** | Pick an entity from a shortlist (optional, off by default) | Haiku | Mention + context sentence + ≤ 5 candidate entities from code | `{"choice": entity_id \| "none"}` | Choice ∈ shortlist ∪ {none} | Leave unresolved | Batched 30/call | 0–2 calls |
 | **A7** | Sample spot check | Haiku | Page Markdown + brief | `{"verdict": "pass"\|"flag", "issues": [{"kind": enum["unsupported_claim","wrong_direction","missing_context","tone","attribution","other"], "where": str ≤ 120, "evidence": [ref or block_id], "severity": "low"\|"high"}]}` | Kinds from enum; `where` must be a substring of the page; evidence IDs exist | Skip sample (logged) | 1 turn | ~5 (+ all Tier 1 in month 1) |
-| **A8** | Home curation (`curate-home`) | Sonnet (curator) | ≤ 40 candidates from `news home candidates` | TD curation JSON (lead, sides, sections, figure IDs, rationale) | `news home check` (TD rules) | Keep the live curation | ≤ 2 fix rounds | Every 2–3 days |
+| **A8** | Home curation (Frontpage) | Sonnet (curator) | ≤ 40 candidates from `news home candidates` | TD curation JSON (lead, sides, sections, figure IDs, rationale) | `news home check` (TD rules) | Keep the live curation | ≤ 2 fix rounds | Every 2–3 days |
 | **A9** | Triage a reader error report | Haiku | Report text (fenced, untrusted) + page refs and labels | `{"kind": enum["figure","wording","link","image","other","spam"], "ref": ref\|null, "claim": str ≤ 200}` | `ref` must belong to the page | Manual triage in the workflow | Batched 20/call | Weekly |
 | **A10** | Alt text when the image source gives none (optional) | Haiku | Image caption, title, credit, page context (text only; no image download) | `{"alt": str 20–150}` | No digits unless in the caption; length | Neutral alt from caption or title | Batched | Rare |
 | **A11** | Preset session (the interactive orchestrator) | Session model (Sonnet recommended) | Compact JSON from `news run next` | Free text to Karthik; tool calls limited to the preset's commands | Approval tokens enforced by code | Karthik runs the CLI by hand | Small: no page content ever enters it | Per preset |
@@ -1320,11 +1335,11 @@ Models: `NEWS_MODEL_MAIN` = Sonnet 5.5, `NEWS_MODEL_LIGHT` = Haiku 5.5, `NEWS_MO
 | **Failure** | Chunk-level progress; per-item failures to the dead list; stops cleanly at the token budget |
 | **Resume** | Re-run the command with `resume`; the next unfinished chunk continues. Backfill jobs use priority 4 so a daily run can interleave |
 
-### 8.5 `curate-home` (Frontpage, existing name)
+### 8.5 Frontpage (home curation; was the TD's `curate-home`)
 
 | | |
 | --- | --- |
-| **Trigger** | `/curate-home`, every 2–3 days (TD "Home page curation") |
+| **Trigger** | `/bureau curate home`, every 2–3 days (TD "Home page curation") |
 | **Steps** | 1 `news home candidates` (code, §4.5) → 2 Curator (A8, `news-home-curation` skill) → 3 `news home save` + `check` (code; up to two fix rounds with the curator) → 4 `news home preview` (code; light and dark, phone and desktop) → 5 **Approval** → 6 `news home publish` (gated) → 7 Summary |
 | **Approval** | Step 5: approve, request changes (back to step 2 with Karthik's note), or reject |
 | **Failure** | Check failures after two rounds → stop and show errors; the live curation stays |
@@ -1554,7 +1569,7 @@ Mapped onto the Development Plan. Agent choices follow its rules (Opus for judge
 | 7 Orchestration | Lean-call spike: confirm flags (§3.9), cache TTL and hit ratio, usage-limit error shape | Opus spike | Findings in an ADR |
 | 7 | Ghost (Bun): claim, spawn, env allow-list, validation, heartbeats, pause on limits | Sonnet; Opus review | Fake-`claude` tests |
 | 7 | Runtime skills and prefixes: A1/A2 prompts, A3–A7, A9 skills | Opus (judgement and prose) | G1, G2, G6 pass |
-| 7 | Preset skills: Edition, Flash, `curate-home`, Salvage, Audit | Opus (orchestration), Sonnet glue | Karthik runs each once |
+| 7 | Preset skills: Edition, Flash, Frontpage, Salvage, Audit | Opus (orchestration), Sonnet glue | Karthik runs each once |
 | 7 | First 10-page run, then 100 | Orchestrator with Karthik | 100 pages pass checks |
 | 8 Telemetry | ClickHouse columns and tables, traces, dashboard panels (§9.2) | Sonnet; Opus review | Panels show a real run |
 | 9 Launch and ramp | Huddle, calibration, Rollcall, Errata, Catchup, Followup, Reprint | Sonnet builders, Opus review | First weekly review completed |
@@ -1637,7 +1652,7 @@ Proposed only; nothing has been edited.
 | TD | Security | — | Approval tokens for gated commands; env allow-list for `claude -p`; Docling without network | Least privilege |
 | PRD | Content production, step 2 | "scores, clusters and selects" | No change in substance; add that releases are captured on schedule by code from official calendars | Clarity |
 | PRD | Trust and editorial; methodology | "Numbers come from data" | Add that some figures (changes, shares) are calculated by News from source figures and labelled as such (D5) | Honesty about derived figures |
-| Development Plan | Repository tree; Phase 7 | `.claude/workflows/` for presets, starting with `curate-home` | Presets as user-invoked skills in `.claude/skills/` driving `news run`; `.claude/workflows/` optional for fan-out | D2 |
+| Development Plan | Repository tree; Phase 7 | `.claude/workflows/` for presets, starting with `curate-home` | One user-invoked skill, `/bureau`, in `.claude/skills/` driving `news run` (no per-preset commands; `curate-home` becomes `/bureau curate home`); `.claude/workflows/` optional for fan-out | D2 |
 | Development Plan | Phase 4 | Work list | Add ADRs listed in §10, the embedding spike's measurements, golden-set labelling (G2, G3, G7) | Build order |
 | Development Plan | Phase 5 | Work list | Add Dispatch, Chief, Runner, Morgue, Diary, Fixer, Ghost tools validators | Build order |
 | Development Plan | Phase 7 | Work list | Add the lean-call spike, Ghost env allow-list and pause-on-limit, golden sets G1/G6, the Audit workflow | Build order |
@@ -1687,7 +1702,7 @@ The system as a whole is **Bureau** (named). Below is every working label used i
 | Edition | Main production preset (`/bureau run daily`) | Workflow | §2, §8.2 and throughout | Edition |
 | Flash | Preset for a few named items now (`/bureau run quick`) | Workflow | §8.3 | Flash |
 | Catchup | Preset for current-year backfill (`/bureau run backfill`) | Workflow | §4.4, §8.4 | Catchup |
-| Frontpage | Label for the existing `curate-home` (`/curate-home`) | Workflow (existing name) | §8.5 | Frontpage |
+| Frontpage | Home curation preset, started with `/bureau curate home` (was the TD's `curate-home`) | Workflow | §8.5 | Frontpage |
 | Rollcall | Preset for source checks and fixes (`/bureau check sources`) | Workflow | §3.1, §3.2, §8.6 | Beatcheck |
 | Salvage | Preset for dead jobs and replays (`/bureau retry`) | Workflow | §3.4, §5.4, §5.9, §8.7 | Salvage |
 | Followup | Preset (and daily step) for source revisions (`/bureau apply revisions`) | Workflow | §8.8 | Update |
@@ -1707,7 +1722,7 @@ The system as a whole is **Bureau** (named). Below is every working label used i
 | Huddle tools | `news review`: weekly | Tool family | §6.4, §8.11 | Huddle |
 | Errata tools | `news corrections`: pull, show, resolve | Tool family | §6.4, §8.9 | Corrigenda |
 | `news` CLI and its TD commands (`discover`, `plan`, `fetch`, `parse`, `brief`, `components`, `component`, `related`, `save`, `render`, `check`, `publish`, `update`, `prune`, `stats`, `home …`) | The agent toolbox | Tool family (existing) | §3, §6.4 | keep |
-| `curate-home` | Home curation preset command | Workflow command (existing) | §8.5 | keep |
+| `curate-home` | Former name of the home curation workflow; replaced by Frontpage and `/bureau curate home` | Retired name | §8.5 | retired |
 | `news-home-curation` | Curator skill | Runtime skill (existing, planned) | §7.1, §8.5 | keep |
 | `news-brand`, `page-earnings`, `page-macro-release`, `page-major-report`, `page-policy-decision`, `page-news-story`, `page-science`, `page-explainer` | Page-writer skills | Runtime skills (existing) | §3.9 | keep |
 | Brief | The research pack | Artefact (existing TD term) | §3.8 | keep |
@@ -1716,7 +1731,7 @@ The system as a whole is **Bureau** (named). Below is every working label used i
 
 | Command | Starts or does |
 | --- | --- |
-| `/bureau run daily`, `/bureau run quick`, `/bureau run backfill`, `/curate-home`, `/bureau check sources`, `/bureau retry`, `/bureau apply revisions`, `/bureau review corrections`, `/bureau run evals`, `/bureau review week`, `/bureau rerender pages` | The preset workflows (§8), as user-invoked skills |
+| `/bureau run daily`, `/bureau run quick`, `/bureau run backfill`, `/bureau curate home`, `/bureau check sources`, `/bureau retry`, `/bureau apply revisions`, `/bureau review corrections`, `/bureau run evals`, `/bureau review week`, `/bureau rerender pages` | The preset workflows (§8), as user-invoked skills |
 | `news run …`, `news jobs …`, `news ai …`, `news sources …`, `news calendar …`, `news stories …`, `news scores …`, `news entities …`, `news eval …`, `news review …`, `news corrections …`, `news work`, `news schema` | New `news` CLI command groups (§6) |
 | `bun pipeline/run-ai.ts --run <id>` | Ghost for one run's AI batch |
 
