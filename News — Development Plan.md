@@ -158,12 +158,12 @@ The phases follow the Technical Design's build plan. Each starts when the previo
 
 | Work | Agent | Notes |
 |---|---|---|
-| Git repo, `.gitignore`, `.gitattributes`, CodeRabbit config, GitHub remote, branch protection | Orchestrator | **Done** (14 Nov 2026) except branch protection, which needs the first CI run |
+| Git repo, `.gitignore`, `.gitattributes`, CodeRabbit config, GitHub remote, branch protection | Orchestrator | **Done** (14 Nov 2026), including branch protection on `main` (PRs only, CI checks required) |
 | `.claude/agents/` role definitions and a short project `CLAUDE.md` | Opus architect | **Done** (10 roles) |
 | Monorepo skeleton: `site/` (Bun + Astro + React), `cli/` (Cargo workspace), `workers/`, `pipeline/`, `dashboard/`, `infra/` | Sonnet feature builder | **Done**: builds, typechecks and tests pass |
 | `infra/docker-compose.yml`: PostgreSQL + pgvector, OTel Collector | Sonnet feature builder | **Done**: PostgreSQL on 5433, collector on 4317/4318 |
 | ClickHouse: `news` database, `news` user, settings profile and quota on the shared container | Sonnet feature builder, Opus review | **Done**; `bun run doctor -- --e2e` proves events reach ClickHouse |
-| CI workflow (fast suite skeleton), then branch protection on `main` | Sonnet feature builder | Workflow written; first run and protection pending a push |
+| CI workflow (fast suite skeleton), then branch protection on `main` | Sonnet feature builder | **Done** (14 Nov 2026): first run green on `main`; protection on. Full test workflow in progress (`phase-0/testing`) |
 | Cloudflare and AWS accounts, budget alarms, least-privilege keys | **Karthik** (manual) | Agents never create accounts or handle credentials; Karthik puts keys in the local secrets file |
 | Secrets handling: `.env.example`, local secrets file loader, gitleaks pre-commit hook | Sonnet feature builder, Opus security review | `.env.example` and generated local `.env` done; gitleaks runs in CI, local hook pending |
 
@@ -408,7 +408,8 @@ The home page is dynamic and curated by an agent every 2–3 days, when Karthik 
 - [x] Phase 2: design system agreed and documented
 - [x] Git repository, CodeRabbit config (light review), GitHub remote
 - [x] Phase 0: agent definitions, monorepo skeleton, local services, ClickHouse `news` database, `.env` handling
-- [ ] Phase 0: first CI run and branch protection; Cloudflare and AWS accounts (Karthik); local gitleaks hook
+- [x] Phase 0: first CI run and branch protection
+- [ ] Phase 0: Cloudflare and AWS accounts (Karthik); local gitleaks hook
 - [ ] Phase 1: OpenUI server-rendering spike and ADR
 - [ ] Phase 3.1: foundations
 - [ ] Phase 3.2–3.3: component families and specs (including the home-page components)
