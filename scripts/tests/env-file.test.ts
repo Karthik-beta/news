@@ -62,6 +62,13 @@ describe("setEnvValue", () => {
   test("preserves CRLF line endings on the lines around the change", () => {
     expect(setEnvValue("A=1\r\nB=2\r\n", "A", "9")).toBe("A=9\r\nB=2\r\n");
   });
+
+  test("writes `$` patterns in the value literally, both when replacing and when appending", () => {
+    for (const value of ["a$&b", "a$$b", "a$1b", "a$`b", "a$'b", "$<x>"]) {
+      expect(setEnvValue("A=1\nK=old\nB=2\n", "K", value)).toBe(`A=1\nK=${value}\nB=2\n`);
+      expect(setEnvValue("A=1\n", "K", value)).toBe(`A=1\nK=${value}\n`);
+    }
+  });
 });
 
 describe("newSecret", () => {
@@ -132,12 +139,25 @@ describe("withLocalSecrets", () => {
     expect(other(out)).toEqual(other(example));
   });
 
-  // BUG (reported, not fixed): setEnvValue passes the value to String.replace as a replacement string, so
-  // `$&`, `$$`, `$1` and friends in a hand-written password are expanded and the generated DATABASE_URL
-  // no longer contains the password. Flip to a plain `test` when it is fixed.
-  test.failing("a password containing `$&` ends up unchanged in DATABASE_URL", () => {
+  test("a password containing `$&` survives into DATABASE_URL (percent-encoded) and decodes back", () => {
     const out = withLocalSecrets("NEWS_PG_PASSWORD=ab$&cd\nNEWS_CH_PASSWORD=x\nDATABASE_URL=\n");
-    expect(getEnvValue(out, "DATABASE_URL")).toBe("postgres://news:ab$&cd@127.0.0.1:5433/news");
+    const url = getEnvValue(out, "DATABASE_URL");
+    expect(url).toBe("postgres://news:ab%24%26cd@127.0.0.1:5433/news");
+    expect(decodeURIComponent(new URL(url).password)).toBe("ab$&cd");
+  });
+
+  test("URL-special characters in the password are percent-encoded so the URL still parses", () => {
+    const pw = "p@ss:w/rd?#%x y$$";
+    const out = withLocalSecrets(`NEWS_PG_PASSWORD=${pw}\nNEWS_CH_PASSWORD=x\nDATABASE_URL=\n`);
+    const url = new URL(getEnvValue(out, "DATABASE_URL"));
+    expect(url.protocol).toBe("postgres:");
+    expect(url.username).toBe("news");
+    expect(decodeURIComponent(url.password)).toBe(pw);
+    expect(url.hostname).toBe("127.0.0.1");
+    expect(url.port).toBe("5433");
+    expect(url.pathname).toBe("/news");
+    // The password itself is left exactly as written.
+    expect(getEnvValue(out, "NEWS_PG_PASSWORD")).toBe(pw);
   });
 });
 

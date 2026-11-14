@@ -9,10 +9,11 @@ export function getEnvValue(text: string, key: string): string {
   return text.match(new RegExp(`^${key}=(.*)$`, "m"))?.[1]?.trim() ?? "";
 }
 
-/** Set `KEY=value`: replaces the first existing line, otherwise appends one. */
+/** Set `KEY=value`: replaces the first existing line, otherwise appends one. The value is written literally. */
 export function setEnvValue(text: string, key: string, value: string): string {
   return new RegExp(`^${key}=`, "m").test(text)
-    ? text.replace(new RegExp(`^${key}=.*$`, "m"), `${key}=${value}`)
+    ? // A function replacer, so `$&`, `$$` and friends in the value are not expanded.
+      text.replace(new RegExp(`^${key}=.*$`, "m"), () => `${key}=${value}`)
     : `${text.trimEnd()}\n${key}=${value}\n`;
 }
 
@@ -23,11 +24,9 @@ export function withLocalSecrets(text: string, secret: () => string = newSecret)
   if (!getEnvValue(out, "NEWS_CH_PASSWORD")) out = setEnvValue(out, "NEWS_CH_PASSWORD", secret());
   if (!getEnvValue(out, "DATABASE_URL")) {
     const port = getEnvValue(out, "NEWS_PG_PORT") || "5433";
-    out = setEnvValue(
-      out,
-      "DATABASE_URL",
-      `postgres://news:${getEnvValue(out, "NEWS_PG_PASSWORD")}@127.0.0.1:${port}/news`,
-    );
+    // Percent-encode the password so `@`, `/`, `:`, `#` and the like cannot break the URL.
+    const password = encodeURIComponent(getEnvValue(out, "NEWS_PG_PASSWORD"));
+    out = setEnvValue(out, "DATABASE_URL", `postgres://news:${password}@127.0.0.1:${port}/news`);
   }
   return out;
 }
