@@ -292,18 +292,21 @@ fn objects_land_in_the_test_schema_not_public() {
     let schema = db.schema.clone();
     // Compare public before and after rather than assuming it has no `probe`: another suite or a
     // developer's own table must not fail this test, and only this test's schema is inspected.
-    let public_before = db.scalar("SELECT to_regclass('public.probe')::text");
+    // Compare OIDs, not regclass text: the text form gains a `public.` prefix once our own
+    // `probe` shadows it in search_path, even though public.probe itself is unchanged.
+    let public_before = db.scalar("SELECT to_regclass('public.probe')::oid::text");
     db.client
         .batch_execute("CREATE TABLE probe (id int)")
         .unwrap();
     assert_eq!(
         db.scalar(&format!(
-            "SELECT count(*)::text FROM information_schema.tables              WHERE table_schema = '{schema}' AND table_name = 'probe'"
+            "SELECT count(*)::text FROM information_schema.tables \
+             WHERE table_schema = '{schema}' AND table_name = 'probe'"
         )),
         "1"
     );
     assert_eq!(
-        db.scalar("SELECT to_regclass('public.probe')::text"),
+        db.scalar("SELECT to_regclass('public.probe')::oid::text"),
         public_before
     );
 }
