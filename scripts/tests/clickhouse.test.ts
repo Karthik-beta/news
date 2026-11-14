@@ -44,11 +44,11 @@ describe("renderAccessSql", () => {
     expect(renderAccessSql(`BY '${PASSWORD_PLACEHOLDER}'`, "{{x}}")).toBe("BY '{{x}}'");
   });
 
-  // BUG (reported, not fixed): replaceAll interprets `$` patterns in its replacement string, so a password
-  // containing `$&`, `$$` or `` $` `` is silently altered in the SQL while .env keeps the original, and the
-  // user can then not log in. Generated passwords are base64url, so only hand-set ones are affected.
-  test.failing("a password containing `$&` or `$$` reaches the SQL unchanged", () => {
-    expect(renderAccessSql(`BY '${PASSWORD_PLACEHOLDER}'`, "a$&b$$c")).toBe("BY 'a$&b$$c'");
+  test("a password containing `$` patterns reaches the SQL exactly as in .env", () => {
+    for (const pw of ["a$&b$$c", "a$`b", "$1$<x>", "$$"]) {
+      expect(renderAccessSql(`BY '${PASSWORD_PLACEHOLDER}'`, pw)).toBe(`BY '${pw}'`);
+      expect(passwordProblem(pw)).toBeUndefined();
+    }
   });
 });
 
