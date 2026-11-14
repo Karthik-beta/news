@@ -15,6 +15,10 @@ all-features = true
 # an ignore needs an id and a reason, and an expiry in the reason text.
 version = 2
 yanked = "deny"
+# The version-2 defaults only fail unmaintained/unsound crates that are direct workspace
+# dependencies; "all" applies the policy above to transitive dependencies too.
+unmaintained = "all"
+unsound = "all"
 ignore = []
 
 [licenses]

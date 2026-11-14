@@ -32,7 +32,9 @@ export function hostPort(url: string): { host: string; port: number } | undefine
   try {
     const u = new URL(url);
     if (!/^postgres(ql)?:$/.test(u.protocol) || !u.hostname) return undefined;
-    return { host: u.hostname.replace(/^\[|\]$/g, ""), port: u.port ? Number(u.port) : 5432 };
+    // libpq and the Rust driver honour `?port=` over the authority port, so the preflight does too.
+    const port = u.searchParams.get("port") || u.port || "5432";
+    return { host: u.hostname.replace(/^\[|\]$/g, ""), port: Number(port) };
   } catch {
     return undefined;
   }

@@ -289,19 +289,22 @@ fn unaccent_folds_diacritics_and_handles_edge_cases() {
 #[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
 fn objects_land_in_the_test_schema_not_public() {
     let mut db = TestDb::new();
+    let schema = db.schema.clone();
+    // Compare public before and after rather than assuming it has no `probe`: another suite or a
+    // developer's own table must not fail this test, and only this test's schema is inspected.
+    let public_before = db.scalar("SELECT to_regclass('public.probe')::text");
     db.client
         .batch_execute("CREATE TABLE probe (id int)")
         .unwrap();
-    let schema = db.schema.clone();
     assert_eq!(
-        db.scalar(
-            "SELECT table_schema::text FROM information_schema.tables WHERE table_name = 'probe'"
-        ),
-        schema
+        db.scalar(&format!(
+            "SELECT count(*)::text FROM information_schema.tables              WHERE table_schema = '{schema}' AND table_name = 'probe'"
+        )),
+        "1"
     );
     assert_eq!(
         db.scalar("SELECT to_regclass('public.probe')::text"),
-        "<NULL>"
+        public_before
     );
 }
 
@@ -315,7 +318,9 @@ fn schemas_are_isolated_from_each_other() {
         .batch_execute("CREATE TABLE t (n int); INSERT INTO t VALUES (1), (2)")
         .unwrap();
     // The same table name in the other schema is independent, and is invisible until created.
-    assert_eq!(b.scalar("SELECT to_regclass('t')::text"), "<NULL>");
+    // Schema-qualified: an unqualified 't' could resolve to a `public.t` through search_path.
+    let b_t = format!("SELECT to_regclass('{}.t')::text", b.schema);
+    assert_eq!(b.scalar(&b_t), "<NULL>");
     b.client
         .batch_execute("CREATE TABLE t (n int); INSERT INTO t VALUES (10)")
         .unwrap();

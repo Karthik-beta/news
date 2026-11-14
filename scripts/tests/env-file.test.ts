@@ -30,6 +30,19 @@ describe("getEnvValue", () => {
     expect(getEnvValue("K=first\nK=second\n", "K")).toBe("first");
   });
 
+  test("strips one pair of matching surrounding quotes, like Compose and Bun", () => {
+    expect(getEnvValue('P="keep-pg"\n', "P")).toBe("keep-pg");
+    expect(getEnvValue("P='keep-ch'\n", "P")).toBe("keep-ch");
+    expect(getEnvValue('P=""\n', "P")).toBe("");
+    expect(getEnvValue("P=\"mismatched'\n", "P")).toBe("\"mismatched'");
+    expect(getEnvValue('P=a"b"\n', "P")).toBe('a"b"');
+  });
+
+  test("a quoted password reaches DATABASE_URL without its quotes", () => {
+    const out = withLocalSecrets('NEWS_PG_PASSWORD="keep-pg"\nNEWS_CH_PASSWORD=x\nDATABASE_URL=\n');
+    expect(getEnvValue(out, "DATABASE_URL")).toBe("postgres://news:keep-pg@127.0.0.1:5433/news");
+  });
+
   test("handles Windows line endings without leaking a carriage return", () => {
     expect(getEnvValue("A=1\r\nB=2\r\n", "A")).toBe("1");
     expect(getEnvValue("A=1\r\nB=2\r\n", "B")).toBe("2");

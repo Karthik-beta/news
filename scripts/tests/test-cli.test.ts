@@ -48,6 +48,11 @@ describe("hostPort", () => {
     expect(hostPort("postgresql://u@db.internal/news")).toEqual({ host: "db.internal", port: 5432 });
   });
 
+  test("a ?port= query parameter wins over the authority port, as the Rust driver does", () => {
+    expect(hostPort("postgres://u:p@127.0.0.1/db?port=5433")).toEqual({ host: "127.0.0.1", port: 5433 });
+    expect(hostPort("postgres://u:p@127.0.0.1:6000/db?port=5433")).toEqual({ host: "127.0.0.1", port: 5433 });
+  });
+
   test("handles IPv6 literals", () => {
     expect(hostPort("postgres://u:p@[::1]:6000/db")).toEqual({ host: "::1", port: 6000 });
   });

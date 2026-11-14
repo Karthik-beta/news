@@ -4,9 +4,15 @@ import { randomBytes } from "node:crypto";
 /** A URL-safe random secret for local passwords (base64url, 32 characters). */
 export const newSecret = () => randomBytes(24).toString("base64url");
 
-/** Value of `KEY=value` in dotenv text ("" when the key is missing or empty). First match wins. */
+/**
+ * Value of `KEY=value` in dotenv text ("" when the key is missing or empty). First match wins.
+ * One pair of matching surrounding quotes is removed, as Docker Compose and Bun do, so
+ * `KEY="x"` and `KEY='x'` both read as `x`.
+ */
 export function getEnvValue(text: string, key: string): string {
-  return text.match(new RegExp(`^${key}=(.*)$`, "m"))?.[1]?.trim() ?? "";
+  const raw = text.match(new RegExp(`^${key}=(.*)$`, "m"))?.[1]?.trim() ?? "";
+  const quoted = raw.length >= 2 && (raw[0] === '"' || raw[0] === "'") && raw.at(-1) === raw[0];
+  return quoted ? raw.slice(1, -1) : raw;
 }
 
 /** Set `KEY=value`: replaces the first existing line, otherwise appends one. The value is written literally. */
