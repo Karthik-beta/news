@@ -23,7 +23,13 @@ for (const k of [
   "NEWS_DYNAMODB_ACCESS_KEY_ID",
   "NEWS_DYNAMODB_SECRET_ACCESS_KEY",
 ]) {
-  if (!getEnvValue(text, k)) text = setEnvValue(text, k, getEnvValue(example, k));
+  if (getEnvValue(text, k)) continue;
+  // A missing endpoint follows the configured port, so a custom NEWS_DYNAMODB_PORT stays reachable.
+  const value =
+    k === "NEWS_DYNAMODB_ENDPOINT"
+      ? `http://127.0.0.1:${getEnvValue(text, "NEWS_DYNAMODB_PORT") || "8000"}`
+      : getEnvValue(example, k);
+  text = setEnvValue(text, k, value);
 }
 text = withLocalSecrets(text);
 writeFileSync(envPath, text);

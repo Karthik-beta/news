@@ -21,6 +21,8 @@ describe("R2 reads from the mcp Worker", () => {
   });
 
   it("lists one page's files by prefix and nothing for an unknown page", async () => {
+    // Seed everything this test lists, so it also passes when run on its own (`-t`).
+    await env.PAGES.put(keys[0] as string, "# Title\nBody text");
     await env.PAGES.put(keys[1] as string, "{}");
     await env.PAGES.put(keys[2] as string, "# Two");
     const p1 = await env.PAGES.list({ prefix: `${prefix}pages/p1/` });

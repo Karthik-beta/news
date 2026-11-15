@@ -224,6 +224,7 @@ describe("bun scripts/setup.ts, end to end in a scratch copy (no docker, no real
       runSetup(dir);
       const env = readFileSync(join(dir, ".env"), "utf8");
       expect(getEnvValue(env, "NEWS_DYNAMODB_PORT")).toBe("8123");
+      expect(getEnvValue(env, "NEWS_DYNAMODB_ENDPOINT")).toBe("http://127.0.0.1:8123");
       expect(getEnvValue(env, "NEWS_DYNAMODB_REGION")).toBe("us-east-1");
       expect(getEnvValue(env, "NEWS_DYNAMODB_ACCESS_KEY_ID")).toBe("AKIDLOCAL");
       expect(getEnvValue(env, "NEWS_DYNAMODB_SECRET_ACCESS_KEY")).toBe("local");
