@@ -18,7 +18,7 @@ These skills are for the **production pipeline**: the `claude -p` calls (Sonnet 
 | A5: condense long source text (name to be chosen) | Haiku, when a brief's source text is too long; extractive and digit-free | Planned: Phase 7 |
 | A7: sample check (name to be chosen) | Haiku comparison of a page with its brief, on a sample of pages | Planned: Phase 7 |
 | A9: triage a reader error report (name to be chosen) | Haiku batches in the Errata workflow | Planned: Phase 7 |
-| A6 entity shortlist, A10 alt text (names to be chosen) | Only if switched on; off at launch (Bureau design, decision D12 — recommended, pending Karthik's confirmation) | Not planned yet |
+| A6 entity shortlist, A10 alt text (names to be chosen) | Only if switched on; off at launch (Bureau design, decision D12) | Not planned yet |
 
 Each AI step's contract (input, output schema, validator, fallback, budget) is in the [Bureau design §7](../News%20—%20Bureau%20Design.md#7-ai-usage-ledger).
 

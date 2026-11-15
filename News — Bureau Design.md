@@ -22,7 +22,7 @@ Nov 14, 2026 · @Karthik · Draft for review
 8. [One entry point and the preset workflows](#8-one-entry-point-and-the-preset-workflows)
 9. [Quality, observability, security, performance](#9-quality-observability-security-performance)
 10. [Build order](#10-build-order)
-11. [Open decisions for Karthik](#11-open-decisions-for-karthik)
+11. [Decisions](#11-decisions)
 12. [Risks](#12-risks)
 13. [Glossary of terms used](#13-glossary-of-terms-used)
 14. [Changes to existing documents](#14-changes-to-existing-documents)
@@ -1962,7 +1962,7 @@ Settled on 15 November 2026: Karthik chose D2 himself and adopted the recommenda
 
 ## 14. Changes to existing documents
 
-Applied to the documents named below in commit 44ade09 (see the Applied column). Where a change depends on an open decision (§11), the target marks it "(Bureau design, decision Dn — recommended, pending Karthik's confirmation)".
+Applied to the documents named below in commit 44ade09 (see the Applied column). Where a change depends on an open decision (§11), the target marks it "(Bureau design, decision Dn)".
 
 | Document | Section | Now | Proposed change | Why | Applied |
 | --- | --- | --- | --- | --- | --- |

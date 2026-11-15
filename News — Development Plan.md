@@ -51,7 +51,7 @@ news/
 └─ .github/workflows/         CI
 ```
 
-Every Bureau workflow (preset) is declared in Chief, in the Rust CLI, and started as an argument to the one user-invoked `/bureau` skill; there are no per-workflow commands or workflow files (Bureau design, decision D2 — recommended, pending Karthik's confirmation). Claude Code workflow files may still be used later for fan-out inside a single step.
+Every Bureau workflow (preset) is declared in Chief, in the Rust CLI, and started as an argument to the one user-invoked `/bureau` skill; there are no per-workflow commands or workflow files (Bureau design, decision D2). Claude Code workflow files may still be used later for fan-out inside a single step.
 
 ## The sub-agent team
 

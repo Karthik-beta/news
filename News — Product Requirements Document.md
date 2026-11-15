@@ -220,7 +220,7 @@ Trust rests on three things: the author's real identity on a personal domain, a 
 
 - **Authorship.** Every page states plainly how it was made: built with Claude (AI), checked automatically, run by Karthik, with a link to the author's main site.
 - **Methodology page.** Explains the process (public sources → code fetches and parses data → Claude writes the page → automated checks and sample checks → publish), the source rules, the no-conversion policy for units and periods, and the licence.
-- **Numbers come from data, not the AI.** Pages reference figures by ID and code fills in the values from the source data. Some figures, such as a change from a year earlier or a share of a total, are calculated by News from the source's own figures, only between like-for-like values (same unit, currency, scale and comparable periods), and are labelled "Calculated by News from …" with the formula recorded (Bureau design, decision D5 — recommended, pending Karthik's confirmation). The methodology page says so.
+- **Numbers come from data, not the AI.** Pages reference figures by ID and code fills in the values from the source data. Some figures, such as a change from a year earlier or a share of a total, are calculated by News from the source's own figures, only between like-for-like values (same unit, currency, scale and comparable periods), and are labelled "Calculated by News from …" with the formula recorded (Bureau design, decision D5). The methodology page says so.
 - **Report an error.** A small link on every page opens a short form. When something is fixed, the page shows "Updated on …".
 - **Accuracy note.** A brief, low-key note in the footer and methodology page: content is built from public sources with AI and may contain errors; check the linked source.
 - **Disclaimers.** "Not investment advice" on finance and economy pages; "Not medical advice" on health-related science pages.
@@ -228,7 +228,7 @@ Trust rests on three things: the author's real identity on a personal domain, a 
 
 ## Content production
 
-Pages are produced at scale by Claude Code agents on the author's laptop, by the local system called Bureau ([Bureau design](News%20—%20Bureau%20Design.md)). Runs that call a model start only when the author types `/bureau` in Claude Code; the main run is `/bureau run daily`. A local scheduler may run code-only background jobs (release-calendar sync, capture of releases at their scheduled time, source discovery), never anything that calls a model or publishes (Bureau design, decision D8 — recommended, pending Karthik's confirmation). The author's typed command is the approval step; there is no per-page manual review.
+Pages are produced at scale by Claude Code agents on the author's laptop, by the local system called Bureau ([Bureau design](News%20—%20Bureau%20Design.md)). Runs that call a model start only when the author types `/bureau` in Claude Code; the main run is `/bureau run daily`. A local scheduler may run code-only background jobs (release-calendar sync, capture of releases at their scheduled time, source discovery), never anything that calls a model or publishes (Bureau design, decision D8). The author's typed command is the approval step; there is no per-page manual review.
 
 ### How a run works
 
@@ -238,7 +238,7 @@ Pages are produced at scale by Claude Code agents on the author's laptop, by the
 4. Claude writes each page: Sonnet 5.5 for layout and text, Haiku 5.5 for lighter tasks. Each page is a small, separate call to keep token use low.
 5. Code renders the page, runs automated checks, and Haiku spot-checks a sample.
 6. Code publishes the page, updates hubs and search, and applies the daily indexing budget.
-7. Local working files are pruned; the knowledge graph, ledger and telemetry are kept, and the raw source files behind every figure are kept for a retention period so each figure stays provable (Bureau design, decision D7 — recommended, pending Karthik's confirmation).
+7. Local working files are pruned; the knowledge graph, ledger and telemetry are kept, and the raw source files behind every figure are kept for a retention period so each figure stays provable (Bureau design, decision D7).
 
 ### Cadence and volume
 

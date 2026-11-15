@@ -54,7 +54,7 @@ PostgreSQL was chosen over a second Neo4j instance: the workload is mostly relat
 
 | Folder | Holds | Pruned after publish? |
 | --- | --- | --- |
-| `work/raw/sha256/…` | Downloaded source files (PDF, HTML, XBRL, JSON) exactly as received, content-addressed by SHA-256 and zstd-compressed (Morgue, [Bureau design §3.2](News%20—%20Bureau%20Design.md#32-wire-stringers-runner-morgue)) | No: structured data (JSON, XBRL, CSV, SDMX) kept 400 days, HTML and PDF 90 days, the hash, URL and locator for ever, so every figure stays provable (Bureau design, decision D7 — recommended, pending Karthik's confirmation) |
+| `work/raw/sha256/…` | Downloaded source files (PDF, HTML, XBRL, JSON) exactly as received, content-addressed by SHA-256 and zstd-compressed (Morgue, [Bureau design §3.2](News%20—%20Bureau%20Design.md#32-wire-stringers-runner-morgue)) | No: structured data (JSON, XBRL, CSV, SDMX) kept 400 days, HTML and PDF 90 days, the hash, URL and locator for ever, so every figure stays provable (Bureau design, decision D7) |
 | `work/parsed/` | Normalized data per item | Yes |
 | `work/briefs/` | Compact briefs given to the AI | Yes |
 | `work/pages/` | Generated OpenUI Lang, page bundles, rendered output | Yes, once uploaded |
@@ -88,7 +88,7 @@ Code runs every stage except page writing (Reporter). Scoring, ranking and selec
 
 ## Agent orchestration and token optimisation
 
-Every run starts when Karthik types `/bureau` in Claude Code; the main run is `/bureau run daily` (the Edition workflow). `/bureau` is one user-invoked project skill (`.claude/skills/bureau/`) that drives **Chief**, a state machine in the `news` CLI, so runs are durable, resumable by id, and their approval stops are enforced by code rather than by the prompt (Bureau design, decision D2 — recommended, pending Karthik's confirmation). The session stays small: it sees one compact JSON object per step and never holds page content. Full design: [Bureau design §5 Orchestration engine](News%20—%20Bureau%20Design.md#5-orchestration-engine) and [§8 One entry point and the preset workflows](News%20—%20Bureau%20Design.md#8-one-entry-point-and-the-preset-workflows).
+Every run starts when Karthik types `/bureau` in Claude Code; the main run is `/bureau run daily` (the Edition workflow). `/bureau` is one user-invoked project skill (`.claude/skills/bureau/`) that drives **Chief**, a state machine in the `news` CLI, so runs are durable, resumable by id, and their approval stops are enforced by code rather than by the prompt (Bureau design, decision D2). The session stays small: it sees one compact JSON object per step and never holds page content. Full design: [Bureau design §5 Orchestration engine](News%20—%20Bureau%20Design.md#5-orchestration-engine) and [§8 One entry point and the preset workflows](News%20—%20Bureau%20Design.md#8-one-entry-point-and-the-preset-workflows).
 
 ### How a run works
 
@@ -99,7 +99,7 @@ Every run starts when Karthik types `/bureau` in Claude Code; the main run is `/
 5. Where a workflow has an approval stop, the session shows a code-rendered summary and waits; Karthik answers by typing `/bureau approve`, `changes` or `reject`, which the prompt hook executes. The model never records a decision.
 6. Every run ends with a Wrap (run summary) written by code.
 
-Jobs, runs, steps and approvals live in PostgreSQL in **Dispatch**, a small custom job engine on `FOR UPDATE SKIP LOCKED` with River-style retries, snoozes and leases (Bureau design, decision D1 — recommended, pending Karthik's confirmation). Only one heavy run (one that writes or re-renders pages in bulk) runs at a time; a second is refused with the next commands, never queued (Bureau design, decision D16 — recommended, pending Karthik's confirmation).
+Jobs, runs, steps and approvals live in PostgreSQL in **Dispatch**, a small custom job engine on `FOR UPDATE SKIP LOCKED` with River-style retries, snoozes and leases (Bureau design, decision D1). Only one heavy run (one that writes or re-renders pages in bulk) runs at a time; a second is refused with the next commands, never queued (Bureau design, decision D16).
 
 ### Model roles
 
@@ -107,8 +107,8 @@ Every AI step is a contract: typed input built by code, a JSON Schema for the ou
 
 | Model | Used for |
 | --- | --- |
-| Haiku 5.5 | Ambiguous classification only (A3); grey-zone story matching (A4); extractive, digit-free condensation of long source text with verifiable quote spans (A5); the sample check (A7); triage of reader error reports (A9). Optional entity shortlist (A6) and alt text (A10) are off at launch (Bureau design, decision D12 — recommended, pending Karthik's confirmation) |
-| Sonnet 5.5 | Writing and repairing pages, including updates after a direction flip (A1, A2): what the page says, layout in OpenUI Lang, narrative text; home page curation (A8, `NEWS_MODEL_CURATOR`); the `/bureau` session (A11; Bureau design, decision D11 — recommended, pending Karthik's confirmation); eval judges (A12) |
+| Haiku 5.5 | Ambiguous classification only (A3); grey-zone story matching (A4); extractive, digit-free condensation of long source text with verifiable quote spans (A5); the sample check (A7); triage of reader error reports (A9). Optional entity shortlist (A6) and alt text (A10) are off at launch (Bureau design, decision D12) |
+| Sonnet 5.5 | Writing and repairing pages, including updates after a direction flip (A1, A2): what the page says, layout in OpenUI Lang, narrative text; home page curation (A8, `NEWS_MODEL_CURATOR`); the `/bureau` session (A11; Bureau design, decision D11); eval judges (A12) |
 | Opus 5.5 | Development time only: building the component library, designing the content system, writing skills |
 
 Selection is fully code: there is no model call for "selection judgement". Disagreements with the scorer are handled by Karthik's weekly pairwise labels.
@@ -117,7 +117,7 @@ Selection is fully code: there is no model call for "selection judgement". Disag
 
 Ghost spawns every page call with the flags below; the exact call and the reason for each flag are in [Bureau design §3.9 Reporter](News%20—%20Bureau%20Design.md#39-reporter). The combination is confirmed in the Phase 7 lean-call spike.
 
-- **No tools:** `--tools ""` disables every built-in tool. (`--allowedTools` only pre-approves tools so they run without a permission prompt; it does not restrict which tools exist, so it is not used for this.) Reporter needs no tools because code pre-selects the component specs (Bureau design, decision D4 — recommended, pending Karthik's confirmation).
+- **No tools:** `--tools ""` disables every built-in tool. (`--allowedTools` only pre-approves tools so they run without a permission prompt; it does not restrict which tools exist, so it is not used for this.) Reporter needs no tools because code pre-selects the component specs (Bureau design, decision D4).
 - **No MCP servers, hooks or plugins:** `--strict-mcp-config` with an empty config, so no tool schemas fill the context and no project MCP servers load; an explicit `--settings` file and `--setting-sources` keep project hooks and plugins out of page calls; `--disable-slash-commands`; `--no-session-persistence`.
 - **Subscription only:** Ghost unsets `ANTHROPIC_API_KEY` in the child environment (if it is set, `-p` uses it instead of the subscription); never `--bare`, which does not read subscription credentials; `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`; an allow-listed environment.
 - **Bounded output:** `--json-schema` with the page-draft schema, so the harness validates and returns structured output; `--max-turns 2`; `--max-budget-usd` as a runaway guard (a client-side estimate, not a bill); an explicit `--model` per call.
@@ -139,7 +139,7 @@ These are planning estimates; ClickHouse telemetry will show the real numbers pe
 
 ## Agent toolbox: the `news` CLI
 
-One Rust binary gives agents and code everything they need, with short help text and compact JSON output. A CLI costs far fewer tokens than a large MCP tool catalog loaded into every session; each command can print its input and output JSON Schemas (`news schema <command>`), so a read-only MCP adapter could be generated later without a second implementation (Bureau design, decision D3 — recommended, pending Karthik's confirmation). Page-writing calls use no tools at all.
+One Rust binary gives agents and code everything they need, with short help text and compact JSON output. A CLI costs far fewer tokens than a large MCP tool catalog loaded into every session; each command can print its input and output JSON Schemas (`news schema <command>`), so a read-only MCP adapter could be generated later without a second implementation (Bureau design, decision D3). Page-writing calls use no tools at all.
 
 Every command follows the same conventions ([Bureau design §6](News%20—%20Bureau%20Design.md#6-agent-tool-catalogue)): stdout carries exactly one JSON envelope (`{"ok": true, "data": …}` or `{"ok": false, "error": {"code", "message", "retryable", "hint"}}`); anything shown to Karthik also comes back as code-rendered `text`, printed verbatim; exit codes are 0 ok, 2 usage, 3 not found, 4 conflict or precondition, 5 retryable, 6 validation failed, 7 gated, 10 internal bug. Each command has a permission tier: R (read-only), W (run-scoped writes), G (gated: runs only as an authorised step of a live run, for example `news publish` and `news home publish`) and H (Karthik only, from a terminal or his typed `/bureau approve|changes|reject|cancel`, for example `news home rollback`).
 
@@ -429,7 +429,7 @@ There is no per-page manual approval: the `/bureau run daily` command Karthik ty
    - Banned words and tone, size and structure, and accessibility (C11–C13).
    - **No duplicate page** (C14): a page with the same event key or slug must be an update, not a new page.
 2. **Haiku sample check** (A7; `SAMPLE_RATE`, starting at 1 in 20, plus every Tier 1 page in the first month): it compares the page's Markdown with its brief and returns typed issues (unsupported claim, wrong direction, missing context, tone, attribution).
-3. **Failures** are logged to ClickHouse. A Copy that fails validation or a check in its own text gets one repair call (A2); a second failure sends the item back to the queue for the next run. A Tier 2 item that fails twice may be published as a code-only templated page, kept `noindex` until a later run upgrades it (Bureau design, decision D10 — recommended, pending Karthik's confirmation).
+3. **Failures** are logged to ClickHouse. A Copy that fails validation or a check in its own text gets one repair call (A2); a second failure sends the item back to the queue for the next run. A Tier 2 item that fails twice may be published as a code-only templated page, kept `noindex` until a later run upgrades it (Bureau design, decision D10).
 4. Pages failing code checks are never published. A high-severity sample-check flag blocks an unpublished page; on a published page it queues an update.
 5. **Approval stops** exist only where a workflow declares one: Frontpage's `publish` gate (`news home check` runs the code checks, then Karthik approves the local preview before `news home publish`), and the gates the other presets declare, such as Catchup's `plan` and Audit's `promote` (full list in [Bureau design §8.1](News%20—%20Bureau%20Design.md#81-the-bureau-entry-point)).
 
@@ -482,7 +482,7 @@ A small local bun web app (Board in the Bureau design), not published, showing: 
 | `NEWS_HOME_STALE_DAYS` | Age at which the dashboard flags the live home curation | 4 |
 | `BACKFILL_FROM` | Earliest date for backfill | Start of the current year |
 | `NEWS_AI_RUN_TOKENS` | Token ceiling per run (input-equivalent); new AI jobs stop when it is reached and the run finishes its code work | 2,500,000 |
-| `NEWS_CONTACT_EMAIL` | Contact e-mail sent in the User-Agent only to sources that require one (SEC EDGAR); a dedicated address, kept in the local `.env` (Bureau design, decision D14 — recommended, pending Karthik's confirmation) | — |
+| `NEWS_CONTACT_EMAIL` | Contact e-mail sent in the User-Agent only to sources that require one (SEC EDGAR); a dedicated address, kept in the local `.env` (Bureau design, decision D14) | — |
 | `NEWS_RAW_RETAIN_DAYS_DATA` | Days to keep raw structured snapshots (JSON, XBRL, CSV, SDMX) (decision D7, pending) | 400 |
 | `NEWS_RAW_RETAIN_DAYS_DOCS` | Days to keep raw HTML and PDF snapshots (decision D7, pending) | 90 |
 
@@ -531,16 +531,16 @@ A rough size estimate is 20–40 KB per page across all formats when compressed,
 ## Open items to research during development
 
 - **OpenUI server rendering:** the docs don't describe it; the spike in step 2 settles it.
-- **Content system:** designed in the [Bureau design](News%20—%20Bureau%20Design.md); its open decisions D1–D16 are in [§11](News%20—%20Bureau%20Design.md#11-open-decisions-for-karthik).
+- **Content system:** designed in the [Bureau design](News%20—%20Bureau%20Design.md); its decisions D1–D16 are in [§11](News%20—%20Bureau%20Design.md#11-decisions).
 - **Bulk dumps:** Hugging Face Datasets with an Internet Archive mirror, or GitHub Releases; check limits and terms.
 - **Search scaling:** watch D1 daily reads; the trigger and design for moving to Lambda with Tantivy.
 - **Cloudflare Web Analytics:** confirm the current beacon sets no cookies; otherwise use server-side zone analytics.
 - **Exact free-tier figures:** Workers CPU per request and daily requests, cache purge rates, AWS always-free terms under the current account plans.
 - **Storage growth:** when R2 nears 10 GB, choose between compression gains, moving large data elsewhere, or a paid plan.
 - **Docling throughput** on the laptop's CPU, and how often PDFs need it.
-- **Local embedding model:** bge-small-en-v1.5 on ONNX Runtime (Bureau design, decision D6 — recommended, pending Karthik's confirmation); CPU cost measured in the Phase 4 spike.
+- **Local embedding model:** bge-small-en-v1.5 on ONNX Runtime (Bureau design, decision D6); CPU cost measured in the Phase 4 spike.
 - **Image licensing allow-list:** which sources and licences are accepted automatically.
 - **Prompt-cache behaviour** across back-to-back `claude -p` calls, to confirm savings in telemetry; measured in the Phase 7 lean-call spike with the exact flag set and the usage-limit error shape.
-- **Home curation workflow form:** settled. Home curation is the Frontpage preset, started with `/bureau curate home` through the one user-invoked `/bureau` skill and Chief's state machine in the CLI, with an approval stop before publish ([Bureau design §8.1](News%20—%20Bureau%20Design.md#81-the-bureau-entry-point); decision D2 — recommended, pending Karthik's confirmation).
+- **Home curation workflow form:** settled. Home curation is the Frontpage preset, started with `/bureau curate home` through the one user-invoked `/bureau` skill and Chief's state machine in the CLI, with an approval stop before publish ([Bureau design §8.1](News%20—%20Bureau%20Design.md#81-the-bureau-entry-point); decision D2).
 - **Prompt hook:** whether Claude Code's `UserPromptSubmit` hook sees the raw text of a `/bureau` invocation, which start tickets and gate answers rely on; confirmed in a Phase 7 spike, with Karthik's terminal (`news run ticket`, `news run approve`) as the fallback.
 - **Note for the PRD:** the PRD now matches this design (category-free URLs, D1 search, cookieless analytics, automated checks instead of per-page review).
