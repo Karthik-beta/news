@@ -46,6 +46,13 @@ export function folderProblems(dir: string, name: string): string[] {
   return problems;
 }
 
+/** The specs array as Biome formats it: one line when it fits in 120 characters, else one entry per line. */
+function specsLine(names: string[]): string {
+  const one = `export const specs: readonly AnySpec[] = [${names.join(", ")}];`;
+  if (one.length <= 120) return one;
+  return ["export const specs: readonly AnySpec[] = [", ...names.map((n) => `  ${n},`), "];"].join("\n");
+}
+
 export function generate(dir = componentsDir): Generated {
   const folders = componentFolders(dir);
   const problems = folders.flatMap((name) => folderProblems(dir, name));
@@ -56,7 +63,7 @@ export function generate(dir = componentsDir): Generated {
     'import type { AnySpec } from "./contract";',
     ...folders.map((name) => `import ${ident(name)} from "./${name}/spec";`),
     "",
-    `export const specs: readonly AnySpec[] = [${folders.map(ident).join(", ")}];`,
+    specsLine(folders.map(ident)),
     "",
   ].join("\n");
 
@@ -70,9 +77,13 @@ export function generate(dir = componentsDir): Generated {
     "// Island components by name, loaded only when a page has one. Server and client agree on these names.",
     'import type { IslandLoaders } from "../renderer/islands/types";',
     "",
-    "export const islands: IslandLoaders = {",
-    ...islands.map((i) => `  ${i.name}: () => import("${i.path}"),`),
-    "};",
+    ...(islands.length === 0
+      ? ["export const islands: IslandLoaders = {};"]
+      : [
+          "export const islands: IslandLoaders = {",
+          ...islands.map((i) => `  ${i.name}: () => import("${i.path}"),`),
+          "};",
+        ]),
     "",
   ].join("\n");
 

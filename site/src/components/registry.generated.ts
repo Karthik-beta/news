@@ -9,4 +9,13 @@ import sourceRefSpec from "./SourceRef/spec";
 import textSpec from "./Text/spec";
 import visuallyHiddenSpec from "./VisuallyHidden/spec";
 
-export const specs: readonly AnySpec[] = [figureFrameSpec, iconSpec, pageSpec, popoverSpec, ruleSpec, sourceRefSpec, textSpec, visuallyHiddenSpec];
+export const specs: readonly AnySpec[] = [
+  figureFrameSpec,
+  iconSpec,
+  pageSpec,
+  popoverSpec,
+  ruleSpec,
+  sourceRefSpec,
+  textSpec,
+  visuallyHiddenSpec,
+];

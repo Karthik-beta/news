@@ -23,8 +23,11 @@ export function contractSchemas(): Record<string, string> {
 }
 
 if (import.meta.main) {
+  const paths = Object.keys(contractSchemas());
   for (const [path, text] of Object.entries(contractSchemas())) {
     writeFileSync(join(repo, path), text);
     console.log(`wrote ${path}`);
   }
+  // Format the way the repo's lint expects (the freshness test compares content, not layout).
+  Bun.spawnSync(["bunx", "biome", "format", "--write", ...paths], { cwd: repo, stdout: "inherit", stderr: "inherit" });
 }
