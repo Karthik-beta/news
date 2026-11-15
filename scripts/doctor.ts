@@ -120,6 +120,22 @@ if (e2e) {
   const back = await chQuery(`SELECT count() FROM news.events WHERE run_id = '${marker}'`);
   line(ins.ok && back.body === "1", "event written to and read from news.events");
 
+  // The CLI's own event (one per call), carrying NEWS_RUN_ID and NEWS_JOB_ID (Bureau §6.2).
+  if (existsSync(cli)) {
+    const cliRun = `${marker}-cli`;
+    run(cli, ["version"], { env: { ...process.env, NEWS_RUN_ID: cliRun, NEWS_JOB_ID: "doctor-job" } });
+    const cliBack = await chQuery(
+      `SELECT count() FROM news.events WHERE run_id = '${cliRun}' AND job_id = 'doctor-job' AND stage = 'cli'`,
+    );
+    line(
+      cliBack.ok && cliBack.body === "1",
+      "news CLI event in news.events with run_id and job_id",
+      cliBack.ok ? "" : "run `bun run clickhouse:setup` (adds 003_ticker.sql)",
+    );
+  } else {
+    line(false, "news CLI event in news.events with run_id and job_id", "run `cargo build` in cli/");
+  }
+
   const now = `${Date.now()}000000`;
   const otlp = {
     resourceLogs: [

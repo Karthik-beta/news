@@ -168,6 +168,73 @@ fn output_is_deterministic() {
     }
 }
 
+/// A one-shot HTTP server standing in for ClickHouse: returns the request it received.
+fn fake_clickhouse() -> (String, std::thread::JoinHandle<String>) {
+    use std::io::{Read, Write};
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let url = format!("http://{}", listener.local_addr().unwrap());
+    let handle = std::thread::spawn(move || {
+        let (mut s, _) = listener.accept().unwrap();
+        s.set_read_timeout(Some(std::time::Duration::from_secs(5))).unwrap();
+        let mut buf = Vec::new();
+        let mut chunk = [0u8; 4096];
+        // Read headers, then Content-Length bytes of body.
+        loop {
+            let n = s.read(&mut chunk).unwrap_or(0);
+            if n == 0 {
+                break;
+            }
+            buf.extend_from_slice(&chunk[..n]);
+            let text = String::from_utf8_lossy(&buf).to_string();
+            if let Some(end) = text.find("\r\n\r\n") {
+                let len = text[..end]
+                    .lines()
+                    .find_map(|l| l.to_ascii_lowercase().strip_prefix("content-length:").map(|v| v.trim().parse::<usize>().unwrap()))
+                    .unwrap_or(0);
+                if buf.len() >= end + 4 + len {
+                    break;
+                }
+            }
+        }
+        let _ = s.write_all(b"HTTP/1.1 200 OK\r\ncontent-length: 0\r\nconnection: close\r\n\r\n");
+        String::from_utf8_lossy(&buf).into_owned()
+    });
+    (url, handle)
+}
+
+#[test]
+fn every_call_writes_one_event_with_run_and_job_ids() {
+    let (url, server) = fake_clickhouse();
+    let (env, code, _) = call_with(
+        news()
+            .args(["discover"])
+            .env("NEWS_CH_HTTP", &url)
+            .env("NEWS_CH_PASSWORD", "ch-pw-not-in-body")
+            .env("NEWS_RUN_ID", "run-123")
+            .env("NEWS_JOB_ID", "456"),
+    );
+    check(&env, code);
+    let request = server.join().unwrap();
+    assert!(request.starts_with("POST /?query=INSERT+INTO+news.events"), "{request}");
+    let body = request.split("\r\n\r\n").nth(1).unwrap();
+    let lines: Vec<&str> = body.lines().collect();
+    assert_eq!(lines.len(), 1, "one event per call: {body}");
+    let ev: Value = serde_json::from_str(lines[0]).unwrap();
+    assert_eq!(ev["run_id"], "run-123");
+    assert_eq!(ev["job_id"], "456");
+    assert_eq!(ev["stage"], "cli");
+    assert_eq!(ev["event"], "discover");
+    assert_eq!(ev["status"], "precondition");
+    assert!(!body.contains("ch-pw-not-in-body"));
+}
+
+#[test]
+fn an_unreachable_clickhouse_never_fails_the_call() {
+    let (env, code, stderr) = call_with(news().args(["version"]).env("NEWS_CH_HTTP", "http://127.0.0.1:1"));
+    assert_eq!(code, 0, "{env}");
+    assert!(stderr.is_empty(), "{stderr}");
+}
+
 #[test]
 fn no_command_prints_a_secret_from_the_environment() {
     let secret = "pw-4f9c-never-print-me";
