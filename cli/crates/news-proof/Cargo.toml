@@ -1,0 +1,13 @@
+[package]
+name = "news-proof"
+description = "Render and Proof: rendering and code checks. Skeleton with handler stubs; built in #17."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+news-core = { workspace = true }
+
+[lints]
+workspace = true

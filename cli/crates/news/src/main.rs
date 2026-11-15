@@ -1,32 +1,171 @@
-//! `news`: the agent toolbox CLI. Commands return compact JSON for agents.
-//! Phase 0 skeleton: only `version` works; the toolbox is built in Phase 5.
+//! `news`: the agent toolbox CLI (Technical Design "Agent toolbox"; Bureau Design §6).
+//!
+//! Contract for every call (§6.2; ADR 0002):
+//! * stdout carries exactly one JSON envelope line; logs and clap's own messages go to stderr;
+//! * the exit code follows the error code (0, 2–7, 10);
+//! * one `news.events` row per call, with `run_id` / `job_id` from `NEWS_RUN_ID` / `NEWS_JOB_ID`.
+//!
+//! `--help` and `--version` print plain text and exit 0: they are not command results.
 
-use clap::{Parser, Subcommand};
+mod cli;
+mod commands;
+mod registry;
 
-#[derive(Parser)]
-// `bin_name` fixes the name in usage and help; clap would otherwise use argv[0] (`news.exe` on Windows).
-#[command(
-    name = "news",
-    bin_name = "news",
-    version = news_core::VERSION,
-    about = "News agent toolbox"
-)]
-struct Cli {
-    #[command(subcommand)]
-    command: Command,
+use clap::error::ErrorKind;
+use clap::{CommandFactory, FromArgMatches};
+use cli::Cli;
+use news_core::{Envelope, NewsError, Shape};
+use news_telemetry::{ClickHouse, Event};
+use serde_json::json;
+use std::io::Write;
+use std::process::ExitCode;
+use std::time::Instant;
+use tracing::Instrument;
+
+/// The dotted subcommand path of parsed matches: `jobs.claim`, `version`.
+fn command_path(m: &clap::ArgMatches) -> String {
+    let mut parts = Vec::new();
+    let mut cur = m;
+    while let Some((name, sub)) = cur.subcommand() {
+        parts.push(name.to_owned());
+        cur = sub;
+    }
+    parts.join(".")
 }
 
-#[derive(Subcommand)]
-enum Command {
-    /// Print the CLI version as JSON.
-    Version,
+/// The envelope for a clap parse failure: `usage`, with clap's first line as the message.
+fn usage_envelope(e: &clap::Error) -> Envelope {
+    // clap's first paragraph, on one line: "the following required arguments were not provided: --worker <WORKER>".
+    let rendered = e.render().to_string();
+    let first: Vec<&str> = rendered
+        .lines()
+        .skip_while(|l| l.trim().is_empty())
+        .take_while(|l| !l.trim().is_empty())
+        .map(str::trim)
+        .collect();
+    let message = if e.kind() == ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand {
+        "a subcommand is required".to_owned()
+    } else if first.is_empty() {
+        "invalid arguments".to_owned()
+    } else {
+        first.join(" ").trim_start_matches("error: ").to_owned()
+    };
+    Envelope::err(NewsError::usage(message).with_hint("news --help"))
 }
 
-fn main() {
-    let cli = Cli::parse();
-    match cli.command {
-        Command::Version => {
-            println!("{}", serde_json::json!({ "news": news_core::VERSION }));
+fn print_line(line: &str) {
+    let mut out = std::io::stdout().lock();
+    let _ = writeln!(out, "{line}");
+    let _ = out.flush();
+}
+
+fn emit(command: &str, env: &Envelope, started: Instant, ids: (String, String)) {
+    let Some(ch) = ClickHouse::from_env() else {
+        return;
+    };
+    let (status, error, attrs) = match env {
+        Envelope::Ok {
+            warnings,
+            truncated,
+            ..
+        } => (
+            "ok".to_owned(),
+            String::new(),
+            json!({"exit": 0, "warnings": warnings.len(), "truncated": truncated}),
+        ),
+        Envelope::Err { error, .. } => (
+            error.code.as_str().to_owned(),
+            error.message.clone(),
+            json!({"exit": error.exit_code()}),
+        ),
+    };
+    let mut ev = Event::cli_call(command, |n| std::env::var(n).ok()).finish(
+        &status,
+        &error,
+        started.elapsed(),
+        &attrs,
+    );
+    (ev.trace_id, ev.span_id) = ids;
+    if let Err(e) = ch.insert(&[ev]) {
+        tracing::debug!(error = %e, "telemetry event not written");
+    }
+}
+
+fn exit(code: i32) -> ExitCode {
+    ExitCode::from(u8::try_from(code).unwrap_or(10))
+}
+
+fn main() -> ExitCode {
+    let started = Instant::now();
+    let matches = match Cli::command().try_get_matches() {
+        Ok(m) => m,
+        Err(e) => {
+            if matches!(e.kind(), ErrorKind::DisplayHelp | ErrorKind::DisplayVersion) {
+                let _ = e.print();
+                return exit(0);
+            }
+            // clap's full message (with usage) for humans on stderr; the envelope on stdout.
+            eprint!("{}", e.render());
+            let env = usage_envelope(&e);
+            print_line(&env.to_line());
+            emit("usage", &env, started, (String::new(), String::new()));
+            return exit(env.exit_code());
+        }
+    };
+    let path = command_path(&matches);
+    let cli = match Cli::from_arg_matches(&matches) {
+        Ok(c) => c,
+        Err(e) => {
+            let env = usage_envelope(&e);
+            print_line(&env.to_line());
+            return exit(env.exit_code());
+        }
+    };
+
+    let guard = news_telemetry::init_tracing();
+    let span = tracing::info_span!("news", command = %path);
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(4)
+        .enable_all()
+        .build();
+    let env = match runtime {
+        Err(e) => Envelope::err(NewsError::internal(format!(
+            "cannot start the runtime: {e}"
+        ))),
+        Ok(rt) => {
+            let env = rt.block_on(execute(cli, &path).instrument(span.clone()));
+            // Drop the runtime before the blocking telemetry clients run.
+            drop(rt);
+            env
+        }
+    };
+    let ids = news_telemetry::current_ids(&span);
+    drop(span);
+    print_line(&env.to_line());
+    emit(&path, &env, started, ids);
+    drop(guard);
+    exit(env.exit_code())
+}
+
+async fn execute(cli: Cli, path: &str) -> Envelope {
+    let shape = match Shape::parse(
+        cli.out.limit,
+        cli.out.fields.as_deref(),
+        cli.out.cursor.as_deref(),
+    ) {
+        Ok(s) => s,
+        Err(e) => return Envelope::err(e),
+    };
+    match commands::run(cli, path, &shape).await {
+        Ok(reply) => {
+            let mut shaped = shape.apply_with(reply.data, reply.default_limit);
+            let mut warnings = reply.warnings;
+            warnings.append(&mut shaped.warnings);
+            Envelope::ok_with(shaped.data, warnings, shaped.truncated)
+        }
+        Err(e) => {
+            tracing::debug!(code = %e.code, "command failed");
+            Envelope::err(e)
         }
     }
 }
@@ -35,8 +174,8 @@ fn main() {
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
-    use clap::CommandFactory;
-    use clap::error::ErrorKind;
+    use clap::Parser;
+    use news_core::ErrorCode;
 
     fn parse_error<const N: usize>(args: [&str; N]) -> clap::Error {
         match Cli::try_parse_from(args) {
@@ -54,7 +193,7 @@ mod tests {
     #[test]
     fn parses_version_subcommand() {
         let cli = Cli::try_parse_from(["news", "version"]).expect("`news version` parses");
-        assert!(matches!(cli.command, Command::Version));
+        assert!(matches!(cli.command, cli::Command::Version));
     }
 
     #[test]
@@ -65,13 +204,20 @@ mod tests {
             ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
         );
         assert_eq!(err.exit_code(), 2);
+        assert_eq!(usage_envelope(&err).exit_code(), 2);
     }
 
     #[test]
     fn unknown_subcommand_is_rejected() {
         let err = parse_error(["news", "frobnicate"]);
         assert_eq!(err.kind(), ErrorKind::InvalidSubcommand);
-        assert_eq!(err.exit_code(), 2);
+        let env = usage_envelope(&err);
+        assert_eq!(env.exit_code(), 2);
+        assert!(
+            env.to_line().contains("unrecognized subcommand"),
+            "{}",
+            env.to_line()
+        );
     }
 
     #[test]
@@ -103,5 +249,95 @@ mod tests {
             err.to_string().trim_end(),
             format!("news {}", news_core::VERSION)
         );
+    }
+
+    /// Every leaf command, with placeholder values for its required arguments.
+    fn leaves() -> Vec<(String, Vec<String>)> {
+        fn walk(cmd: &clap::Command, prefix: Vec<String>, out: &mut Vec<(String, Vec<String>)>) {
+            let subs: Vec<_> = cmd
+                .get_subcommands()
+                .filter(|s| s.get_name() != "help")
+                .collect();
+            if subs.is_empty() {
+                let mut argv = prefix.clone();
+                for a in cmd.get_arguments() {
+                    if !a.is_required_set() || a.is_global_set() {
+                        continue;
+                    }
+                    let value = a
+                        .get_possible_values()
+                        .first()
+                        .map(|v| v.get_name().to_owned())
+                        .unwrap_or_else(|| "1".to_owned());
+                    match a.get_long() {
+                        Some(long) => {
+                            argv.push(format!("--{long}"));
+                            argv.push(value);
+                        }
+                        None => argv.push(value),
+                    }
+                }
+                out.push((prefix.join("."), argv));
+                return;
+            }
+            for s in subs {
+                let mut p = prefix.clone();
+                p.push(s.get_name().to_owned());
+                walk(s, p, out);
+            }
+        }
+        let mut out = Vec::new();
+        walk(&Cli::command(), Vec::new(), &mut out);
+        out
+    }
+
+    #[tokio::test]
+    async fn every_command_that_is_not_built_is_a_precondition_stub() {
+        let mut stubs = 0;
+        for (path, argv) in leaves() {
+            if commands::BUILT.contains(&path.as_str()) {
+                continue;
+            }
+            // `stories similar` needs one of --text/--cand; `jobs retry` one of job/--class.
+            let mut full = vec!["news".to_owned()];
+            full.extend(argv);
+            if path == "stories.similar" {
+                full.extend(["--text".into(), "x".into()]);
+            }
+            let cli = Cli::try_parse_from(&full).unwrap_or_else(|e| panic!("{full:?}: {e}"));
+            let err = commands::run(cli, &path, &Shape::default())
+                .await
+                .expect_err(&path);
+            assert_eq!(err.code, ErrorCode::Precondition, "{path}");
+            assert_eq!(err.exit_code(), 4, "{path}");
+            assert!(
+                err.hint.as_deref().unwrap_or("").contains('#'),
+                "{path}: no issue"
+            );
+            stubs += 1;
+        }
+        assert!(stubs > 60, "only {stubs} stubs");
+    }
+
+    #[test]
+    fn built_commands_exist() {
+        let paths: Vec<String> = leaves().into_iter().map(|(p, _)| p).collect();
+        for b in commands::BUILT {
+            assert!(paths.iter().any(|p| p == b), "{b}");
+        }
+    }
+
+    #[test]
+    fn every_bureau_command_has_a_contract_except_home_and_publish() {
+        let have = commands::schema_commands();
+        for (path, _) in leaves() {
+            if path.starts_with("home.") || path == "publish" {
+                continue;
+            }
+            assert!(
+                have.contains(&path),
+                "no contracts/cli/commands/{path}.schema.json"
+            );
+        }
     }
 }

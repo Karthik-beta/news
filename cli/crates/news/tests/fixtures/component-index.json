@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "components": [
+    {
+      "type": "LineChart",
+      "summary": "One or more series over time, with optional annotations",
+      "data_shape": "series[] of {ref: sr_*, label}",
+      "props": {
+        "series": { "type": "array", "items": { "type": "string", "pattern": "^sr_" }, "required": true },
+        "title": { "type": "string", "required": true },
+        "annotations": { "type": "array", "items": { "type": "string", "pattern": "^cx_" } }
+      },
+      "example": "LineChart(title=\"Consumer prices\", series=[sr_cpi_yoy_5y])"
+    },
+    {
+      "type": "KeyFigures",
+      "summary": "Two to six headline figures with labels and periods",
+      "data_shape": "figures[] of {ref: dp_*|dv_*, period: pd_*}",
+      "props": {
+        "figures": { "type": "array", "minItems": 2, "maxItems": 6, "required": true }
+      },
+      "example": "KeyFigures(figures=[{ref: dp_7kq2, period: pd_2026_10}, {ref: dv_3ab8}])"
+    },
+    {
+      "type": "DataTable",
+      "summary": "A table of data points with sources",
+      "data_shape": "rows[] of dp_*",
+      "props": { "rows": { "type": "array", "required": true } },
+      "example": "DataTable(rows=[dp_7kq2, dp_9mz1])"
+    }
+  ]
+}
