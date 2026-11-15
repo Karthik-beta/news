@@ -1,10 +1,10 @@
 // Galleries of each primitive's fixture cases (src/components/<Name>/fixtures/cases.tsx), rendered on the server
 // with the data of every fixture bundle, so SourceRef cases resolve and source links have targets.
-import { renderToStaticMarkup } from "react-dom/server";
 import type { FixtureCase } from "../../components/contract";
 import { PageData, PageSources } from "../bundle/schema";
 import { PageDataProvider } from "../data/context";
 import { PageDataResolver } from "../data/resolve";
+import { staticMarkup } from "../markup";
 import { SourcesList } from "../render";
 import { mergeBundleData } from "./bundles/assemble";
 import { fixtureBundles } from "./bundles/vite";
@@ -26,7 +26,7 @@ export function renderGallery(name: string): string {
   const merged = mergeBundleData(fixtureBundles["apple-fy2024"], fixtureBundles["edge-cases"]);
   const resolver = new PageDataResolver(PageData.parse(merged.data), PageSources.parse(merged.sources));
   const allSources = Object.keys(resolver.sources.sources);
-  return renderToStaticMarkup(
+  return staticMarkup(
     <PageDataProvider resolver={resolver}>
       <article className="article fixture-gallery">
         <header className="article__head">

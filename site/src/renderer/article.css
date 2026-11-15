@@ -37,15 +37,14 @@
   padding: 0;
   list-style: none;
 }
-.article__source-list > li {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
 .article__source-title {
   font-size: var(--font-size-ui);
   font-weight: var(--font-weight-medium);
   color: var(--color-ink);
+}
+.article__source-meta {
+  display: block;
+  margin-top: var(--space-1);
 }
 
 /* A value cited without a popover (headlines): same text, no decoration. */

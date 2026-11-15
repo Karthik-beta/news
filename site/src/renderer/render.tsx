@@ -11,7 +11,6 @@
 // test keeps the two identical. Contract and data references: README.md in this folder.
 import { createParser, type ElementNode, type Library, Renderer, useRenderNode } from "@openuidev/react-lang";
 import { Fragment, type ReactNode } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 import type { AnyComponentSpec, ChartTable } from "../components/contract";
 import { type NewsLibrary, newsLibrary } from "../components/library";
 import { RefText } from "../components/SourceRef/RefText";
@@ -21,6 +20,7 @@ import { PageDataProvider } from "./data/context";
 import { PageDataResolver, type Problem } from "./data/resolve";
 import { chartFile, mayRedistribute, toChartJson, toCsv } from "./exports";
 import { markdownOf, pageMarkdown, sentence } from "./markdown";
+import { staticMarkup } from "./markup";
 import { RENDERER_NAME, RENDERER_VERSION, rendererTag } from "./version";
 
 /** The copy that sits around page.oui: written by the page writer with `{ref}` tokens, filled here by code. */
@@ -294,7 +294,7 @@ export function renderPage(input: PageBundleInput, options: RenderOptions = {}):
         <RootSlot root={root} />
       </Renderer.Root>
     );
-  const article = renderToStaticMarkup(
+  const article = staticMarkup(
     <PageDataProvider resolver={resolver}>
       <Article head={input.head} body={body} sourceIds={() => sourceIdsInOrder(resolver)} resolver={resolver} />
     </PageDataProvider>,

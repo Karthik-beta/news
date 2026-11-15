@@ -136,6 +136,8 @@ export default defineConfig<NewsOptions>({
     url: baseURL,
     reuseExistingServer: process.env.E2E_REUSE_SERVER === "1",
     timeout: 180_000,
+    // Fixture pages (src/pages/fixtures/) are built only with NEWS_FIXTURES=1; e2e always tests them.
+    env: { NEWS_FIXTURES: "1", OPENUI_TELEMETRY_DISABLED: "1" },
     stdout: "ignore",
     stderr: "pipe",
   },
