@@ -26,14 +26,24 @@ const failure = async (p: Promise<unknown>): Promise<DynamoError> => {
   throw new Error("expected the DynamoDB call to fail, but it succeeded");
 };
 const ids = () => crypto.randomUUID().slice(0, 8);
+// DescribeTable, not ListTables: ListTables returns at most 100 names a page, so on a busy DynamoDB Local the
+// table may simply not be on the first page, and a "not listed" check would pass without proving anything.
+const tableExists = async (name: string): Promise<boolean> => {
+  try {
+    await client.call("DescribeTable", { TableName: name });
+    return true;
+  } catch (e) {
+    if (e instanceof DynamoError && e.type === "ResourceNotFoundException") return false;
+    throw e;
+  }
+};
 
 beforeAll(async () => {
   await client.createSingleTable(table);
 });
 afterAll(async () => {
   await client.deleteTableIfExists(table);
-  const { TableNames } = await client.call<{ TableNames: string[] }>("ListTables", {});
-  expect(TableNames).not.toContain(table);
+  expect(await tableExists(table)).toBe(false);
 });
 
 describe("connection and signing", () => {
@@ -42,9 +52,9 @@ describe("connection and signing", () => {
     expect(env.NEWS_DYNAMODB_ACCESS_KEY_ID).toBe("AKIDLOCAL");
   });
 
-  it("a signed request works and lists the throwaway table", async () => {
-    const { TableNames } = await client.call<{ TableNames: string[] }>("ListTables", {});
-    expect(TableNames).toContain(table);
+  it("a signed request works and finds the throwaway table", async () => {
+    const { Table } = await client.call<{ Table: { TableName: string } }>("DescribeTable", { TableName: table });
+    expect(Table.TableName).toBe(table);
   });
 
   it("an unsigned request is rejected", async () => {
@@ -263,8 +273,8 @@ describe("table lifecycle", () => {
         throw new Error("boom");
       }),
     ).rejects.toThrow("boom");
-    const { TableNames } = await client.call<{ TableNames: string[] }>("ListTables", {});
-    expect(TableNames).not.toContain(name);
+    expect(name).not.toBe("");
+    expect(await tableExists(name)).toBe(false);
   });
 
   it("deleting a table twice: the first succeeds, deleteTableIfExists tolerates the second, deleteTable does not", async () => {
