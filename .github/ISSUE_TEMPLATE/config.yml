@@ -3,6 +3,3 @@ contact_links:
   - name: Report a security problem
     url: https://github.com/Karthik-beta/news/security/advisories/new
     about: Please report security problems privately, never in a public issue.
-  - name: Report an error on a published page
-    url: https://news.karthik.nz/report-an-error
-    about: Wrong numbers, broken links or other problems on the live site go through the site's own form.
