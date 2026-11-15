@@ -7,6 +7,7 @@ import {
   DynamoError,
   dynamoBindings,
   dynamoConfigFromEnv,
+  type FetchLike,
   fromItem,
   type Plain,
   toItem,
@@ -36,7 +37,7 @@ const fakeFetch = (...responses: Response[]) => {
     if (!next) throw new Error("fake fetch: no response queued");
     return next;
   });
-  return { impl: impl as unknown as typeof fetch, requests };
+  return { impl: impl as unknown as FetchLike, requests };
 };
 
 describe("assertLocalEndpoint", () => {

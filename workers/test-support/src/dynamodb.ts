@@ -135,12 +135,18 @@ export interface QueryResult {
 
 const TARGET_PREFIX = "DynamoDB_20120810.";
 
+/** Just the call signature of fetch: runtimes add extras (Bun's `preconnect`) that test doubles need not have. */
+export type FetchLike = (input: Parameters<typeof fetch>[0], init?: RequestInit) => Promise<Response>;
+
 export class DynamoDbLocal {
   readonly config: DynamoConfig;
   readonly #aws: AwsClient;
-  readonly #fetch: typeof fetch;
+  readonly #fetch: FetchLike;
 
-  constructor(config: DynamoConfig = DEFAULT_DYNAMO_CONFIG, fetchImpl: typeof fetch = (...args) => fetch(...args)) {
+  constructor(
+    config: DynamoConfig = DEFAULT_DYNAMO_CONFIG,
+    fetchImpl: FetchLike = (input, init) => fetch(input, init),
+  ) {
     assertLocalEndpoint(config.endpoint);
     this.config = config;
     this.#fetch = fetchImpl;

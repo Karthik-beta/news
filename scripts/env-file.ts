@@ -36,3 +36,20 @@ export function withLocalSecrets(text: string, secret: () => string = newSecret)
   }
   return out;
 }
+
+/** Values setup may have written to .env that its child processes (compose, doctor) must see, not Bun's stale copy. */
+export const CHILD_ENV_KEYS = [
+  "NEWS_PG_PASSWORD",
+  "NEWS_CH_PASSWORD",
+  "DATABASE_URL",
+  "NEWS_DYNAMODB_PORT",
+  "NEWS_DYNAMODB_ENDPOINT",
+  "NEWS_DYNAMODB_REGION",
+  "NEWS_DYNAMODB_ACCESS_KEY_ID",
+  "NEWS_DYNAMODB_SECRET_ACCESS_KEY",
+] as const;
+
+/** Copy the final .env values into `env` (normally process.env), replacing empty or stale ones. */
+export function reloadChildEnv(text: string, env: Record<string, string | undefined>): void {
+  for (const k of CHILD_ENV_KEYS) env[k] = getEnvValue(text, k);
+}

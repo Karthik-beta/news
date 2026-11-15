@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { getEnvValue, newSecret, setEnvValue, withLocalSecrets } from "../env-file";
+import { getEnvValue, newSecret, reloadChildEnv, setEnvValue, withLocalSecrets } from "../env-file";
 import { root } from "../lib";
 import { makeScratchRepo, removeDir, runBun, sandboxEnv } from "./helpers";
 
@@ -268,5 +268,18 @@ describe("bun scripts/setup.ts, end to end in a scratch copy (no docker, no real
     } finally {
       removeDir(dir);
     }
+  });
+});
+
+describe("reloadChildEnv", () => {
+  test("replaces an empty or stale inherited value with the final .env value, DynamoDB included", () => {
+    const env: Record<string, string | undefined> = { NEWS_DYNAMODB_ENDPOINT: "", NEWS_PG_PASSWORD: "stale" };
+    reloadChildEnv(
+      "NEWS_DYNAMODB_PORT=8123\nNEWS_DYNAMODB_ENDPOINT=http://127.0.0.1:8123\nNEWS_PG_PASSWORD=new\n",
+      env,
+    );
+    expect(env.NEWS_DYNAMODB_ENDPOINT).toBe("http://127.0.0.1:8123");
+    expect(env.NEWS_DYNAMODB_PORT).toBe("8123");
+    expect(env.NEWS_PG_PASSWORD).toBe("new");
   });
 });

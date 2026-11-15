@@ -7,7 +7,7 @@
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { getEnvValue, setEnvValue, withLocalSecrets } from "./env-file";
+import { getEnvValue, reloadChildEnv, setEnvValue, withLocalSecrets } from "./env-file";
 import { root, run } from "./lib";
 
 const envPath = join(root, ".env");
@@ -36,7 +36,7 @@ writeFileSync(envPath, text);
 console.log("✓ .env ready (local passwords generated where empty)");
 
 // Bun loaded .env before this script ran; reload values for the child processes.
-for (const k of ["NEWS_PG_PASSWORD", "NEWS_CH_PASSWORD", "DATABASE_URL"]) process.env[k] = getEnvValue(text, k);
+reloadChildEnv(text, process.env);
 
 const step = (label: string, cmd: string, args: string[], cwd = root) => {
   process.stdout.write(`… ${label}\n`);
