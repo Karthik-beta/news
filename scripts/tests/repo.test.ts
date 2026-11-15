@@ -20,9 +20,12 @@ describe("root package.json scripts", () => {
   });
 
   test("docker compose scripts go through the wrapper that passes .env values literally", () => {
-    for (const name of ["infra:up", "infra:down", "infra:logs"]) {
-      expect(pkg.scripts[name] ?? "", name).toMatch(/^bun scripts\/compose\.ts /);
+    // --no-env-file: Bun must not load .env into the wrapper's environment, or the wrapper could not tell an
+    // exported shell variable (which wins) from Bun's `$`-expanded copy of the .env value.
+    for (const name of ["infra:up", "infra:down", "infra:logs", "setup"]) {
+      expect(pkg.scripts[name] ?? "", name).toMatch(/^bun --no-env-file scripts\/(compose|setup)\.ts/);
     }
+    expect(read("scripts/setup.ts")).toMatch(/"--no-env-file",\s*"scripts\/compose\.ts"/);
     const wrapper = readFileSync(join(root, "scripts/compose.ts"), "utf8");
     expect(wrapper).toContain('"-f", "infra/docker-compose.yml"');
     expect(wrapper).not.toContain("--env-file");

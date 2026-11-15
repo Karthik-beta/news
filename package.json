@@ -9,11 +9,11 @@
     "dashboard"
   ],
   "scripts": {
-    "setup": "bun scripts/setup.ts",
+    "setup": "bun --no-env-file scripts/setup.ts",
     "doctor": "bun scripts/doctor.ts",
-    "infra:up": "bun scripts/compose.ts up -d --wait",
-    "infra:down": "bun scripts/compose.ts down",
-    "infra:logs": "bun scripts/compose.ts logs -f --tail=100",
+    "infra:up": "bun --no-env-file scripts/compose.ts up -d --wait",
+    "infra:down": "bun --no-env-file scripts/compose.ts down",
+    "infra:logs": "bun --no-env-file scripts/compose.ts logs -f --tail=100",
     "clickhouse:setup": "bun scripts/clickhouse-setup.ts",
     "tokens": "bun design/tokens/build.mjs",
     "dev": "bun --filter @news/site dev",

@@ -7,8 +7,15 @@
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { getEnvValue, reloadChildEnv, setEnvValue, withLocalSecrets } from "./env-file";
+import { getEnvValue, noEnvFileProblem, reloadChildEnv, setEnvValue, withLocalSecrets } from "./env-file";
 import { root, run } from "./lib";
+
+// `bun run setup` runs this under --no-env-file, so process.env is the shell's own environment (see composeEnv).
+const notReady = noEnvFileProblem(process.execArgv, "scripts/setup.ts");
+if (notReady) {
+  console.error(`✗ ${notReady}`);
+  process.exit(1);
+}
 
 const envPath = join(root, ".env");
 const examplePath = join(root, ".env.example");
@@ -35,7 +42,7 @@ text = withLocalSecrets(text);
 writeFileSync(envPath, text);
 console.log("✓ .env ready (local passwords generated where empty)");
 
-// Bun loaded .env before this script ran; reload values for the child processes.
+// Bun did not load .env (--no-env-file); hand the final values to the child processes, unless exported in the shell.
 reloadChildEnv(text, process.env);
 
 const step = (label: string, cmd: string, args: string[], cwd = root) => {
@@ -49,7 +56,13 @@ const step = (label: string, cmd: string, args: string[], cwd = root) => {
 };
 
 // Through the wrapper, so a `$` in a .env value reaches the containers as typed.
-step("start PostgreSQL, OTel Collector and DynamoDB Local", "bun", ["scripts/compose.ts", "up", "-d", "--wait"]);
+step("start PostgreSQL, OTel Collector and DynamoDB Local", "bun", [
+  "--no-env-file",
+  "scripts/compose.ts",
+  "up",
+  "-d",
+  "--wait",
+]);
 step("ClickHouse news database and user", "bun", ["scripts/clickhouse-setup.ts"]);
 step("install JS dependencies", "bun", ["install"]);
 step("sync design tokens", "bun", ["site/scripts/sync-tokens.ts"]);

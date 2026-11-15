@@ -1,11 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   composeEnv,
   expandedKeys,
   getEnvValue,
   newSecret,
+  noEnvFileProblem,
   parseEnv,
   reloadChildEnv,
   setEnvValue,
@@ -185,7 +186,19 @@ describe("withLocalSecrets", () => {
 
 describe("bun scripts/setup.ts, end to end in a scratch copy (no docker, no real .env)", () => {
   // The scratch PATH has no tools, so setup writes .env and then fails at its first `docker` step.
-  const runSetup = (dir: string) => runBun(["scripts/setup.ts"], { cwd: dir, env: sandboxEnv(dir) });
+  const runSetup = (dir: string) => runBun(["--no-env-file", "scripts/setup.ts"], { cwd: dir, env: sandboxEnv(dir) });
+
+  test("refuses to run when Bun has loaded .env, before writing anything", () => {
+    const dir = makeScratchRepo();
+    try {
+      const r = runBun(["scripts/setup.ts"], { cwd: dir, env: sandboxEnv(dir) });
+      expect(r.status).toBe(1);
+      expect(r.err).toContain("bun --no-env-file scripts/setup.ts");
+      expect(existsSync(join(dir, ".env"))).toBe(false);
+    } finally {
+      removeDir(dir);
+    }
+  });
 
   test("creates .env from .env.example with generated passwords", () => {
     const dir = makeScratchRepo();
@@ -271,8 +284,11 @@ describe("bun scripts/setup.ts, end to end in a scratch copy (no docker, no real
     const dir = makeScratchRepo();
     try {
       writeFileSync(join(dir, ".env.example"), "NEWS_PG_PASSWORD=\nNEWS_CH_PASSWORD=\nDATABASE_URL=\n");
-      runBun(["scripts/setup.ts"], { cwd: dir, env: sandboxEnv(dir, { NEWS_PG_PASSWORD: "from-the-shell" }) });
-      // Bun loads the real process env, but setup builds .env from the file only: the file is the source of truth.
+      runBun(["--no-env-file", "scripts/setup.ts"], {
+        cwd: dir,
+        env: sandboxEnv(dir, { NEWS_PG_PASSWORD: "from-the-shell" }),
+      });
+      // An exported value reaches setup's child processes, but setup builds .env from the file only.
       expect(readFileSync(join(dir, ".env"), "utf8")).not.toContain("from-the-shell");
     } finally {
       removeDir(dir);
@@ -281,15 +297,15 @@ describe("bun scripts/setup.ts, end to end in a scratch copy (no docker, no real
 });
 
 describe("reloadChildEnv", () => {
-  test("replaces an empty or stale inherited value with the final .env value, DynamoDB included", () => {
-    const env: Record<string, string | undefined> = { NEWS_DYNAMODB_ENDPOINT: "", NEWS_PG_PASSWORD: "stale" };
+  test("fills an empty or unset value from the final .env, DynamoDB included; an exported value wins", () => {
+    const env: Record<string, string | undefined> = { NEWS_DYNAMODB_ENDPOINT: "", NEWS_PG_PASSWORD: "exported" };
     reloadChildEnv(
       "NEWS_DYNAMODB_PORT=8123\nNEWS_DYNAMODB_ENDPOINT=http://127.0.0.1:8123\nNEWS_PG_PASSWORD=new\n",
       env,
     );
     expect(env.NEWS_DYNAMODB_ENDPOINT).toBe("http://127.0.0.1:8123");
     expect(env.NEWS_DYNAMODB_PORT).toBe("8123");
-    expect(env.NEWS_PG_PASSWORD).toBe("new");
+    expect(env.NEWS_PG_PASSWORD).toBe("exported");
   });
 });
 
@@ -306,12 +322,26 @@ describe("$ in .env values", () => {
     });
   });
 
-  test("composeEnv lays the literal .env values over Bun's expanded copies and keeps other variables", () => {
-    const env = composeEnv(text, { PATH: "/bin", DOLLAR: "ab", QUOTED: "xz", UNSET: undefined });
+  test("composeEnv passes .env values literally and keeps the shell's other variables", () => {
+    // The wrapper runs under `bun --no-env-file`, so `env` is the shell's own environment.
+    const env = composeEnv(text, { PATH: "/bin", UNSET: undefined });
     expect(env.PATH).toBe("/bin");
     expect(env.DOLLAR).toBe("ab$cd");
     expect(env.QUOTED).toBe("x$Y-z");
+    expect(env.DUP).toBe("first");
     expect("UNSET" in env).toBe(false);
+  });
+
+  test("composeEnv: an exported shell variable wins over .env; an empty one does not", () => {
+    const env = composeEnv(text, { PLAIN: "from-shell", DOLLAR: "", QUOTED: undefined });
+    expect(env.PLAIN).toBe("from-shell");
+    expect(env.DOLLAR).toBe("ab$cd");
+    expect(env.QUOTED).toBe("x$Y-z");
+  });
+
+  test("noEnvFileProblem: the Compose wrapper and setup must run with --no-env-file", () => {
+    expect(noEnvFileProblem(["--no-env-file"], "scripts/compose.ts")).toBeUndefined();
+    expect(noEnvFileProblem([], "scripts/compose.ts")).toContain("bun --no-env-file scripts/compose.ts");
   });
 
   test("expandedKeys names only the keys Bun read differently because of a $", () => {
