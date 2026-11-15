@@ -55,6 +55,9 @@
     "workers/api": {
       "name": "@news/worker-api",
       "version": "0.0.1",
+      "dependencies": {
+        "@news/worker-shared": "workspace:*",
+      },
       "devDependencies": {
         "@cloudflare/vitest-plugin": "1.8.2",
         "@cloudflare/workers-types": "^5.20261114.1",
@@ -67,6 +70,9 @@
     "workers/mcp": {
       "name": "@news/worker-mcp",
       "version": "0.0.1",
+      "dependencies": {
+        "@news/worker-shared": "workspace:*",
+      },
       "devDependencies": {
         "@cloudflare/vitest-plugin": "1.8.2",
         "@cloudflare/workers-types": "^5.20261114.1",
@@ -92,12 +98,12 @@
       "name": "@news/worker-shared",
       "version": "0.0.1",
       "dependencies": {
-        "ajv": "8.20.0",
         "aws4fetch": "1.0.20",
       },
       "devDependencies": {
         "@cloudflare/workers-types": "^5.20261114.1",
         "@types/node": "^22.0.0",
+        "ajv": "8.20.0",
         "typescript": "^6.0.3",
         "vitest": "^5.1.0",
       },
