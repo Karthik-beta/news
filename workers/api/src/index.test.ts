@@ -30,6 +30,16 @@ describe("the deployed entry point", () => {
   });
 });
 
+describe("error codes", () => {
+  it("are exactly the contract's list", async () => {
+    const { STATUS } = await import("./errors");
+    const contract = (await import("../../../contracts/cloud/write-api.schema.json")).default as {
+      $defs: { error: { properties: { error: { properties: { code: { enum: string[] } } } } } };
+    };
+    expect(Object.keys(STATUS).sort()).toEqual([...contract.$defs.error.properties.error.properties.code.enum].sort());
+  });
+});
+
 describe("routing", () => {
   it("health: GET and HEAD only", async () => {
     const h = harness();
