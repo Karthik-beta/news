@@ -1,0 +1,93 @@
+name: Planned PR
+description: One piece of planned work that ships as exactly one pull request (from the Development Plan or the Bureau design).
+title: "<Imperative title, 70 characters at most>"
+labels: ["planned PR"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        One issue = one pull request. Medium (about 1–2k lines with tests) or large (2–5k). Link the PR with `Closes #<this issue>`.
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: The outcome, in one or two sentences.
+    validations:
+      required: true
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Phase
+      description: Development Plan phase (also set the milestone).
+      options:
+        - Phase 0 — Foundations
+        - Phase 1 — Spike: server rendering of OpenUI
+        - Phase 2 — Design direction
+        - Phase 3 — Component library
+        - Phase 4 — Content system design
+        - Phase 5 — Rust news CLI and connectors
+        - Phase 6 — Cloud
+        - Phase 7 — Orchestration
+        - Phase 8 — Telemetry and dashboard
+        - Phase 9 — Launch and ramp
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Areas
+      multiple: true
+      options: [site, components, charts, cli, connectors, bureau, workers, infra, design, docs]
+    validations:
+      required: true
+  - type: dropdown
+    id: model
+    attributes:
+      label: Builder model
+      description: Components, charts, architecture, security-sensitive code and judgement prose are Opus; well-specified features and non-component tests are Sonnet.
+      options: [Opus 5.5, Sonnet 5.5]
+    validations:
+      required: true
+  - type: dropdown
+    id: size
+    attributes:
+      label: Size
+      options: ["M (about 1–2k lines)", "L (about 2–5k lines)"]
+    validations:
+      required: true
+  - type: input
+    id: wave
+    attributes:
+      label: Wave and dependencies
+      description: Build wave, and the issues that must be merged first.
+      placeholder: "Wave 2 — depends on #4, #5"
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What the PR builds, with the file areas it touches.
+    validations:
+      required: true
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Out of scope
+  - type: textarea
+    id: agents
+    attributes:
+      label: Agents
+      description: Which agent roles build, test and review it.
+  - type: textarea
+    id: done
+    attributes:
+      label: Done when
+      description: A checklist that CI or a reviewer can verify.
+      value: |
+        - [ ] 
+    validations:
+      required: true
+  - type: textarea
+    id: docs
+    attributes:
+      label: Docs
+      description: Documents this PR updates.
