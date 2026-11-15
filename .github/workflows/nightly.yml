@@ -28,7 +28,9 @@ jobs:
       matrix:
         shard: [1, 2, 3, 4]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/setup
       - uses: ./.github/actions/playwright
         with:
@@ -37,7 +39,7 @@ jobs:
       # across the four jobs. Playwright's webServer builds the site once per job, then serves it.
       - run: bun run test:e2e:full -- --shard=${{ matrix.shard }}/4
         working-directory: site
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: failure()
         with:
           name: site-full-report-shard-${{ matrix.shard }}
@@ -53,8 +55,12 @@ jobs:
     outputs:
       version: ${{ steps.read.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
       # The screenshot image must match the locked @playwright/test exactly (see site/TESTING.md, "Screenshots").
+      # That is why the image below goes by tag, read from bun.lock, and is not pinned by digest: a fixed digest
+      # would fall behind on every Dependabot bump of @playwright/test.
       - id: read
         run: |
           version=$(grep -oP '"@playwright/test@\K[0-9]+\.[0-9]+\.[0-9]+' bun.lock | head -n 1)
@@ -73,14 +79,16 @@ jobs:
       CI: "1"
       NEWS_VISUAL: "1"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
       # The same steps as site/scripts/visual.ts: Bun from npm at the pinned version, then a frozen install.
       - run: npm install --global --silent bun@1.4.3
       - run: bun install --frozen-lockfile
       # Every @visual test is test.fixme until the first component adds baselines, so this passes with all skipped.
       - run: bunx playwright test --grep @visual
         working-directory: site
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: failure()
         with:
           name: site-visual-report
