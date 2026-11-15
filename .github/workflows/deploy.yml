@@ -1,0 +1,142 @@
+# Cloudflare deploys: the three Workers (api, mcp, search) and, from Phase 6, the site's SSR Worker.
+# Manual only: run it from the Actions tab (Run workflow) on main. Nothing deploys on push or from a PR.
+#
+# Needs, all set by Karthik and never by an agent or this file:
+#   - environment `production` (Settings > Environments); add a required reviewer there if you want a click-through
+#   - secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID (environment or repository secrets)
+# Until the secrets exist every job exits green with a notice and deploys nothing.
+#
+# A Worker deploys only when its wrangler.jsonc is ready. The Workers' configs still carry a `TODO(` comment where
+# the real D1 / R2 bindings go (Phase 0 accounts step); deploying them as they are would publish a Worker whose
+# bindings are missing. Declare the bindings and delete the TODO comment, and the Worker is picked up here.
+# The site is static today (no adapter, no wrangler config); it deploys once `site/wrangler.jsonc` exists (Phase 6).
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: What to deploy
+        type: choice
+        options: [all, api, mcp, search, site]
+        default: all
+      dry_run:
+        description: Bundle and validate only; deploy nothing (needs no secrets)
+        type: boolean
+        default: false
+  # Deploy on every merge to main instead of by hand. Leave this off until the Worker configs are ready and CI is a
+  # required check on main, otherwise a push deploys before CI has finished. Empty `target` is treated as `all`.
+  # push:
+  #   branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false # never stop a deploy half way
+
+jobs:
+  workers:
+    name: Deploy Worker (${{ matrix.worker }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    strategy:
+      fail-fast: false
+      matrix:
+        worker: [api, mcp, search]
+    steps:
+      - uses: actions/checkout@v4
+      - id: gate
+        env:
+          WORKER: ${{ matrix.worker }}
+          TARGET: ${{ inputs.target }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          skip() { echo "::notice title=Worker $WORKER not deployed::$1"; echo "deploy=false" >> "$GITHUB_OUTPUT"; exit 0; }
+          if [ -n "$TARGET" ] && [ "$TARGET" != "all" ] && [ "$TARGET" != "$WORKER" ]; then
+            echo "selected=false" >> "$GITHUB_OUTPUT"
+            skip "Not selected (target is $TARGET)."
+          fi
+          echo "selected=true" >> "$GITHUB_OUTPUT"
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            skip "Deploys run from main only (this run is on $GITHUB_REF)."
+          fi
+          if [ "$DRY_RUN" = "true" ]; then
+            skip "Dry run: the bundle is checked below, nothing is deployed."
+          fi
+          if grep -q 'TODO(' "workers/$WORKER/wrangler.jsonc"; then
+            skip "workers/$WORKER/wrangler.jsonc is not deploy-ready: it still has a TODO for its real bindings."
+          fi
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            skip "CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are not set in the production environment or the repository."
+          fi
+          echo "deploy=true" >> "$GITHUB_OUTPUT"
+      - uses: ./.github/actions/setup
+        if: steps.gate.outputs.selected == 'true' && (inputs.dry_run || steps.gate.outputs.deploy == 'true')
+      # Proves the Worker bundles with its real config. Needs no Cloudflare account.
+      - name: Dry-run bundle
+        if: steps.gate.outputs.selected == 'true' && (inputs.dry_run || steps.gate.outputs.deploy == 'true')
+        working-directory: workers/${{ matrix.worker }}
+        run: bunx wrangler deploy --dry-run --outdir "$RUNNER_TEMP/bundle-${{ matrix.worker }}"
+        env:
+          WRANGLER_SEND_METRICS: "false"
+      - name: Deploy to Cloudflare
+        if: steps.gate.outputs.deploy == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: workers/${{ matrix.worker }}
+          packageManager: bun
+          command: deploy
+
+  site:
+    name: Deploy site
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - id: gate
+        env:
+          TARGET: ${{ inputs.target }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          skip() { echo "::notice title=Site not deployed::$1"; echo "deploy=false" >> "$GITHUB_OUTPUT"; exit 0; }
+          if [ -n "$TARGET" ] && [ "$TARGET" != "all" ] && [ "$TARGET" != "site" ]; then
+            skip "Not selected (target is $TARGET)."
+          fi
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            skip "Deploys run from main only (this run is on $GITHUB_REF)."
+          fi
+          if [ "$DRY_RUN" = "true" ]; then
+            skip "Dry run: nothing is deployed."
+          fi
+          if [ ! -f site/wrangler.jsonc ] && [ ! -f site/wrangler.json ] && [ ! -f site/wrangler.toml ]; then
+            skip "The site has no wrangler config yet: it is static until the SSR Worker arrives in Phase 6 (Technical Design, Cloud services)."
+          fi
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            skip "CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are not set in the production environment or the repository."
+          fi
+          echo "deploy=true" >> "$GITHUB_OUTPUT"
+      - uses: ./.github/actions/setup
+        if: steps.gate.outputs.deploy == 'true'
+      - name: Build the site
+        if: steps.gate.outputs.deploy == 'true'
+        run: bun run build
+        working-directory: site
+      - name: Deploy to Cloudflare
+        if: steps.gate.outputs.deploy == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: site
+          packageManager: bun
+          command: deploy

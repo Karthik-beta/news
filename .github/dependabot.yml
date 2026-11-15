@@ -1,0 +1,33 @@
+# Weekly update PRs, one grouped PR per ecosystem so the inbox stays small. Dependabot only opens PRs; nothing
+# merges without CI and review. Security updates arrive separately and immediately, outside these groups.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directories:
+      - /
+      - /.github/actions/*
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: cargo
+    directory: /cli
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      cargo:
+        patterns: ["*"]
+
+  # Bun workspaces: the root bun.lock covers site, workers/*, pipeline and dashboard.
+  - package-ecosystem: bun
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      bun:
+        patterns: ["*"]

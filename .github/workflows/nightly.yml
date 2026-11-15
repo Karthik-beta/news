@@ -1,0 +1,90 @@
+# The heavy browser runs that are too slow for every PR: the site's full Playwright matrix (Chromium, Firefox and
+# WebKit; every screen, both themes, print, motion, forced colours; ~800 runs for the shell today) and the
+# screenshot tests. Daily, on every push to main, and on demand from the Actions tab.
+name: Nightly
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-${{ github.ref }}
+  # A newer push to main replaces an unfinished run for the older commit; a scheduled run is never cancelled.
+  cancel-in-progress: ${{ github.event_name == 'push' }}
+
+jobs:
+  site-full:
+    name: Site full matrix (shard ${{ matrix.shard }}/4)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - uses: ./.github/actions/playwright
+        with:
+          browsers: chromium firefox webkit
+      # `test:e2e:full` selects the chromium-*, firefox-* and webkit-* projects; --shard splits their tests
+      # across the four jobs. Playwright's webServer builds the site once per job, then serves it.
+      - run: bun run test:e2e:full -- --shard=${{ matrix.shard }}/4
+        working-directory: site
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: site-full-report-shard-${{ matrix.shard }}
+          path: |
+            site/playwright-report/
+            site/test-results/
+          retention-days: 7
+
+  playwright-version:
+    name: Playwright version
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.read.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      # The screenshot image must match the locked @playwright/test exactly (see site/TESTING.md, "Screenshots").
+      - id: read
+        run: |
+          version=$(grep -oP '"@playwright/test@\K[0-9]+\.[0-9]+\.[0-9]+' bun.lock | head -n 1)
+          test -n "$version" || { echo "::error::No @playwright/test version found in bun.lock"; exit 1; }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  site-visual:
+    name: Site screenshots (Playwright image)
+    runs-on: ubuntu-latest
+    needs: playwright-version
+    timeout-minutes: 30
+    container:
+      image: mcr.microsoft.com/playwright:v${{ needs.playwright-version.outputs.version }}-noble
+      options: --init --ipc=host
+    env:
+      CI: "1"
+      NEWS_VISUAL: "1"
+    steps:
+      - uses: actions/checkout@v4
+      # The same steps as site/scripts/visual.ts: Bun from npm at the pinned version, then a frozen install.
+      - run: npm install --global --silent bun@1.4.3
+      - run: bun install --frozen-lockfile
+      # Every @visual test is test.fixme until the first component adds baselines, so this passes with all skipped.
+      - run: bunx playwright test --grep @visual
+        working-directory: site
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: site-visual-report
+          path: |
+            site/playwright-report/
+            site/test-results/
+          retention-days: 7

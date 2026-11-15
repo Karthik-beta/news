@@ -1,0 +1,59 @@
+# Static checks on the repo's own plumbing: workflows, config files, skills and agents, dependency advisories.
+# A separate file from ci.yml so the required checks there stay exactly as they are. No path filters: they are
+# cheap, and a path-filtered workflow that is skipped leaves a required check pending forever.
+name: Validate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    # Weekly: new advisories appear without any change to the repo.
+    - cron: "23 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  actionlint:
+    name: Workflows (actionlint)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      # Lints every file in .github/workflows and the local composite actions' expressions, and runs
+      # shellcheck over the `run:` scripts (the image bundles it).
+      - uses: docker://rhysd/actionlint:1.7.12
+        with:
+          args: -color
+
+  config:
+    name: Config and skills (parse, frontmatter)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      # These two scripts use only Bun's own parsers, so no dependency install is needed.
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.3
+      # JSON, YAML and TOML syntax: tsconfig, wrangler configs, issue forms, tokens.json, Cargo, Compose, ...
+      - run: bun scripts/validate-config.ts
+      # Every SKILL.md and .claude/agents/*.md has `name` and `description`; a skill's name matches its folder.
+      - run: bun scripts/validate-skills.ts
+
+  audit:
+    name: Dependency audit (bun audit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      # Only high and critical advisories are reported, and they fail the job. The advisory feed changes without
+      # any commit, so this job is a signal, not a merge gate: do not mark it required.
+      - run: bun audit --audit-level=high

@@ -1,0 +1,21 @@
+name: Set up Bun and install dependencies
+description: Node 22 (Vitest and Wrangler run under Node), Bun at the project's pinned version, a cached package store, and a frozen-lockfile install.
+
+runs:
+  using: composite
+  steps:
+    # Vitest and Wrangler need Node >= 22.12; the runner image's default Node is older.
+    - uses: actions/setup-node@v4
+      with:
+        node-version: "22"
+    - uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: 1.4.3
+    - uses: actions/cache@v4
+      with:
+        path: ~/.bun/install/cache
+        key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+        restore-keys: |
+          bun-${{ runner.os }}-
+    - run: bun install --frozen-lockfile
+      shell: bash
