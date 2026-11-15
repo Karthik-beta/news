@@ -1,6 +1,7 @@
 # News local services. Run from the repo root: `bun run infra:up` (reads .env).
 # ClickHouse is NOT here: it is the shared container from another project (own `news` database and user,
 # set up by `bun run clickhouse:setup`). Nothing here touches the existing Neo4j or other containers.
+# DynamoDB Local (AWS's own emulator) stands in for DynamoDB in the Worker tests: in memory, loopback only, dummy credentials.
 name: news
 
 services:
@@ -54,6 +55,24 @@ services:
       - ./otel/config.yaml:/etc/otelcol/config.yaml:ro
     cpus: 0.5
     mem_limit: 384m
+
+  dynamodb:
+    # AWS's own DynamoDB Local, pinned to a real tag (3.3.2). In memory, so every `infra:up` starts empty; tests create
+    # and delete their own uniquely named tables. Dummy credentials only (see NEWS_DYNAMODB_* in .env.example).
+    image: amazon/dynamodb-local:3.3.2
+    container_name: news-dynamodb
+    restart: unless-stopped
+    command: ["-jar", "DynamoDBLocal.jar", "-inMemory", "-sharedDb"]
+    ports:
+      - "127.0.0.1:${NEWS_DYNAMODB_PORT:-8000}:8000"
+    cpus: 1
+    mem_limit: 512m
+    healthcheck:
+      # Any HTTP reply counts (an unsigned GET / is answered with a 400), so no -f.
+      test: ["CMD-SHELL", "curl -s -o /dev/null http://127.0.0.1:8000/"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
 volumes:
   news-pg-data:

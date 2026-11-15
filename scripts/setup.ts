@@ -1,6 +1,6 @@
 // One-command local setup: `bun run setup`. Safe to re-run.
 // 1. Creates .env from .env.example with generated local passwords (never overwrites an existing value).
-// 2. Starts PostgreSQL + pgvector and the OTel Collector.
+// 2. Starts PostgreSQL + pgvector, the OTel Collector and DynamoDB Local (for the Worker tests).
 // 3. Creates the isolated `news` database and user in the shared ClickHouse.
 // 4. Installs JS dependencies, syncs design tokens, builds the Rust CLI.
 // 5. Runs the doctor with the end-to-end telemetry check.
@@ -22,6 +22,18 @@ const set = (k: string, v: string) => {
     : `${text.trimEnd()}\n${k}=${v}\n`;
 };
 
+// Non-secret settings added after a .env was first created (DynamoDB Local, dummy credentials): copy from the example.
+const example = readFileSync(examplePath, "utf8");
+for (const k of [
+  "NEWS_DYNAMODB_PORT",
+  "NEWS_DYNAMODB_ENDPOINT",
+  "NEWS_DYNAMODB_REGION",
+  "NEWS_DYNAMODB_ACCESS_KEY_ID",
+  "NEWS_DYNAMODB_SECRET_ACCESS_KEY",
+]) {
+  if (!get(k)) set(k, example.match(new RegExp(`^${k}=(.*)$`, "m"))?.[1]?.trim() ?? "");
+}
+
 if (!get("NEWS_PG_PASSWORD")) set("NEWS_PG_PASSWORD", secret());
 if (!get("NEWS_CH_PASSWORD")) set("NEWS_CH_PASSWORD", secret());
 if (!get("DATABASE_URL"))
@@ -42,7 +54,7 @@ const step = (label: string, cmd: string, args: string[], cwd = root) => {
   console.log(`✓ ${label}`);
 };
 
-step("start PostgreSQL and OTel Collector", "docker", [
+step("start PostgreSQL, OTel Collector and DynamoDB Local", "docker", [
   "compose",
   "-f",
   "infra/docker-compose.yml",

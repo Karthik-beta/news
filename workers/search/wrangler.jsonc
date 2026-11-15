@@ -5,4 +5,8 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-11-01",
   "observability": { "enabled": true }
+
+  // TODO(Karthik, Phase 0 accounts step): declare the real D1 binding here with your real database ID.
+  // The tests do NOT read this file for it: Miniflare creates an empty local D1 (workers/test-support).
+  // "d1_databases": [{ "binding": "SEARCH_DB", "database_name": "news-search", "database_id": "<real D1 id>" }],
 }

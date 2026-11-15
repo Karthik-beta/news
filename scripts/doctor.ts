@@ -3,6 +3,8 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { SQL } from "bun";
+import { DynamoDbLocal, dynamoConfigFromEnv, fromItem, toItem, withTempTable } from "../workers/test-support/src/dynamodb";
+import { requireDynamoDb } from "../workers/test-support/src/service-check";
 import { chQuery, env, mark, root, run } from "./lib";
 
 const e2e = process.argv.includes("--e2e");
@@ -48,7 +50,7 @@ for (const k of ["NEWS_PG_PASSWORD", "DATABASE_URL", "NEWS_CH_PASSWORD"])
 line(existsSync(join(root, "site/src/styles/tokens.css")), "design tokens synced into site");
 
 console.log("\nContainers");
-for (const name of ["news-postgres", "news-otel", env("NEWS_CH_CONTAINER", "shorts-clickhouse-1")]) {
+for (const name of ["news-postgres", "news-otel", "news-dynamodb", env("NEWS_CH_CONTAINER", "shorts-clickhouse-1")]) {
   const r = run("docker", [
     "inspect",
     "-f",
@@ -78,6 +80,13 @@ try {
   line(res.ok, "OTel Collector health", `HTTP ${res.status}`);
 } catch (e) {
   line(false, "OTel Collector health", String(e).slice(0, 120));
+}
+
+try {
+  await requireDynamoDb();
+  line(true, "DynamoDB Local", dynamoConfigFromEnv(process.env).endpoint);
+} catch (e) {
+  line(false, "DynamoDB Local", e instanceof Error ? e.message : String(e));
 }
 
 const cli = join(root, "cli/target/debug", process.platform === "win32" ? "news.exe" : "news");
@@ -122,6 +131,20 @@ if (e2e) {
     "OTLP log through the collector into news.otel_logs",
     sent ? (arrived ? "" : "sent, not arrived within 20s") : "collector refused the log",
   );
+
+  // Signed request to DynamoDB Local: create a throwaway table, put and get an item, delete the table.
+  try {
+    const item = { PK: "PAGE#doctor", SK: "LATEST", title: marker };
+    const client = new DynamoDbLocal(dynamoConfigFromEnv(process.env));
+    const back = await withTempTable(client, async (table) => {
+      await client.putItem(table, toItem(item));
+      const got = await client.getItem(table, { PK: item.PK, SK: item.SK });
+      return got ? fromItem(got) : undefined;
+    });
+    line(back?.title === marker, "DynamoDB Local signed put/get on a throwaway table");
+  } catch (e) {
+    line(false, "DynamoDB Local signed put/get on a throwaway table", String(e).slice(0, 160));
+  }
 }
 
 console.log(failures ? `\n${failures} problem(s) found.` : "\nAll required checks passed.");

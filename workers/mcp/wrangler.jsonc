@@ -5,4 +5,9 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-11-01",
   "observability": { "enabled": true }
+
+  // TODO(Karthik, Phase 0 accounts step): declare the real R2 binding here with your real bucket name.
+  // The tests do NOT read this file for it: Miniflare creates an empty local R2 bucket (workers/test-support).
+  // "r2_buckets": [{ "binding": "PAGES", "bucket_name": "<real R2 bucket>" }],
+  // Secrets (read-only AWS key pair for DynamoDB) are set with `wrangler secret put`, never in this file.
 }
