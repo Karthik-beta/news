@@ -1,23 +1,141 @@
-import { defineConfig, devices } from "@playwright/test";
+import { defineConfig, devices, type Project } from "@playwright/test";
+import type { NewsOptions } from "./tests/e2e/fixtures";
 
-// Phase 0: smoke projects only. The full component matrix (10 widths x 2 themes x 3 engines)
-// is added in Phase 3 from .claude/skills/news-component-testing/references/playwright-matrix.md.
-export default defineConfig({
-  testDir: "./tests/e2e",
-  fullyParallel: false,
-  workers: 2,
-  reporter: [["list"]],
-  use: { baseURL: "http://127.0.0.1:4321", reducedMotion: "reduce" },
-  webServer: {
-    command: "bun run dev",
-    url: "http://127.0.0.1:4321",
-    reuseExistingServer: true,
-    timeout: 120_000,
-  },
-  projects: ["light", "dark"].flatMap((theme) =>
-    [360, 1440].map((width) => ({
-      name: `smoke-${theme}-${width}`,
-      use: { ...devices["Desktop Chrome"], viewport: { width, height: 900 }, colorScheme: theme as "light" | "dark" },
+// The screen matrix from .claude/skills/news-component-testing/references/playwright-matrix.md and
+// Development Plan 3.4. Project names say engine, theme and screen, so `--project` globs pick slices:
+//   smoke-*                      CI on every PR: Chromium, 360 and 1440, light and dark, tests tagged @smoke
+//   chromium-* firefox-* webkit-*  the full matrix (main / nightly / before a component sign-off)
+// Tags decide which projects run a test: untagged tests run on every screen; @smoke also runs in smoke-*;
+// @print, @motion and @forced-colors run only in their own projects. See site/TESTING.md.
+
+const WIDTHS = [320, 360, 390, 430, 600, 768, 980, 1120, 1440, 1920] as const;
+const THEMES = ["light", "dark"] as const;
+const ENGINES = [
+  { name: "chromium", device: devices["Desktop Chrome"] },
+  { name: "firefox", device: devices["Desktop Firefox"] },
+  { name: "webkit", device: devices["Desktop Safari"] },
+] as const;
+
+/** Tests tagged with these need special emulation and run only in their own projects. */
+const SPECIAL = /@print|@motion|@forced-colors/;
+
+const port = Number(process.env.E2E_PORT ?? 4329);
+const baseURL = `http://127.0.0.1:${port}`;
+
+// Phones get 3x, tablets and small laptops 2x, desktops 1x; touch below the desktop breakpoint.
+const scaleFor = (width: number) => (width < 600 ? 3 : width < 1120 ? 2 : 1);
+
+const matrix: Project<NewsOptions>[] = ENGINES.flatMap(({ name: engine, device }) => [
+  ...THEMES.flatMap((theme) =>
+    WIDTHS.map((width) => ({
+      name: `${engine}-${theme}-${width}`,
+      grepInvert: SPECIAL,
+      use: {
+        ...device,
+        theme,
+        colorScheme: theme,
+        viewport: { width, height: 900 },
+        deviceScaleFactor: scaleFor(width),
+        hasTouch: width < 980,
+        isMobile: width < 600 && engine !== "firefox", // Firefox has no mobile emulation
+      },
     })),
   ),
+  // Landscape phone, 844 x 390 (charts and video).
+  ...THEMES.map((theme) => ({
+    name: `${engine}-${theme}-landscape`,
+    grepInvert: SPECIAL,
+    use: {
+      ...device,
+      theme,
+      colorScheme: theme,
+      viewport: { width: 844, height: 390 },
+      deviceScaleFactor: 3,
+      hasTouch: true,
+      isMobile: engine !== "firefox",
+    },
+  })),
+  {
+    name: `${engine}-print`,
+    grep: /@print/,
+    use: { ...device, theme: "light", colorScheme: "light", viewport: { width: 1120, height: 900 } },
+  },
+  {
+    name: `${engine}-motion`,
+    grep: /@motion/,
+    use: {
+      ...device,
+      theme: "light",
+      colorScheme: "light",
+      viewport: { width: 1440, height: 900 },
+      reducedMotion: "no-preference",
+    },
+  },
+]);
+
+const special: Project<NewsOptions>[] = THEMES.map((theme) => ({
+  // Forced colours (Windows high contrast) is emulated by Chromium only.
+  name: `chromium-forced-colors-${theme}`,
+  grep: /@forced-colors/,
+  use: {
+    ...devices["Desktop Chrome"],
+    theme,
+    colorScheme: theme,
+    forcedColors: "active",
+    viewport: { width: 1440, height: 900 },
+  },
+}));
+
+const smoke: Project<NewsOptions>[] = THEMES.flatMap((theme) =>
+  [360, 1440].map((width) => ({
+    name: `smoke-${theme}-${width}`,
+    grep: /@smoke/,
+    grepInvert: SPECIAL,
+    use: {
+      ...devices["Desktop Chrome"],
+      theme,
+      colorScheme: theme,
+      viewport: { width, height: 900 },
+      deviceScaleFactor: scaleFor(width),
+      hasTouch: width < 980,
+      isMobile: width < 600,
+    },
+  })),
+);
+
+// Tests always run against the built site served by `astro preview` (what readers get), on a port of
+// its own so a dev server on 4321 is never picked up by mistake. E2E_SKIP_BUILD=1 reuses an existing dist/
+// (CI builds once for integration and e2e); E2E_REUSE_SERVER=1 reuses a preview you already started.
+const preview = `bun --bun astro preview --host 127.0.0.1 --port ${port}`;
+
+export default defineConfig<NewsOptions>({
+  testDir: "./tests/e2e",
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 1 : 0,
+  workers: 2, // the laptop has 4 cores and heavy runs go one at a time; CI runners have 2-4
+  reporter: [[process.env.CI ? "github" : "list"], ["html", { open: "never" }]],
+  // Baselines have no platform suffix: they are made and compared only on Linux in the official
+  // Playwright image (see TESTING.md, "Screenshots"), never on Windows or macOS.
+  snapshotPathTemplate: "{testDir}/__screenshots__/{projectName}/{testFilePath}/{arg}{ext}",
+  expect: {
+    toHaveScreenshot: { maxDiffPixelRatio: 0, animations: "disabled", caret: "hide", scale: "device" },
+  },
+  use: {
+    baseURL,
+    reducedMotion: "reduce",
+    locale: "en-GB",
+    timezoneId: "Europe/London",
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure",
+  },
+  webServer: {
+    command: process.env.E2E_SKIP_BUILD ? preview : `bun run build && ${preview}`,
+    url: baseURL,
+    reuseExistingServer: process.env.E2E_REUSE_SERVER === "1",
+    timeout: 180_000,
+    stdout: "ignore",
+    stderr: "pipe",
+  },
+  projects: [...smoke, ...matrix, ...special],
 });
