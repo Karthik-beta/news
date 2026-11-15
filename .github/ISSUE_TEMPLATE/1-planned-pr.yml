@@ -21,7 +21,7 @@ body:
       description: Development Plan phase (also set the milestone).
       options:
         - Phase 0 — Foundations
-        - Phase 1 — Spike: server rendering of OpenUI
+        - "Phase 1 — Spike: server rendering of OpenUI"
         - Phase 2 — Design direction
         - Phase 3 — Component library
         - Phase 4 — Content system design
