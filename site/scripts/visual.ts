@@ -4,11 +4,24 @@
 //   bun run test:visual:update                 write new baselines (say why in the component's TESTING.md)
 //   bun run test:visual -- --project=smoke-*   any extra arguments go to `playwright test`
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
+
+// The repo is mounted whole, so the local secrets files are covered with an empty read-only file: the screenshot
+// tests need none of them. Only files that exist are covered; Docker would create a missing mount point on the host.
+const empty = join(mkdtempSync(join(tmpdir(), "news-visual-")), "empty");
+writeFileSync(empty, "");
+const workers = readdirSync(join(repo, "workers"), { withFileTypes: true }).filter((d) => d.isDirectory());
+const secretFiles = ["", "site", ...workers.map((w) => `workers/${w.name}`)].flatMap((dir) =>
+  readdirSync(join(repo, dir))
+    .filter((f) => /^(\.env|\.dev\.vars)(\..+)?$/.test(f) && !f.endsWith(".example"))
+    .map((f) => (dir ? `${dir}/${f}` : f)),
+);
+const masks = secretFiles.flatMap((f) => ["-v", `${empty}:/work/${f}:ro`]);
 const playwright = JSON.parse(readFileSync(join(repo, "node_modules/@playwright/test/package.json"), "utf8")).version;
 const bun = process.versions.bun; // the container uses the same Bun as the host that runs this script
 if (!bun) throw new Error("Run with Bun: bun run test:visual");
@@ -36,6 +49,7 @@ const result = spawnSync(
     "NEWS_VISUAL=1",
     "-v",
     `${repo}:/work`,
+    ...masks,
     "-v",
     "news-visual-node-modules:/work/node_modules",
     "-v",
