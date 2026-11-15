@@ -1,0 +1,109 @@
+/* Spike-only styles for the fixture page. Tokens only (design/tokens/tokens.json); the real component
+   styles arrive with the component library. */
+.oui-page {
+  max-width: var(--layout-article);
+  margin: 0 auto;
+  padding-inline: max(var(--gutter), env(safe-area-inset-left, 0px));
+  padding-block: var(--space-10);
+}
+
+.oui-heading {
+  font-family: var(--font-family-serif);
+  font-size: var(--font-size-headline-l);
+  line-height: var(--font-line-height-headline);
+  text-wrap: balance;
+  margin: 0 0 var(--space-5);
+}
+
+.oui-paragraph {
+  font-family: var(--font-family-serif);
+  font-size: var(--font-size-body-responsive);
+  line-height: var(--font-line-height-body);
+  max-width: var(--layout-prose);
+}
+
+.oui-figure {
+  border-top: var(--border-hairline) solid var(--color-ink);
+  padding-top: var(--space-3);
+  margin-block: var(--space-7);
+}
+
+.oui-figure p {
+  margin: 0;
+}
+
+.oui-figure-label,
+.oui-figure-change {
+  color: var(--color-ink-2);
+  font-size: var(--font-size-source);
+}
+
+.oui-figure-value {
+  font-size: var(--font-size-figure-responsive);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.oui-chart {
+  margin: var(--space-7) 0;
+  border-top: var(--border-section) solid var(--color-brand);
+  padding-top: var(--space-3);
+}
+
+.oui-chart figcaption {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.oui-chart-title {
+  font-size: var(--font-size-chart-title);
+  font-weight: var(--font-weight-semibold);
+}
+
+.oui-chart-subtitle,
+.oui-chart-source {
+  color: var(--color-ink-2);
+  font-size: var(--font-size-chart-subtitle);
+}
+
+.oui-chart-plot {
+  position: relative;
+  margin-top: var(--space-4);
+}
+
+.oui-chart-plot svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.oui-chart-baseline {
+  stroke: var(--chart-baseline);
+  stroke-width: var(--border-hairline);
+}
+
+.oui-chart-line {
+  fill: none;
+  stroke: var(--chart-highlight);
+  stroke-width: var(--chart-mark-line-width);
+}
+
+.oui-chart-point {
+  fill: var(--chart-highlight);
+}
+
+.oui-chart-label {
+  fill: var(--color-ink-2);
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-label);
+}
+
+.oui-chart-tooltip {
+  position: absolute;
+  top: 0;
+  right: 0;
+  margin: 0;
+  padding: var(--space-3);
+  background: var(--color-paper);
+  border: var(--border-hairline) solid var(--color-rule);
+}

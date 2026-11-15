@@ -1,0 +1,18 @@
+---
+// Fixture routes for the OpenUI server-rendering spike (ADR 0001). Code: site/spikes/openui-ssr/.
+//   react-ssr       approach B, the chosen one: always built, tested in CI.
+//   astro-islands   approach A, rejected: built only with OPENUI_SPIKE_A=1, because Astro writes its island
+//                   runtime (<style> and <script>) inside <article> at the first island, which fails the
+//                   HTML validity check. Kept so its measurements can be re-run.
+import AstroIslandsPage from "../../../../spikes/openui-ssr/AstroIslandsPage.astro";
+import ReactSsrPage from "../../../../spikes/openui-ssr/ReactSsrPage.astro";
+
+export function getStaticPaths() {
+  const approaches = ["react-ssr"];
+  if (process.env.OPENUI_SPIKE_A === "1") approaches.push("astro-islands");
+  return approaches.map((approach) => ({ params: { approach } }));
+}
+
+const { approach } = Astro.params;
+---
+{approach === "astro-islands" ? <AstroIslandsPage /> : <ReactSsrPage />}

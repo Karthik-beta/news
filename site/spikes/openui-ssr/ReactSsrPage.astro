@@ -1,0 +1,16 @@
+---
+// Approach B, hosted in the Astro build so the browser test can load it: the whole OpenUI page is rendered
+// to a string by react-dom/server (render.tsx), and the chart island is hydrated by hydrate.client.ts.
+// In production the same string would be written straight into the page bundle's index.html.
+import FixtureLayout from "./FixtureLayout.astro";
+import oui from "./fixture.oui?raw";
+import { renderWithOpenUI } from "./render";
+
+const body = renderWithOpenUI(oui);
+---
+<FixtureLayout title="OpenUI SSR spike: React server rendering">
+  <Fragment set:html={body} />
+</FixtureLayout>
+<script>
+  import "./hydrate.client";
+</script>

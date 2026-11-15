@@ -1,0 +1,5 @@
+root = Page([title, intro, revenue, chart])
+title = Heading("Apple's sales grew for the first time in two years")
+intro = Paragraph("Net sales rose in fiscal 2024 after two flat years, led by services. The figures below come from the company's annual reports.")
+revenue = KeyFigure("Net sales", "$391.0bn", "Up 2.0% on fiscal 2023")
+chart = LineChart("Net sales, $bn", "Fiscal years ending September", ["FY2020", "FY2021", "FY2022", "FY2023", "FY2024"], [274.5, 365.8, 394.3, 383.3, 391.0], "Form 10-K, fiscal 2020 to 2024")
