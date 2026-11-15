@@ -3,9 +3,11 @@
 //! Every test here is `#[ignore]`d, so plain `cargo test` needs no database. Run them with
 //!
 //! ```text
-//! bun run test:integration                                     # reads .env, checks the DB first
+//! bun scripts/test-cli.ts integration                          # reads .env, checks the DB first
 //! NEWS_TEST_DATABASE_URL=postgres://... cargo test -p news --test postgres -- --ignored
 //! ```
+//!
+//! `bun run test:integration` runs the first line too, after the Bun workspaces' integration tests.
 //!
 //! The database is the pgvector container from `infra/docker-compose.yml` (`bun run infra:up`) or any
 //! Postgres 17 with the `vector`, `pg_trgm` and `unaccent` extensions installed. If it cannot be

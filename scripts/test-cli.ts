@@ -1,7 +1,8 @@
 // Runs the Rust CLI's tests at one level. Usage (from the repo root): `bun scripts/test-cli.ts <level>`
 //   unit         in-crate tests, no services
 //   e2e          the real `news` binary (cli/crates/news/tests/cli.rs), no services
-//   integration  Postgres tests (cli/crates/news/tests/postgres.rs); needs `bun run infra:up`
+//   integration  Postgres tests (cli/crates/news/tests/postgres.rs); needs `bun run infra:up`. The root
+//                `bun run test:integration` runs this level after the Bun workspaces' integration tests.
 // Bun loads .env, so DATABASE_URL is available here; cargo does not read .env, so it is passed on explicitly.
 import { spawnSync } from "node:child_process";
 import { connect } from "node:net";

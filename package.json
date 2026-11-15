@@ -19,7 +19,7 @@
     "dev": "bun --filter @news/site dev",
     "build": "bun --filter '*' build",
     "test": "bun --filter '*' test",
-    "test:integration": "bun --filter '*' test:integration",
+    "test:integration": "bun --filter '*' test:integration && bun scripts/test-cli.ts integration",
     "test:e2e": "bun --filter '*' test:e2e",
     "validate": "bun scripts/validate-config.ts && bun scripts/validate-skills.ts",
     "typecheck": "bun --filter '*' typecheck",

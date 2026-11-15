@@ -11,7 +11,7 @@ Visual, fully sourced pages for major company, economic and science reports. One
 `site/` Astro + React (Bun) · `cli/` Rust `news` CLI · `workers/` Cloudflare Workers · `pipeline/` page runner · `dashboard/` local telemetry · `infra/` Docker, ClickHouse, OTel · `skills/` runtime skills for page writers (not dev skills).
 
 ## Commands (repo root)
-`bun run setup` (first time, safe to re-run) · `bun run doctor` (`--e2e` for the telemetry round trip) · `bun run dev` · `bun run typecheck` · `bun run test` · `bun run test:integration` / `test:e2e` (need `infra:up`; see `site/TESTING.md`) · `bun run validate` (config, skill and agent files) · `bun run lint` · `bun run infra:up` / `infra:down` · `bun run tokens`. Rust: `cargo build|test|clippy` in `cli/`.
+`bun run setup` (first time, safe to re-run) · `bun run doctor` (`--e2e` for the telemetry round trip) · `bun run dev` · `bun run typecheck` · `bun run test` · `bun run test:integration` (workspaces, then the CLI's Postgres tests) / `test:e2e` (need `infra:up`; see `site/TESTING.md`) · `bun run validate` (config, skill and agent files) · `bun run lint` · `bun run infra:up` / `infra:down` · `bun run tokens`. Rust: `cargo build|test|clippy` in `cli/`.
 
 ## Rules
 - Bun is the runtime; Astro runs under Bun (`bun --bun astro …`) because the system Node is older than Astro needs.

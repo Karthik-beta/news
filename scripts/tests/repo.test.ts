@@ -33,6 +33,12 @@ describe("root package.json scripts", () => {
     expect(pkg.scripts["infra:up"]).toMatch(/up -d --wait$/);
   });
 
+  test("test:integration also runs the CLI's Postgres tests, which no Bun workspace reaches", () => {
+    // postgres.rs, ci.yml and CLAUDE.md all point at `bun run test:integration` for these tests.
+    expect(pkg.scripts["test:integration"]).toContain("bun scripts/test-cli.ts integration");
+    expect(read("cli/crates/news/tests/postgres.rs")).toContain("bun run test:integration");
+  });
+
   test("every workspace directory exists and has a package.json", () => {
     for (const w of pkg.workspaces.filter((p) => !p.includes("*")))
       expect(existsSync(join(root, w, "package.json")), w).toBe(true);
