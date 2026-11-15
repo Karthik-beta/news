@@ -3,7 +3,13 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { SQL } from "bun";
-import { DynamoDbLocal, dynamoConfigFromEnv, fromItem, toItem, withTempTable } from "../workers/test-support/src/dynamodb";
+import {
+  DynamoDbLocal,
+  dynamoConfigFromEnv,
+  fromItem,
+  toItem,
+  withTempTable,
+} from "../workers/test-support/src/dynamodb";
 import { requireDynamoDb } from "../workers/test-support/src/service-check";
 import { chQuery, env, mark, root, run } from "./lib";
 

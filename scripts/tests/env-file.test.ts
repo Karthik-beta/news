@@ -192,7 +192,7 @@ describe("bun scripts/setup.ts, end to end in a scratch copy (no docker, no real
       expect(r.out + r.err).not.toContain(getEnvValue(env, "NEWS_CH_PASSWORD"));
       // It stopped at the docker step, which could not run: nothing real was started.
       expect(r.status).toBe(1);
-      expect(r.out + r.err).toContain("start PostgreSQL and OTel Collector");
+      expect(r.out + r.err).toContain("start PostgreSQL, OTel Collector and DynamoDB Local");
     } finally {
       removeDir(dir);
     }
@@ -204,8 +204,29 @@ describe("bun scripts/setup.ts, end to end in a scratch copy (no docker, no real
     const dir = makeScratchRepo({ ".env": existing });
     try {
       runSetup(dir);
+      const first = readFileSync(join(dir, ".env"), "utf8");
       runSetup(dir);
-      expect(readFileSync(join(dir, ".env"), "utf8")).toBe(existing);
+      expect(readFileSync(join(dir, ".env"), "utf8")).toBe(first);
+      // Everything that was there is untouched; only the missing DynamoDB Local settings were appended.
+      expect(first.startsWith(existing)).toBe(true);
+      expect(getEnvValue(first, "NEWS_PARALLEL")).toBe("7");
+      expect(getEnvValue(first, "NEWS_DYNAMODB_ENDPOINT")).toBe("http://127.0.0.1:8000");
+    } finally {
+      removeDir(dir);
+    }
+  });
+
+  test("copies the DynamoDB Local settings into an older .env, but keeps ones the user already set", () => {
+    const dir = makeScratchRepo({
+      ".env": "NEWS_PG_PASSWORD=a\nNEWS_CH_PASSWORD=b\nDATABASE_URL=postgres://x\nNEWS_DYNAMODB_PORT=8123\n",
+    });
+    try {
+      runSetup(dir);
+      const env = readFileSync(join(dir, ".env"), "utf8");
+      expect(getEnvValue(env, "NEWS_DYNAMODB_PORT")).toBe("8123");
+      expect(getEnvValue(env, "NEWS_DYNAMODB_REGION")).toBe("us-east-1");
+      expect(getEnvValue(env, "NEWS_DYNAMODB_ACCESS_KEY_ID")).toBe("AKIDLOCAL");
+      expect(getEnvValue(env, "NEWS_DYNAMODB_SECRET_ACCESS_KEY")).toBe("local");
     } finally {
       removeDir(dir);
     }
