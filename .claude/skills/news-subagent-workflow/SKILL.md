@@ -48,7 +48,7 @@ Return: branch, ≤ 5-line summary, test results, open questions. No file conten
 3. **Limits.** At most 3 coding agents at once, plus up to 2 read-only agents. One heavy job at a time (full Playwright matrix, Rust release builds, Docling). Never start work that depends on an unmerged branch.
 4. **Review.** When a builder returns, start a fresh Opus reviewer with the `news-review` skill on that branch. At most two fix rounds; then hand it to the Opus bug fixer with the reviewer's notes.
 5. **Components** also go to an Opus tester (`news-component-testing`) before the PR. No sign-off, no PR.
-6. **PR.** `gh pr create --base main --head <branch>` with a summary, the checklist item, test evidence and screenshots for visual changes. Then bind the PR and let CI and CodeRabbit (light profile) run.
+6. **PR.** `gh pr create --base main --head <branch>` with a summary, the checklist item, test evidence and screenshots for visual changes. Then bind the PR to the session and **turn on Auto-fix for it straight away** (Karthik wants Auto-fix on for every PR in this repo, without being asked), and let CI and CodeRabbit (light profile) run.
 7. **CodeRabbit comments.** Fix the real ones on the same branch (builder or bug fixer); reply to the rest with the reason. Don't argue with style nits; the profile should keep them rare.
 8. **Merge.** Squash-merge when CI is green and both reviews are done. Karthik merges phase-exit PRs and anything touching secrets, the write API or the brand. Never force-push `main`; never skip hooks.
 9. **Update the plan.** Tick the item in the Development Plan's progress checklist in the same or the next PR.

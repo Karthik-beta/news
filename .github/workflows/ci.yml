@@ -1,4 +1,13 @@
-# Fast checks on every PR and push to main. Heavy visual matrices run locally (see the Development Plan).
+# Checks on every PR and push to main. Ten checks are required in branch protection, matched by their `name:`:
+#   here:          JS (lint, typecheck, unit tests); Site smoke (Chromium, 360/1440, light/dark); Rust (fmt, clippy,
+#                  tests); Secret scan; Workers integration (DynamoDB Local); Workers E2E (Wrangler harness);
+#                  Rust PostgreSQL (pgvector); Dependencies (cargo deny)
+#   validate.yml:  Workflows (actionlint); Config and skills (parse, frontmatter)
+# Renaming any of them makes its required check wait forever and blocks every merge. The full browser matrix is in
+# nightly.yml.
+#
+# Actions are pinned to full commit SHAs, with the release in a comment; Dependabot updates both. Every checkout
+# sets persist-credentials: false, so no later step can push with the job's token.
 name: CI
 
 on:
@@ -11,7 +20,9 @@ permissions:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # On a PR, a newer push cancels the run for the older commit. On main nothing in progress is cancelled, but GitHub
+  # keeps only one waiting run per group: a run still queued behind another is replaced by the next push's run.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   js:
@@ -19,17 +30,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          bun-version: 1.4.3
-      - run: bun install --frozen-lockfile
+          persist-credentials: false
+      - uses: ./.github/actions/setup
       - run: bun run lint
       - run: bun site/scripts/sync-tokens.ts
       - name: Generated tokens are committed
         run: git diff --exit-code design/tokens/tokens.css
       - run: bun run typecheck
       - run: bun run test
+      # The setup and test scripts in scripts/ (not a workspace, so `bun run test` does not reach them).
+      - run: bun test scripts/tests
 
   site-smoke:
     name: Site smoke (Chromium, 360/1440, light/dark)
@@ -37,15 +49,76 @@ jobs:
     timeout-minutes: 15
     needs: js
     steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          bun-version: 1.4.3
-      - run: bun install --frozen-lockfile
-      - run: bunx playwright install --with-deps chromium
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - uses: ./.github/actions/playwright
+        with:
+          browsers: chromium
+      # Builds dist/, then checks HTML validity, internal links and design tokens in the built CSS.
+      - run: bun run test:integration
         working-directory: site
-      - run: bunx playwright test
+      # Smoke subset only (Chromium, 360/1440, light/dark), against the dist/ built above.
+      - run: bun run test:e2e
         working-directory: site
+        env:
+          E2E_SKIP_BUILD: "1"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: failure()
+        with:
+          name: site-smoke-report
+          path: |
+            site/playwright-report/
+            site/test-results/
+          retention-days: 7
+
+  workers-integration:
+    name: Workers integration (DynamoDB Local)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      # AWS's own emulator, same image as infra/docker-compose.yml, pinned by digest. The image's default command is
+      # already `-jar DynamoDBLocal.jar -inMemory`; a service container cannot add `-sharedDb`, which makes no
+      # difference here because every test uses the one access key and region below.
+      dynamodb:
+        image: amazon/dynamodb-local:3.3.2@sha256:6ada631ec7aa5fc83446855eb17233e3dad184fec47477e8140c6c569cfe0c86
+        ports:
+          - 8000:8000
+        options: >-
+          --health-cmd "curl -s -o /dev/null http://127.0.0.1:8000/"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      # Dummy values for the local emulator (see .env.example). The tests refuse any non-loopback endpoint.
+      NEWS_DYNAMODB_ENDPOINT: http://127.0.0.1:8000
+      NEWS_DYNAMODB_PORT: "8000"
+      NEWS_DYNAMODB_REGION: us-east-1
+      NEWS_DYNAMODB_ACCESS_KEY_ID: AKIDLOCAL
+      NEWS_DYNAMODB_SECRET_ACCESS_KEY: local
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      # The Workers only; the site's integration level (a full build) runs in the site-smoke job.
+      - run: bun --filter './workers/*' test:integration
+
+  workers-e2e:
+    name: Workers E2E (Wrangler harness)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      # Each Worker is started from its real wrangler.jsonc under workerd and hit over HTTP. Runs under Node.
+      - run: bun --filter './workers/*' test:e2e
+      # The local telemetry dashboard: the real `bun src/index.ts` process on a free loopback port, over HTTP.
+      # It shares this job (and its required check name) because it needs no services either.
+      - run: bun --filter @news/dashboard test:e2e
 
   rust:
     name: Rust (fmt, clippy, tests)
@@ -55,16 +128,84 @@ jobs:
       run:
         working-directory: cli
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          persist-credentials: false
+      # The action's `stable` branch, pinned; cli/rust-toolchain.toml names the channel too.
+      - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable branch, 2026-11-15
+        with:
+          toolchain: stable
           components: rustfmt, clippy
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           workspaces: cli
       - run: cargo fmt --all --check
       - run: cargo clippy --all-targets -- -D warnings
       - run: cargo test --all
+
+  rust-postgres:
+    name: Rust PostgreSQL (pgvector)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: cli
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.1-pg17@sha256:3e8b3adfd27b5707128f60956f62a793c3c9326ea8cfaf0eab7adccb5d700b21
+        env:
+          POSTGRES_DB: news
+          POSTGRES_USER: news
+          # Throwaway: the container lives for this job only and listens on the runner's loopback.
+          POSTGRES_PASSWORD: ci-throwaway
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U news -d news"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      NEWS_TEST_DATABASE_URL: postgres://news:ci-throwaway@127.0.0.1:5432/news
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable branch, 2026-11-15
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: cli
+      # Compose mounts infra/postgres/init into the container so the extensions exist on first start. A service
+      # container is created before the checkout, so apply the same SQL here (psql is on the runner image).
+      - name: Create the extensions (pgvector, pg_trgm, unaccent)
+        run: |
+          command -v psql >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client; }
+          psql "$NEWS_TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -f ../infra/postgres/init/001_extensions.sql
+      # The #[ignore]d tests in crates/news/tests/postgres.rs: the same cargo command as
+      # `bun scripts/test-cli.ts integration`, which the root `bun run test:integration` ends with locally.
+      # Each test makes and drops its own schema.
+      - run: cargo test --locked -p news --test postgres -- --ignored
+
+  cargo-deny:
+    name: Dependencies (cargo deny)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read # gitleaks-action lists the PR's commits through the API
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      # Licences, bans and sources, from cli/deny.toml: these change only with a commit, so they can gate a merge.
+      # Advisories change without one, so they run in validate.yml's non-required "Rust advisories" job instead.
+      - uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1
+        with:
+          manifest-path: cli/Cargo.toml
+          command: check
+          command-arguments: bans licenses sources
 
   secrets:
     name: Secret scan
@@ -74,9 +215,12 @@ jobs:
       pull-requests: read # gitleaks-action lists the PR's commits through the API
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      # Full history, scanned locally; gitleaks-action reads the PR through the API with the token below and never
+      # fetches or pushes, so the checkout's credentials are not kept.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
+          persist-credentials: false
+      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

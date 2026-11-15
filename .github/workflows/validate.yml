@@ -1,0 +1,116 @@
+# Static checks on the repo's own plumbing: workflows, config files, skills and agents, dependency advisories.
+# A separate file from ci.yml so the required checks there stay exactly as they are. No path filters: they are
+# cheap, and a path-filtered workflow that is skipped leaves a required check pending forever.
+# Required checks from this file: "Workflows (actionlint)" and "Config and skills (parse, frontmatter)".
+name: Validate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    # Weekly: new advisories appear without any change to the repo.
+    - cron: "23 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  actionlint:
+    name: Workflows (actionlint)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      # Lints every file in .github/workflows, including how they call the local composite actions, and runs
+      # shellcheck (on the runner image) over the workflows' `run:` scripts. It does not read the composite actions'
+      # own action.yml files; the next step covers their scripts.
+      # The official release binary, checked against its published SHA-256. Not the Docker image as a `uses:` step:
+      # the repo allows only selected actions, and that policy refuses `docker://` steps.
+      - name: Workflows (actionlint 1.7.12)
+        env:
+          VERSION: 1.7.12
+          SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+        run: |
+          tarball="actionlint_${VERSION}_linux_amd64.tar.gz"
+          curl -fsSL -o "$RUNNER_TEMP/$tarball" "https://github.com/rhysd/actionlint/releases/download/v${VERSION}/${tarball}"
+          echo "${SHA256}  $RUNNER_TEMP/$tarball" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/$tarball" -C "$RUNNER_TEMP" actionlint
+          # actionlint checks `shell: python` steps only when pyflakes is on PATH (the Docker image bundled it).
+          pipx install --quiet pyflakes==3.4.0
+          command -v pyflakes
+          "$RUNNER_TEMP/actionlint" -color
+      # shellcheck over every `run:` in .github/actions/*/action.yml. yq and shellcheck are on the runner image.
+      # A `${{ }}` expression is replaced by a placeholder word first, as actionlint does.
+      - name: Composite actions (shellcheck)
+        run: |
+          status=0
+          for file in .github/actions/*/action.yml; do
+            count=$(yq '.runs.steps | length' "$file")
+            for ((i = 0; i < count; i++)); do
+              script=$(yq ".runs.steps[$i].run // \"\"" "$file")
+              [ -n "$script" ] || continue
+              shell=$(yq ".runs.steps[$i].shell // \"bash\"" "$file")
+              printf '#!/usr/bin/env %s\nset -e\n%s\n' "$shell" "$script" \
+                | sed -E 's/\$\{\{[^}]*\}\}/_expr_/g' > "$RUNNER_TEMP/step.sh"
+              if ! shellcheck --shell="$shell" "$RUNNER_TEMP/step.sh"; then
+                echo "::error file=$file::shellcheck found problems in the run: of step $((i + 1))"
+                status=1
+              fi
+            done
+          done
+          exit "$status"
+
+  config:
+    name: Config and skills (parse, frontmatter)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      # These two scripts use only Bun's own parsers, so no dependency install is needed.
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.3
+      # JSON, YAML and TOML syntax: tsconfig, wrangler configs, issue forms, tokens.json, Cargo, Compose, ...
+      - run: bun scripts/validate-config.ts
+      # Every SKILL.md and .claude/agents/*.md has `name` and `description`; a skill's name matches its folder.
+      - run: bun scripts/validate-skills.ts
+
+  # The two advisory jobs below are signals, not merge gates: the advisory feeds change without any commit, so a
+  # required check here could block an unrelated PR. Do not mark them required.
+  audit:
+    name: Dependency audit (bun audit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      # Only high and critical advisories are reported, and they fail the job.
+      - run: bun audit --audit-level=high
+
+  rust-advisories:
+    name: Rust advisories (cargo deny)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      # RustSec advisories for cli/Cargo.lock, with the ignore list in cli/deny.toml. Bans, licences and sources are
+      # the required "Dependencies (cargo deny)" check in ci.yml.
+      - uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1
+        with:
+          manifest-path: cli/Cargo.toml
+          command: check
+          command-arguments: advisories

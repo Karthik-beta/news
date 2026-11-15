@@ -1,0 +1,41 @@
+name: Install Playwright browsers
+description: Installs the named browsers and their system libraries, caching the browser downloads by Playwright version. Run after the setup action.
+
+inputs:
+  browsers:
+    description: Space-separated browser names for `playwright install`.
+    default: chromium
+
+runs:
+  using: composite
+  steps:
+    - id: version
+      shell: bash
+      env:
+        BROWSERS: ${{ inputs.browsers }}
+      run: |
+        echo "playwright=$(jq -r .version node_modules/@playwright/test/package.json)" >> "$GITHUB_OUTPUT"
+        echo "browsers=${BROWSERS// /-}" >> "$GITHUB_OUTPUT"
+    - id: cache
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ steps.version.outputs.playwright }}-${{ steps.version.outputs.browsers }}
+    - if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      working-directory: site
+      env:
+        BROWSERS: ${{ inputs.browsers }}
+      run: |
+        # Word splitting of $BROWSERS is intended: one argument per browser.
+        # shellcheck disable=SC2086
+        bunx playwright install --with-deps $BROWSERS
+    # A cache hit has the browsers but not the apt libraries they need, which sit outside the cache.
+    - if: steps.cache.outputs.cache-hit == 'true'
+      shell: bash
+      working-directory: site
+      env:
+        BROWSERS: ${{ inputs.browsers }}
+      run: |
+        # shellcheck disable=SC2086
+        bunx playwright install-deps $BROWSERS

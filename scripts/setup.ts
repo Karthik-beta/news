@@ -1,36 +1,49 @@
 // One-command local setup: `bun run setup`. Safe to re-run.
 // 1. Creates .env from .env.example with generated local passwords (never overwrites an existing value).
-// 2. Starts PostgreSQL + pgvector and the OTel Collector.
+// 2. Starts PostgreSQL + pgvector, the OTel Collector and DynamoDB Local (for the Worker tests).
 // 3. Creates the isolated `news` database and user in the shared ClickHouse.
 // 4. Installs JS dependencies, syncs design tokens, builds the Rust CLI.
 // 5. Runs the doctor with the end-to-end telemetry check.
 
-import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { getEnvValue, noEnvFileProblem, reloadChildEnv, setEnvValue, withLocalSecrets } from "./env-file";
 import { root, run } from "./lib";
+
+// `bun run setup` runs this under --no-env-file, so process.env is the shell's own environment (see composeEnv).
+const notReady = noEnvFileProblem(process.execArgv, "scripts/setup.ts");
+if (notReady) {
+  console.error(`✗ ${notReady}`);
+  process.exit(1);
+}
 
 const envPath = join(root, ".env");
 const examplePath = join(root, ".env.example");
-const secret = () => randomBytes(24).toString("base64url");
 
-let text = existsSync(envPath) ? readFileSync(envPath, "utf8") : readFileSync(examplePath, "utf8");
-const get = (k: string) => text.match(new RegExp(`^${k}=(.*)$`, "m"))?.[1]?.trim() ?? "";
-const set = (k: string, v: string) => {
-  text = new RegExp(`^${k}=`, "m").test(text)
-    ? text.replace(new RegExp(`^${k}=.*$`, "m"), `${k}=${v}`)
-    : `${text.trimEnd()}\n${k}=${v}\n`;
-};
-
-if (!get("NEWS_PG_PASSWORD")) set("NEWS_PG_PASSWORD", secret());
-if (!get("NEWS_CH_PASSWORD")) set("NEWS_CH_PASSWORD", secret());
-if (!get("DATABASE_URL"))
-  set("DATABASE_URL", `postgres://news:${get("NEWS_PG_PASSWORD")}@127.0.0.1:${get("NEWS_PG_PORT") || "5433"}/news`);
+// Non-secret settings added after a .env was first created (DynamoDB Local, dummy credentials): copy from the example.
+const example = readFileSync(examplePath, "utf8");
+let text = readFileSync(existsSync(envPath) ? envPath : examplePath, "utf8");
+for (const k of [
+  "NEWS_DYNAMODB_PORT",
+  "NEWS_DYNAMODB_ENDPOINT",
+  "NEWS_DYNAMODB_REGION",
+  "NEWS_DYNAMODB_ACCESS_KEY_ID",
+  "NEWS_DYNAMODB_SECRET_ACCESS_KEY",
+]) {
+  if (getEnvValue(text, k)) continue;
+  // A missing endpoint follows the configured port, so a custom NEWS_DYNAMODB_PORT stays reachable.
+  const value =
+    k === "NEWS_DYNAMODB_ENDPOINT"
+      ? `http://127.0.0.1:${getEnvValue(text, "NEWS_DYNAMODB_PORT") || "8000"}`
+      : getEnvValue(example, k);
+  text = setEnvValue(text, k, value);
+}
+text = withLocalSecrets(text);
 writeFileSync(envPath, text);
 console.log("✓ .env ready (local passwords generated where empty)");
 
-// Bun loaded .env before this script ran; reload values for the child processes.
-for (const k of ["NEWS_PG_PASSWORD", "NEWS_CH_PASSWORD", "DATABASE_URL"]) process.env[k] = get(k);
+// Bun did not load .env (--no-env-file); hand the final values to the child processes, unless exported in the shell.
+reloadChildEnv(text, process.env);
 
 const step = (label: string, cmd: string, args: string[], cwd = root) => {
   process.stdout.write(`… ${label}\n`);
@@ -42,12 +55,10 @@ const step = (label: string, cmd: string, args: string[], cwd = root) => {
   console.log(`✓ ${label}`);
 };
 
-step("start PostgreSQL and OTel Collector", "docker", [
-  "compose",
-  "-f",
-  "infra/docker-compose.yml",
-  "--env-file",
-  ".env",
+// Through the wrapper, so a `$` in a .env value reaches the containers as typed.
+step("start PostgreSQL, OTel Collector and DynamoDB Local", "bun", [
+  "--no-env-file",
+  "scripts/compose.ts",
   "up",
   "-d",
   "--wait",

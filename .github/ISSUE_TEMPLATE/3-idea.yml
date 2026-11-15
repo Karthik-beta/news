@@ -1,0 +1,27 @@
+name: Idea or change
+description: Suggest a new feature or a change that is not in the plan yet.
+title: "<The idea in a few words>"
+labels: ["type: feature"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or opportunity
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Areas
+      multiple: true
+      options: [site, components, charts, cli, connectors, bureau, workers, infra, design, docs]
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
