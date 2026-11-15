@@ -14,8 +14,10 @@ permissions:
   contents: read
 
 concurrency:
-  group: nightly-${{ github.ref }}
-  # A newer push to main replaces an unfinished run for the older commit; a scheduled run is never cancelled.
+  # One group per trigger, so a push to main never cancels a scheduled or manual run (they all run on main).
+  group: nightly-${{ github.event_name }}-${{ github.ref }}
+  # A newer push to main cancels the push run for the older commit. Scheduled and manual runs are not cancelled,
+  # but GitHub keeps only one waiting run per group, so a second one queued behind a running one replaces the first.
   cancel-in-progress: ${{ github.event_name == 'push' }}
 
 jobs:

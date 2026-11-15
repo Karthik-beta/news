@@ -1,5 +1,10 @@
-# Checks on every PR and push to main. The four jobs named in branch protection (js, site-smoke, rust, secrets)
-# keep their `name:`; renaming one makes its required check wait forever. The full browser matrix is in nightly.yml.
+# Checks on every PR and push to main. Ten checks are required in branch protection, matched by their `name:`:
+#   here:          JS (lint, typecheck, unit tests); Site smoke (Chromium, 360/1440, light/dark); Rust (fmt, clippy,
+#                  tests); Secret scan; Workers integration (DynamoDB Local); Workers E2E (Wrangler harness);
+#                  Rust PostgreSQL (pgvector); Dependencies (cargo deny)
+#   validate.yml:  Workflows (actionlint); Config and skills (parse, frontmatter)
+# Renaming any of them makes its required check wait forever and blocks every merge. The full browser matrix is in
+# nightly.yml.
 #
 # Actions are pinned to full commit SHAs, with the release in a comment; Dependabot updates both. Every checkout
 # sets persist-credentials: false, so no later step can push with the job's token.
@@ -15,7 +20,8 @@ permissions:
 
 concurrency:
   group: ci-${{ github.ref }}
-  # Newer pushes replace older PR runs; a push to main always runs to the end.
+  # On a PR, a newer push cancels the run for the older commit. On main nothing in progress is cancelled, but GitHub
+  # keeps only one waiting run per group: a run still queued behind another is replaced by the next push's run.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
