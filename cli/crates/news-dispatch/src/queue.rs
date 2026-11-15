@@ -1,0 +1,700 @@
+//! Queue operations. Every state change is one short transaction.
+//!
+//! Capacity is counted from jobs in state `running`, so a slot frees itself the moment a job leaves
+//! that state; there is no counter to drift (§5.4, "Releasing a slot").
+
+use crate::{backoff, kinds};
+use chrono::{DateTime, Utc};
+use news_core::NewsError;
+use news_core::job::{ErrorClass, JobFailure, JobInput, Policy};
+use news_store::map_err;
+use serde::Serialize;
+use serde_json::{Value, json};
+use sqlx::{PgConnection, PgPool, Row};
+use std::time::Duration;
+use uuid::Uuid;
+
+/// Default snooze for `rate_limited` without a `Retry-After`.
+pub const DEFAULT_SNOOZE: Duration = Duration::from_secs(60);
+/// Default pause for `ai_usage_limit` without a reset time.
+pub const DEFAULT_USAGE_PAUSE: Duration = Duration::from_secs(3600);
+/// Errors kept per job.
+pub const ERRORS_KEPT: usize = 5;
+
+const JOB_COLUMNS: &str = "job_id, kind, pool, run_id, item_ref, args, unique_key, priority, state, attempt, \
+    max_attempts, snoozes, run_after, lease_until, locked_by, error_class, errors, result, created_at, finished_at";
+
+/// A row of `jobs`.
+#[derive(Debug, Clone, PartialEq, Serialize, sqlx::FromRow)]
+pub struct Job {
+    pub job_id: i64,
+    pub kind: String,
+    pub pool: String,
+    pub run_id: Option<Uuid>,
+    pub item_ref: Option<String>,
+    pub args: Value,
+    pub unique_key: Option<String>,
+    pub priority: i16,
+    pub state: String,
+    pub attempt: i16,
+    pub max_attempts: i16,
+    pub snoozes: i16,
+    pub run_after: DateTime<Utc>,
+    pub lease_until: Option<DateTime<Utc>>,
+    pub locked_by: Option<String>,
+    pub error_class: Option<String>,
+    pub errors: Value,
+    pub result: Option<Value>,
+    pub created_at: DateTime<Utc>,
+    pub finished_at: Option<DateTime<Utc>>,
+}
+
+impl Job {
+    pub fn input(&self) -> JobInput {
+        JobInput {
+            job_id: self.job_id,
+            kind: self.kind.clone(),
+            pool: self.pool.clone(),
+            attempt: self.attempt,
+            run_id: self.run_id,
+            item_ref: self.item_ref.clone(),
+            args: self.args.clone(),
+        }
+    }
+}
+
+/// A job to enqueue. `pool` defaults to the kind's pool from the registry.
+#[derive(Debug, Clone, Default)]
+pub struct NewJob {
+    pub kind: String,
+    pub pool: Option<String>,
+    pub run_id: Option<Uuid>,
+    pub item_ref: Option<String>,
+    pub args: Value,
+    pub unique_key: Option<String>,
+    pub priority: Option<i16>,
+    pub max_attempts: Option<i16>,
+    /// Earliest start; `None` means now.
+    pub run_after: Option<DateTime<Utc>>,
+}
+
+impl NewJob {
+    pub fn new(kind: impl Into<String>) -> Self {
+        Self {
+            kind: kind.into(),
+            args: json!({}),
+            ..Self::default()
+        }
+    }
+    pub fn pool(mut self, pool: impl Into<String>) -> Self {
+        self.pool = Some(pool.into());
+        self
+    }
+    pub fn unique_key(mut self, key: impl Into<String>) -> Self {
+        self.unique_key = Some(key.into());
+        self
+    }
+    pub fn args(mut self, args: Value) -> Self {
+        self.args = args;
+        self
+    }
+    pub fn priority(mut self, p: i16) -> Self {
+        self.priority = Some(p);
+        self
+    }
+    pub fn max_attempts(mut self, n: i16) -> Self {
+        self.max_attempts = Some(n);
+        self
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub struct Enqueued {
+    pub job_id: i64,
+    /// True when a live job with the same unique key already existed; nothing was inserted.
+    pub existing: bool,
+}
+
+/// Enqueue a job. With a `unique_key` that is live, nothing is inserted and the existing `job_id` is
+/// returned (River's unique jobs, §5.4).
+pub async fn enqueue(pool: &PgPool, job: &NewJob) -> Result<Enqueued, NewsError> {
+    let mut conn = pool.acquire().await.map_err(map_err)?;
+    enqueue_on(&mut conn, job).await
+}
+
+/// [`enqueue`] on a given connection or transaction.
+pub async fn enqueue_on(conn: &mut PgConnection, job: &NewJob) -> Result<Enqueued, NewsError> {
+    let pool_name = match (&job.pool, kinds::spec(&job.kind)) {
+        (Some(p), _) => p.clone(),
+        (None, Some(spec)) => spec.pool.to_owned(),
+        (None, None) => {
+            return Err(NewsError::usage(format!(
+                "unknown job kind {:?} and no pool given",
+                job.kind
+            )));
+        }
+    };
+    if !crate::is_pool(&pool_name) {
+        return Err(NewsError::usage(format!("unknown pool {pool_name:?}")));
+    }
+    let priority = job.priority.unwrap_or(2);
+    if !(0..=4).contains(&priority) {
+        return Err(NewsError::usage(
+            "priority must be 0 (urgent) to 4 (backfill)",
+        ));
+    }
+    // Two tries: a live job can finish between the conflicting insert and the lookup.
+    for _ in 0..3 {
+        let inserted: Option<i64> = sqlx::query_scalar(
+            "insert into jobs (kind, pool, run_id, item_ref, args, unique_key, priority, max_attempts, run_after, state)
+             values ($1, $2, $3, $4, $5, $6, $7, coalesce($8, 6::smallint), coalesce($9, now()),
+                     case when coalesce($9, now()) > now() then 'scheduled' else 'available' end)
+             on conflict (unique_key)
+               where unique_key is not null and state not in ('completed', 'discarded', 'cancelled')
+             do nothing
+             returning job_id",
+        )
+        .bind(&job.kind)
+        .bind(&pool_name)
+        .bind(job.run_id)
+        .bind(&job.item_ref)
+        .bind(&job.args)
+        .bind(&job.unique_key)
+        .bind(priority)
+        .bind(job.max_attempts)
+        .bind(job.run_after)
+        .fetch_optional(&mut *conn)
+        .await
+        .map_err(map_err)?;
+        if let Some(job_id) = inserted {
+            return Ok(Enqueued {
+                job_id,
+                existing: false,
+            });
+        }
+        let existing: Option<i64> = sqlx::query_scalar(
+            "select job_id from jobs where unique_key = $1
+               and state not in ('completed', 'discarded', 'cancelled')",
+        )
+        .bind(&job.unique_key)
+        .fetch_optional(&mut *conn)
+        .await
+        .map_err(map_err)?;
+        if let Some(job_id) = existing {
+            return Ok(Enqueued {
+                job_id,
+                existing: true,
+            });
+        }
+    }
+    Err(NewsError::new(
+        news_core::ErrorCode::UpstreamUnavailable,
+        "unique key kept changing state; retry",
+    ))
+}
+
+/// The result of a claim.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct Claimed {
+    pub jobs: Vec<Job>,
+    /// Set when the pool is paused; no job was claimed.
+    pub paused_until: Option<DateTime<Utc>>,
+}
+
+/// Claim up to `limit` ready jobs from `pool_name`, leasing them to `worker` for `lease`.
+///
+/// One claimer per pool at a time: the pool's row is locked `FOR UPDATE` first (others wait, they do
+/// not skip), so the running count cannot change under us and `max_running` is never exceeded.
+pub async fn claim(
+    db: &PgPool,
+    pool_name: &str,
+    limit: i64,
+    lease: Duration,
+    worker: &str,
+) -> Result<Claimed, NewsError> {
+    if limit < 1 {
+        return Err(NewsError::usage("--limit must be at least 1"));
+    }
+    let mut tx = db.begin().await.map_err(map_err)?;
+    let row = sqlx::query(
+        "select max_running, paused_until, (paused_until is not null and paused_until > now()) as paused
+           from pools where pool = $1 for update",
+    )
+    .bind(pool_name)
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(map_err)?
+    .ok_or_else(|| NewsError::not_found(format!("pool {pool_name:?} does not exist")))?;
+    let max_running: i16 = row.get("max_running");
+    let paused: bool = row.get("paused");
+    if paused {
+        let until: Option<DateTime<Utc>> = row.get("paused_until");
+        tx.commit().await.map_err(map_err)?;
+        return Ok(Claimed {
+            jobs: Vec::new(),
+            paused_until: until,
+        });
+    }
+    let sql = format!(
+        "with c as (
+           select job_id from jobs
+            where pool = $1 and state in ('available', 'scheduled', 'retryable', 'snoozed') and run_after <= now()
+            order by priority, run_after, job_id
+            for update skip locked
+            limit greatest(0, least($2, $3 - (select count(*) from jobs where pool = $1 and state = 'running')))
+         )
+         update jobs j set state = 'running', attempt = j.attempt + 1,
+                lease_until = now() + make_interval(secs => $4), locked_by = $5
+           from c where j.job_id = c.job_id
+         returning {}",
+        JOB_COLUMNS
+            .split(", ")
+            .map(|c| format!("j.{c}"))
+            .collect::<Vec<_>>()
+            .join(", ")
+    );
+    let mut jobs: Vec<Job> = sqlx::query_as(sqlx::AssertSqlSafe(sql))
+        .bind(pool_name)
+        .bind(limit)
+        .bind(i64::from(max_running))
+        .bind(lease.as_secs_f64())
+        .bind(worker)
+        .fetch_all(&mut *tx)
+        .await
+        .map_err(map_err)?;
+    tx.commit().await.map_err(map_err)?;
+    jobs.sort_by(|a, b| {
+        (a.priority, a.run_after, a.job_id).cmp(&(b.priority, b.run_after, b.job_id))
+    });
+    Ok(Claimed {
+        jobs,
+        paused_until: None,
+    })
+}
+
+/// Fetch one job.
+pub async fn get(db: &PgPool, job_id: i64) -> Result<Job, NewsError> {
+    sqlx::query_as(sqlx::AssertSqlSafe(format!(
+        "select {JOB_COLUMNS} from jobs where job_id = $1"
+    )))
+    .bind(job_id)
+    .fetch_optional(db)
+    .await
+    .map_err(map_err)?
+    .ok_or_else(|| NewsError::not_found(format!("job {job_id} not found")))
+}
+
+/// Why a running-job update matched nothing.
+async fn not_running(db: &PgPool, job_id: i64, worker: Option<&str>) -> NewsError {
+    match get(db, job_id).await {
+        Err(e) => e,
+        Ok(job) if job.state != "running" => {
+            NewsError::conflict(format!("job {job_id} is {}, not running", job.state))
+                .with_hint("its lease may have expired; the rescuer made it retryable")
+                .with_details(json!({"state": job.state}))
+        }
+        Ok(job) => NewsError::conflict(format!(
+            "job {job_id} is leased to {}, not {}",
+            job.locked_by.as_deref().unwrap_or("nobody"),
+            worker.unwrap_or("?")
+        )),
+    }
+}
+
+/// Extend a running job's lease. `worker`, when given, must hold it.
+pub async fn heartbeat(
+    db: &PgPool,
+    job_id: i64,
+    worker: Option<&str>,
+    lease: Duration,
+) -> Result<DateTime<Utc>, NewsError> {
+    let until: Option<DateTime<Utc>> = sqlx::query_scalar(
+        "update jobs set lease_until = now() + make_interval(secs => $3)
+          where job_id = $1 and state = 'running' and ($2::text is null or locked_by = $2)
+          returning lease_until",
+    )
+    .bind(job_id)
+    .bind(worker)
+    .bind(lease.as_secs_f64())
+    .fetch_optional(db)
+    .await
+    .map_err(map_err)?;
+    match until {
+        Some(u) => Ok(u),
+        None => Err(not_running(db, job_id, worker).await),
+    }
+}
+
+/// Mark a running job completed with its result.
+pub async fn complete(
+    db: &PgPool,
+    job_id: i64,
+    worker: Option<&str>,
+    result: &Value,
+) -> Result<(), NewsError> {
+    let done = sqlx::query(
+        "update jobs set state = 'completed', result = $3, finished_at = now(),
+                lease_until = null, locked_by = null
+          where job_id = $1 and state = 'running' and ($2::text is null or locked_by = $2)",
+    )
+    .bind(job_id)
+    .bind(worker)
+    .bind(result)
+    .execute(db)
+    .await
+    .map_err(map_err)?;
+    if done.rows_affected() == 1 {
+        Ok(())
+    } else {
+        Err(not_running(db, job_id, worker).await)
+    }
+}
+
+/// What happened to a failed job.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct Failed {
+    pub job_id: i64,
+    pub state: String,
+    pub attempt: i16,
+    pub run_after: DateTime<Utc>,
+    /// Set when the failure paused the pool (`ai_usage_limit`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pool_paused_until: Option<DateTime<Utc>>,
+}
+
+/// Record a failure and apply the class's policy (§5.4): retry with full-jitter backoff, snooze
+/// without spending the attempt, pause the pool, or discard.
+pub async fn fail(
+    db: &PgPool,
+    job_id: i64,
+    worker: Option<&str>,
+    failure: &JobFailure,
+) -> Result<Failed, NewsError> {
+    let mut tx = db.begin().await.map_err(map_err)?;
+    let current: Option<(i16, i16, String)> = sqlx::query_as(
+        "select attempt, max_attempts, pool from jobs
+          where job_id = $1 and state = 'running' and ($2::text is null or locked_by = $2)
+          for update",
+    )
+    .bind(job_id)
+    .bind(worker)
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(map_err)?;
+    let Some((attempt, max_attempts, pool_name)) = current else {
+        drop(tx);
+        return Err(not_running(db, job_id, worker).await);
+    };
+
+    let class = failure.class;
+    let mut pool_paused_until = None;
+    // (state, delay, attempt delta, snooze delta, finished)
+    let (state, delay, attempt_delta, snooze_delta) = match class.policy() {
+        Policy::Retry if attempt >= max_attempts => ("discarded", Duration::ZERO, 0i16, 0i16),
+        Policy::Retry => ("retryable", backoff::full_jitter(attempt), 0, 0),
+        Policy::Snooze => (
+            "snoozed",
+            failure.retry_after.unwrap_or(DEFAULT_SNOOZE),
+            -1,
+            1,
+        ),
+        Policy::PausePool => {
+            let pause = failure.retry_after.unwrap_or(DEFAULT_USAGE_PAUSE);
+            let until: DateTime<Utc> = sqlx::query_scalar(
+                "update pools set paused_until = greatest(coalesce(paused_until, now()), now() + make_interval(secs => $2))
+                  where pool = $1 returning paused_until",
+            )
+            .bind(&pool_name)
+            .bind(pause.as_secs_f64())
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(map_err)?;
+            pool_paused_until = Some(until);
+            ("snoozed", pause, -1, 1)
+        }
+        Policy::Discard => ("discarded", Duration::ZERO, 0, 0),
+    };
+
+    let row = sqlx::query(
+        "update jobs set
+            state = $2,
+            attempt = attempt + $3,
+            snoozes = snoozes + $4,
+            run_after = now() + make_interval(secs => $5),
+            lease_until = null, locked_by = null,
+            error_class = $6,
+            errors = jsonb_path_query_array(
+                jsonb_build_array(jsonb_build_object('class', $6::text, 'message', $7::text, 'at', now(), 'attempt', attempt))
+                  || errors,
+                '$[0 to 4]'),
+            finished_at = case when $2 = 'discarded' then now() else null end
+          where job_id = $1
+          returning attempt, run_after",
+    )
+    .bind(job_id)
+    .bind(state)
+    .bind(attempt_delta)
+    .bind(snooze_delta)
+    .bind(delay.as_secs_f64())
+    .bind(class.as_str())
+    .bind(truncate(&failure.message, 2000))
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(map_err)?;
+    tx.commit().await.map_err(map_err)?;
+    Ok(Failed {
+        job_id,
+        state: state.to_owned(),
+        attempt: row.get("attempt"),
+        run_after: row.get("run_after"),
+        pool_paused_until,
+    })
+}
+
+fn truncate(s: &str, max: usize) -> &str {
+    match s.char_indices().nth(max) {
+        Some((i, _)) => &s[..i],
+        None => s,
+    }
+}
+
+/// Re-enqueue one finished job (Salvage): back to `available` with a fresh set of attempts.
+pub async fn retry(db: &PgPool, job_id: i64) -> Result<i64, NewsError> {
+    let res = sqlx::query(
+        "update jobs set state = 'available', attempt = 0, run_after = now(), finished_at = null,
+                error_class = null, lease_until = null, locked_by = null
+          where job_id = $1 and state in ('discarded', 'cancelled', 'retryable', 'snoozed')",
+    )
+    .bind(job_id)
+    .execute(db)
+    .await;
+    match res {
+        Ok(r) if r.rows_affected() == 1 => Ok(job_id),
+        Ok(_) => {
+            let job = get(db, job_id).await?;
+            Err(NewsError::conflict(format!(
+                "job {job_id} is {}; only discarded, cancelled, retryable or snoozed jobs can be retried",
+                job.state
+            )))
+        }
+        Err(e) => {
+            let mapped = map_err(e);
+            if mapped.code == news_core::ErrorCode::Conflict {
+                Err(NewsError::conflict(format!(
+                    "job {job_id}: a live job with the same unique key exists"
+                )))
+            } else {
+                Err(mapped)
+            }
+        }
+    }
+}
+
+/// Discarded job ids with this error class, oldest first.
+pub async fn dead_ids(db: &PgPool, class: ErrorClass) -> Result<Vec<i64>, NewsError> {
+    sqlx::query_scalar(
+        "select job_id from jobs where state = 'discarded' and error_class = $1 order by job_id",
+    )
+    .bind(class.as_str())
+    .fetch_all(db)
+    .await
+    .map_err(map_err)
+}
+
+/// Pause a pool until a time.
+pub async fn pause(
+    db: &PgPool,
+    pool_name: &str,
+    until: DateTime<Utc>,
+) -> Result<DateTime<Utc>, NewsError> {
+    sqlx::query_scalar("update pools set paused_until = $2 where pool = $1 returning paused_until")
+        .bind(pool_name)
+        .bind(until)
+        .fetch_optional(db)
+        .await
+        .map_err(map_err)?
+        .ok_or_else(|| NewsError::not_found(format!("pool {pool_name:?} does not exist")))
+}
+
+pub async fn unpause(db: &PgPool, pool_name: &str) -> Result<(), NewsError> {
+    let r = sqlx::query("update pools set paused_until = null where pool = $1")
+        .bind(pool_name)
+        .execute(db)
+        .await
+        .map_err(map_err)?;
+    if r.rows_affected() == 1 {
+        Ok(())
+    } else {
+        Err(NewsError::not_found(format!(
+            "pool {pool_name:?} does not exist"
+        )))
+    }
+}
+
+/// Result of one rescuer pass.
+#[derive(Debug, Clone, Default, PartialEq, Serialize)]
+pub struct Rescued {
+    /// False when another process held the rescuer lock; nothing was done.
+    pub ran: bool,
+    pub retryable: Vec<i64>,
+    pub discarded: Vec<i64>,
+}
+
+/// Move `running` jobs whose lease has expired back to `retryable` (or `discarded` when their attempts
+/// are spent). Runs only in the process that gets advisory lock 42, and takes every pool's row lock
+/// first, in pool order, so an expired job's slot and a new claim never race.
+pub async fn rescue(db: &PgPool) -> Result<Rescued, NewsError> {
+    let mut tx = db.begin().await.map_err(map_err)?;
+    let got: bool = sqlx::query_scalar("select pg_try_advisory_xact_lock($1)")
+        .bind(crate::RESCUER_LOCK)
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(map_err)?;
+    if !got {
+        return Ok(Rescued::default());
+    }
+    sqlx::query("select pool from pools order by pool for update")
+        .fetch_all(&mut *tx)
+        .await
+        .map_err(map_err)?;
+    let rows: Vec<(i64, String)> = sqlx::query_as(
+        "update jobs set
+            state = case when attempt >= max_attempts then 'discarded' else 'retryable' end,
+            run_after = now(), lease_until = null, locked_by = null,
+            error_class = 'transient',
+            errors = jsonb_path_query_array(
+                jsonb_build_array(jsonb_build_object('class', 'transient', 'message',
+                    'lease expired (worker ' || coalesce(locked_by, '?') || ' stopped heartbeating)',
+                    'at', now(), 'attempt', attempt)) || errors,
+                '$[0 to 4]'),
+            finished_at = case when attempt >= max_attempts then now() else null end
+          where state = 'running' and lease_until < now()
+          returning job_id, state",
+    )
+    .fetch_all(&mut *tx)
+    .await
+    .map_err(map_err)?;
+    tx.commit().await.map_err(map_err)?;
+    let mut out = Rescued {
+        ran: true,
+        ..Rescued::default()
+    };
+    for (id, state) in rows {
+        if state == "discarded" {
+            out.discarded.push(id);
+        } else {
+            out.retryable.push(id);
+        }
+    }
+    out.retryable.sort_unstable();
+    out.discarded.sort_unstable();
+    Ok(out)
+}
+
+/// Filters for [`list`].
+#[derive(Debug, Clone, Default)]
+pub struct ListFilter {
+    pub state: Option<String>,
+    pub pool: Option<String>,
+    pub run_id: Option<Uuid>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct Count {
+    pub pool: String,
+    pub state: String,
+    pub count: i64,
+}
+
+/// Counts by pool and state, and up to `max` jobs, newest first.
+pub async fn list(
+    db: &PgPool,
+    f: &ListFilter,
+    max: i64,
+) -> Result<(Vec<Count>, Vec<Job>), NewsError> {
+    let filter = "($1::text is null or state = $1) and ($2::text is null or pool = $2) and ($3::uuid is null or run_id = $3)";
+    let counts: Vec<(String, String, i64)> = sqlx::query_as(sqlx::AssertSqlSafe(format!(
+        "select pool, state, count(*) from jobs where {filter} group by pool, state order by pool, state"
+    )))
+    .bind(&f.state)
+    .bind(&f.pool)
+    .bind(f.run_id)
+    .fetch_all(db)
+    .await
+    .map_err(map_err)?;
+    let jobs = sqlx::query_as(sqlx::AssertSqlSafe(format!(
+        "select {JOB_COLUMNS} from jobs where {filter} order by job_id desc limit $4"
+    )))
+    .bind(&f.state)
+    .bind(&f.pool)
+    .bind(f.run_id)
+    .bind(max)
+    .fetch_all(db)
+    .await
+    .map_err(map_err)?;
+    Ok((
+        counts
+            .into_iter()
+            .map(|(pool, state, count)| Count { pool, state, count })
+            .collect(),
+        jobs,
+    ))
+}
+
+/// A group on the dead list.
+#[derive(Debug, Clone, PartialEq, Serialize, sqlx::FromRow)]
+pub struct DeadGroup {
+    pub error_class: String,
+    /// The latest error message with digits replaced by `#`, lower-cased, first 120 characters.
+    pub fingerprint: String,
+    pub count: i64,
+    /// Up to five job ids, oldest first.
+    pub job_ids: Vec<i64>,
+    pub last_at: Option<DateTime<Utc>>,
+}
+
+/// Discarded jobs grouped by error class and message fingerprint, biggest group first.
+pub async fn dead(db: &PgPool, class: Option<ErrorClass>) -> Result<Vec<DeadGroup>, NewsError> {
+    sqlx::query_as(
+        "select coalesce(error_class, 'unknown') as error_class,
+                left(regexp_replace(lower(coalesce(errors -> 0 ->> 'message', '')), '[0-9]+', '#', 'g'), 120) as fingerprint,
+                count(*) as count,
+                (array_agg(job_id order by job_id))[1:5] as job_ids,
+                max(finished_at) as last_at
+           from jobs
+          where state = 'discarded' and ($1::text is null or error_class = $1)
+          group by 1, 2
+          order by count desc, 1, 2",
+    )
+    .bind(class.map(ErrorClass::as_str))
+    .fetch_all(db)
+    .await
+    .map_err(map_err)
+}
+
+/// Set a pool's `max_running` (used to follow `NEWS_PARALLEL` for `ai`).
+pub async fn set_max_running(db: &PgPool, pool_name: &str, max: i16) -> Result<(), NewsError> {
+    sqlx::query("update pools set max_running = $2 where pool = $1")
+        .bind(pool_name)
+        .bind(max)
+        .execute(db)
+        .await
+        .map_err(map_err)?;
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn truncate_respects_char_boundaries() {
+        assert_eq!(truncate("héllo", 2), "hé");
+        assert_eq!(truncate("abc", 10), "abc");
+    }
+
+    #[test]
+    fn job_columns_match_the_struct() {
+        assert_eq!(JOB_COLUMNS.split(", ").count(), 20);
+    }
+}
