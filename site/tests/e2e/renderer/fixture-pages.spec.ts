@@ -79,6 +79,7 @@ test.describe("renderer fixture page with a chart island", () => {
     await gotoPage(page, APPLE);
     await expect(page.locator(".fixture-plot")).toHaveAttribute("data-hydrated", "true");
     const area = page.locator(".fixture-plot__area");
+    await area.scrollIntoViewIfNeeded();
     const box = await area.boundingBox();
     if (!box) throw new Error(`no plot box in ${browserName}`);
     await page.mouse.move(box.x + box.width - 2, box.y + box.height / 2);
@@ -92,7 +93,9 @@ test.describe("renderer fixture page with a chart island", () => {
     test.skip(!hasTouch, "touch screens only");
     await gotoPage(page, APPLE);
     await expect(page.locator(".fixture-plot")).toHaveAttribute("data-hydrated", "true");
-    const box = await page.locator(".fixture-plot__area").boundingBox();
+    const area = page.locator(".fixture-plot__area");
+    await area.scrollIntoViewIfNeeded();
+    const box = await area.boundingBox();
     if (!box) throw new Error("no plot box");
     await page.touchscreen.tap(box.x + 4, box.y + box.height / 2);
     await expect(page.locator(".popover--tooltip .popover__value")).toHaveText("$274.5bn");

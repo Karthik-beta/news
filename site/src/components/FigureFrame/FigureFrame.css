@@ -47,7 +47,9 @@
 .figure-frame__table > summary {
   display: inline-flex;
   align-items: center;
-  min-height: 24px;
+  /* WCAG 2.2 target size: at least 24 x 24px, even for a short link such as "CSV". */
+  min-width: var(--space-7);
+  min-height: var(--space-7);
   color: var(--color-ink-2);
 }
 
