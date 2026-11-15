@@ -43,6 +43,9 @@ jobs:
           curl -fsSL -o "$RUNNER_TEMP/$tarball" "https://github.com/rhysd/actionlint/releases/download/v${VERSION}/${tarball}"
           echo "${SHA256}  $RUNNER_TEMP/$tarball" | sha256sum --check --strict
           tar -xzf "$RUNNER_TEMP/$tarball" -C "$RUNNER_TEMP" actionlint
+          # actionlint checks `shell: python` steps only when pyflakes is on PATH (the Docker image bundled it).
+          pipx install --quiet pyflakes==3.4.0
+          command -v pyflakes
           "$RUNNER_TEMP/actionlint" -color
       # shellcheck over every `run:` in .github/actions/*/action.yml. yq and shellcheck are on the runner image.
       # A `${{ }}` expression is replaced by a placeholder word first, as actionlint does.
