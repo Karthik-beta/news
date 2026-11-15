@@ -1,6 +1,7 @@
 # Static checks on the repo's own plumbing: workflows, config files, skills and agents, dependency advisories.
 # A separate file from ci.yml so the required checks there stay exactly as they are. No path filters: they are
 # cheap, and a path-filtered workflow that is skipped leaves a required check pending forever.
+# Required checks from this file: "Workflows (actionlint)" and "Config and skills (parse, frontmatter)".
 name: Validate
 
 on:
@@ -28,11 +29,32 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
-      # Lints every file in .github/workflows and the local composite actions' expressions, and runs
-      # shellcheck over the `run:` scripts (the image bundles it).
+      # Lints every file in .github/workflows, including how they call the local composite actions, and runs
+      # shellcheck over the workflows' `run:` scripts (the image bundles it). It does not read the composite actions'
+      # own action.yml files; the next step covers their scripts.
       - uses: docker://rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667
         with:
           args: -color
+      # shellcheck over every `run:` in .github/actions/*/action.yml. yq and shellcheck are on the runner image.
+      # A `${{ }}` expression is replaced by a placeholder word first, as actionlint does.
+      - name: Composite actions (shellcheck)
+        run: |
+          status=0
+          for file in .github/actions/*/action.yml; do
+            count=$(yq '.runs.steps | length' "$file")
+            for ((i = 0; i < count; i++)); do
+              script=$(yq ".runs.steps[$i].run // \"\"" "$file")
+              [ -n "$script" ] || continue
+              shell=$(yq ".runs.steps[$i].shell // \"bash\"" "$file")
+              printf '#!/usr/bin/env %s\nset -e\n%s\n' "$shell" "$script" \
+                | sed -E 's/\$\{\{[^}]*\}\}/_expr_/g' > "$RUNNER_TEMP/step.sh"
+              if ! shellcheck --shell="$shell" "$RUNNER_TEMP/step.sh"; then
+                echo "::error file=$file::shellcheck found problems in the run: of step $((i + 1))"
+                status=1
+              fi
+            done
+          done
+          exit "$status"
 
   config:
     name: Config and skills (parse, frontmatter)
