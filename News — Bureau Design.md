@@ -1900,7 +1900,9 @@ Mapped onto the Development Plan. Agent choices follow its rules (Opus for judge
 
 ---
 
-## 11. Open decisions for Karthik
+## 11. Decisions
+
+Settled on 15 November 2026: Karthik chose D2 himself and adopted the recommendation for every other decision when he started the build. Change one by editing this table in a PR before the work it affects begins.
 
 | # | Decision | Options | Recommendation |
 | --- | --- | --- | --- |
