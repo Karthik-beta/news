@@ -5,7 +5,7 @@ Visual, fully sourced pages for major company, economic and science reports. One
 - What to build: `News — Product Requirements Document.md`, `News — Technical Design.md`. How and by whom: `News — Development Plan.md`.
 - Design system: `design/` (tokens in `design/tokens/tokens.json` are the source of truth). Load the `news-design-system` skill for any visual work.
 - Orchestrating work through sub-agents: load `news-subagent-workflow`. Components: built by Opus (`news-component-builder`), tested by a different Opus agent (`news-component-testing`).
-- Home page: dynamic and agent-curated every 2–3 days by the `curate-home` workflow (built in Phase 7; Technical Design, "Home page curation"). Curation is data in DynamoDB read by the SSR Worker; it never rebuilds or redeploys the site.
+- Bureau, the laptop system (`News — Bureau Design.md`): Karthik starts every workflow with `/bureau` (Chief behind it), e.g. `/bureau run daily`; the home page is curated every 2–3 days by the Frontpage preset (`/bureau curate home`) as data in DynamoDB, never a rebuild.
 
 ## Layout
 `site/` Astro + React (Bun) · `cli/` Rust `news` CLI · `workers/` Cloudflare Workers · `pipeline/` page runner · `dashboard/` local telemetry · `infra/` Docker, ClickHouse, OTel · `skills/` runtime skills for page writers (not dev skills).
