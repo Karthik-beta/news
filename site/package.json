@@ -11,8 +11,14 @@
     "build": "bun --bun astro build",
     "preview": "bun --bun astro preview --host 127.0.0.1",
     "typecheck": "bun --bun astro check",
-    "test": "vitest run",
-    "test:e2e": "playwright test"
+    "pretest": "bun scripts/sync-tokens.ts",
+    "test": "vitest run --project unit --project component --project astro",
+    "test:watch": "vitest --project unit --project component --project astro",
+    "test:integration": "bun run build && vitest run --project integration",
+    "test:e2e": "playwright test --project='smoke-*'",
+    "test:e2e:full": "playwright test --project='chromium-*' --project='firefox-*' --project='webkit-*'",
+    "test:visual": "bun scripts/visual.ts",
+    "test:visual:update": "bun scripts/visual.ts --update-snapshots"
   },
   "dependencies": {
     "@astrojs/react": "^7.1.9",
@@ -24,9 +30,14 @@
     "@astrojs/check": "^0.9.12",
     "@axe-core/playwright": "^4.14.0",
     "@playwright/test": "^1.65.1",
+    "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.10",
+    "@types/jsdom": "^30.0.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "axe-core": "^4.14.0",
+    "html-validate": "^11.21.1",
     "jsdom": "^31.0.1",
     "typescript": "^6.0.3",
     "vitest": "^5.1.0"

@@ -1,0 +1,27 @@
+{
+  "name": "@news/worker-test-support",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Shared test harness for the Cloudflare Workers: vitest configs, DynamoDB Local client, Wrangler E2E launcher.",
+  "exports": {
+    "./vitest": "./src/vitest.ts",
+    "./dynamodb": "./src/dynamodb.ts",
+    "./e2e": "./src/e2e.ts",
+    "./service-check": "./src/service-check.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "aws4fetch": "1.0.20"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "1.8.2",
+    "@types/node": "^22.0.0",
+    "typescript": "^6.0.3",
+    "vitest": "^5.1.0",
+    "wrangler": "^4.162.0"
+  }
+}

@@ -1,0 +1,241 @@
+# Cloudflare deploys: the three Workers (api, mcp, search) and, from Phase 6, the site's SSR Worker.
+# Manual only: run it from the Actions tab (Run workflow) on main. Nothing deploys on push or from a PR.
+#
+# Needs, all set by Karthik and never by an agent or this file:
+#   - environment `production` (Settings > Environments) with a required reviewer, and deployment branches limited
+#     to `main` only
+#   - secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID as environment secrets of `production` only. Never as
+#     repository secrets: those reach every job in every workflow, including ones that run third-party code.
+#
+# Two stages, so the Cloudflare secrets never sit in a job that runs dependency install scripts:
+#   plan      no environment, no secrets. Works out what to deploy, installs (with install scripts) and bundles each
+#             selected Worker with `wrangler deploy --dry-run`, and builds the site when it deploys.
+#   deploy    `environment: production`, one job per target that is selected and ready. Installs with
+#             --ignore-scripts and runs only Wrangler from the lockfile; no third-party actions.
+# A target that cannot deploy (not on main, a TODO in its config, no wrangler config, no secrets) is skipped with a
+# notice when the target is `all`, and fails the run when it was picked by name, unless it is a dry run.
+#
+# A Worker deploys only when its wrangler.jsonc is ready. The Workers' configs still carry a `TODO(` comment where
+# the real D1 / R2 bindings go (Phase 0 accounts step); deploying them as they are would publish a Worker whose
+# bindings are missing. Declare the bindings and delete the TODO comment, and the Worker is picked up here.
+# The site is static today (no adapter, no wrangler config); it deploys once `site/wrangler.jsonc` exists (Phase 6).
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: What to deploy
+        type: choice
+        options: [all, api, mcp, search, site]
+        default: all
+      dry_run:
+        description: Bundle and validate only; deploy nothing (needs no secrets)
+        type: boolean
+        default: false
+  # Deploy on every merge to main instead of by hand. Leave this off until the Worker configs are ready and CI is a
+  # required check on main, otherwise a push deploys before CI has finished. Empty `target` is treated as `all`.
+  # push:
+  #   branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false # never stop a deploy half way
+
+jobs:
+  plan:
+    name: Plan and dry-run bundle
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # No `environment:` and no `secrets.` anywhere in this job: it runs install scripts and builds.
+    outputs:
+      workers: ${{ steps.plan.outputs.workers }}
+      site: ${{ steps.plan.outputs.site }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - id: plan
+        env:
+          TARGET: ${{ inputs.target || 'all' }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          failed=0
+          # A target that cannot deploy: an error when it was picked by name (and this is not a dry run), else a notice.
+          cannot() {
+            if [ "$TARGET" != "all" ] && [ "$DRY_RUN" != "true" ]; then
+              echo "::error title=$1 cannot deploy::$2"
+              failed=1
+            else
+              echo "::notice title=$1 not deployed::$2"
+            fi
+          }
+          workers=()
+          bundle=()
+          site=false
+          for worker in api mcp search; do
+            if [ "$TARGET" != "all" ] && [ "$TARGET" != "$worker" ]; then continue; fi
+            bundle+=("$worker")
+            if [ "$DRY_RUN" = "true" ]; then
+              echo "::notice title=Worker $worker not deployed::Dry run: the bundle is checked below, nothing is deployed."
+            elif [ "$GITHUB_REF" != "refs/heads/main" ]; then
+              cannot "Worker $worker" "Deploys run from main only (this run is on $GITHUB_REF)."
+            elif grep -q 'TODO(' "workers/$worker/wrangler.jsonc"; then
+              cannot "Worker $worker" "workers/$worker/wrangler.jsonc is not deploy-ready: it still has a TODO for its real bindings."
+            else
+              workers+=("$worker")
+            fi
+          done
+          if [ "$TARGET" = "all" ] || [ "$TARGET" = "site" ]; then
+            if [ "$DRY_RUN" = "true" ]; then
+              echo "::notice title=Site not deployed::Dry run: nothing is deployed."
+            elif [ "$GITHUB_REF" != "refs/heads/main" ]; then
+              cannot "Site" "Deploys run from main only (this run is on $GITHUB_REF)."
+            elif [ ! -f site/wrangler.jsonc ] && [ ! -f site/wrangler.json ] && [ ! -f site/wrangler.toml ]; then
+              cannot "Site" "The site has no wrangler config yet: it is static until the SSR Worker arrives in Phase 6 (Technical Design, Cloud services)."
+            else
+              site=true
+            fi
+          fi
+          {
+            echo "workers=$(jq -cn '$ARGS.positional' --args "${workers[@]}")"
+            echo "bundle=${bundle[*]}"
+            echo "site=$site"
+          } >> "$GITHUB_OUTPUT"
+          exit "$failed"
+      - uses: ./.github/actions/setup
+        if: steps.plan.outputs.bundle != '' || steps.plan.outputs.site == 'true'
+      # Proves each selected Worker bundles with its real config. Needs no Cloudflare account.
+      - name: Dry-run bundle
+        if: steps.plan.outputs.bundle != ''
+        env:
+          BUNDLE: ${{ steps.plan.outputs.bundle }}
+          WRANGLER_SEND_METRICS: "false"
+        run: |
+          for worker in $BUNDLE; do
+            echo "::group::$worker"
+            (cd "workers/$worker" && bunx wrangler deploy --dry-run --outdir "$RUNNER_TEMP/bundle-$worker")
+            echo "::endgroup::"
+          done
+      - name: Build the site
+        if: steps.plan.outputs.site == 'true'
+        run: bun run build
+        working-directory: site
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: steps.plan.outputs.site == 'true'
+        with:
+          name: site-dist
+          path: site/dist/
+          retention-days: 1
+
+  workers:
+    name: Deploy Worker (${{ matrix.worker }})
+    needs: plan
+    if: needs.plan.outputs.workers != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    strategy:
+      fail-fast: false
+      matrix:
+        worker: ${{ fromJSON(needs.plan.outputs.workers) }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - id: secrets
+        name: Cloudflare secrets are set
+        env:
+          WORKER: ${{ matrix.worker }}
+          BY_NAME: ${{ inputs.target != '' && inputs.target != 'all' }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          message="CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are not set as secrets of the production environment."
+          if [ "$BY_NAME" = "true" ]; then
+            echo "::error title=Worker $WORKER cannot deploy::$message"
+            exit 1
+          fi
+          echo "::notice title=Worker $WORKER not deployed::$message"
+          echo "ready=false" >> "$GITHUB_OUTPUT"
+      # Wrangler needs Node >= 22.12. No cache in this job: nothing restored from a cache runs next to the secrets.
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        if: steps.secrets.outputs.ready == 'true'
+        with:
+          node-version: "22"
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        if: steps.secrets.outputs.ready == 'true'
+        with:
+          bun-version: 1.4.3
+      # No install scripts: Wrangler's esbuild finds its platform binary without one, and the deploy needs no workerd.
+      - if: steps.secrets.outputs.ready == 'true'
+        run: bun install --frozen-lockfile --ignore-scripts
+      - name: Deploy to Cloudflare
+        if: steps.secrets.outputs.ready == 'true'
+        working-directory: workers/${{ matrix.worker }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: "false"
+        run: bunx wrangler deploy
+
+  site:
+    name: Deploy site
+    needs: plan
+    if: needs.plan.outputs.site == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - id: secrets
+        name: Cloudflare secrets are set
+        env:
+          BY_NAME: ${{ inputs.target == 'site' }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          message="CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are not set as secrets of the production environment."
+          if [ "$BY_NAME" = "true" ]; then
+            echo "::error title=Site cannot deploy::$message"
+            exit 1
+          fi
+          echo "::notice title=Site not deployed::$message"
+          echo "ready=false" >> "$GITHUB_OUTPUT"
+      # The site built by the plan job, which ran the install scripts; this job only uploads it.
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        if: steps.secrets.outputs.ready == 'true'
+        with:
+          name: site-dist
+          path: site/dist/
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        if: steps.secrets.outputs.ready == 'true'
+        with:
+          node-version: "22"
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        if: steps.secrets.outputs.ready == 'true'
+        with:
+          bun-version: 1.4.3
+      - if: steps.secrets.outputs.ready == 'true'
+        run: bun install --frozen-lockfile --ignore-scripts
+      - name: Deploy to Cloudflare
+        if: steps.secrets.outputs.ready == 'true'
+        working-directory: site
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: "false"
+        run: bunx wrangler deploy

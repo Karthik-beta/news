@@ -9,16 +9,19 @@
     "dashboard"
   ],
   "scripts": {
-    "setup": "bun scripts/setup.ts",
+    "setup": "bun --no-env-file scripts/setup.ts",
     "doctor": "bun scripts/doctor.ts",
-    "infra:up": "docker compose -f infra/docker-compose.yml --env-file .env up -d --wait",
-    "infra:down": "docker compose -f infra/docker-compose.yml --env-file .env down",
-    "infra:logs": "docker compose -f infra/docker-compose.yml --env-file .env logs -f --tail=100",
+    "infra:up": "bun --no-env-file scripts/compose.ts up -d --wait",
+    "infra:down": "bun --no-env-file scripts/compose.ts down",
+    "infra:logs": "bun --no-env-file scripts/compose.ts logs -f --tail=100",
     "clickhouse:setup": "bun scripts/clickhouse-setup.ts",
     "tokens": "bun design/tokens/build.mjs",
     "dev": "bun --filter @news/site dev",
     "build": "bun --filter '*' build",
     "test": "bun --filter '*' test",
+    "test:integration": "bun --filter '*' test:integration && bun scripts/test-cli.ts integration",
+    "test:e2e": "bun --filter '*' test:e2e",
+    "validate": "bun scripts/validate-config.ts && bun scripts/validate-skills.ts",
     "typecheck": "bun --filter '*' typecheck",
     "lint": "biome check .",
     "format": "biome format --write ."

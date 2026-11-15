@@ -1,0 +1,44 @@
+# Weekly update PRs, one grouped PR per ecosystem so the inbox stays small. Dependabot only opens PRs; nothing
+# merges without CI and review. A new release is offered only once it is 5 days old (cooldown), so a hijacked or
+# broken release has time to be caught and pulled first.
+# Workflow actions are pinned to commit SHAs with the release in a `# vX.Y.Z` comment; Dependabot updates both.
+# Security updates are a separate repository setting (Settings > Advanced Security > Dependabot security updates),
+# not this file. While it is on, they arrive as their own PRs as soon as an advisory is published, outside these
+# groups and without the cooldown; if it is turned off, a vulnerable dependency waits for the next weekly PR.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directories:
+      - /
+      - /.github/actions/*
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 5
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: cargo
+    directory: /cli
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 5
+    groups:
+      cargo:
+        patterns: ["*"]
+
+  # Bun workspaces: the root bun.lock covers site, workers/*, pipeline and dashboard.
+  - package-ecosystem: bun
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 5
+    groups:
+      bun:
+        patterns: ["*"]

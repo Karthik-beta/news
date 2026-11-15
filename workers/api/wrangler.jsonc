@@ -5,4 +5,11 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-11-01",
   "observability": { "enabled": true }
+
+  // TODO(Karthik, Phase 0 accounts step): declare the real bindings here once the resources exist, with your real IDs.
+  // Names below are what the tests use (workers/test-support). The tests do NOT read this file for them: Miniflare
+  // creates empty local D1/R2 instead, so no account and no fake ID is ever needed.
+  // "d1_databases": [{ "binding": "SEARCH_DB", "database_name": "news-search", "database_id": "<real D1 id>" }],
+  // "r2_buckets": [{ "binding": "PAGES", "bucket_name": "<real R2 bucket>" }],
+  // Secrets (AWS key pair for DynamoDB, NEWS_WRITE_API_KEY) are set with `wrangler secret put`, never in this file.
 }

@@ -12,6 +12,16 @@ body {
   font-family: var(--font-family-sans);
   font-size: var(--font-size-ui);
   line-height: var(--font-line-height-ui);
+  /* Long unbroken words, URLs and file names wrap instead of pushing the page sideways (reflow at 320px, 200% text). */
+  overflow-wrap: break-word;
+}
+
+/* No monospace anywhere (design/typography.md): code-like strings use the surrounding face and size. */
+code,
+kbd,
+samp,
+pre {
+  font: inherit;
 }
 
 :focus-visible {

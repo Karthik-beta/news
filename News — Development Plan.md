@@ -22,13 +22,13 @@ Read with the [PRD](News%20—%20Product%20Requirements%20Document.md), the [Tec
 | One person, part-time | The orchestrator does the coordinating; Karthik approves phase exits and merges, not every line |
 | Laptop: i5-8250U, 4 cores / 8 threads, 24 GB RAM | At most **3 coding sub-agents at once**; heavy jobs (Playwright screenshot runs, Rust release builds, Docling) run **one at a time** |
 | Claude Teams Premium plan, no paid API | Sub-agents are briefed tightly to save tokens; Opus is used where it pays for itself; runs pause rather than overrun limits |
-| Free tiers only | CI on GitHub Actions free minutes (private repo: 2,000 min/month); heavy visual tests run locally, CI runs the fast suite |
+| Free tiers only | CI on GitHub Actions, free on standard runners because the repo is public; the fast suite runs on every PR and the full browser matrix nightly; heavy visual tests also run locally before a component PR |
 | No AI in the cloud | Nothing built here calls a model at request time |
 | Windows 11 host | Scripts must run under Git Bash and PowerShell; Docker for PostgreSQL, ClickHouse, OTel Collector |
 
 ## Repository
 
-GitHub: `Karthik-beta/news` (private). Default branch `main`, protected: no direct pushes, PR required, CI must pass, CodeRabbit review must have run.
+GitHub: `Karthik-beta/news` (public). Default branch `main`, protected: no direct pushes, PR required, CI must pass, CodeRabbit review must have run.
 
 ```
 news/
@@ -141,9 +141,14 @@ Installed in the repo so every session and sub-agent gets them (see [skills/READ
 
 **CI (GitHub Actions, fast suite on every PR)**
 - `site`: typecheck, lint (Biome or ESLint), unit tests, accessibility tests (axe) on component fixtures, SSR render tests, a token-only lint (no hex colours, font names or px font sizes outside `tokens.css`), and a small visual-test smoke set (2 widths × 2 themes).
-- `cli`: `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test`.
-- `workers`: typecheck, unit tests with Miniflare.
-- Secret scanning (gitleaks) and actionlint.
+- `cli`: `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test`, the PostgreSQL tests against a pgvector service container, and `cargo deny` (bans, licences, sources).
+- `workers`: typecheck, unit tests with Miniflare, integration tests against D1/R2 in Miniflare and DynamoDB Local, and E2E against each Worker under the Wrangler harness.
+- Secret scanning (gitleaks), actionlint, and config, skill and agent file checks.
+
+**Nightly (GitHub Actions, daily and on every push to `main`)**
+- The site's full Playwright matrix (Chromium, Firefox and WebKit; every screen, both themes) in four shards, and the screenshot tests in the Playwright Docker image.
+
+**Test levels and commands.** `bun run test` (unit), `bun run test:integration` (needs `bun run infra:up`: PostgreSQL and DynamoDB Local), `bun run test:e2e`. See `site/TESTING.md`.
 
 **Local (heavy, before a component or template PR)**
 - The full visual matrix (every component × every screen width × both themes × browsers). See Phase 3.
@@ -158,12 +163,12 @@ The phases follow the Technical Design's build plan. Each starts when the previo
 
 | Work | Agent | Notes |
 |---|---|---|
-| Git repo, `.gitignore`, `.gitattributes`, CodeRabbit config, GitHub remote, branch protection | Orchestrator | **Done** (14 Nov 2026) except branch protection, which needs the first CI run |
+| Git repo, `.gitignore`, `.gitattributes`, CodeRabbit config, GitHub remote, branch protection | Orchestrator | **Done** (14 Nov 2026), including branch protection on `main` (PRs only, CI checks required) |
 | `.claude/agents/` role definitions and a short project `CLAUDE.md` | Opus architect | **Done** (10 roles) |
 | Monorepo skeleton: `site/` (Bun + Astro + React), `cli/` (Cargo workspace), `workers/`, `pipeline/`, `dashboard/`, `infra/` | Sonnet feature builder | **Done**: builds, typechecks and tests pass |
 | `infra/docker-compose.yml`: PostgreSQL + pgvector, OTel Collector | Sonnet feature builder | **Done**: PostgreSQL on 5433, collector on 4317/4318 |
 | ClickHouse: `news` database, `news` user, settings profile and quota on the shared container | Sonnet feature builder, Opus review | **Done**; `bun run doctor -- --e2e` proves events reach ClickHouse |
-| CI workflow (fast suite skeleton), then branch protection on `main` | Sonnet feature builder | Workflow written; first run and protection pending a push |
+| CI workflow (fast suite skeleton), then branch protection on `main` | Sonnet feature builder | **Done** (14 Nov 2026): first run green on `main`; protection on. Full test workflow in progress (`phase-0/testing`) |
 | Cloudflare and AWS accounts, budget alarms, least-privilege keys | **Karthik** (manual) | Agents never create accounts or handle credentials; Karthik puts keys in the local secrets file |
 | Secrets handling: `.env.example`, local secrets file loader, gitleaks pre-commit hook | Sonnet feature builder, Opus security review | `.env.example` and generated local `.env` done; gitleaks runs in CI, local hook pending |
 
@@ -272,7 +277,7 @@ Plus:
 - **Device scale factors** 1× and 2×/3× for chart line crispness.
 - Each component checked **alone and in context**: inside a fixture article page and a fixture home page, next to other components, to catch spacing and rhythm problems.
 
-Screenshot baselines live in the repo; any diff fails the run and must be approved by the Opus tester with a reason. The full matrix runs locally (it is CPU-heavy: one run at a time); CI runs a smoke subset (360 and 1440, light and dark, Chromium).
+Screenshot baselines live in the repo; any diff fails the run and must be approved by the Opus tester with a reason. The full matrix runs locally (it is CPU-heavy: one run at a time) and nightly in CI; every PR runs a smoke subset (360 and 1440, light and dark, Chromium).
 
 **Tester sign-off.** For each component the Opus tester records in its folder: areas covered, screens covered, issues found and fixed, and any accepted exceptions. Defects go back to the builder (or the Opus bug fixer after two rounds).
 
@@ -395,7 +400,7 @@ The home page is dynamic and curated by an agent every 2–3 days, when Karthik 
 | OpenUI can't render on the server | Phase 1 spike before any component work; fallback renderer in the ADR |
 | Parallel agents conflict | Worktrees per agent; file ownership per task; foundations merged before fan-out |
 | Agents drift from the design system | Tokens-only lint; Opus reviewer checks against design docs; visual baselines; CodeRabbit path instructions |
-| Visual test runs overload the laptop | One heavy run at a time; CI runs only a smoke subset |
+| Visual test runs overload the laptop | One heavy run at a time; PRs run only a smoke subset, and the full matrix runs nightly in CI |
 | Usage limits stall a phase | Finish in-flight work, then pause; Opus only where it pays; tight briefs |
 | Flaky screenshot tests | Fixed fonts (self-hosted), fixed viewport and device scale, animations off, fixed dates in fixtures |
 | Secrets leak | Agents never handle credentials; gitleaks in pre-commit, CI and CodeRabbit |
@@ -408,7 +413,8 @@ The home page is dynamic and curated by an agent every 2–3 days, when Karthik 
 - [x] Phase 2: design system agreed and documented
 - [x] Git repository, CodeRabbit config (light review), GitHub remote
 - [x] Phase 0: agent definitions, monorepo skeleton, local services, ClickHouse `news` database, `.env` handling
-- [ ] Phase 0: first CI run and branch protection; Cloudflare and AWS accounts (Karthik); local gitleaks hook
+- [x] Phase 0: first CI run and branch protection
+- [ ] Phase 0: Cloudflare and AWS accounts (Karthik); local gitleaks hook
 - [ ] Phase 1: OpenUI server-rendering spike and ADR
 - [ ] Phase 3.1: foundations
 - [ ] Phase 3.2–3.3: component families and specs (including the home-page components)
@@ -427,6 +433,5 @@ The home page is dynamic and curated by an agent every 2–3 days, when Karthik 
 
 ## Open questions
 
-- Public or private repository long-term. It starts private; the open-data goal may favour making it public once secrets handling is proven.
-- CI minutes: if the private repo's free minutes run short, move more checks to the local pre-push hook or make the repo public (unlimited Actions minutes).
+- Public or private repository: settled, the repo is public. Actions minutes on standard runners are free, so CI minutes are no longer a limit.
 - Whether routine PRs may auto-merge when CI and both reviews are green, or Karthik merges everything.
