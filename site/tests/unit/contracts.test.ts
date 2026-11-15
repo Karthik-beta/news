@@ -39,7 +39,7 @@ describe("bundle contracts", () => {
     (d.points as Record<string, unknown>).DP_Upper = point(d);
     expect(validateData(d)).toBe(false);
     const e = base();
-    (e.points as Record<string, unknown>)["dp_ends_"] = point(e);
+    (e.points as Record<string, unknown>).dp_ends_ = point(e);
     expect(validateData(e)).toBe(false);
   });
 

@@ -1,5 +1,6 @@
 // Fixture pages are built only when NEWS_FIXTURES=1 (test and CI builds). Production builds leave them out, so
-// they never ship. Every fixture route's getStaticPaths goes through `fixturesEnabled`.
+// they never ship: the news-fixture-pages integration (astro.config.mjs) adds their routes only then, and every
+// fixture route's getStaticPaths also goes through `fixturesEnabled`.
 import { FIXTURE_BUNDLES } from "./bundles/assemble";
 
 export function fixturesEnabled(env: Record<string, string | undefined> = process.env): boolean {

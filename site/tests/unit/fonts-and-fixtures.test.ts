@@ -1,6 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import type { AstroIntegration } from "astro";
 import { describe, expect, it } from "vitest";
+import config from "../../astro.config.mjs";
 import { fontFiles } from "../../scripts/sync-fonts";
 import { fixturesEnabled, rendererFixturePaths } from "../../src/renderer/fixtures/routes";
 import { repoRoot, siteRoot, tokenValue } from "../support/tokens";
@@ -66,6 +68,37 @@ describe("self-hosted fonts", () => {
 });
 
 describe("fixture pages", () => {
+  /** The routes the news-fixture-pages integration (astro.config.mjs) adds under the given environment. */
+  const injected = (env: Record<string, string>) => {
+    const saved = { ...process.env };
+    Object.assign(process.env, { NEWS_FIXTURES: "", OPENUI_SPIKE: "", ...env });
+    const patterns: string[] = [];
+    try {
+      const integration = config.integrations?.find(
+        (i): i is AstroIntegration =>
+          typeof i === "object" && i !== null && "name" in i && i.name === "news-fixture-pages",
+      );
+      const setup = integration?.hooks["astro:config:setup"] as unknown as (o: object) => void;
+      setup({ injectRoute: (r: { pattern: string }) => patterns.push(r.pattern) });
+    } finally {
+      process.env = saved;
+    }
+    return patterns;
+  };
+
+  it("a production build adds no fixture routes, so no fixture code or styles reach dist/", () => {
+    expect(injected({})).toEqual([]);
+  });
+
+  it("NEWS_FIXTURES=1 adds the renderer and primitive fixture pages; OPENUI_SPIKE=1 the spike's", () => {
+    expect(injected({ NEWS_FIXTURES: "1" })).toEqual([
+      "/fixtures/renderer/[bundle]",
+      "/fixtures/renderer/[bundle]/[...file]",
+      "/fixtures/primitives/[name]",
+    ]);
+    expect(injected({ OPENUI_SPIKE: "1" })).toEqual(["/fixtures/openui-ssr/[approach]"]);
+  });
+
   it("are built only with NEWS_FIXTURES=1", () => {
     expect(fixturesEnabled({})).toBe(false);
     expect(fixturesEnabled({ NEWS_FIXTURES: "0" })).toBe(false);

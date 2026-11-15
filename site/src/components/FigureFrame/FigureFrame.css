@@ -19,13 +19,13 @@
   margin-top: var(--space-4);
 }
 
-.figure-frame__legend + .figure-frame__plot {
-  margin-top: var(--space-3);
-}
-
 .figure-frame__plot {
   position: relative;
   min-width: 0;
+}
+
+.figure-frame__legend + .figure-frame__plot {
+  margin-top: var(--space-3);
 }
 
 .figure-frame__source {

@@ -17,5 +17,11 @@ runs:
         key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
         restore-keys: |
           bun-${{ runner.os }}-
+    # OpenUI (ADR 0001): @openuidev/lang-core has an install-telemetry postinstall. Bun never runs it, because the
+    # package is not in trustedDependencies (keep it that way); this also turns off its runtime telemetry for every
+    # later step of the job (build, tests, rendering).
+    - name: Turn off OpenUI telemetry
+      run: echo "OPENUI_TELEMETRY_DISABLED=1" >> "$GITHUB_ENV"
+      shell: bash
     - run: bun install --frozen-lockfile
       shell: bash

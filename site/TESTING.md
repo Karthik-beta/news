@@ -8,8 +8,8 @@ Run from `site/` (or the same script from the repo root with `bun --filter @news
 
 | Level | Command | What runs | Needs |
 |---|---|---|---|
-| Unit | `bun run test` | Vitest projects `unit` (Node), `component` (React in jsdom + Testing Library + jest-dom), `astro` (`.astro` rendered with the Container API) | nothing; no network. `pretest` syncs `tokens.css` |
-| Integration | `bun run test:integration` | builds `dist/`, then Vitest project `integration`: HTML validity (html-validate), internal links and fragments, tokens in the shipped CSS. The checkers themselves are unit-tested on known-bad input (`tests/unit/links.test.ts`, `html-validate-config.test.ts`) | a build (the script does it) |
+| Unit | `bun run test` | Vitest projects `unit` (Node: formatters, renderer, contracts, token lint, folder contract, index budget), `component` (React in jsdom + Testing Library + jest-dom + axe), `astro` (`.astro` rendered with the Container API); then the SSR tests in Bun (`bun test tests/ssr`: the renderer in plain Bun, island markup, render-time budget) | nothing; no network. `pretest` runs `bun run sync` (tokens, fonts, component registry) |
+| Integration | `bun run test:integration` | builds `dist/` with `NEWS_FIXTURES=1` (fixture pages included), then Vitest project `integration`: HTML validity (html-validate), internal links and fragments, tokens in the shipped CSS, and budgets (`component-index.json` within ADR 0001, 0 KB JS on static pages, the island page within its JS budget, no third-party requests). The checkers themselves are unit-tested on known-bad input (`tests/unit/links.test.ts`, `html-validate-config.test.ts`) | a build (the script does it) |
 | E2E smoke | `bun run test:e2e` | Playwright `smoke-*`: Chromium, 360 and 1440, light and dark, tests tagged `@smoke` | Chromium |
 | E2E full matrix | `bun run test:e2e:full` | Playwright `chromium-*`, `firefox-*`, `webkit-*`: every screen below (74 projects, 800 runs for the shell today) | all three browsers; CPU-heavy, run alone: about 70 min on the 4-core Windows laptop, WebKit alone about 26 min |
 | Screenshots | `bun run test:visual` | `@visual` tests inside the Playwright Docker image | Docker |
@@ -18,7 +18,7 @@ Useful while working: `bun run test:watch`; `bunx vitest run --project component
 
 Browsers: `bunx playwright install chromium firefox webkit` (Linux CI adds `--with-deps`).
 
-E2E always runs against the built site served by `astro preview` on port 4329, never the dev server. Environment switches: `E2E_SKIP_BUILD=1` serves the existing `dist/` (CI builds once), `E2E_REUSE_SERVER=1` reuses a preview you started yourself, `E2E_PORT` changes the port.
+E2E always runs against the built site served by `astro preview` on port 4329, never the dev server. Playwright builds with `NEWS_FIXTURES=1`, so fixture pages exist; with `E2E_SKIP_BUILD=1` the `dist/` you serve must have been built that way (`test:integration` does it). Environment switches: `E2E_SKIP_BUILD=1` serves the existing `dist/` (CI builds once), `E2E_REUSE_SERVER=1` reuses a preview you started yourself, `E2E_PORT` changes the port.
 
 ## In CI
 
@@ -51,6 +51,25 @@ Tags (Playwright `tag` option) decide where a test runs:
 
 Expected skips, not failures: `@visual` outside the Docker image; CLS outside Chromium (no layout-shift API); the 200% browser-zoom test below 640px wide (the 320 project is the 400% case). The per-test timeout is 60 s because WebKit on Windows runs axe at 3× scale slowly under load.
 
+## Fixture pages
+
+Fixture pages are built only for tests: `NEWS_FIXTURES=1` (set by `test:integration` and by Playwright's web server; production builds never set it). Their files live in `src/pages/_fixtures/`. Astro never routes an underscore folder by itself, and the `news-fixture-pages` integration in `astro.config.mjs` adds the routes only with `NEWS_FIXTURES=1`, so no fixture code or styles reach a production `dist/`. Pages are marked `noindex`.
+
+| URL | What |
+|---|---|
+| `/fixtures/renderer/<bundle>/` | A bundle from `src/renderer/fixtures/bundles/` rendered by the real renderer: `apple-fy2024` (real 10-K figures and a chart island), `edge-cases` (unknown reference, null, zero, negative, very large and very small values, a single point, a gap, a licence that forbids downloads), `static` (no islands, 0 KB JS). Each page's `index.md` and `charts/*.csv` and `.json` sit next to it |
+| `/fixtures/primitives/<Name>/` | Every case in `src/components/<Name>/fixtures/cases.tsx` |
+
+The OpenUI spike's pages (ADR 0001) are built only with `OPENUI_SPIKE=1`; see `spikes/openui-ssr/README.md`.
+
+## Lints and budgets
+
+- **Token lint** (`bun run lint:tokens`, and a unit test over the whole tree): no hex or functional colours, font names or px font sizes anywhere in `src/` except `styles/tokens.css` and `styles/fonts.css`. Planted violations are tested in `tests/unit/token-lint.test.ts`.
+- **Component index**: `bun run build` writes `dist/component-index.json` and fails over budget (ADR 0001: 4,000 tokens, 24 per entry). Unit and integration tests check it too.
+- **JavaScript**: static pages ship none; a page with a chart island stays within 80 KB gzip (`tests/integration/budgets.test.ts`).
+- **Performance** (`tests/e2e/renderer/fixture-pages.spec.ts`, `@smoke`, Chromium only for CLS): CLS under 0.001, first contentful paint under 1.8 s and largest contentful paint under 2.5 s on the island fixture page, served locally without throttling. Render time: p95 under 50 ms over 50 renders in Bun (`tests/ssr/`).
+- **No third-party requests**: built HTML and CSS load only same-origin resources, and the browser test records every request, fonts included.
+
 ## Shared checks
 
 Import `test` and `expect` from `tests/e2e/fixtures.ts`, never from `@playwright/test`: its auto fixture fails any test with a console error, an uncaught exception or a failed same-origin request (allow a known one with `test.use({ allowedConsoleErrors: [/…/] })`). It also exports:
@@ -68,7 +87,7 @@ For jsdom tests, `tests/support/render.tsx` has `renderComponent(ui, { theme })`
 1. Unit and data edge cases (formatters, data shaping): `src/components/<Name>/<Name>.test.ts` (Node).
 2. Rendering, props, keyboard: `src/components/<Name>/<Name>.test.tsx` with `renderComponent` and `user-event`.
 3. Server rendering of an `.astro` component: `tests/astro/<Name>.test.ts` with `experimental_AstroContainer` (see `index-page.test.ts`); assert the HTML is complete without JavaScript and ships no script.
-4. Fixture pages: one page per fixture under `src/pages/__fixtures/<Name>/` with fixed data and dates; the integration tests then validate their HTML and links automatically.
+4. Fixture pages (see below): a primitive gets a gallery page from its `fixtures/cases.tsx`; a component gets its `fixtures/*.oui` rendered through the renderer with fixed data and dates. The integration tests then validate their HTML, links and budgets automatically.
 5. Browser: `tests/e2e/components/<Name>.spec.ts` that visits each fixture and calls the shared checks (untagged, so it runs on every screen), plus `@interaction`, `@print`, `@motion`, `@forced-colors` and `@visual` tests as the component needs, and one `@smoke` test.
 6. Run `bun run test`, `bun run test:integration`, `bun run test:e2e`, then the full matrix alone, then `bun run test:visual`. Fill in `TESTING.md` in the component folder from the skill's template.
 
@@ -80,7 +99,7 @@ Decision: baselines are made and compared only on Linux inside the official imag
 - New or changed baselines: `bun run test:visual:update`, then review every changed image in the diff. Accept a baseline only with the reason written in the component's `TESTING.md`.
 - Deterministic input: self-hosted fonts, fixed fixture data and dates, reduced motion, fixed viewport and scale, `en-GB` and Europe/London.
 
-Status: the mechanism is in place; the only example (`shell.spec.ts`, "matches its screenshot baseline") is disabled with `test.fixme` until fonts are self-hosted in Phase 3.1, because the shell is a placeholder drawn in fallback system fonts. No baselines are committed yet.
+Status: the mechanism is in place and fonts are self-hosted (`src/styles/fonts.css`, files copied by `scripts/sync-fonts.ts`). The only example (`shell.spec.ts`, "matches its screenshot baseline") is still disabled with `test.fixme` until the first baselines are made in the Docker image. No baselines are committed yet.
 
 ## HTML validation rules
 

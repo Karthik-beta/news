@@ -4,6 +4,7 @@
 - Date: 2026-11-15
 - Phase: Development Plan Phase 1 (Spike: server rendering of OpenUI); issue #4
 - Spike code and re-run instructions: `site/spikes/openui-ssr/` (README there); raw numbers in `site/spikes/openui-ssr/results.json`
+- Implementation: `site/src/renderer/` (decision B, with the fallback C walker kept byte-identical and tested); contract in its README
 
 ## Context
 
@@ -90,7 +91,7 @@ Enforcement: the build test counts tokens offline and deterministically as `ceil
 - **Island contract.** Island props must be plain JSON (no functions, dates or class instances). Island components may not import server-only code. Server and client read the same registry (`islands.ts`), and only registered components ship JS. The first island on a page costs about 65 KB gzip of React DOM, cached across pages.
 - **The OUI is parsed twice per render** in B (once to validate and get the root, once inside `Renderer.Root`). That's milliseconds, and keeps validation errors under our control.
 - **`@openuidev/react-ui` components were not tested for server rendering** here. They use `goober` (runtime CSS-in-JS), Radix and their own styles. The component builder must check each adopted base component renders to complete HTML, ships no runtime CSS injection for static use, and follows the tokens-only rule. Otherwise we wrap or rebuild it.
-- **Fixture routes.** Astro doesn't route folders that start with `_`, so the `src/pages/__fixtures/` convention in `site/TESTING.md` builds nothing. This spike uses `src/pages/fixtures/`, and TESTING.md should be updated to match. Fixture pages then ship in the static build (`noindex`), so it should be decided whether production builds exclude them.
+- **Fixture routes.** Astro doesn't route folders that start with `_`, so the `src/pages/__fixtures/` convention in `site/TESTING.md` builds nothing. This spike uses `src/pages/fixtures/`, and TESTING.md should be updated to match. Fixture pages then ship in the static build (`noindex`), so it should be decided whether production builds exclude them. *Resolved in #4:* production builds exclude them. Fixture pages live in `src/pages/_fixtures/`, which Astro never routes by itself, and an integration in `astro.config.mjs` adds their routes (at `/fixtures/…`) only with `NEWS_FIXTURES=1`, which test and CI builds set. Excluding them by route alone was not enough: Astro still bundled their scripts and styles into a production `dist/`.
 - Approach A's fixture route is built only with `OPENUI_SPIKE_A=1`, so the default build stays valid HTML. Its numbers can still be re-run.
 
 ## Open questions

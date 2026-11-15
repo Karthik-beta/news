@@ -201,7 +201,9 @@ test.describe("renderer fixture pages", () => {
   test("shows missing data as 'No data', never as zero", { tag: "@smoke" }, async ({ page }) => {
     await gotoPage(page, EDGE);
     const figure = (label: string) =>
-      page.locator(".fixture-figure", { has: page.getByText(label, { exact: true }) }).locator("dd.text-figure > :first-child");
+      page
+        .locator(".fixture-figure", { has: page.getByText(label, { exact: true }) })
+        .locator("dd.text-figure > :first-child");
     await expect(figure("Not published")).toHaveText("No data");
     await expect(figure("Unknown reference")).toHaveText("No data");
     await expect(figure("Zero")).toHaveText("0%");

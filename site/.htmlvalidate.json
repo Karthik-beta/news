@@ -1,10 +1,7 @@
 {
   "$schema": "https://html-validate.org/schemas/config.json",
   "root": true,
-  "extends": [
-    "html-validate:recommended",
-    "html-validate:document"
-  ],
+  "extends": ["html-validate:recommended", "html-validate:document"],
   "rules": {
     "attribute-boolean-style": "off",
     "attribute-empty-style": "off",
@@ -20,11 +17,7 @@
     "no-inline-style": [
       "error",
       {
-        "allowedProperties": [
-          "display",
-          "left",
-          "top"
-        ]
+        "allowedProperties": ["display", "left", "top"]
       }
     ]
   }
