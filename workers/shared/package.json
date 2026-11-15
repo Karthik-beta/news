@@ -1,0 +1,26 @@
+{
+  "name": "@news/worker-shared",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Code shared by the Workers: DynamoDB client, fake and read layer, D1 search, R2, purge, precompiled validators, curation checks.",
+  "exports": {
+    "./validators": "./src/generated/validators.js",
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "validators": "bun scripts/build-validators.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "aws4fetch": "1.0.20"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261114.1",
+    "@types/node": "^22.0.0",
+    "ajv": "8.20.0",
+    "typescript": "^6.0.3",
+    "vitest": "^5.1.0"
+  }
+}

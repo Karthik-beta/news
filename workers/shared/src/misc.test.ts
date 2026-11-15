@@ -1,0 +1,201 @@
+// Unit tests for the small modules: keys, URLs, crypto, HTTP helpers, search query building, purge, read layer.
+import { describe, expect, it } from "vitest";
+import { secretsEqual, sha256Hex } from "./crypto";
+import { FakeTable } from "./dynamo/fake";
+import { BodyTooLargeError, isJsonContentType, readBodyCapped } from "./http";
+import { categoryLineage, hubsForPage, reportKey, versionFromSk, versionSk } from "./keys";
+import { CloudflarePurger, PurgeError } from "./purge";
+import { decodeCursor, encodeCursor, Reader } from "./read";
+import { listShards, shardFor, toFtsQuery } from "./search";
+import { makeMeta, makePageRecord } from "./testing/fixtures";
+import { homeUrls, hubPath, regionViews } from "./urls";
+
+describe("keys", () => {
+  it("pads versions and parses them back", () => {
+    expect(versionSk(7)).toBe("V#000007");
+    expect(versionFromSk("V#000123")).toBe(123);
+    expect(() => versionSk(0)).toThrow();
+    expect(() => versionSk(1_000_000)).toThrow();
+    expect(() => versionSk(1.5)).toThrow();
+  });
+
+  it("lists a page in latest, its categories with parents, its entities and its region", () => {
+    expect(hubsForPage(makeMeta())).toEqual([
+      "latest",
+      "cat/economy",
+      "cat/economy/inflation",
+      "ent/country:US",
+      "region/north-america",
+    ]);
+    expect(categoryLineage("a/b/c")).toEqual(["a", "a/b", "a/b/c"]);
+  });
+
+  it("partitions reports by month", () => {
+    expect(reportKey("2026-11-15T10:00:00.000Z", "r_1")).toEqual({
+      PK: "REPORT#2026-11",
+      SK: "2026-11-15T10:00:00.000Z#r_1",
+    });
+  });
+});
+
+describe("urls", () => {
+  it("maps hubs to site paths", () => {
+    expect(["latest", "cat/economy/inflation", "ent/company:apple", "region/europe"].map(hubPath)).toEqual([
+      "/latest",
+      "/economy/inflation",
+      "/entity/company%3Aapple",
+      "/region/europe",
+    ]);
+  });
+
+  it("region views: default list, override, invalid codes dropped", () => {
+    expect(regionViews()).toContain("india");
+    expect(regionViews("europe, india,Bad Code")).toEqual(["europe", "india"]);
+    expect(homeUrls("https://x.test", ["europe"])).toEqual(["https://x.test/", "https://x.test/region/europe"]);
+  });
+});
+
+describe("crypto", () => {
+  it("sha256", async () => {
+    expect(await sha256Hex("abc")).toBe("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+  });
+
+  it("compares secrets exactly, whatever their lengths", async () => {
+    expect(await secretsEqual("s3cret-value", "s3cret-value")).toBe(true);
+    expect(await secretsEqual("s3cret-valuf", "s3cret-value")).toBe(false);
+    expect(await secretsEqual("", "s3cret-value")).toBe(false);
+    expect(await secretsEqual("s3cret-value-and-more", "s3cret-value")).toBe(false);
+  });
+});
+
+describe("http", () => {
+  const req = (body: BodyInit, headers: Record<string, string> = {}) =>
+    new Request("http://x/", { method: "POST", body, headers, duplex: "half" } as RequestInit);
+
+  it("reads a body under the cap", async () => {
+    expect(await readBodyCapped(req("hello"), 10)).toBe("hello");
+  });
+
+  it("refuses by Content-Length before reading, and while streaming", async () => {
+    await expect(readBodyCapped(req("x", { "content-length": "999" }), 10)).rejects.toBeInstanceOf(BodyTooLargeError);
+    const stream = new ReadableStream({
+      start(c) {
+        for (let i = 0; i < 5; i++) c.enqueue(new TextEncoder().encode("12345"));
+        c.close();
+      },
+    });
+    await expect(readBodyCapped(req(stream), 10)).rejects.toBeInstanceOf(BodyTooLargeError);
+  });
+
+  it("refuses invalid UTF-8", async () => {
+    await expect(readBodyCapped(req(new Uint8Array([0xff, 0xfe])), 10)).rejects.toThrow();
+  });
+
+  it("accepts only JSON content types", () => {
+    expect(isJsonContentType("application/json")).toBe(true);
+    expect(isJsonContentType("application/json; charset=UTF-8")).toBe(true);
+    expect(isJsonContentType("text/plain")).toBe(false);
+    expect(isJsonContentType("application/json; charset=latin1")).toBe(false);
+    expect(isJsonContentType(null)).toBe(false);
+  });
+});
+
+describe("search query building", () => {
+  it.each([
+    ["inflation", '"inflation"*'],
+    ["US CPI, October!", '"US" "CPI" "October"*'],
+    ['title:x OR "a" NEAR(b) *', '"title" "x" "OR" "a" "NEAR" "b"*'],
+    ["café Ünïcode 2026", '"café" "Ünïcode" "2026"*'],
+    ["   ", null],
+    ["***", null],
+  ])("%j → %j", (input, expected) => {
+    expect(toFtsQuery(input)).toBe(expected);
+  });
+
+  it("keeps at most 8 terms", () => {
+    expect(toFtsQuery("a b c d e f g h i j")?.split(" ")).toHaveLength(8);
+  });
+
+  it("finds SEARCH_<year> shards, newest first, and routes by publication year", () => {
+    const db = { prepare: () => ({}) } as unknown as D1Database;
+    const env = { SEARCH_2025: db, SEARCH_2026: db, SEARCH_DB: db, OTHER: "x" };
+    expect(listShards(env).map((s) => s.year)).toEqual([2026, 2025]);
+    expect(shardFor(env, "2025-03-01T00:00:00Z")).toBe(db);
+    expect(() => shardFor(env, "2024-03-01T00:00:00Z")).toThrow(/SEARCH_2024/);
+  });
+});
+
+describe("CloudflarePurger", () => {
+  const zoneId = "0123456789abcdef0123456789abcdef";
+
+  it("deduplicates, batches by 30 and pauses between calls", async () => {
+    const bodies: string[][] = [];
+    const sleeps: number[] = [];
+    const purger = new CloudflarePurger({
+      zoneId,
+      token: "t",
+      fetch: async (r) => {
+        expect(r.headers.get("authorization")).toBe("Bearer t");
+        expect(r.url).toBe(`https://api.cloudflare.com/client/v4/zones/${zoneId}/purge_cache`);
+        bodies.push(((await r.json()) as { files: string[] }).files);
+        return Response.json({ success: true });
+      },
+      sleep: async (ms) => {
+        sleeps.push(ms);
+      },
+    });
+    const urls = Array.from({ length: 65 }, (_, i) => `https://news.test/p${i}`);
+    expect(await purger.purge([...urls, ...urls])).toHaveLength(65);
+    expect(bodies.map((b) => b.length)).toEqual([30, 30, 5]);
+    expect(sleeps).toEqual([250, 250]);
+  });
+
+  it("waits once on 429, then fails with PurgeError", async () => {
+    let calls = 0;
+    const purger = new CloudflarePurger({
+      zoneId,
+      token: "t",
+      fetch: async () => {
+        calls++;
+        return new Response("slow down", { status: 429, headers: { "retry-after": "1" } });
+      },
+      sleep: async () => {},
+    });
+    await expect(purger.purge(["https://news.test/"])).rejects.toBeInstanceOf(PurgeError);
+    expect(calls).toBe(2);
+  });
+
+  it("refuses a malformed zone ID", () => {
+    expect(() => new CloudflarePurger({ zoneId: "../x", token: "t" })).toThrow();
+  });
+});
+
+describe("Reader", () => {
+  it("reads pages, hubs newest first with cursors, and the newest curation version", async () => {
+    const t = new FakeTable();
+    const r = new Reader(t);
+    t.seed(makePageRecord({ id: "a" }));
+    for (const [i, day] of ["01", "02", "03"].entries())
+      t.seed({ PK: "HUB#latest", SK: `2026-11-${day}T00:00:00Z#p${i}`, page_id: `p${i}` });
+    t.seed(
+      { PK: "HOME#CURATION", SK: "V#000002" },
+      { PK: "HOME#CURATION", SK: "V#000010" },
+      { PK: "HOME#CURATION", SK: "LATEST" },
+    );
+
+    expect((await r.getPage("a"))?.title).toBe("Test page a");
+    expect(await r.getPage("b")).toBeUndefined();
+    const first = await r.listHub("latest", { limit: 2 });
+    expect(first.items.map((i) => i.page_id)).toEqual(["p2", "p1"]);
+    const second = await r.listHub("latest", { limit: 2, cursor: first.cursor });
+    expect(second.items.map((i) => i.page_id)).toEqual(["p0"]);
+    expect(await r.newestCurationVersion()).toBe(10);
+    expect([...(await r.getPages(["a", "a", "zz"])).keys()]).toEqual(["a"]);
+  });
+
+  it("cursors round-trip and refuse junk", () => {
+    const c = encodeCursor({ PK: "HUB#x", SK: "2026-11-01T00:00:00Z#a" });
+    expect(decodeCursor("HUB#x", c)).toEqual({ PK: "HUB#x", SK: "2026-11-01T00:00:00Z#a" });
+    expect(() => decodeCursor("HUB#x", "not valid!")).toThrow(RangeError);
+  });
+});
