@@ -12,6 +12,7 @@ import { fileURLToPath } from "node:url";
 import { cloudflareTest, type D1Migration, readD1Migrations } from "@cloudflare/vitest-plugin";
 import { defineConfig } from "vitest/config";
 import { dynamoBindings, dynamoConfigFromEnv } from "./dynamodb";
+import { repoEnv } from "./repo-env";
 
 const MIGRATIONS_DIR = fileURLToPath(new URL("../d1-migrations", import.meta.url));
 const DYNAMODB_GLOBAL_SETUP = fileURLToPath(new URL("./global-setup-dynamodb.ts", import.meta.url));
@@ -43,7 +44,7 @@ export function unitConfig({ root }: WorkerTestOptions) {
 export function integrationConfig({ root, d1 = [], r2 = [], dynamodb = false }: IntegrationOptions) {
   return defineConfig(async () => {
     const bindings: Record<string, string | D1Migration[]> = {};
-    if (dynamodb) Object.assign(bindings, dynamoBindings(dynamoConfigFromEnv(process.env)));
+    if (dynamodb) Object.assign(bindings, dynamoBindings(dynamoConfigFromEnv(repoEnv())));
     if (d1.length > 0) bindings.TEST_MIGRATIONS = await readD1Migrations(MIGRATIONS_DIR);
     return {
       root,
