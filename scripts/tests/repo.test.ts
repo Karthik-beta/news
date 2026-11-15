@@ -19,13 +19,14 @@ describe("root package.json scripts", () => {
     }
   });
 
-  test("docker compose scripts use the repo's compose file and the local .env", () => {
+  test("docker compose scripts go through the wrapper that passes .env values literally", () => {
     for (const name of ["infra:up", "infra:down", "infra:logs"]) {
-      const cmd = pkg.scripts[name] ?? "";
-      expect(cmd, name).toContain("-f infra/docker-compose.yml");
-      expect(cmd, name).toContain("--env-file .env");
-      expect(existsSync(join(root, "infra/docker-compose.yml"))).toBe(true);
+      expect(pkg.scripts[name] ?? "", name).toMatch(/^bun scripts\/compose\.ts /);
     }
+    const wrapper = readFileSync(join(root, "scripts/compose.ts"), "utf8");
+    expect(wrapper).toContain('"-f", "infra/docker-compose.yml"');
+    expect(wrapper).not.toContain("--env-file");
+    expect(existsSync(join(root, "infra/docker-compose.yml"))).toBe(true);
   });
 
   test("infra:up waits for health checks and runs detached", () => {
