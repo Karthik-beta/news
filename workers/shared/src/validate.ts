@@ -1,6 +1,8 @@
 // Runs a precompiled validator and turns its errors into short, safe issue lists for API error bodies.
 import type { Validator } from "./generated/validators.js";
 
+export type { SchemaError, Validator } from "./generated/validators.js";
+
 export * as schemas from "./generated/validators.js";
 
 export interface Issue {

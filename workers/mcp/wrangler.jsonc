@@ -1,13 +1,21 @@
 {
-  // Read-only, stateless MCP v2 server (spec revision 2026-07-28), Phase 6.
+  // Read-only, stateless MCP server (spec revision 2026-07-28) on POST /mcp, Phase 6. Tools and limits: workers/README.md.
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "news-mcp",
   "main": "src/index.ts",
   "compatibility_date": "2026-11-01",
-  "observability": { "enabled": true }
+  "observability": { "enabled": true },
+  "vars": {
+    "NEWS_SITE_ORIGIN": "https://news.karthik.nz"
+  },
+  // Workers Rate Limiting (free plan): 60 MCP requests a minute per client IP. The namespace ID is a number we choose.
+  "ratelimits": [{ "name": "MCP_RATE_LIMITER", "namespace_id": "1201", "simple": { "limit": 60, "period": 60 } }]
 
-  // TODO(Karthik, Phase 0 accounts step): declare the real R2 binding here with your real bucket name.
-  // The tests do NOT read this file for it: Miniflare creates an empty local R2 bucket (workers/test-support).
+  // TODO(Karthik, Phase 6 provisioning, #21): declare the real read bindings here once the resources exist.
+  // The tests do NOT read these: Miniflare creates local D1/R2 and the harness injects DynamoDB Local settings.
+  // "vars": add "NEWS_DYNAMODB_TABLE": "<table>", "NEWS_DYNAMODB_REGION": "<region>"
+  // "d1_databases": the same SEARCH_<YYYY> shards as the api Worker (this Worker only runs SELECTs on them).
   // "r2_buckets": [{ "binding": "PAGES", "bucket_name": "<real R2 bucket>" }],
-  // Secrets (read-only AWS key pair for DynamoDB) are set with `wrangler secret put`, never in this file.
+  // Secrets, set with `wrangler secret put`, never in this file: NEWS_DYNAMODB_ACCESS_KEY_ID and
+  // NEWS_DYNAMODB_SECRET_ACCESS_KEY of a READ-ONLY IAM key (GetItem, BatchGetItem, Query on the one table only).
 }
