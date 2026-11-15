@@ -193,6 +193,32 @@ const squashFont = (family: string) =>
  * Cumulative layout shift since navigation (the page must not move: CLS 0). Only Chromium exposes layout-shift
  * entries; returns null elsewhere, so callers skip the assertion in Firefox and WebKit.
  */
+/**
+ * Starts counting layout shifts from now: call it after `gotoPage`, which waits for the fonts. The returned
+ * function reads the total (null where the engine has no layout-shift entries). Use it to check that nothing
+ * moves the page once the fonts are in (hydration, late content). The CLS since navigation (above) also counts
+ * the font swap, which depends on whether the fonts beat first paint; record that, don't assert it (TESTING.md).
+ */
+export async function watchLayoutShift(page: Page): Promise<() => Promise<number | null>> {
+  await page.evaluate(() => {
+    const w = window as unknown as { __newsShift?: number };
+    if (!PerformanceObserver.supportedEntryTypes?.includes("layout-shift")) return;
+    w.__newsShift = 0;
+    new PerformanceObserver((list) => {
+      for (const e of list.getEntries() as (PerformanceEntry & { value: number; hadRecentInput: boolean })[]) {
+        if (!e.hadRecentInput) w.__newsShift = (w.__newsShift ?? 0) + e.value;
+      }
+    }).observe({ type: "layout-shift" });
+  });
+  return () =>
+    page.evaluate(
+      () =>
+        new Promise<number | null>((resolve) =>
+          setTimeout(() => resolve((window as unknown as { __newsShift?: number }).__newsShift ?? null), 250),
+        ),
+    );
+}
+
 export async function cumulativeLayoutShift(page: Page): Promise<number | null> {
   return page.evaluate(
     () =>
