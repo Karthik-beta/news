@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/bundle/manifest.schema.json",
+  "title": "Page bundle manifest (manifest.v1)",
+  "description": "Lists the files of one page bundle with their SHA-256. bundle_sha256 is the SHA-256 of the UTF-8 text made of one line per file, sorted by path: '<path> <sha256>\\n'. The publisher's Idempotency-Key is '<page_id>:<version>:<bundle_sha256>' (Bureau Design, 5.8).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "page_id", "version", "bundle_sha256", "files"],
+  "properties": {
+    "schema": { "const": "manifest.v1" },
+    "page_id": { "$ref": "../cloud/common.schema.json#/$defs/pageId" },
+    "version": { "type": "integer", "minimum": 1, "maximum": 999999 },
+    "bundle_sha256": { "$ref": "../cloud/common.schema.json#/$defs/sha256" },
+    "files": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "sha256", "bytes"],
+        "properties": {
+          "path": {
+            "description": "Bundle-relative path. Only these names are accepted; the content type is set by the server from the name.",
+            "type": "string",
+            "pattern": "^(?:index\\.html|index\\.md|data\\.json|sources\\.json|meta\\.json|page\\.oui|charts/[a-z0-9][a-z0-9-]{0,63}\\.csv)$"
+          },
+          "sha256": { "$ref": "../cloud/common.schema.json#/$defs/sha256" },
+          "bytes": { "type": "integer", "minimum": 0, "maximum": 2097152 }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,221 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cloud/mcp-tools.schema.json",
+  "title": "MCP tool inputs and outputs",
+  "description": "Input and output schemas of the read-only MCP server's tools (MCP spec revision 2026-07-28). Each schema is self-contained (no $ref) because tools/list sends them to clients as they are. Outputs are the tools' structuredContent; their size caps are enforced in code (workers/mcp).",
+  "$defs": {
+    "searchPagesInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["query"],
+      "properties": {
+        "query": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Keywords to search titles, summaries, entities, tags and categories."
+        },
+        "category": {
+          "type": "string",
+          "maxLength": 120,
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*(?:/[a-z0-9]+(?:-[a-z0-9]+)*){0,3}$",
+          "description": "Only pages in this category slug, e.g. 'economy'."
+        },
+        "region": {
+          "type": "string",
+          "maxLength": 40,
+          "pattern": "^[a-z]+(?:-[a-z]+)*$",
+          "description": "Only pages for this region, e.g. 'europe'."
+        },
+        "page_type": {
+          "type": "string",
+          "enum": ["earnings", "macro", "policy", "report", "news", "science", "explainer"]
+        },
+        "from": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+          "description": "Earliest publication date (YYYY-MM-DD, UTC)."
+        },
+        "to": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+          "description": "Latest publication date (YYYY-MM-DD, UTC)."
+        },
+        "limit": { "type": "integer", "minimum": 1, "maximum": 20, "default": 10 }
+      }
+    },
+    "searchPagesOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["results"],
+      "properties": {
+        "results": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "page_id",
+              "title",
+              "summary",
+              "url",
+              "published_at",
+              "categories",
+              "region",
+              "page_type",
+              "lang"
+            ],
+            "properties": {
+              "page_id": { "type": "string" },
+              "title": { "type": "string" },
+              "summary": { "type": "string" },
+              "url": { "type": "string" },
+              "published_at": { "type": "string" },
+              "categories": { "type": "array", "items": { "type": "string" } },
+              "region": { "type": "string" },
+              "page_type": { "type": "string" },
+              "lang": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "getPageInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "page_id": { "type": "string", "pattern": "^[a-z0-9](?:[a-z0-9-]{0,118}[a-z0-9])?$" },
+        "path": {
+          "type": "string",
+          "pattern": "^/[0-9]{4}/[0-9]{2}/[a-z0-9](?:[a-z0-9-]{0,118}[a-z0-9])?$",
+          "description": "The page's path, e.g. '/2026/11/apple-fy26-q4-results'."
+        },
+        "format": { "type": "string", "enum": ["markdown", "json"], "default": "markdown" }
+      },
+      "oneOf": [{ "required": ["page_id"] }, { "required": ["path"] }]
+    },
+    "getPageOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["page_id", "url", "version", "lang", "title", "format", "truncated"],
+      "properties": {
+        "page_id": { "type": "string" },
+        "url": { "type": "string" },
+        "version": { "type": "integer" },
+        "lang": { "type": "string" },
+        "title": { "type": "string" },
+        "format": { "type": "string", "enum": ["markdown", "json"] },
+        "markdown": { "type": "string", "maxLength": 60000 },
+        "page": { "type": "object" },
+        "truncated": { "type": "boolean" }
+      }
+    },
+    "listCategoriesInput": {
+      "type": "object",
+      "additionalProperties": false
+    },
+    "listCategoriesOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["categories"],
+      "properties": {
+        "categories": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "name", "parent", "order", "lang", "url"],
+            "properties": {
+              "id": { "type": "string" },
+              "name": { "type": "string" },
+              "parent": { "type": ["string", "null"] },
+              "order": { "type": "integer" },
+              "lang": { "type": "string" },
+              "url": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "getEntityInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entity_id"],
+      "properties": {
+        "entity_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "description": "Entity ID, e.g. 'company:apple'."
+        },
+        "limit": { "type": "integer", "minimum": 1, "maximum": 50, "default": 20 }
+      }
+    },
+    "getEntityOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entity", "pages"],
+      "properties": {
+        "entity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "name", "kind", "lang"],
+          "properties": {
+            "id": { "type": "string" },
+            "name": { "type": "string" },
+            "kind": { "type": "string" },
+            "lang": { "type": "string" }
+          }
+        },
+        "pages": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["page_id", "title", "summary", "url", "published_at", "lang"],
+            "properties": {
+              "page_id": { "type": "string" },
+              "title": { "type": "string" },
+              "summary": { "type": "string" },
+              "url": { "type": "string" },
+              "published_at": { "type": "string" },
+              "lang": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "getDataInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["page_id"],
+      "properties": {
+        "page_id": { "type": "string", "pattern": "^[a-z0-9](?:[a-z0-9-]{0,118}[a-z0-9])?$" },
+        "chart_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+          "description": "A chart's ID: returns that chart's CSV. Without it, returns the page's data.json."
+        }
+      }
+    },
+    "getDataOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["page_id", "url", "media_type", "content", "truncated"],
+      "properties": {
+        "page_id": { "type": "string" },
+        "chart_id": { "type": "string" },
+        "url": { "type": "string" },
+        "media_type": { "type": "string", "enum": ["application/json", "text/csv"] },
+        "content": {
+          "type": "string",
+          "maxLength": 200000,
+          "description": "The file exactly as published; values are never converted."
+        },
+        "truncated": { "type": "boolean" }
+      }
+    }
+  }
+}

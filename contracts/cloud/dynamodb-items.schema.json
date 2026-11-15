@@ -1,0 +1,294 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cloud/dynamodb-items.schema.json",
+  "title": "DynamoDB single-table items",
+  "description": "Every item type in the one DynamoDB table (ADR 0004), as plain JSON after decoding. Versions in sort keys are zero-padded to six digits so that they sort numerically. Content records carry `lang`; the idempotency record is bookkeeping and does not.",
+  "$defs": {
+    "versionKey": { "type": "string", "pattern": "^V#[0-9]{6}$" },
+    "pageRecord": {
+      "description": "PK 'PAGE#<page_id>', SK 'V#<version>' (one per published version, never changed) or 'LATEST' (the live record). Holds metadata and pointers only: the bundle files, including page.oui, live in R2 under `path`.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "PK",
+        "SK",
+        "type",
+        "lang",
+        "page_id",
+        "path",
+        "version",
+        "status",
+        "index_status",
+        "title",
+        "summary",
+        "page_type",
+        "tier",
+        "categories",
+        "entities",
+        "tags",
+        "region",
+        "published_at",
+        "updated_at",
+        "renderer_version",
+        "data_ids",
+        "chart_ids",
+        "bundle_sha256",
+        "files",
+        "hubs",
+        "written_at"
+      ],
+      "properties": {
+        "PK": { "type": "string", "pattern": "^PAGE#[a-z0-9-]+$" },
+        "SK": { "anyOf": [{ "const": "LATEST" }, { "$ref": "#/$defs/versionKey" }] },
+        "type": { "const": "page" },
+        "lang": { "$ref": "common.schema.json#/$defs/lang" },
+        "page_id": { "$ref": "common.schema.json#/$defs/pageId" },
+        "path": { "$ref": "common.schema.json#/$defs/pagePath" },
+        "version": { "type": "integer", "minimum": 1 },
+        "status": { "type": "string", "enum": ["published", "withdrawn"] },
+        "index_status": { "$ref": "common.schema.json#/$defs/indexStatus" },
+        "title": { "type": "string" },
+        "fly_title": { "type": "string" },
+        "summary": { "type": "string" },
+        "page_type": { "$ref": "common.schema.json#/$defs/pageType" },
+        "tier": { "type": "integer", "minimum": 1, "maximum": 3 },
+        "categories": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/categorySlug" } },
+        "entities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "name", "kind"],
+            "properties": {
+              "id": { "$ref": "common.schema.json#/$defs/entityId" },
+              "name": { "type": "string" },
+              "kind": { "$ref": "common.schema.json#/$defs/entityKind" }
+            }
+          }
+        },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "region": { "$ref": "common.schema.json#/$defs/region" },
+        "published_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+        "updated_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+        "renderer_version": { "type": "string" },
+        "data_ids": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/dataId" } },
+        "chart_ids": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/chartId" } },
+        "flags": { "type": "array", "items": { "type": "string" } },
+        "bundle_sha256": { "$ref": "common.schema.json#/$defs/sha256" },
+        "files": { "type": "array", "items": { "type": "string" } },
+        "hubs": {
+          "description": "The hub IDs this version is listed in, so an update or withdrawal can remove stale hub entries.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/hubId" }
+        },
+        "written_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+        "withdrawn_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+        "withdraw_reason": { "type": "string" }
+      }
+    },
+    "hubId": {
+      "description": "'latest', 'cat/<category slug>', 'ent/<entity id>' or 'region/<region>'.",
+      "type": "string",
+      "pattern": "^(?:latest|cat/[a-z0-9/-]+|ent/[A-Za-z0-9._:-]+|region/[a-z-]+)$"
+    },
+    "hubEntry": {
+      "description": "PK 'HUB#<hub id>', SK '<first published_at>#<page_id>'. A small copy of the page's listing fields, so a hub renders from one Query. Rewritten on every page update; deleted on withdrawal.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "PK",
+        "SK",
+        "type",
+        "lang",
+        "hub",
+        "page_id",
+        "path",
+        "title",
+        "summary",
+        "page_type",
+        "tier",
+        "region",
+        "published_at",
+        "updated_at",
+        "index_status"
+      ],
+      "properties": {
+        "PK": { "type": "string", "pattern": "^HUB#" },
+        "SK": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+Z#[a-z0-9-]+$" },
+        "type": { "const": "hub_entry" },
+        "lang": { "$ref": "common.schema.json#/$defs/lang" },
+        "hub": { "$ref": "#/$defs/hubId" },
+        "page_id": { "$ref": "common.schema.json#/$defs/pageId" },
+        "path": { "$ref": "common.schema.json#/$defs/pagePath" },
+        "title": { "type": "string" },
+        "fly_title": { "type": "string" },
+        "summary": { "type": "string" },
+        "page_type": { "$ref": "common.schema.json#/$defs/pageType" },
+        "tier": { "type": "integer" },
+        "region": { "$ref": "common.schema.json#/$defs/region" },
+        "published_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+        "updated_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+        "index_status": { "$ref": "common.schema.json#/$defs/indexStatus" }
+      }
+    },
+    "entityRecord": {
+      "description": "PK 'ENT#<entity id>', SK 'META'. The entity's pages are the hub 'ent/<entity id>'.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["PK", "SK", "type", "lang", "id", "name", "kind", "updated_at"],
+      "properties": {
+        "PK": { "type": "string", "pattern": "^ENT#" },
+        "SK": { "const": "META" },
+        "type": { "const": "entity" },
+        "lang": { "$ref": "common.schema.json#/$defs/lang" },
+        "id": { "$ref": "common.schema.json#/$defs/entityId" },
+        "name": { "type": "string" },
+        "kind": { "$ref": "common.schema.json#/$defs/entityKind" },
+        "updated_at": { "$ref": "common.schema.json#/$defs/timestamp" }
+      }
+    },
+    "taxonomyNode": {
+      "description": "PK 'TAX#tree', SK 'NODE#<category slug>'. One partition holds the whole tree, so it is read with one Query (ADR 0004 amends the TD's 'TAX#<id> / META').",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["PK", "SK", "type", "lang", "id", "name", "parent", "order", "updated_at"],
+      "properties": {
+        "PK": { "const": "TAX#tree" },
+        "SK": { "type": "string", "pattern": "^NODE#" },
+        "type": { "const": "taxonomy_node" },
+        "lang": { "$ref": "common.schema.json#/$defs/lang" },
+        "id": { "$ref": "common.schema.json#/$defs/categorySlug" },
+        "name": { "type": "string" },
+        "parent": { "oneOf": [{ "$ref": "common.schema.json#/$defs/categorySlug" }, { "type": "null" }] },
+        "order": { "type": "integer" },
+        "updated_at": { "$ref": "common.schema.json#/$defs/timestamp" }
+      }
+    },
+    "redirect": {
+      "description": "PK 'URL#<old path>', SK 'REDIRECT'.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["PK", "SK", "type", "lang", "from", "to", "status", "created_at"],
+      "properties": {
+        "PK": { "type": "string", "pattern": "^URL#/" },
+        "SK": { "const": "REDIRECT" },
+        "type": { "const": "redirect" },
+        "lang": { "$ref": "common.schema.json#/$defs/lang" },
+        "from": { "type": "string" },
+        "to": { "type": "string" },
+        "status": { "type": "integer", "enum": [301, 308] },
+        "created_at": { "$ref": "common.schema.json#/$defs/timestamp" }
+      }
+    },
+    "pathClaim": {
+      "description": "PK 'URL#<page path>', SK 'PAGE'. Claims a page path for one page ID, so two pages can never share a URL (and R2 prefix), and lets readers find a page by its path.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["PK", "SK", "type", "lang", "page_id", "path", "created_at"],
+      "properties": {
+        "PK": { "type": "string", "pattern": "^URL#/" },
+        "SK": { "const": "PAGE" },
+        "type": { "const": "path_claim" },
+        "lang": { "$ref": "common.schema.json#/$defs/lang" },
+        "page_id": { "$ref": "common.schema.json#/$defs/pageId" },
+        "path": { "$ref": "common.schema.json#/$defs/pagePath" },
+        "created_at": { "$ref": "common.schema.json#/$defs/timestamp" }
+      }
+    },
+    "curationRecord": {
+      "description": "PK 'HOME#CURATION', SK 'V#<version>' (never changed) or 'LATEST' (a copy of the live version; after a rollback it is an older version). A few KB.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "PK",
+        "SK",
+        "type",
+        "version",
+        "published_at",
+        "schema",
+        "lang",
+        "created_at",
+        "approved_at",
+        "curator_model",
+        "slots",
+        "checks",
+        "server_checks"
+      ],
+      "properties": {
+        "PK": { "const": "HOME#CURATION" },
+        "SK": { "anyOf": [{ "const": "LATEST" }, { "$ref": "#/$defs/versionKey" }] },
+        "type": { "const": "curation" },
+        "version": { "type": "integer", "minimum": 1 },
+        "published_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+        "made_live_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+        "schema": { "const": "curation.v1" },
+        "lang": { "$ref": "common.schema.json#/$defs/lang" },
+        "created_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+        "approved_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+        "curator_model": { "type": "string" },
+        "slots": { "$ref": "curation.v1.schema.json#/properties/slots" },
+        "checks": { "$ref": "curation.v1.schema.json#/properties/checks" },
+        "server_checks": {
+          "description": "The write API's own check run at publish time.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["passed", "run_at"],
+          "properties": {
+            "passed": { "const": true },
+            "run_at": { "$ref": "common.schema.json#/$defs/timestamp" }
+          }
+        }
+      }
+    },
+    "idempotencyRecord": {
+      "description": "PK 'IDEM#<SHA-256 of the Idempotency-Key>', SK 'META'. Deleted by DynamoDB TTL on `expires_at` (epoch seconds) after 7 days.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["PK", "SK", "type", "request_hash", "state", "operation", "created_at", "expires_at"],
+      "properties": {
+        "PK": { "type": "string", "pattern": "^IDEM#[0-9a-f]{64}$" },
+        "SK": { "const": "META" },
+        "type": { "const": "idempotency" },
+        "request_hash": { "$ref": "common.schema.json#/$defs/sha256" },
+        "state": { "type": "string", "enum": ["pending", "done"] },
+        "operation": { "type": "string" },
+        "status_code": { "type": "integer" },
+        "response_body": { "type": "string" },
+        "created_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+        "expires_at": { "type": "integer" }
+      }
+    },
+    "reportRecord": {
+      "description": "PK 'REPORT#<YYYY-MM>', SK '<created_at>#<report id>'. The report text, the page and the optional e-mail; never the IP address. Deleted by DynamoDB TTL on `expires_at` after 180 days.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "PK",
+        "SK",
+        "type",
+        "id",
+        "page_id",
+        "page_path",
+        "kind",
+        "text",
+        "lang",
+        "created_at",
+        "expires_at"
+      ],
+      "properties": {
+        "PK": { "type": "string", "pattern": "^REPORT#[0-9]{4}-[0-9]{2}$" },
+        "SK": { "type": "string" },
+        "type": { "const": "report" },
+        "id": { "$ref": "report.schema.json#/$defs/record/properties/id" },
+        "page_id": { "$ref": "common.schema.json#/$defs/pageId" },
+        "page_path": { "$ref": "common.schema.json#/$defs/pagePath" },
+        "kind": { "$ref": "report.schema.json#/$defs/kind" },
+        "text": { "type": "string" },
+        "email": { "$ref": "report.schema.json#/$defs/email" },
+        "lang": { "$ref": "common.schema.json#/$defs/lang" },
+        "created_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+        "expires_at": { "type": "integer" }
+      }
+    }
+  }
+}
