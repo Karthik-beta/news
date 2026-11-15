@@ -1,0 +1,28 @@
+/* A cited figure: a dotted 1px tertiary-ink underline shows it can be tapped for its source
+   (design/components.md, "Key figures" and "Citation popover"). The figure keeps the style around it. */
+.source-ref {
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-thickness: var(--border-hairline);
+  text-decoration-color: var(--color-ink-3);
+  text-underline-offset: 4px;
+  font-variant-numeric: lining-nums;
+}
+.source-ref:hover {
+  text-decoration-color: var(--color-ink);
+}
+
+/* Missing data: said in words, in secondary ink, never a zero. */
+.source-ref--missing {
+  color: var(--color-ink-2);
+  font-style: normal;
+}
+
+.source-ref__source {
+  display: block;
+}
+.source-ref__source + .source-ref__source {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: var(--border-hairline) solid var(--color-rule);
+}

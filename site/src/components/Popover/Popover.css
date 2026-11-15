@@ -1,0 +1,103 @@
+/* Popover and tooltip: paper, 1px rule border, no shadow, no radius, 12px padding, at most 320px wide
+   (design/components.md, "Citation popover" and "Tooltip"). Appears instantly: no slide, no fade. */
+.popover {
+  display: block;
+  box-sizing: border-box;
+  max-width: min(320px, calc(100vw - 2 * var(--gutter)));
+  margin: 0;
+  padding: var(--space-4);
+  background: var(--color-paper);
+  color: var(--color-ink);
+  border: var(--border-hairline) solid var(--color-rule);
+  border-radius: var(--radius-none);
+  box-shadow: none;
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--font-line-height-ui);
+  text-align: start;
+  letter-spacing: normal;
+  font-variation-settings: normal;
+  white-space: normal;
+}
+
+/* A closed native popover is display: none; open, it is in the top layer. */
+.popover[popover]:not(:popover-open) {
+  display: none;
+}
+
+/* Sit under the trigger where anchor positioning exists (the trigger is the popover's implicit anchor),
+   flipping above or to the other side near the edges. */
+@supports (position-area: block-end) {
+  .popover[popover] {
+    inset: auto;
+    position-area: block-end span-inline-end;
+    position-try-fallbacks:
+      flip-block,
+      flip-inline,
+      flip-block flip-inline;
+    margin-block: var(--space-2);
+  }
+}
+
+.popover-trigger {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+
+/* Tooltip for islands: positioned by the island inside its own relative container. */
+.popover--tooltip {
+  position: absolute;
+  z-index: 1;
+  width: max-content;
+  pointer-events: none;
+}
+.popover--tooltip.popover--above {
+  translate: 0 calc(-100% - var(--space-3));
+}
+.popover--tooltip.popover--below {
+  translate: 0 var(--space-3);
+}
+.popover--tooltip.popover--above.popover--align-center {
+  translate: -50% calc(-100% - var(--space-3));
+}
+.popover--tooltip.popover--below.popover--align-center {
+  translate: -50% var(--space-3);
+}
+.popover--tooltip.popover--above.popover--align-end {
+  translate: -100% calc(-100% - var(--space-3));
+}
+.popover--tooltip.popover--below.popover--align-end {
+  translate: -100% var(--space-3);
+}
+
+/* Blocks inside a popover (which holds phrasing content only). */
+.popover__value {
+  display: block;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-ink);
+  font-variant-numeric: lining-nums;
+}
+.popover__line {
+  display: block;
+  color: var(--color-ink-2);
+}
+.popover__meta {
+  display: block;
+  color: var(--color-ink-3);
+}
+.popover__link {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-height: 24px;
+  margin-top: var(--space-2);
+}

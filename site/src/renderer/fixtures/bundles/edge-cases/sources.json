@@ -1,0 +1,35 @@
+{
+  "$schema": "../../../../../../contracts/bundle/sources.schema.json",
+  "version": 1,
+  "sources": {
+    "src_edge_stats": {
+      "title": "Edge-case statistics, test release",
+      "short": "Test release",
+      "publisher": "News test fixtures",
+      "connector": "fixture",
+      "type": "dataset",
+      "primary": true,
+      "url": "https://news.karthik.nz/fixtures/",
+      "licence": {
+        "name": "CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/",
+        "redistribution": true
+      },
+      "retrieved_at": "2026-11-13"
+    },
+    "src_edge_restricted": {
+      "title": "Licensed statistics, test release",
+      "short": "Licensed test release",
+      "publisher": "News test fixtures",
+      "connector": "fixture",
+      "type": "dataset",
+      "primary": true,
+      "url": "https://news.karthik.nz/fixtures/licensed/",
+      "licence": {
+        "name": "No redistribution",
+        "redistribution": false
+      },
+      "retrieved_at": "2026-11-13"
+    }
+  }
+}

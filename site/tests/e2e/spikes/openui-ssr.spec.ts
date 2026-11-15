@@ -1,10 +1,13 @@
 // OpenUI server-rendering spike (ADR 0001): the fixture page is complete HTML before any JavaScript, static
 // parts never hydrate (0 KB JS for them), and the chart island hydrates with no hydration warnings.
-// B renders through react-dom/server with our own island hydrator (the chosen approach) and always runs.
+// B renders through react-dom/server with our own island hydrator (the chosen approach).
 // A (Astro native islands, rejected) is built and tested only with OPENUI_SPIKE_A=1. Code: site/spikes/openui-ssr/.
+// The spike routes are built only with OPENUI_SPIKE=1 (re-running the ADR measurements); otherwise this file skips.
+// The production renderer has its own browser test: tests/e2e/renderer/fixture-pages.spec.ts.
 import { expect, gotoPage, test } from "../fixtures";
 
-const PAGES: Record<string, string> = { "B (React server rendering)": "/fixtures/openui-ssr/react-ssr/" };
+const PAGES: Record<string, string> =
+  process.env.OPENUI_SPIKE === "1" ? { "B (React server rendering)": "/fixtures/openui-ssr/react-ssr/" } : {};
 if (process.env.OPENUI_SPIKE_A === "1") PAGES["A (Astro islands)"] = "/fixtures/openui-ssr/astro-islands/";
 
 const STATIC = ["h1.oui-heading", "p.oui-paragraph", ".oui-figure"];
