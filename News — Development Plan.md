@@ -4,7 +4,7 @@ Nov 14, 2026 · @Karthik
 
 How News gets built: the phases, the work in each, which Claude sub-agent (Opus 5.5 or Sonnet 5.5) does it, how work is reviewed and tested, and when each phase is done.
 
-Read with the [PRD](News%20—%20Product%20Requirements%20Document.md), the [Technical Design](News%20—%20Technical%20Design.md) and the [design system](design/README.md). Where this plan and those documents disagree, those documents win on *what* to build; this plan decides *how* and *by whom*.
+Read with the [PRD](News%20—%20Product%20Requirements%20Document.md), the [Technical Design](News%20—%20Technical%20Design.md), the [Bureau design](News%20—%20Bureau%20Design.md) (the laptop system: ingestion, ranking, writing, checking, orchestration and the `/bureau` workflows) and the [design system](design/README.md). Where this plan and those documents disagree, those documents win on *what* to build; this plan decides *how* and *by whom*.
 
 ## Summary
 
@@ -13,7 +13,7 @@ Read with the [PRD](News%20—%20Product%20Requirements%20Document.md), the [Tec
 - **Sonnet 5.5** does well-specified feature work at volume: source connectors, CLI commands, Workers, page templates, scripts, the telemetry dashboard.
 - Every change lands through a pull request on GitHub, reviewed by an Opus review agent and by CodeRabbit (light profile), with CI green before merge.
 - Phase 2 (design) is complete. The next phases are Foundations and the OpenUI rendering spike, then the component library.
-- The home page is **dynamic and agent-curated** every 2–3 days by a preset `curate-home` workflow that Karthik runs in Claude Code. The curation is server-side data; it never rebuilds the site. Building that workflow is part of this plan (Phases 3–9; see [Home page curation](#home-page-curation-across-the-phases)).
+- Karthik starts every Bureau workflow with one Claude Code command, `/bureau` (Chief behind it); the main run is `/bureau run daily`. The home page is **dynamic and agent-curated** every 2–3 days by the Frontpage preset, started with `/bureau curate home`. The curation is server-side data; it never rebuilds the site. Building Bureau and its workflows is part of this plan (Phases 4–9, in the order of [Bureau design §10](News%20—%20Bureau%20Design.md#10-build-order); for curation see [Home page curation](#home-page-curation-across-the-phases)).
 
 ## Constraints that shape the plan
 
@@ -42,14 +42,16 @@ news/
 │  └─ tests/                  unit, a11y, visual, SSR tests
 ├─ cli/                       Rust `news` CLI (Cargo workspace: core, connectors, commands)
 ├─ workers/                   Cloudflare Workers: api, search, mcp (site SSR lives in site/)
-├─ pipeline/                  bun runner for `claude -p`, orchestration scripts
-├─ skills/                    runtime skills for the page writers: news-brand, page-type skills, news-home-curation
+├─ pipeline/                  Ghost (bun runner for `claude -p`), call settings and output schemas, golden sets in eval/
+├─ skills/                    runtime skills for the page writers: news-brand, page-type skills, news-home-curation, AI-step skills
 ├─ dashboard/                 local telemetry dashboard (bun web app, localhost only)
 ├─ infra/                     docker-compose, ClickHouse schema, OTel config, DynamoDB/D1 setup
 ├─ .claude/agents/            sub-agent definitions (created in Phase 0)
-├─ .claude/workflows/         preset workflows Karthik runs by name, starting with curate-home (Phase 7)
+├─ .claude/skills/bureau/     the one /bureau skill (SKILL.md + one reference file per preset) driving `news run` (Phase 7)
 └─ .github/workflows/         CI
 ```
+
+Every Bureau workflow (preset) is declared in Chief, in the Rust CLI, and started as an argument to the one user-invoked `/bureau` skill; there are no per-workflow commands or workflow files (Bureau design, decision D2). Claude Code workflow files may still be used later for fan-out inside a single step.
 
 ## The sub-agent team
 
@@ -125,8 +127,9 @@ Installed in the repo so every session and sub-agent gets them (see [skills/READ
 | `news-review` | `.claude/skills/` | Opus reviewers |
 | `news-source-connector` | `.claude/skills/` | Connector builders (Sonnet) and their Opus reviewers |
 | `news-brand` and seven `page-*` skills | `skills/` | Production page calls only, not development sessions |
-| `news-home-curation` (planned, Phase 7) | `skills/` | The curator agent in the `curate-home` workflow |
-| `curate-home` workflow (planned, Phase 7) | `.claude/workflows/` | Karthik, every 2–3 days |
+| Skills for the Haiku AI steps A3, A4, A5, A7, A9 (planned, Phase 7) | `skills/` | Ghost's `claude -p` calls only |
+| `news-home-curation` (planned, Phase 7) | `skills/` | The curator in the Frontpage preset (`/bureau curate home`) |
+| `bureau` skill (planned, Phase 7) | `.claude/skills/bureau/` | Karthik only (`disable-model-invocation`), for every Bureau workflow |
 | frontend-design, cloudflare, playwright, rust-analyzer-lsp, typescript-lsp, clickhouse-best-practices, databases-on-aws, coderabbit, context7 | Plugins, project scope (`.claude/settings.json`) | All development sessions |
 | dataviz (chart colour validation), skill-creator | Bundled with Claude Code | On demand |
 
@@ -155,7 +158,7 @@ Installed in the repo so every session and sub-agent gets them (see [skills/READ
 
 ## Phases
 
-The phases follow the Technical Design's build plan. Each starts when the previous phase's exit criteria are met, except where noted as parallel.
+The phases follow the Technical Design's build plan; the Bureau work inside Phases 4–9 follows the build order in [Bureau design §10](News%20—%20Bureau%20Design.md#10-build-order). Each phase starts when the previous phase's exit criteria are met, except where noted as parallel.
 
 ### Phase 0 — Foundations
 
@@ -291,39 +294,46 @@ Screenshot baselines live in the repo; any diff fails the run and must be approv
 
 ### Phase 4 — Content system design
 
-**Goal:** the researched design of discovery, scoring, clustering, selection, research packs and synthesis (Technical Design: led by Opus).
+**Goal:** turn the [Bureau design](News%20—%20Bureau%20Design.md) (discovery, story detection, scoring, selection, briefs, page writing, checks and orchestration) into ADRs, settle its measured unknowns, and label the golden sets the later phases test against.
 
 | Work | Agent |
 |---|---|
-| Source registry schema (licence, attribution, image policy) and the first 20 sources' entries | Opus architect, Sonnet docs writer for entries |
-| Scoring model (importance, novelty, data richness, freshness, coverage gap) and its weights | Opus architect |
-| Clustering and de-duplication (embeddings plus shared entities); choice of local ONNX embedding model, benchmarked on the laptop CPU | Opus spike agent |
-| Breadth-first selection with quotas; tier and indexing priority rules | Opus architect |
-| Research-pack format (the brief): fields, size budget (1–3k tokens), data IDs | Opus architect |
+| ADRs from the Bureau design: Dispatch and Chief (decisions D1, D2), tool surface (D3), Ledger and the provenance model, Nose v1 and Desk, Taster, AI step contracts and the Reporter call (D4), derived figures (D5) | Opus architect |
+| Embedding spike: bge-small-en-v1.5 vs nomic-embed-text-v1.5 vs EmbeddingGemma vs MiniLM on the i5-8250U (docs per second, memory, G3 precision); numbers and choice in an ADR (D6) | Opus spike agent |
+| Golden-set labelling: G2 (classification), G3 (story pairs), G7 (entities); event weights, prominence lists and coverage targets as seed data, in `pipeline/eval/` | Opus with Karthik |
+| Contacts: the first 20 sources' entries (licence, attribution, rate limits, source tier, calendar kind) | Opus architect, Sonnet docs writer for entries |
 | Page-type skills (earnings, macro, report, policy, news, science, explainer) (drafts exist in `skills/`; finalise them) and the `news-brand` skill | Opus (judgement and prose) |
 | Home curation design: slot model, candidate signals (tier, freshness, breadth, traffic), the code-check rules, fallback and region-view rules, and the curation record schema, written as an ADR | Opus architect |
 
 Can start in parallel with late Phase 3 (no shared files).
 
-**Exit:** content-system design document and ADRs merged (including the home curation ADR); skills drafted; brief format fixed.
+**Exit:** Bureau ADRs merged (including the home curation ADR); embedding model chosen from measurements; golden sets G2, G3 and G7 in `pipeline/eval/`; skills drafted; brief format fixed ([Bureau design §3.8](News%20—%20Bureau%20Design.md#38-fixer)).
 
 ### Phase 5 — Rust `news` CLI and connectors
 
-**Goal:** every command in the Technical Design's toolbox, and the first connectors.
+**Goal:** every command in the Technical Design's toolbox and Bureau's code subsystems, built in the order of [Bureau design §10](News%20—%20Bureau%20Design.md#10-build-order), with the first Stringers (connectors).
 
-| Work | Agent |
-|---|---|
-| Cargo workspace architecture: `core` (models, data points, ledger), `store` (PostgreSQL), `telemetry` (ClickHouse events), `connectors`, `commands` | Opus architect |
-| Core crates and the command framework (compact JSON output, idempotency, event logging) | Opus feature builder (one agent; everything depends on it) |
-| Commands: discover, plan, fetch, parse, brief, components, component, related, save, render (calls the Bun renderer), check, publish, update, prune, stats | Sonnet feature builders (up to 3 in parallel, grouped so no two touch the same files) |
-| Connectors, one per source, starting with SEC EDGAR (XBRL), FRED, IMF, World Bank, arXiv, and the central banks (Fed, ECB, RBI, BoE, RBA, BoJ) | Sonnet feature builders, one connector per task, in parallel |
-| XBRL and unit/currency/fiscal-period parsing | Opus (correctness-critical) |
-| PDF tables via Docling, scanned PDFs via Tesseract | Sonnet feature builder; Opus review |
-| `news check`: render check, data references, value matching, links, required fields, axe-core run, design-system checks | Opus feature builder |
-| `news home` commands: candidates, save, check, preview, publish, rollback, show; the `home_curations` PostgreSQL table | Sonnet feature builder; Opus review of the check rules |
-| Tests for commands and connectors (recorded fixtures, no live network in CI) | Sonnet test writer; Opus reviewer |
+| # | Work | Agent | Exit evidence |
+|---|---|---|---|
+| — | Cargo workspace architecture: `core` (models, data points, Ledger), `store` (PostgreSQL, sqlx migrations), `telemetry` (ClickHouse events), `connectors`, `commands` | Opus architect | ADR |
+| 1 | Core crates and the command framework: migrations, the JSON envelope and exit codes, error codes, idempotency, event logging | Opus feature builder (one agent; everything depends on it) | Golden CLI tests |
+| 2 | Dispatch and Chief: job claim, leases and the rescuer, retry classes and snooze, runs and steps, approvals, start tickets, the G-tier rule | Opus (correctness-critical) | Concurrency and crash tests |
+| 3 | Runner (polite HTTP: conditional GET, rate limits, `Retry-After`, robots.txt) and Morgue, with `fetch_state` | Sonnet feature builder; Opus review | Fake-server tests |
+| 4 | Contacts rows and Stringers in parallel: SEC EDGAR, FRED, BLS, ECB, arXiv, central-bank statements (Fed, ECB, RBI, BoE, RBA, BoJ), then IMF, World Bank, Eurostat, ONS, StatCan | Sonnet feature builders, one Stringer per task, up to 3 in parallel; Opus review for XBRL, units and periods | Fixture tests |
+| 5 | Clerk and Ledger: data points with vintages and locators, derived points with guards; XBRL and unit, currency and fiscal-period parsing | Opus (correctness-critical) | Property tests |
+| 6 | Diary: release calendars from ICS, APIs and pages; pre-warm and capture jobs | Sonnet feature builder | ICS and API fixture tests |
+| 7 | Roster's resolver and its seed data | Sonnet feature builder; Opus review | G7 precision ≥ 0.99 |
+| 8 | Taster and local embeddings (after the Phase 4 spike) | Sonnet feature builder | G3 precision |
+| 9 | Nose, Desk and the Nose tools (`news scores`, `news plan`) | Opus | The worked example in [Bureau design §4.6](News%20—%20Bureau%20Design.md#46-worked-example) reproduced as a test |
+| 10 | Fixer (`news brief`) | Opus | Size and fencing tests |
+| 11 | Proof: `news check` C1–C14 (render, references, values, numeric-literal lint, direction words, quotes, labels, licence, required fields, links, banned words, size, axe-core, duplicates) and the Ghost tools' validators (`news ai accept`) | Opus | Contract tests |
+| 12 | Press: publish outbox with idempotency keys and the index budget (dry-run) | Sonnet feature builder; Opus security review | Idempotency tests |
+| — | Remaining toolbox commands: components, component, related, save, render (calls the Bun renderer), update, prune, stats | Sonnet feature builders (up to 3 in parallel, grouped so no two touch the same files) | Golden CLI tests |
+| — | PDF tables via Docling, scanned PDFs via Tesseract | Sonnet feature builder; Opus review | Fixture tests |
+| — | `news home` commands: candidates, save, check, preview, publish, rollback, show; the `home_curations` PostgreSQL table | Sonnet feature builder; Opus review of the check rules | Fixture tests |
+| — | Tests for commands and Stringers (recorded fixtures, no live network in CI) | Sonnet test writer; Opus reviewer | CI |
 
-**Exit:** `news discover → plan → fetch → parse → brief` works for the first connectors; `render`, `check` and a dry-run `publish` work on fixture items; `news home candidates → save → check → preview` works on fixture pages; CI green.
+**Exit:** `news discover → plan → fetch → parse → brief` works for the first Stringers; `render`, `check` and a dry-run `publish` work on fixture items; `news home candidates → save → check → preview` works on fixture pages; every item's exit evidence above passes; CI green.
 
 ### Phase 6 — Cloud
 
@@ -333,38 +343,39 @@ Can start in parallel with late Phase 3 (no shared files).
 | DynamoDB single-table design and access patterns, including `HOME#CURATION` versions and `LATEST` | Opus architect |
 | D1 search shards and FTS5 schema | Sonnet feature builder, Opus review |
 | `api` Worker (write API: secret key, schema validation, R2/DynamoDB/D1 writes, cache purges), including `PUT /v1/home/curation` (validates the curation again, writes a new version, moves `LATEST`, purges home and region views) and rollback | Sonnet feature builder, **Opus security reviewer** |
+| Write API honours `Idempotency-Key` (a replay returns the first result); corrections endpoint for `news corrections pull` (reader error reports) | Sonnet feature builder, **Opus security reviewer** |
 | `site` SSR (home, hubs, entity hubs, latest, search results) from the Phase 3 templates. The home page reads the live curation and the page records for its slots, adds the automatic "Latest" list, back-fills withdrawn pages and serves region views | Sonnet feature builder; Opus tester for template visuals |
 | `search` Worker | Sonnet feature builder |
 | `mcp` Worker (stateless MCP v2, spec revision 2026-07-28, read-only) | Opus feature builder (new spec), Opus security review |
 | Rate limiting, `robots.txt`, `llms.txt`, sitemaps, RSS/Atom | Sonnet feature builder |
 | Free-tier usage checks and alarms | Sonnet feature builder |
 
-**Exit:** a fixture page published end to end and served from `news.karthik.nz`; hubs, search and MCP answering; publishing a test curation changes the live home page with no build or deploy (verified by checking the deployed Worker version is unchanged); security review passed.
+**Exit:** a fixture page published end to end and served from `news.karthik.nz`; replaying the same publish with its `Idempotency-Key` returns the first result; hubs, search and MCP answering; publishing a test curation changes the live home page with no build or deploy (verified by checking the deployed Worker version is unchanged); security review passed.
 
 ### Phase 7 — Orchestration
 
-| Work | Agent |
-|---|---|
-| Bun runner for `claude -p` workers (parallelism, retries, resume, JSON results) | Sonnet feature builder |
-| Lean-call configuration: strict empty MCP config, allowed tools, max turns, model per call | Sonnet feature builder, Opus review |
-| Prompts and cached prefix (instructions, brand rules, component index): measure cache hits | Opus (judgement) |
-| Haiku spot-check flow and failure re-queue | Sonnet feature builder |
-| `news-home-curation` skill: how to pick the lead, side stories and sections; breadth and freshness; using only the pages' own text; choosing figures and charts | Opus (judgement and prose) |
-| `curate-home` preset workflow in `.claude/workflows/`: candidates → curator agent → save → check (up to two fix rounds) → local preview → **stop for Karthik's approval** → publish; plus a rollback path. One command for Karthik | Opus (workflow orchestration); Sonnet feature builder for glue scripts |
-| Curator evaluation: fixture candidate sets (busy week, quiet week, one region dominating, a withdrawn lead) with expected properties; check pass rate and breadth measured | Opus |
-| First full run of 10 pages, then 100; then the first real home curation | Orchestrator with Karthik |
+| Work | Agent | Exit evidence |
+|---|---|---|
+| Lean-call spike: confirm the `claude -p` flags ([Bureau design §3.9](News%20—%20Bureau%20Design.md#39-reporter)), cache TTL and hit ratio, the usage-limit error shape; and the prompt-hook spike: whether `UserPromptSubmit` sees the raw `/bureau` text, and the environment marker Claude Code sets for Bash subprocesses | Opus spike agent | Findings in an ADR |
+| Ghost (Bun AI runner): claim AI jobs, spawn `claude -p` with `--tools ""`, a strict empty MCP config, an explicit settings file, `--json-schema`, max turns and model per call; environment allow-list; validation through `news ai accept`; heartbeats; pause on usage limits | Sonnet feature builder; Opus review | Fake-`claude` tests |
+| Runtime skills and prefixes: Reporter (A1 and A2 prompts) and the cached prefix with pre-selected component specs (measure cache hits); skills for A3, A4, A5, A7 (sample check and failure re-queue) and A9 | Opus (judgement and prose) | G1, G2, G6 pass |
+| Critic: `news eval`, golden sets G1–G7 from `pipeline/eval/`, A12 judges checked against Karthik's labels | Opus (judgement); Sonnet for glue | `/bureau run evals` produces the G1 and G6 reports |
+| `news-home-curation` skill: how to pick the lead, side stories and sections; breadth and freshness; using only the pages' own text; choosing figures and charts | Opus (judgement and prose) | Curator evaluation (below) |
+| `/bureau` ([Bureau design §8.1](News%20—%20Bureau%20Design.md#81-the-bureau-entry-point)): the one skill in `.claude/skills/bureau/` (`SKILL.md` plus one reference file per preset); Chief's `news run intent`, `presets` and `status` (the status board); the `UserPromptSubmit` prompt hook (`news run hook-prompt`); the `bureau-single-entry` CI test; preset declarations and reference files for Edition (`/bureau run daily`), Flash (`/bureau run quick`), Frontpage (`/bureau curate home`: candidates → curator → save → check, up to two fix rounds → local preview → **stop for Karthik's approval** → publish; rollback from a terminal), Salvage (`/bureau retry`) and Audit (`/bureau run evals`) | Opus (orchestration); Sonnet for glue | Karthik runs each of the five once from `/bureau` |
+| Curator evaluation (golden set G5): fixture candidate sets (busy week, quiet week, one region dominating, a withdrawn lead) with expected properties; check pass rate and breadth measured | Opus | G5 report |
+| First full run of 10 pages, then 100 (`/bureau run daily`); then the first real home curation (`/bureau curate home`) | The `/bureau` session with Karthik | 100 pages pass checks |
 
-**Exit:** one prompt produces 100+ pages that pass checks; token use per page logged; Karthik runs `curate-home` once end to end, approves a curation, and it goes live without a rebuild.
+**Exit:** `/bureau run daily` produces 100+ pages that pass checks; token use per page logged; Karthik runs `/bureau curate home` once end to end, approves a curation, and it goes live without a rebuild.
 
 ### Phase 8 — Telemetry and dashboard
 
 | Work | Agent |
 |---|---|
-| ClickHouse tables and materialised views | Sonnet feature builder, Opus review |
-| OTel Collector pipeline for Claude Code telemetry | Sonnet feature builder |
-| Local dashboard (bun web app, localhost only) using the design system's chart components | Sonnet feature builder; Opus tester for its charts |
+| Ticker: the new `events` columns, the `ai_calls`, `fetches`, `scores`, `check_results` and `runs` tables, materialised views and traces ([Bureau design §9.2](News%20—%20Bureau%20Design.md#92-observability)) | Sonnet feature builder, Opus review |
+| OTel Collector pipeline for Claude Code telemetry, joined to runs and jobs | Sonnet feature builder |
+| Local dashboard (Board; bun web app, localhost only) using the design system's chart components, with the Bureau panels: runs, queue, ingestion, stories and ranking, AI, quality, publishing, laptop | Sonnet feature builder; Opus review; Opus tester for its charts |
 
-**Exit:** dashboard shows pages, coverage, queue, tokens per page, failures, index budget, free-tier usage, traffic, and the live home curation with its age (flagged after `NEWS_HOME_STALE_DAYS`).
+**Exit:** the dashboard shows a real run, and pages, coverage, queue, tokens per page, failures, index budget, free-tier usage, traffic, and the live home curation with its age (flagged after `NEWS_HOME_STALE_DAYS`).
 
 ### Phase 9 — Launch and ramp
 
@@ -373,13 +384,14 @@ Can start in parallel with late Phase 3 (no shared files).
 | Launch checklist: legal pages, privacy note, methodology page, disclaimers, error-report form | Opus (prose readers see), Karthik approves |
 | Indexing budget switch, Search Console, IndexNow | Sonnet feature builder |
 | Launch-day review of 20 random pages against the design system and sources | Opus reviewer |
-| Ramp: tune scoring, budget and prompts from telemetry | Opus with Karthik |
+| The remaining presets, each a declaration in Chief and a reference file for `/bureau`: Huddle (`/bureau review week`, with ranking calibration), Rollcall (`/bureau check sources`), Errata (`/bureau review corrections`), Catchup (`/bureau run backfill`), Followup (`/bureau apply revisions`), Reprint (`/bureau rerender pages`) | Sonnet feature builders; Opus review |
+| Ramp: tune scoring, budget and prompts from telemetry and the weekly Huddle | Opus with Karthik |
 
-**Exit (PRD v1):** site live on `news.karthik.nz`; runs produce 100+ pages each; the home page is curated through the workflow.
+**Exit (PRD v1):** site live on `news.karthik.nz`; runs produce 100+ pages each; the home page is curated through Frontpage (`/bureau curate home`); the first weekly review (Huddle) completed.
 
 ### Home page curation across the phases
 
-The home page is dynamic and curated by an agent every 2–3 days, when Karthik runs the preset `curate-home` workflow in Claude Code. The curation is data stored in DynamoDB and read by the SSR Worker, so it never rebuilds or redeploys the site. (Requirement: PRD "Home page curation"; design: Technical Design "Home page curation" and design/layout.md.)
+The home page is dynamic and curated by an agent every 2–3 days, when Karthik runs the Frontpage preset by typing `/bureau curate home` in Claude Code. The curation is data stored in DynamoDB and read by the SSR Worker, so it never rebuilds or redeploys the site. (Requirement: PRD "Home page curation"; design: Technical Design "Home page curation", [Bureau design §8.6](News%20—%20Bureau%20Design.md#86-frontpage-home-curation) and design/layout.md.)
 
 | Phase | Curation work | Agent |
 |---|---|---|
@@ -387,11 +399,11 @@ The home page is dynamic and curated by an agent every 2–3 days, when Karthik 
 | 4 | Curation ADR: slots, signals, check rules, fallbacks, record schema | Opus architect |
 | 5 | `news home` commands and the `home_curations` table | Sonnet feature builder, Opus review |
 | 6 | `HOME#CURATION` in DynamoDB; `PUT /v1/home/curation` and rollback; SSR home reading the live curation; purges | Sonnet feature builders, Opus security review, Opus tester |
-| 7 | `news-home-curation` skill; `curate-home` workflow with the approval stop; curator evaluation; first real curation | Opus, Sonnet for glue, Karthik approves |
+| 7 | `news-home-curation` skill; the Frontpage preset (`/bureau curate home`) with its `publish` approval stop; curator evaluation (G5); first real curation | Opus, Sonnet for glue, Karthik approves |
 | 8 | Dashboard: live curation and its age | Sonnet feature builder |
 | 9 | Launch with a curated home page | Karthik |
 
-**Done means:** Karthik types one command; the workflow gathers candidates, curates, checks, previews and waits; after approval the home page changes within a minute, with no build or deploy, and the previous version can be restored with one command.
+**Done means:** Karthik types `/bureau curate home`; Frontpage gathers candidates, curates, checks, previews and waits; after Karthik types `/bureau approve`, the home page changes within a minute, with no build or deploy, and `news home rollback <version>` in a terminal restores the previous version.
 
 ## Risks in the development process
 
@@ -420,15 +432,21 @@ The home page is dynamic and curated by an agent every 2–3 days, when Karthik 
 - [ ] Phase 3.2–3.3: component families and specs (including the home-page components)
 - [ ] Phase 3.4: Opus component testing sign-off, all areas and all screens
 - [ ] Phase 3.5: seven fixture pages and the fixture home page approved
-- [ ] Phase 4: content system design and skills
+- [ ] Phase 4: Bureau ADRs (D1–D5, Ledger and provenance, Nose and Desk, Taster) and skills
+- [ ] Phase 4: embedding spike; golden sets G2, G3, G7 labelled
 - [ ] Phase 4: home curation ADR
-- [ ] Phase 5: CLI and first connectors
+- [ ] Phase 5: core crates; Dispatch and Chief
+- [ ] Phase 5: Runner, Morgue, Contacts rows and the first Stringers; Clerk and Ledger; Diary; Roster's resolver
+- [ ] Phase 5: Taster, Nose and Desk, Fixer, Proof, Press (dry-run)
 - [ ] Phase 5: `news home` commands
-- [ ] Phase 6: cloud services live
+- [ ] Phase 6: cloud services live; write API `Idempotency-Key` and corrections endpoint
 - [ ] Phase 6: curated home page served from DynamoDB, no rebuild
-- [ ] Phase 7: first 100-page run
-- [ ] Phase 7: `curate-home` workflow built; first curation approved and live
-- [ ] Phase 8: telemetry dashboard
+- [ ] Phase 7: lean-call and prompt-hook spikes; Ghost; runtime skills; Critic
+- [ ] Phase 7: `/bureau` skill and Chief's presets Edition, Flash, Frontpage, Salvage, Audit
+- [ ] Phase 7: first 100-page run (`/bureau run daily`)
+- [ ] Phase 7: Frontpage (`/bureau curate home`): first curation approved and live
+- [ ] Phase 8: Ticker and the telemetry dashboard (Board)
+- [ ] Phase 9: remaining presets (Huddle, Rollcall, Errata, Catchup, Followup, Reprint)
 - [ ] Phase 9: launch
 
 ## Open questions
