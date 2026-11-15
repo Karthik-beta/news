@@ -5,7 +5,7 @@
 //   .jsonc                      JSON with comments and trailing commas (wrangler.jsonc)
 //   .yml / .yaml                YAML (workflows, issue forms, Compose, collector, CodeRabbit)
 //   .toml                       TOML (Cargo, cargo-deny, rust-toolchain, bunfig)
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { root } from "./lib";
 
@@ -14,10 +14,22 @@ export interface Problem {
   message: string;
 }
 
-const IGNORED =
-  /(^|\/)(node_modules|\.git|target|dist|\.astro|\.wrangler|test-results|playwright-report|__screenshots__)\//;
+// Folders skipped wherever they appear. They are pruned during the walk and never opened: node_modules and other
+// agents' worktrees hold tens of thousands of files, and scanning them before filtering took seconds.
+const IGNORED = new Set([
+  "node_modules",
+  ".git",
+  "target",
+  "dist",
+  ".astro",
+  ".wrangler",
+  "test-results",
+  "playwright-report",
+  "__screenshots__",
+]);
 // Other agents' worktrees sit inside the repo folder on the laptop; they are not part of this checkout.
-const WORKTREES = /^\.claude\/worktrees\//;
+const WORKTREES = ".claude/worktrees";
+const CONFIG = /\.(json|jsonc|yml|yaml|toml)$/;
 
 export function isLenientJson(file: string): boolean {
   const name = basename(file);
@@ -41,20 +53,33 @@ export function parseProblem(file: string, text: string): string | undefined {
   }
 }
 
-/** Every config file under `repoRoot` (relative paths, sorted). */
-export function configFiles(repoRoot: string): string[] {
-  const glob = new Bun.Glob("**/*.{json,jsonc,yml,yaml,toml}");
+/**
+ * Every config file under `repoRoot` (relative paths, sorted). `onFolder` is called with each folder opened
+ * ("" for the root); the tests use it to check that skipped folders are never entered.
+ */
+export function configFiles(repoRoot: string, onFolder?: (folder: string) => void): string[] {
   const found: string[] = [];
-  for (const file of glob.scanSync({ cwd: repoRoot, dot: true })) {
-    const rel = file.replaceAll("\\", "/");
-    if (IGNORED.test(rel) || WORKTREES.test(rel)) continue;
-    found.push(rel);
-  }
+  const walk = (folder: string) => {
+    onFolder?.(folder);
+    for (const entry of readdirSync(join(repoRoot, folder), { withFileTypes: true })) {
+      const rel = folder ? `${folder}/${entry.name}` : entry.name;
+      // A symlink is neither a file nor a folder here, so it is not followed.
+      if (entry.isDirectory()) {
+        if (!IGNORED.has(entry.name) && rel !== WORKTREES) walk(rel);
+      } else if (entry.isFile() && CONFIG.test(entry.name)) {
+        found.push(rel);
+      }
+    }
+  };
+  walk("");
   return found.sort();
 }
 
-export function validateConfigs(repoRoot: string): { problems: Problem[]; checked: number } {
-  const files = configFiles(repoRoot);
+/** Parse every file in `files` (by default, every config file under `repoRoot`). */
+export function validateConfigs(
+  repoRoot: string,
+  files: string[] = configFiles(repoRoot),
+): { problems: Problem[]; checked: number } {
   const problems: Problem[] = [];
   for (const file of files) {
     const message = parseProblem(file, readFileSync(join(repoRoot, file), "utf8"));

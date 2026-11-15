@@ -174,6 +174,19 @@ describe("validateConfigs", () => {
     expect(validateConfigs(dir)).toEqual({ problems: [], checked: 2 });
   });
 
+  test("does not descend into skipped folders, so a big node_modules or another worktree costs nothing", () => {
+    const dir = fixture({
+      "ok.json": "{}",
+      "node_modules/x/deep/a.json": "{",
+      ".claude/worktrees/agent-1/site/b.json": "{",
+      "cli/target/debug/c.toml": "a =",
+      "site/node_modules/y/d.json": "{",
+    });
+    const opened: string[] = [];
+    expect(configFiles(dir, (folder) => opened.push(folder))).toEqual(["ok.json"]);
+    expect(opened.sort()).toEqual(["", ".claude", "cli", "site"]);
+  });
+
   test("names each broken file", () => {
     const dir = fixture({ "good.json": "{}", "bad.json": "{", "bad.yml": "a: [" });
     const { problems, checked } = validateConfigs(dir);
@@ -182,9 +195,10 @@ describe("validateConfigs", () => {
   });
 
   test("the real repo's config files parse, and include the ones CI cares about", () => {
-    const { problems } = validateConfigs(root);
-    expect(problems).toEqual([]);
+    // One walk of the repo, shared by both checks.
     const files = configFiles(root);
+    const { problems } = validateConfigs(root, files);
+    expect(problems).toEqual([]);
     for (const must of [
       "design/tokens/tokens.json",
       "workers/api/wrangler.jsonc",
