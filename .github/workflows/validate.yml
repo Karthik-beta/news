@@ -30,11 +30,20 @@ jobs:
         with:
           persist-credentials: false
       # Lints every file in .github/workflows, including how they call the local composite actions, and runs
-      # shellcheck over the workflows' `run:` scripts (the image bundles it). It does not read the composite actions'
+      # shellcheck (on the runner image) over the workflows' `run:` scripts. It does not read the composite actions'
       # own action.yml files; the next step covers their scripts.
-      - uses: docker://rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667
-        with:
-          args: -color
+      # The official release binary, checked against its published SHA-256. Not the Docker image as a `uses:` step:
+      # the repo allows only selected actions, and that policy refuses `docker://` steps.
+      - name: Workflows (actionlint 1.7.12)
+        env:
+          VERSION: 1.7.12
+          SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+        run: |
+          tarball="actionlint_${VERSION}_linux_amd64.tar.gz"
+          curl -fsSL -o "$RUNNER_TEMP/$tarball" "https://github.com/rhysd/actionlint/releases/download/v${VERSION}/${tarball}"
+          echo "${SHA256}  $RUNNER_TEMP/$tarball" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/$tarball" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -color
       # shellcheck over every `run:` in .github/actions/*/action.yml. yq and shellcheck are on the runner image.
       # A `${{ }}` expression is replaced by a placeholder word first, as actionlint does.
       - name: Composite actions (shellcheck)
