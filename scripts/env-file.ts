@@ -53,3 +53,31 @@ export const CHILD_ENV_KEYS = [
 export function reloadChildEnv(text: string, env: Record<string, string | undefined>): void {
   for (const k of CHILD_ENV_KEYS) env[k] = getEnvValue(text, k);
 }
+
+/** Every `KEY=value` in dotenv text, read literally (no `$` expansion), first duplicate wins. */
+export function parseEnv(text: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const m of text.matchAll(/^([A-Za-z_][A-Za-z0-9_]*)=/gm)) {
+    const key = m[1] as string;
+    if (!(key in out)) out[key] = getEnvValue(text, key);
+  }
+  return out;
+}
+
+/**
+ * The environment for `docker compose`: the caller's environment with every .env value laid over it literally.
+ * Bun expands `$` in .env values even inside single quotes, and Compose expands them in an --env-file, so a password
+ * such as `ab$cd` would reach the container as `ab`. Values passed through the process environment are not expanded.
+ */
+export function composeEnv(text: string, env: Record<string, string | undefined>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(env)) if (v !== undefined) out[k] = v;
+  return { ...out, ...parseEnv(text) };
+}
+
+/** .env keys whose value Bun read differently from the file (a `$` in the value), so Bun-run tools see the wrong one. */
+export function expandedKeys(text: string, env: Record<string, string | undefined>): string[] {
+  return Object.entries(parseEnv(text))
+    .filter(([k, v]) => v.includes("$") && env[k] !== undefined && env[k] !== v)
+    .map(([k]) => k);
+}

@@ -1,7 +1,16 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { getEnvValue, newSecret, reloadChildEnv, setEnvValue, withLocalSecrets } from "../env-file";
+import {
+  composeEnv,
+  expandedKeys,
+  getEnvValue,
+  newSecret,
+  parseEnv,
+  reloadChildEnv,
+  setEnvValue,
+  withLocalSecrets,
+} from "../env-file";
 import { root } from "../lib";
 import { makeScratchRepo, removeDir, runBun, sandboxEnv } from "./helpers";
 
@@ -281,5 +290,32 @@ describe("reloadChildEnv", () => {
     expect(env.NEWS_DYNAMODB_ENDPOINT).toBe("http://127.0.0.1:8123");
     expect(env.NEWS_DYNAMODB_PORT).toBe("8123");
     expect(env.NEWS_PG_PASSWORD).toBe("new");
+  });
+});
+
+describe("$ in .env values", () => {
+  const text = "# comment\nPLAIN=abc\nDOLLAR=ab$cd\nQUOTED='x$Y-z'\nDUP=first\nDUP=second\nEMPTY=\n";
+
+  test("parseEnv reads every key literally, skips comments, first duplicate wins", () => {
+    expect(parseEnv(text)).toEqual({
+      PLAIN: "abc",
+      DOLLAR: "ab$cd",
+      QUOTED: "x$Y-z",
+      DUP: "first",
+      EMPTY: "",
+    });
+  });
+
+  test("composeEnv lays the literal .env values over Bun's expanded copies and keeps other variables", () => {
+    const env = composeEnv(text, { PATH: "/bin", DOLLAR: "ab", QUOTED: "xz", UNSET: undefined });
+    expect(env.PATH).toBe("/bin");
+    expect(env.DOLLAR).toBe("ab$cd");
+    expect(env.QUOTED).toBe("x$Y-z");
+    expect("UNSET" in env).toBe(false);
+  });
+
+  test("expandedKeys names only the keys Bun read differently because of a $", () => {
+    expect(expandedKeys(text, { PLAIN: "other", DOLLAR: "ab", QUOTED: "x$Y-z" })).toEqual(["DOLLAR"]);
+    expect(expandedKeys(text, {})).toEqual([]);
   });
 });

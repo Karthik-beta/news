@@ -1,6 +1,6 @@
 // `bun run doctor` checks the local development environment. `--e2e` also proves telemetry reaches ClickHouse:
 // it writes a test row to news.events and sends an OTLP log through the collector into news.otel_logs.
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { SQL } from "bun";
 import {
@@ -11,6 +11,7 @@ import {
   withTempTable,
 } from "../workers/test-support/src/dynamodb";
 import { requireDynamoDb } from "../workers/test-support/src/service-check";
+import { expandedKeys } from "./env-file";
 import { chQuery, env, mark, root, run } from "./lib";
 
 const e2e = process.argv.includes("--e2e");
@@ -23,6 +24,17 @@ const version = (cmd: string, args = ["--version"]) => {
   const r = run(cmd, args, { shell: process.platform === "win32" });
   return r.ok ? (r.out || r.err).split("\n")[0] : "";
 };
+
+// Bun expands `$` in .env values (even single-quoted), so a key with one reads differently in every Bun-run tool.
+const envPath = join(root, ".env");
+if (existsSync(envPath)) {
+  const expanded = expandedKeys(readFileSync(envPath, "utf8"), process.env);
+  line(
+    expanded.length === 0 || "warn",
+    ".env values read as written",
+    expanded.length ? `${expanded.join(", ")}: Bun expands the $ in these; use values without $` : "",
+  );
+}
 
 console.log("Tools");
 for (const [cmd, args] of [

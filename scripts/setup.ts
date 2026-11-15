@@ -48,16 +48,8 @@ const step = (label: string, cmd: string, args: string[], cwd = root) => {
   console.log(`✓ ${label}`);
 };
 
-step("start PostgreSQL, OTel Collector and DynamoDB Local", "docker", [
-  "compose",
-  "-f",
-  "infra/docker-compose.yml",
-  "--env-file",
-  ".env",
-  "up",
-  "-d",
-  "--wait",
-]);
+// Through the wrapper, so a `$` in a .env value reaches the containers as typed.
+step("start PostgreSQL, OTel Collector and DynamoDB Local", "bun", ["scripts/compose.ts", "up", "-d", "--wait"]);
 step("ClickHouse news database and user", "bun", ["scripts/clickhouse-setup.ts"]);
 step("install JS dependencies", "bun", ["install"]);
 step("sync design tokens", "bun", ["site/scripts/sync-tokens.ts"]);

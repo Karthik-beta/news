@@ -11,9 +11,9 @@
   "scripts": {
     "setup": "bun scripts/setup.ts",
     "doctor": "bun scripts/doctor.ts",
-    "infra:up": "docker compose -f infra/docker-compose.yml --env-file .env up -d --wait",
-    "infra:down": "docker compose -f infra/docker-compose.yml --env-file .env down",
-    "infra:logs": "docker compose -f infra/docker-compose.yml --env-file .env logs -f --tail=100",
+    "infra:up": "bun scripts/compose.ts up -d --wait",
+    "infra:down": "bun scripts/compose.ts down",
+    "infra:logs": "bun scripts/compose.ts logs -f --tail=100",
     "clickhouse:setup": "bun scripts/clickhouse-setup.ts",
     "tokens": "bun design/tokens/build.mjs",
     "dev": "bun --filter @news/site dev",
