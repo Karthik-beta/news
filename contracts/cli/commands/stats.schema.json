@@ -27,10 +27,7 @@
           }
         }
       },
-      "required": [
-        "text",
-        "items"
-      ],
+      "required": ["text", "items"],
       "additionalProperties": false
     }
   }

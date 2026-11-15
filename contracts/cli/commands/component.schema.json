@@ -5,10 +5,7 @@
   "description": "One component's props, data shape and example. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "R",
   "x-news-status": "built",
-  "x-news-errors": [
-    "not_found",
-    "precondition"
-  ],
+  "x-news-errors": ["not_found", "precondition"],
   "$defs": {
     "input": {
       "type": "object",
@@ -17,9 +14,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "type"
-      ],
+      "required": ["type"],
       "additionalProperties": false
     },
     "output": {
@@ -35,13 +30,7 @@
         "data_shape": {},
         "example": {}
       },
-      "required": [
-        "type",
-        "summary",
-        "props",
-        "data_shape",
-        "example"
-      ],
+      "required": ["type", "summary", "props", "data_shape", "example"],
       "additionalProperties": false
     }
   }

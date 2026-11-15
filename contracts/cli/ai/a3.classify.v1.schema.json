@@ -19,18 +19,9 @@
       "type": "string"
     },
     "confidence": {
-      "enum": [
-        "high",
-        "medium",
-        "low"
-      ]
+      "enum": ["high", "medium", "low"]
     }
   },
-  "required": [
-    "page_type",
-    "categories",
-    "region",
-    "confidence"
-  ],
+  "required": ["page_type", "categories", "region", "confidence"],
   "additionalProperties": false
 }

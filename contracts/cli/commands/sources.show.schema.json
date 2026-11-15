@@ -5,9 +5,7 @@
   "description": "One source. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "R",
   "x-news-status": "stub until #9",
-  "x-news-errors": [
-    "not_found"
-  ],
+  "x-news-errors": ["not_found"],
   "$defs": {
     "input": {
       "type": "object",
@@ -16,9 +14,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "source"
-      ],
+      "required": ["source"],
       "additionalProperties": false
     },
     "output": {
@@ -43,23 +39,10 @@
           "type": "boolean"
         },
         "health": {
-          "enum": [
-            "unknown",
-            "green",
-            "amber",
-            "red"
-          ]
+          "enum": ["unknown", "green", "amber", "red"]
         }
       },
-      "required": [
-        "source_id",
-        "name",
-        "publisher",
-        "source_tier",
-        "licence",
-        "enabled",
-        "health"
-      ],
+      "required": ["source_id", "name", "publisher", "source_tier", "licence", "enabled", "health"],
       "additionalProperties": true
     }
   }

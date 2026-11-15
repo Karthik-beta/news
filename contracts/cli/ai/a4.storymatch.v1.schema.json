@@ -11,41 +11,24 @@
         "type": "object",
         "properties": {
           "a": {
-            "type": [
-              "integer",
-              "string"
-            ]
+            "type": ["integer", "string"]
           },
           "b": {
-            "type": [
-              "integer",
-              "string"
-            ]
+            "type": ["integer", "string"]
           },
           "same": {
             "type": "boolean"
           },
           "basis": {
-            "enum": [
-              "same_event",
-              "same_entity_different_event",
-              "different"
-            ]
+            "enum": ["same_event", "same_entity_different_event", "different"]
           }
         },
-        "required": [
-          "a",
-          "b",
-          "same",
-          "basis"
-        ],
+        "required": ["a", "b", "same", "basis"],
         "additionalProperties": false
       },
       "maxItems": 20
     }
   },
-  "required": [
-    "pairs"
-  ],
+  "required": ["pairs"],
   "additionalProperties": false
 }

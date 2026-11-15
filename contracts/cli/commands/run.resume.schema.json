@@ -5,9 +5,7 @@
   "description": "Resume a paused or stalled run. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "W",
   "x-news-status": "stub until #10",
-  "x-news-errors": [
-    "conflict"
-  ],
+  "x-news-errors": ["conflict"],
   "$defs": {
     "input": {
       "type": "object",
@@ -17,24 +15,14 @@
           "description": "Run id or short id (r_…)"
         }
       },
-      "required": [
-        "run"
-      ],
+      "required": ["run"],
       "additionalProperties": false
     },
     "output": {
       "type": "object",
       "properties": {
         "stop": {
-          "enum": [
-            "ai_batch",
-            "session_task",
-            "approval",
-            "paused_usage",
-            "done",
-            "failed",
-            "cancelled"
-          ]
+          "enum": ["ai_batch", "session_task", "approval", "paused_usage", "done", "failed", "cancelled"]
         },
         "command": {
           "type": "string"
@@ -65,10 +53,7 @@
           "description": "Code-rendered text, printed verbatim to Karthik"
         }
       },
-      "required": [
-        "stop",
-        "text"
-      ],
+      "required": ["stop", "text"],
       "additionalProperties": false
     }
   }

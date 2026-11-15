@@ -5,9 +5,7 @@
   "description": "Render a story's page bundle. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "W",
   "x-news-status": "stub until #17",
-  "x-news-errors": [
-    "validation_failed"
-  ],
+  "x-news-errors": ["validation_failed"],
   "$defs": {
     "input": {
       "type": "object",
@@ -16,9 +14,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "story"
-      ],
+      "required": ["story"],
       "additionalProperties": false
     },
     "output": {
@@ -40,18 +36,11 @@
               "type": "string"
             }
           },
-          "required": [
-            "html",
-            "md",
-            "json",
-            "bundle"
-          ],
+          "required": ["html", "md", "json", "bundle"],
           "additionalProperties": false
         }
       },
-      "required": [
-        "paths"
-      ],
+      "required": ["paths"],
       "additionalProperties": false
     }
   }

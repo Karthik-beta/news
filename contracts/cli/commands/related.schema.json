@@ -14,9 +14,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "story"
-      ],
+      "required": ["story"],
       "additionalProperties": false
     },
     "output": {
@@ -28,10 +26,7 @@
             "type": "object",
             "properties": {
               "kind": {
-                "enum": [
-                  "page",
-                  "entity"
-                ]
+                "enum": ["page", "entity"]
               },
               "id": {
                 "type": "string"
@@ -40,11 +35,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "kind",
-              "id",
-              "title"
-            ],
+            "required": ["kind", "id", "title"],
             "additionalProperties": false
           }
         },
@@ -53,9 +44,7 @@
           "description": "Present when truncated: pass to --cursor"
         }
       },
-      "required": [
-        "items"
-      ],
+      "required": ["items"],
       "additionalProperties": false
     }
   }

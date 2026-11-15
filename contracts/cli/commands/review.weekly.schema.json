@@ -30,12 +30,7 @@
           "type": "object"
         }
       },
-      "required": [
-        "text",
-        "coverage",
-        "failures",
-        "tokens_per_page"
-      ],
+      "required": ["text", "coverage", "failures", "tokens_per_page"],
       "additionalProperties": false
     }
   }

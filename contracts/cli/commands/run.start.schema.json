@@ -5,11 +5,7 @@
   "description": "Start a preset; needs an issued start ticket. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "W",
   "x-news-status": "stub until #10",
-  "x-news-errors": [
-    "gated",
-    "conflict",
-    "precondition"
-  ],
+  "x-news-errors": ["gated", "conflict", "precondition"],
   "$defs": {
     "input": {
       "type": "object",
@@ -24,9 +20,7 @@
           }
         }
       },
-      "required": [
-        "preset"
-      ],
+      "required": ["preset"],
       "additionalProperties": false
     },
     "output": {
@@ -51,19 +45,10 @@
                 "type": "string"
               },
               "kind": {
-                "enum": [
-                  "code",
-                  "ai_batch",
-                  "session",
-                  "approval"
-                ]
+                "enum": ["code", "ai_batch", "session", "approval"]
               }
             },
-            "required": [
-              "seq",
-              "step",
-              "kind"
-            ],
+            "required": ["seq", "step", "kind"],
             "additionalProperties": false
           }
         },
@@ -74,13 +59,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "run_id",
-        "short_id",
-        "steps",
-        "next",
-        "reference"
-      ],
+      "required": ["run_id", "short_id", "steps", "next", "reference"],
       "additionalProperties": false
     }
   }

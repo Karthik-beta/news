@@ -31,11 +31,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "mention",
-              "count",
-              "sample"
-            ],
+            "required": ["mention", "count", "sample"],
             "additionalProperties": false
           }
         },
@@ -44,9 +40,7 @@
           "description": "Present when truncated: pass to --cursor"
         }
       },
-      "required": [
-        "items"
-      ],
+      "required": ["items"],
       "additionalProperties": false
     }
   }

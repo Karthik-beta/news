@@ -5,36 +5,16 @@
   "description": "Counts by pool and state, and recent jobs (newest first). Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "R",
   "x-news-status": "built",
-  "x-news-errors": [
-    "usage",
-    "precondition",
-    "upstream_unavailable"
-  ],
+  "x-news-errors": ["usage", "precondition", "upstream_unavailable"],
   "$defs": {
     "input": {
       "type": "object",
       "properties": {
         "state": {
-          "enum": [
-            "available",
-            "scheduled",
-            "running",
-            "retryable",
-            "snoozed",
-            "completed",
-            "discarded",
-            "cancelled"
-          ]
+          "enum": ["available", "scheduled", "running", "retryable", "snoozed", "completed", "discarded", "cancelled"]
         },
         "pool": {
-          "enum": [
-            "net",
-            "cpu",
-            "docling",
-            "render",
-            "ai",
-            "publish"
-          ]
+          "enum": ["net", "cpu", "docling", "render", "ai", "publish"]
         },
         "run": {
           "type": "string",
@@ -59,14 +39,7 @@
                 "type": "string"
               },
               "pool": {
-                "enum": [
-                  "net",
-                  "cpu",
-                  "docling",
-                  "render",
-                  "ai",
-                  "publish"
-                ]
+                "enum": ["net", "cpu", "docling", "render", "ai", "publish"]
               },
               "state": {
                 "enum": [
@@ -96,23 +69,14 @@
                 "format": "date-time"
               },
               "run_id": {
-                "type": [
-                  "string",
-                  "null"
-                ],
+                "type": ["string", "null"],
                 "format": "uuid"
               },
               "item_ref": {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": ["string", "null"]
               },
               "error_class": {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": ["string", "null"]
               }
             },
             "required": [
@@ -146,11 +110,7 @@
                 "type": "integer"
               }
             },
-            "required": [
-              "pool",
-              "state",
-              "count"
-            ],
+            "required": ["pool", "state", "count"],
             "additionalProperties": false
           }
         },
@@ -163,11 +123,7 @@
           "description": "Present when truncated: pass to --cursor"
         }
       },
-      "required": [
-        "items",
-        "counts",
-        "text"
-      ],
+      "required": ["items", "counts", "text"],
       "additionalProperties": false
     }
   }

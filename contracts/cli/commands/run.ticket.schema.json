@@ -5,10 +5,7 @@
   "description": "Issue a start ticket from a terminal. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "H",
   "x-news-status": "stub until #10",
-  "x-news-errors": [
-    "usage",
-    "gated"
-  ],
+  "x-news-errors": ["usage", "gated"],
   "$defs": {
     "input": {
       "type": "object",
@@ -23,9 +20,7 @@
           }
         }
       },
-      "required": [
-        "preset"
-      ],
+      "required": ["preset"],
       "additionalProperties": false
     },
     "output": {
@@ -38,10 +33,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "ticket_id",
-        "canonical"
-      ],
+      "required": ["ticket_id", "canonical"],
       "additionalProperties": false
     }
   }

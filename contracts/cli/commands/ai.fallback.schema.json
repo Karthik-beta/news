@@ -5,9 +5,7 @@
   "description": "Apply a step's code fallback. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "W",
   "x-news-status": "stub until #18",
-  "x-news-errors": [
-    "not_found"
-  ],
+  "x-news-errors": ["not_found"],
   "$defs": {
     "input": {
       "type": "object",
@@ -16,9 +14,7 @@
           "type": "integer"
         }
       },
-      "required": [
-        "job"
-      ],
+      "required": ["job"],
       "additionalProperties": false
     },
     "output": {
@@ -31,10 +27,7 @@
           "type": "object"
         }
       },
-      "required": [
-        "applied",
-        "result"
-      ],
+      "required": ["applied", "result"],
       "additionalProperties": false
     }
   }

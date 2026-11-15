@@ -5,9 +5,7 @@
   "description": "One entity. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "R",
   "x-news-status": "stub until #12",
-  "x-news-errors": [
-    "not_found"
-  ],
+  "x-news-errors": ["not_found"],
   "$defs": {
     "input": {
       "type": "object",
@@ -16,9 +14,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "entity"
-      ],
+      "required": ["entity"],
       "additionalProperties": false
     },
     "output": {
@@ -45,10 +41,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "scheme",
-              "value"
-            ],
+            "required": ["scheme", "value"],
             "additionalProperties": false
           }
         },
@@ -59,13 +52,7 @@
           }
         }
       },
-      "required": [
-        "entity_id",
-        "kind",
-        "name",
-        "ids",
-        "aliases"
-      ],
+      "required": ["entity_id", "kind", "name", "ids", "aliases"],
       "additionalProperties": false
     }
   }

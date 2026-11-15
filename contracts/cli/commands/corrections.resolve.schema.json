@@ -5,10 +5,7 @@
   "description": "Resolve a report (update is G tier). Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "W",
   "x-news-status": "stub until #21",
-  "x-news-errors": [
-    "not_found",
-    "gated"
-  ],
+  "x-news-errors": ["not_found", "gated"],
   "$defs": {
     "input": {
       "type": "object",
@@ -17,16 +14,10 @@
           "type": "string"
         },
         "action": {
-          "enum": [
-            "update",
-            "dismiss"
-          ]
+          "enum": ["update", "dismiss"]
         }
       },
-      "required": [
-        "report",
-        "action"
-      ],
+      "required": ["report", "action"],
       "additionalProperties": false
     },
     "output": {
@@ -39,16 +30,10 @@
           "type": "string"
         },
         "page_version": {
-          "type": [
-            "integer",
-            "null"
-          ]
+          "type": ["integer", "null"]
         }
       },
-      "required": [
-        "report_id",
-        "action"
-      ],
+      "required": ["report_id", "action"],
       "additionalProperties": false
     }
   }

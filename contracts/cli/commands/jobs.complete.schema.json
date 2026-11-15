@@ -5,11 +5,7 @@
   "description": "Mark a running job completed with its result. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "W",
   "x-news-status": "built",
-  "x-news-errors": [
-    "not_found",
-    "conflict",
-    "validation_failed"
-  ],
+  "x-news-errors": ["not_found", "conflict", "validation_failed"],
   "$defs": {
     "input": {
       "type": "object",
@@ -25,10 +21,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "job",
-        "result"
-      ],
+      "required": ["job", "result"],
       "additionalProperties": false
     },
     "output": {
@@ -41,10 +34,7 @@
           "const": "completed"
         }
       },
-      "required": [
-        "job_id",
-        "state"
-      ],
+      "required": ["job_id", "state"],
       "additionalProperties": false
     }
   }

@@ -13,9 +13,6 @@
       "pattern": "^[a-z][a-z0-9_]*$"
     }
   },
-  "required": [
-    "pass",
-    "reason_code"
-  ],
+  "required": ["pass", "reason_code"],
   "additionalProperties": false
 }

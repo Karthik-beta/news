@@ -5,31 +5,16 @@
   "description": "JSON Schema of an AI step's output. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "R",
   "x-news-status": "built",
-  "x-news-errors": [
-    "not_found"
-  ],
+  "x-news-errors": ["not_found"],
   "$defs": {
     "input": {
       "type": "object",
       "properties": {
         "step": {
-          "enum": [
-            "A1",
-            "A2",
-            "A3",
-            "A4",
-            "A5",
-            "A6",
-            "A7",
-            "A9",
-            "A12",
-            "brief"
-          ]
+          "enum": ["A1", "A2", "A3", "A4", "A5", "A6", "A7", "A9", "A12", "brief"]
         }
       },
-      "required": [
-        "step"
-      ],
+      "required": ["step"],
       "additionalProperties": false
     },
     "output": {
@@ -42,10 +27,7 @@
           "type": "object"
         }
       },
-      "required": [
-        "step",
-        "schema"
-      ],
+      "required": ["step", "schema"],
       "additionalProperties": false
     }
   }

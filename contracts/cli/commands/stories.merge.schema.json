@@ -5,10 +5,7 @@
   "description": "Merge two stories. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "H",
   "x-news-status": "stub until #15",
-  "x-news-errors": [
-    "not_found",
-    "gated"
-  ],
+  "x-news-errors": ["not_found", "gated"],
   "$defs": {
     "input": {
       "type": "object",
@@ -20,10 +17,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "a",
-        "b"
-      ],
+      "required": ["a", "b"],
       "additionalProperties": false
     },
     "output": {
@@ -36,10 +30,7 @@
           "type": "integer"
         }
       },
-      "required": [
-        "story_id",
-        "merged"
-      ],
+      "required": ["story_id", "merged"],
       "additionalProperties": false
     }
   }

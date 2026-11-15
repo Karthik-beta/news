@@ -5,11 +5,7 @@
   "description": "Apply pending migrations; idempotent. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "W",
   "x-news-status": "built",
-  "x-news-errors": [
-    "precondition",
-    "upstream_unavailable",
-    "internal"
-  ],
+  "x-news-errors": ["precondition", "upstream_unavailable", "internal"],
   "$defs": {
     "input": {
       "type": "object",
@@ -36,18 +32,10 @@
           }
         },
         "ai_max_running": {
-          "type": [
-            "integer",
-            "null"
-          ]
+          "type": ["integer", "null"]
         }
       },
-      "required": [
-        "schema",
-        "applied",
-        "current",
-        "ai_max_running"
-      ],
+      "required": ["schema", "applied", "current", "ai_max_running"],
       "additionalProperties": false
     }
   }

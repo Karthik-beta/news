@@ -5,10 +5,7 @@
   "description": "Run an evaluation suite. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "W",
   "x-news-status": "stub until #19",
-  "x-news-errors": [
-    "budget_exceeded",
-    "not_found"
-  ],
+  "x-news-errors": ["budget_exceeded", "not_found"],
   "$defs": {
     "input": {
       "type": "object",
@@ -20,9 +17,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "suite"
-      ],
+      "required": ["suite"],
       "additionalProperties": false
     },
     "output": {
@@ -38,11 +33,7 @@
           "type": "integer"
         }
       },
-      "required": [
-        "eval_run",
-        "passed",
-        "failed"
-      ],
+      "required": ["eval_run", "passed", "failed"],
       "additionalProperties": false
     }
   }

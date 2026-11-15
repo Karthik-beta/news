@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Windows Task Scheduler template for the optional Dispatch background worker (Bureau Design §5.6,
+  decision D8): `news work --pools net,cpu,docling` at log-on. Code-only pools; never ai, render or
+  publish, so it never needs the write-API key.
+
+  Before importing, replace the two placeholders:
+    __REPO__  the repository folder, for example C:\Users\Karthik\Desktop\Personal Projects\news
+    __BUN__   bun.exe, for example C:\Users\Karthik\.bun\bin\bun.exe
+  Build the CLI once (`cargo build --release` in cli\), then, in a terminal (Karthik only):
+    schtasks /Create /TN "News\Dispatch worker" /XML infra\windows\news-work.task.xml
+  `bun run work` loads .env (DATABASE_URL, telemetry) and runs cli\target\release\news.exe work.
+  Remove with: schtasks /Delete /TN "News\Dispatch worker" /F
+-->
+<Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Description>News: Dispatch background worker for code-only jobs (net, cpu, docling).</Description>
+    <URI>\News\Dispatch worker</URI>
+  </RegistrationInfo>
+  <Triggers>
+    <LogonTrigger>
+      <Enabled>true</Enabled>
+      <Delay>PT2M</Delay>
+    </LogonTrigger>
+  </Triggers>
+  <Principals>
+    <Principal id="Author">
+      <LogonType>InteractiveToken</LogonType>
+      <RunLevel>LeastPrivilege</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>
+    <AllowHardTerminate>true</AllowHardTerminate>
+    <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
+    <Priority>7</Priority>
+    <RestartOnFailure>
+      <Interval>PT5M</Interval>
+      <Count>3</Count>
+    </RestartOnFailure>
+  </Settings>
+  <Actions Context="Author">
+    <Exec>
+      <Command>__BUN__</Command>
+      <Arguments>run work</Arguments>
+      <WorkingDirectory>__REPO__</WorkingDirectory>
+    </Exec>
+  </Actions>
+</Task>

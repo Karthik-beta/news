@@ -5,9 +5,7 @@
   "description": "An evaluation run's report. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "R",
   "x-news-status": "stub until #19",
-  "x-news-errors": [
-    "not_found"
-  ],
+  "x-news-errors": ["not_found"],
   "$defs": {
     "input": {
       "type": "object",
@@ -16,9 +14,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "eval_run"
-      ],
+      "required": ["eval_run"],
       "additionalProperties": false
     },
     "output": {
@@ -38,11 +34,7 @@
           "description": "Code-rendered text, printed verbatim to Karthik"
         }
       },
-      "required": [
-        "eval_run",
-        "metrics",
-        "text"
-      ],
+      "required": ["eval_run", "metrics", "text"],
       "additionalProperties": false
     }
   }

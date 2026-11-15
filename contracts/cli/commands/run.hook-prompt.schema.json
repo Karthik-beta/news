@@ -14,9 +14,7 @@
           "type": "object"
         }
       },
-      "required": [
-        "stdin"
-      ],
+      "required": ["stdin"],
       "additionalProperties": false
     },
     "output": {
@@ -26,9 +24,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "context"
-      ],
+      "required": ["context"],
       "additionalProperties": false
     }
   }

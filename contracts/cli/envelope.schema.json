@@ -21,12 +21,7 @@
           "type": "boolean"
         }
       },
-      "required": [
-        "ok",
-        "data",
-        "warnings",
-        "truncated"
-      ],
+      "required": ["ok", "data", "warnings", "truncated"],
       "additionalProperties": false
     },
     {
@@ -68,18 +63,11 @@
               "description": "Code-rendered text for Karthik"
             }
           },
-          "required": [
-            "code",
-            "message",
-            "retryable"
-          ],
+          "required": ["code", "message", "retryable"],
           "additionalProperties": false
         }
       },
-      "required": [
-        "ok",
-        "error"
-      ],
+      "required": ["ok", "error"],
       "additionalProperties": false
     }
   ],

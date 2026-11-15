@@ -6,10 +6,7 @@
   "type": "object",
   "properties": {
     "verdict": {
-      "enum": [
-        "pass",
-        "flag"
-      ]
+      "enum": ["pass", "flag"]
     },
     "issues": {
       "type": "array",
@@ -17,14 +14,7 @@
         "type": "object",
         "properties": {
           "kind": {
-            "enum": [
-              "unsupported_claim",
-              "wrong_direction",
-              "missing_context",
-              "tone",
-              "attribution",
-              "other"
-            ]
+            "enum": ["unsupported_claim", "wrong_direction", "missing_context", "tone", "attribution", "other"]
           },
           "where": {
             "type": "string",
@@ -37,25 +27,14 @@
             }
           },
           "severity": {
-            "enum": [
-              "low",
-              "high"
-            ]
+            "enum": ["low", "high"]
           }
         },
-        "required": [
-          "kind",
-          "where",
-          "evidence",
-          "severity"
-        ],
+        "required": ["kind", "where", "evidence", "severity"],
         "additionalProperties": false
       }
     }
   },
-  "required": [
-    "verdict",
-    "issues"
-  ],
+  "required": ["verdict", "issues"],
   "additionalProperties": false
 }

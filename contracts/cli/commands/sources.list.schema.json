@@ -40,23 +40,10 @@
                 "type": "boolean"
               },
               "health": {
-                "enum": [
-                  "unknown",
-                  "green",
-                  "amber",
-                  "red"
-                ]
+                "enum": ["unknown", "green", "amber", "red"]
               }
             },
-            "required": [
-              "source_id",
-              "name",
-              "publisher",
-              "source_tier",
-              "licence",
-              "enabled",
-              "health"
-            ],
+            "required": ["source_id", "name", "publisher", "source_tier", "licence", "enabled", "health"],
             "additionalProperties": true
           }
         },
@@ -65,9 +52,7 @@
           "description": "Present when truncated: pass to --cursor"
         }
       },
-      "required": [
-        "items"
-      ],
+      "required": ["items"],
       "additionalProperties": false
     }
   }

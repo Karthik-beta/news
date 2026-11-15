@@ -5,10 +5,7 @@
   "description": "Applied and pending migrations. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "R",
   "x-news-status": "built",
-  "x-news-errors": [
-    "precondition",
-    "upstream_unavailable"
-  ],
+  "x-news-errors": ["precondition", "upstream_unavailable"],
   "$defs": {
     "input": {
       "type": "object",
@@ -38,12 +35,7 @@
           "type": "boolean"
         }
       },
-      "required": [
-        "schema",
-        "applied",
-        "pending",
-        "up_to_date"
-      ],
+      "required": ["schema", "applied", "pending", "up_to_date"],
       "additionalProperties": false
     }
   }

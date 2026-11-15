@@ -5,10 +5,7 @@
   "description": "Enable a source. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "G",
   "x-news-status": "stub until #9",
-  "x-news-errors": [
-    "not_found",
-    "gated"
-  ],
+  "x-news-errors": ["not_found", "gated"],
   "$defs": {
     "input": {
       "type": "object",
@@ -17,9 +14,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "source"
-      ],
+      "required": ["source"],
       "additionalProperties": false
     },
     "output": {
@@ -32,10 +27,7 @@
           "type": "boolean"
         }
       },
-      "required": [
-        "source_id",
-        "enabled"
-      ],
+      "required": ["source_id", "enabled"],
       "additionalProperties": false
     }
   }

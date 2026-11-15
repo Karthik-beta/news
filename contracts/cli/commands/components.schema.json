@@ -5,10 +5,7 @@
   "description": "The component index, one line per component. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "R",
   "x-news-status": "built",
-  "x-news-errors": [
-    "precondition",
-    "validation_failed"
-  ],
+  "x-news-errors": ["precondition", "validation_failed"],
   "$defs": {
     "input": {
       "type": "object",
@@ -38,11 +35,7 @@
           "description": "Present when truncated: pass to --cursor"
         }
       },
-      "required": [
-        "count",
-        "items",
-        "text"
-      ],
+      "required": ["count", "items", "text"],
       "additionalProperties": false
     }
   }

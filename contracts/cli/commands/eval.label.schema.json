@@ -5,9 +5,7 @@
   "description": "Interactive labelling helper. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "H",
   "x-news-status": "stub until #19",
-  "x-news-errors": [
-    "gated"
-  ],
+  "x-news-errors": ["gated"],
   "$defs": {
     "input": {
       "type": "object",
@@ -16,9 +14,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "set"
-      ],
+      "required": ["set"],
       "additionalProperties": false
     },
     "output": {
@@ -28,9 +24,7 @@
           "type": "integer"
         }
       },
-      "required": [
-        "labelled"
-      ],
+      "required": ["labelled"],
       "additionalProperties": false
     }
   }

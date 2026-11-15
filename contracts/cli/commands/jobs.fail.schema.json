@@ -5,11 +5,7 @@
   "description": "Record a failure; the error class decides retry, snooze, pool pause or discard. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "W",
   "x-news-status": "built",
-  "x-news-errors": [
-    "usage",
-    "not_found",
-    "conflict"
-  ],
+  "x-news-errors": ["usage", "not_found", "conflict"],
   "$defs": {
     "input": {
       "type": "object",
@@ -41,11 +37,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "job",
-        "class",
-        "message"
-      ],
+      "required": ["job", "class", "message"],
       "additionalProperties": false
     },
     "output": {
@@ -55,11 +47,7 @@
           "type": "integer"
         },
         "state": {
-          "enum": [
-            "retryable",
-            "snoozed",
-            "discarded"
-          ]
+          "enum": ["retryable", "snoozed", "discarded"]
         },
         "attempt": {
           "type": "integer"
@@ -73,12 +61,7 @@
           "format": "date-time"
         }
       },
-      "required": [
-        "job_id",
-        "state",
-        "attempt",
-        "run_after"
-      ],
+      "required": ["job_id", "state", "attempt", "run_after"],
       "additionalProperties": false
     }
   }

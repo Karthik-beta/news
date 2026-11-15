@@ -5,10 +5,7 @@
   "description": "Discarded jobs grouped by error class and message fingerprint. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "R",
   "x-news-status": "built",
-  "x-news-errors": [
-    "usage",
-    "precondition"
-  ],
+  "x-news-errors": ["usage", "precondition"],
   "$defs": {
     "input": {
       "type": "object",
@@ -55,20 +52,11 @@
                 "maxItems": 5
               },
               "last_at": {
-                "type": [
-                  "string",
-                  "null"
-                ],
+                "type": ["string", "null"],
                 "format": "date-time"
               }
             },
-            "required": [
-              "error_class",
-              "fingerprint",
-              "count",
-              "job_ids",
-              "last_at"
-            ],
+            "required": ["error_class", "fingerprint", "count", "job_ids", "last_at"],
             "additionalProperties": false
           }
         },
@@ -81,10 +69,7 @@
           "description": "Present when truncated: pass to --cursor"
         }
       },
-      "required": [
-        "items",
-        "text"
-      ],
+      "required": ["items", "text"],
       "additionalProperties": false
     }
   }

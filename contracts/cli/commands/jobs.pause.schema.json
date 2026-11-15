@@ -5,34 +5,20 @@
   "description": "Pause a pool until a time. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "H",
   "x-news-status": "built",
-  "x-news-errors": [
-    "usage",
-    "not_found",
-    "gated"
-  ],
+  "x-news-errors": ["usage", "not_found", "gated"],
   "$defs": {
     "input": {
       "type": "object",
       "properties": {
         "pool": {
-          "enum": [
-            "net",
-            "cpu",
-            "docling",
-            "render",
-            "ai",
-            "publish"
-          ]
+          "enum": ["net", "cpu", "docling", "render", "ai", "publish"]
         },
         "until": {
           "type": "string",
           "description": "RFC 3339, or +30m, +2h, +1d"
         }
       },
-      "required": [
-        "pool",
-        "until"
-      ],
+      "required": ["pool", "until"],
       "additionalProperties": false
     },
     "output": {
@@ -46,10 +32,7 @@
           "format": "date-time"
         }
       },
-      "required": [
-        "pool",
-        "paused_until"
-      ],
+      "required": ["pool", "paused_until"],
       "additionalProperties": false
     }
   }

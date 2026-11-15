@@ -5,9 +5,7 @@
   "description": "Pause a run at the next step boundary. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "W",
   "x-news-status": "stub until #10",
-  "x-news-errors": [
-    "precondition"
-  ],
+  "x-news-errors": ["precondition"],
   "$defs": {
     "input": {
       "type": "object",
@@ -17,9 +15,7 @@
           "description": "Run id or short id (r_…)"
         }
       },
-      "required": [
-        "run"
-      ],
+      "required": ["run"],
       "additionalProperties": false
     },
     "output": {
@@ -29,16 +25,10 @@
           "type": "boolean"
         },
         "after_step": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": ["string", "null"]
         }
       },
-      "required": [
-        "pausing",
-        "after_step"
-      ],
+      "required": ["pausing", "after_step"],
       "additionalProperties": false
     }
   }

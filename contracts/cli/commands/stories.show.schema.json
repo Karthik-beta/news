@@ -5,9 +5,7 @@
   "description": "One story. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "R",
   "x-news-status": "stub until #15",
-  "x-news-errors": [
-    "not_found"
-  ],
+  "x-news-errors": ["not_found"],
   "$defs": {
     "input": {
       "type": "object",
@@ -16,9 +14,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "story"
-      ],
+      "required": ["story"],
       "additionalProperties": false
     },
     "output": {
@@ -28,42 +24,22 @@
           "type": "integer"
         },
         "event_key": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": ["string", "null"]
         },
         "title": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": ["string", "null"]
         },
         "member_count": {
           "type": "integer"
         },
         "status": {
-          "enum": [
-            "open",
-            "covered",
-            "closed"
-          ]
+          "enum": ["open", "covered", "closed"]
         },
         "page_id": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": ["string", "null"]
         }
       },
-      "required": [
-        "story_id",
-        "event_key",
-        "title",
-        "member_count",
-        "status",
-        "page_id"
-      ],
+      "required": ["story_id", "event_key", "title", "member_count", "status", "page_id"],
       "additionalProperties": false
     }
   }

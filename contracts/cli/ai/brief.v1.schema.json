@@ -15,25 +15,16 @@
           "type": "integer"
         },
         "event_key": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": ["string", "null"]
         },
         "page_type": {
           "type": "string"
         },
         "tier": {
-          "enum": [
-            1,
-            2
-          ]
+          "enum": [1, 2]
         },
         "action": {
-          "enum": [
-            "new",
-            "update"
-          ]
+          "enum": ["new", "update"]
         },
         "slug_hint": {
           "type": "string",
@@ -44,12 +35,7 @@
           "format": "date"
         }
       },
-      "required": [
-        "story_id",
-        "page_type",
-        "tier",
-        "action"
-      ],
+      "required": ["story_id", "page_type", "tier", "action"],
       "additionalProperties": false
     },
     "entities": {
@@ -67,11 +53,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "id",
-          "name",
-          "kind"
-        ],
+        "required": ["id", "name", "kind"],
         "additionalProperties": false
       }
     },
@@ -98,20 +80,10 @@
             "type": "string"
           },
           "derived": {
-            "enum": [
-              "pct_change",
-              "pp_change",
-              "diff",
-              "share"
-            ]
+            "enum": ["pct_change", "pp_change", "diff", "share"]
           }
         },
-        "required": [
-          "ref",
-          "label",
-          "value",
-          "unit"
-        ],
+        "required": ["ref", "label", "value", "unit"],
         "additionalProperties": false
       }
     },
@@ -131,11 +103,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "ref",
-          "label",
-          "points"
-        ],
+        "required": ["ref", "label", "points"],
         "additionalProperties": false
       }
     },
@@ -152,10 +120,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "ref",
-          "label"
-        ],
+        "required": ["ref", "label"],
         "additionalProperties": false
       }
     },
@@ -175,11 +140,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "id",
-          "text",
-          "rule"
-        ],
+        "required": ["id", "text", "rule"],
         "additionalProperties": false
       }
     },
@@ -202,12 +163,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "id",
-          "doc",
-          "block",
-          "text"
-        ],
+        "required": ["id", "doc", "block", "text"],
         "additionalProperties": false
       }
     },
@@ -224,10 +180,7 @@
           }
         }
       },
-      "required": [
-        "untrusted",
-        "points"
-      ],
+      "required": ["untrusted", "points"],
       "additionalProperties": false
     },
     "media": {
@@ -240,16 +193,10 @@
           }
         },
         "video": {
-          "type": [
-            "object",
-            "null"
-          ]
+          "type": ["object", "null"]
         }
       },
-      "required": [
-        "images",
-        "video"
-      ],
+      "required": ["images", "video"],
       "additionalProperties": false
     },
     "related_pages": {
@@ -264,10 +211,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "page_id",
-          "title"
-        ],
+        "required": ["page_id", "title"],
         "additionalProperties": false
       }
     },
@@ -281,31 +225,20 @@
           }
         }
       },
-      "required": [
-        "suggested"
-      ],
+      "required": ["suggested"],
       "additionalProperties": false
     },
     "rules": {
       "type": "object",
       "properties": {
         "disclaimer": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": ["string", "null"]
         },
         "fiscal_note": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": ["string", "null"]
         }
       },
-      "required": [
-        "disclaimer",
-        "fiscal_note"
-      ],
+      "required": ["disclaimer", "fiscal_note"],
       "additionalProperties": false
     }
   },

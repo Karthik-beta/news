@@ -14,66 +14,32 @@
           "type": "string"
         },
         "kind": {
-          "enum": [
-            "company",
-            "country",
-            "central_bank",
-            "institution",
-            "person",
-            "topic",
-            "agency"
-          ]
+          "enum": ["company", "country", "central_bank", "institution", "person", "topic", "agency"]
         }
       },
-      "required": [
-        "text"
-      ],
+      "required": ["text"],
       "additionalProperties": false
     },
     "output": {
       "type": "object",
       "properties": {
         "entity_id": {
-          "type": [
-            "integer",
-            "null"
-          ]
+          "type": ["integer", "null"]
         },
         "name": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": ["string", "null"]
         },
         "kind": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": ["string", "null"]
         },
         "step": {
-          "enum": [
-            "identifier",
-            "alias",
-            "gazetteer",
-            "fuzzy",
-            "unresolved"
-          ]
+          "enum": ["identifier", "alias", "gazetteer", "fuzzy", "unresolved"]
         },
         "score": {
-          "type": [
-            "number",
-            "null"
-          ]
+          "type": ["number", "null"]
         }
       },
-      "required": [
-        "entity_id",
-        "name",
-        "kind",
-        "step",
-        "score"
-      ],
+      "required": ["entity_id", "name", "kind", "step", "score"],
       "additionalProperties": false
     }
   }

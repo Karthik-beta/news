@@ -43,21 +43,11 @@
                 "format": "date-time"
               },
               "finished_at": {
-                "type": [
-                  "string",
-                  "null"
-                ],
+                "type": ["string", "null"],
                 "format": "date-time"
               }
             },
-            "required": [
-              "run_id",
-              "short_id",
-              "preset",
-              "status",
-              "started_at",
-              "finished_at"
-            ],
+            "required": ["run_id", "short_id", "preset", "status", "started_at", "finished_at"],
             "additionalProperties": false
           }
         },
@@ -66,9 +56,7 @@
           "description": "Present when truncated: pass to --cursor"
         }
       },
-      "required": [
-        "items"
-      ],
+      "required": ["items"],
       "additionalProperties": false
     }
   }

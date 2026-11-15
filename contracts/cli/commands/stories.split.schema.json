@@ -5,10 +5,7 @@
   "description": "Split candidates out of a story. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "H",
   "x-news-status": "stub until #15",
-  "x-news-errors": [
-    "not_found",
-    "gated"
-  ],
+  "x-news-errors": ["not_found", "gated"],
   "$defs": {
     "input": {
       "type": "object",
@@ -24,10 +21,7 @@
           "minItems": 1
         }
       },
-      "required": [
-        "story",
-        "cands"
-      ],
+      "required": ["story", "cands"],
       "additionalProperties": false
     },
     "output": {
@@ -40,10 +34,7 @@
           "type": "integer"
         }
       },
-      "required": [
-        "story_id",
-        "new_story_id"
-      ],
+      "required": ["story_id", "new_story_id"],
       "additionalProperties": false
     }
   }

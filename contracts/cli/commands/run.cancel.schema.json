@@ -5,9 +5,7 @@
   "description": "Cancel a run; writes the Wrap. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "H",
   "x-news-status": "stub until #10",
-  "x-news-errors": [
-    "gated"
-  ],
+  "x-news-errors": ["gated"],
   "$defs": {
     "input": {
       "type": "object",
@@ -17,9 +15,7 @@
           "description": "Run id or short id (r_…)"
         }
       },
-      "required": [
-        "run"
-      ],
+      "required": ["run"],
       "additionalProperties": false
     },
     "output": {
@@ -32,10 +28,7 @@
           "type": "object"
         }
       },
-      "required": [
-        "cancelled",
-        "wrap"
-      ],
+      "required": ["cancelled", "wrap"],
       "additionalProperties": false
     }
   }

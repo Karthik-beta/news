@@ -5,11 +5,7 @@
   "description": "Add an alias to an entity. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "H",
   "x-news-status": "stub until #12",
-  "x-news-errors": [
-    "not_found",
-    "conflict",
-    "gated"
-  ],
+  "x-news-errors": ["not_found", "conflict", "gated"],
   "$defs": {
     "input": {
       "type": "object",
@@ -21,10 +17,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "alias",
-        "entity"
-      ],
+      "required": ["alias", "entity"],
       "additionalProperties": false
     },
     "output": {
@@ -37,10 +30,7 @@
           "type": "integer"
         }
       },
-      "required": [
-        "alias_norm",
-        "entity_id"
-      ],
+      "required": ["alias_norm", "entity_id"],
       "additionalProperties": false
     }
   }

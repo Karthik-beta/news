@@ -5,9 +5,7 @@
   "description": "Map what Karthik typed after /bureau to an action. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "R",
   "x-news-status": "stub until #10",
-  "x-news-errors": [
-    "usage"
-  ],
+  "x-news-errors": ["usage"],
   "$defs": {
     "input": {
       "type": "object",
@@ -19,9 +17,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "text"
-      ],
+      "required": ["text"],
       "additionalProperties": false
     },
     "output": {
@@ -31,16 +27,10 @@
           "type": "string"
         },
         "preset": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": ["string", "null"]
         },
         "canonical": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": ["string", "null"]
         },
         "args": {
           "type": "object",
@@ -49,44 +39,23 @@
           }
         },
         "match": {
-          "enum": [
-            "grammar",
-            "phrase",
-            "model",
-            "none"
-          ]
+          "enum": ["grammar", "phrase", "model", "none"]
         },
         "confirm": {
           "type": "boolean"
         },
         "command": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": ["string", "null"]
         },
         "reference": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": ["string", "null"]
         },
         "text": {
           "type": "string",
           "description": "Code-rendered text, printed verbatim to Karthik"
         }
       },
-      "required": [
-        "action",
-        "preset",
-        "canonical",
-        "args",
-        "match",
-        "confirm",
-        "command",
-        "reference",
-        "text"
-      ],
+      "required": ["action", "preset", "canonical", "args", "match", "confirm", "command", "reference", "text"],
       "additionalProperties": false
     }
   }

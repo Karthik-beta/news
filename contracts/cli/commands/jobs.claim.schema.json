@@ -5,24 +5,13 @@
   "description": "Claim ready jobs from a pool; --limit sets how many (default 1). Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "W",
   "x-news-status": "built",
-  "x-news-errors": [
-    "usage",
-    "not_found",
-    "precondition"
-  ],
+  "x-news-errors": ["usage", "not_found", "precondition"],
   "$defs": {
     "input": {
       "type": "object",
       "properties": {
         "pool": {
-          "enum": [
-            "net",
-            "cpu",
-            "docling",
-            "render",
-            "ai",
-            "publish"
-          ]
+          "enum": ["net", "cpu", "docling", "render", "ai", "publish"]
         },
         "worker": {
           "type": "string"
@@ -36,10 +25,7 @@
           "minimum": 1
         }
       },
-      "required": [
-        "pool",
-        "worker"
-      ],
+      "required": ["pool", "worker"],
       "additionalProperties": false
     },
     "output": {
@@ -64,17 +50,11 @@
                 "minimum": 1
               },
               "run_id": {
-                "type": [
-                  "string",
-                  "null"
-                ],
+                "type": ["string", "null"],
                 "format": "uuid"
               },
               "item_ref": {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": ["string", "null"]
               },
               "args": {
                 "type": "object"
@@ -105,10 +85,7 @@
           "type": "string"
         },
         "paused_until": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": ["string", "null"],
           "format": "date-time",
           "description": "Set when the pool is paused; nothing was claimed"
         },
@@ -117,11 +94,7 @@
           "description": "Present when truncated: pass to --cursor"
         }
       },
-      "required": [
-        "items",
-        "pool",
-        "paused_until"
-      ],
+      "required": ["items", "pool", "paused_until"],
       "additionalProperties": false
     }
   }

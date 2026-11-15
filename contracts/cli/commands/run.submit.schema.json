@@ -5,10 +5,7 @@
   "description": "Submit a session step's result. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "W",
   "x-news-status": "stub until #10",
-  "x-news-errors": [
-    "validation_failed",
-    "precondition"
-  ],
+  "x-news-errors": ["validation_failed", "precondition"],
   "$defs": {
     "input": {
       "type": "object",
@@ -21,10 +18,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "run",
-        "file"
-      ],
+      "required": ["run", "file"],
       "additionalProperties": false
     },
     "output": {
@@ -34,9 +28,7 @@
           "type": "boolean"
         }
       },
-      "required": [
-        "stored"
-      ],
+      "required": ["stored"],
       "additionalProperties": false
     }
   }

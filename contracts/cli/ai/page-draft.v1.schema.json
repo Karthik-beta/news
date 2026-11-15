@@ -37,26 +37,9 @@
       }
     },
     "angle": {
-      "enum": [
-        "latest-figure",
-        "change",
-        "composition",
-        "trend",
-        "decision",
-        "finding",
-        "comparison",
-        "timeline"
-      ]
+      "enum": ["latest-figure", "change", "composition", "trend", "decision", "finding", "comparison", "timeline"]
     }
   },
-  "required": [
-    "headline",
-    "fly_title",
-    "summary",
-    "oui",
-    "refs_used",
-    "components_used",
-    "angle"
-  ],
+  "required": ["headline", "fly_title", "summary", "oui", "refs_used", "components_used", "angle"],
   "additionalProperties": false
 }

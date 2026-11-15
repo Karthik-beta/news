@@ -5,9 +5,7 @@
   "description": "Load a published page for revision. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "R",
   "x-news-status": "stub until #20",
-  "x-news-errors": [
-    "not_found"
-  ],
+  "x-news-errors": ["not_found"],
   "$defs": {
     "input": {
       "type": "object",
@@ -16,9 +14,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "page"
-      ],
+      "required": ["page"],
       "additionalProperties": false
     },
     "output": {
@@ -35,10 +31,7 @@
           }
         }
       },
-      "required": [
-        "page",
-        "changed_refs"
-      ],
+      "required": ["page", "changed_refs"],
       "additionalProperties": false
     }
   }

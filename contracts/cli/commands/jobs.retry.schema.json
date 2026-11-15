@@ -5,12 +5,7 @@
   "description": "Re-enqueue one finished job, or every discarded job of a class (above 50: Karthik only). Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "W",
   "x-news-status": "built",
-  "x-news-errors": [
-    "usage",
-    "not_found",
-    "conflict",
-    "gated"
-  ],
+  "x-news-errors": ["usage", "not_found", "conflict", "gated"],
   "$defs": {
     "input": {
       "oneOf": [
@@ -21,9 +16,7 @@
               "type": "integer"
             }
           },
-          "required": [
-            "job"
-          ],
+          "required": ["job"],
           "additionalProperties": false
         },
         {
@@ -43,9 +36,7 @@
               ]
             }
           },
-          "required": [
-            "class"
-          ],
+          "required": ["class"],
           "additionalProperties": false
         }
       ]
@@ -71,18 +62,12 @@
                 "type": "string"
               }
             },
-            "required": [
-              "job_id",
-              "reason"
-            ],
+            "required": ["job_id", "reason"],
             "additionalProperties": false
           }
         }
       },
-      "required": [
-        "requeued",
-        "skipped"
-      ],
+      "required": ["requeued", "skipped"],
       "additionalProperties": false
     }
   }

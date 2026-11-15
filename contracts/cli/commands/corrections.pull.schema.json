@@ -5,9 +5,7 @@
   "description": "Fetch new reader error reports. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "W",
   "x-news-status": "stub until #21",
-  "x-news-errors": [
-    "upstream_unavailable"
-  ],
+  "x-news-errors": ["upstream_unavailable"],
   "$defs": {
     "input": {
       "type": "object",
@@ -22,9 +20,7 @@
           "type": "integer"
         }
       },
-      "required": [
-        "new"
-      ],
+      "required": ["new"],
       "additionalProperties": false
     }
   }

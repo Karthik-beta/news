@@ -5,10 +5,7 @@
   "description": "Changes at the open gate. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "H",
   "x-news-status": "stub until #10",
-  "x-news-errors": [
-    "precondition",
-    "gated"
-  ],
+  "x-news-errors": ["precondition", "gated"],
   "$defs": {
     "input": {
       "type": "object",
@@ -31,11 +28,7 @@
       "type": "object",
       "properties": {
         "decision": {
-          "enum": [
-            "approved",
-            "changes",
-            "rejected"
-          ]
+          "enum": ["approved", "changes", "rejected"]
         },
         "round": {
           "type": "integer"
@@ -44,11 +37,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "decision",
-        "round",
-        "subject_sha"
-      ],
+      "required": ["decision", "round", "subject_sha"],
       "additionalProperties": false
     }
   }

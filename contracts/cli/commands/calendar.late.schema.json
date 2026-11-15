@@ -31,10 +31,7 @@
                 "type": "string"
               },
               "expected_at": {
-                "type": [
-                  "string",
-                  "null"
-                ],
+                "type": ["string", "null"],
                 "format": "date-time"
               },
               "expected_day": {
@@ -42,30 +39,13 @@
                 "format": "date"
               },
               "precision": {
-                "enum": [
-                  "exact",
-                  "day",
-                  "window"
-                ]
+                "enum": ["exact", "day", "window"]
               },
               "status": {
-                "enum": [
-                  "expected",
-                  "captured",
-                  "late",
-                  "cancelled"
-                ]
+                "enum": ["expected", "captured", "late", "cancelled"]
               }
             },
-            "required": [
-              "event_key",
-              "title",
-              "source_id",
-              "expected_at",
-              "expected_day",
-              "precision",
-              "status"
-            ],
+            "required": ["event_key", "title", "source_id", "expected_at", "expected_day", "precision", "status"],
             "additionalProperties": false
           }
         },
@@ -74,9 +54,7 @@
           "description": "Present when truncated: pass to --cursor"
         }
       },
-      "required": [
-        "items"
-      ],
+      "required": ["items"],
       "additionalProperties": false
     }
   }

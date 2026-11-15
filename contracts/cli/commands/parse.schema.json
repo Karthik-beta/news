@@ -5,10 +5,7 @@
   "description": "Parse a story's snapshots. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "W",
   "x-news-status": "stub until #9",
-  "x-news-errors": [
-    "validation_failed",
-    "not_found"
-  ],
+  "x-news-errors": ["validation_failed", "not_found"],
   "$defs": {
     "input": {
       "type": "object",
@@ -17,9 +14,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "story"
-      ],
+      "required": ["story"],
       "additionalProperties": false
     },
     "output": {
@@ -35,11 +30,7 @@
           "type": "integer"
         }
       },
-      "required": [
-        "status",
-        "snapshots",
-        "data_points"
-      ],
+      "required": ["status", "snapshots", "data_points"],
       "additionalProperties": false
     }
   }

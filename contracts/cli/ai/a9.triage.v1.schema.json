@@ -6,14 +6,7 @@
   "type": "object",
   "properties": {
     "kind": {
-      "enum": [
-        "figure",
-        "wording",
-        "link",
-        "image",
-        "other",
-        "spam"
-      ]
+      "enum": ["figure", "wording", "link", "image", "other", "spam"]
     },
     "ref": {
       "oneOf": [
@@ -31,10 +24,6 @@
       "maxLength": 200
     }
   },
-  "required": [
-    "kind",
-    "ref",
-    "claim"
-  ],
+  "required": ["kind", "ref", "claim"],
   "additionalProperties": false
 }

@@ -5,12 +5,7 @@
   "description": "One live discovery call, no writes. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "R",
   "x-news-status": "stub until #9",
-  "x-news-errors": [
-    "not_found",
-    "upstream_unavailable",
-    "rate_limited",
-    "licence_blocked"
-  ],
+  "x-news-errors": ["not_found", "upstream_unavailable", "rate_limited", "licence_blocked"],
   "$defs": {
     "input": {
       "type": "object",
@@ -19,9 +14,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "source"
-      ],
+      "required": ["source"],
       "additionalProperties": false
     },
     "output": {
@@ -38,10 +31,7 @@
           "maxItems": 5
         }
       },
-      "required": [
-        "refs",
-        "sample"
-      ],
+      "required": ["refs", "sample"],
       "additionalProperties": false
     }
   }

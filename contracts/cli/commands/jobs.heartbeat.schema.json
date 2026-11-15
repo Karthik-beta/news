@@ -5,10 +5,7 @@
   "description": "Extend a running job's lease. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "W",
   "x-news-status": "built",
-  "x-news-errors": [
-    "not_found",
-    "conflict"
-  ],
+  "x-news-errors": ["not_found", "conflict"],
   "$defs": {
     "input": {
       "type": "object",
@@ -23,9 +20,7 @@
           "type": "integer"
         }
       },
-      "required": [
-        "job"
-      ],
+      "required": ["job"],
       "additionalProperties": false
     },
     "output": {
@@ -39,10 +34,7 @@
           "format": "date-time"
         }
       },
-      "required": [
-        "job_id",
-        "lease_until"
-      ],
+      "required": ["job_id", "lease_until"],
       "additionalProperties": false
     }
   }

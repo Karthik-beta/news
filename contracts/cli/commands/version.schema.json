@@ -20,9 +20,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "news"
-      ],
+      "required": ["news"],
       "additionalProperties": false
     }
   }
