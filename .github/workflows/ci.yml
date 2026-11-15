@@ -110,6 +110,9 @@ jobs:
       - uses: ./.github/actions/setup
       # Each Worker is started from its real wrangler.jsonc under workerd and hit over HTTP. Runs under Node.
       - run: bun --filter './workers/*' test:e2e
+      # The local telemetry dashboard: the real `bun src/index.ts` process on a free loopback port, over HTTP.
+      # It shares this job (and its required check name) because it needs no services either.
+      - run: bun --filter @news/dashboard test:e2e
 
   rust:
     name: Rust (fmt, clippy, tests)
