@@ -6,23 +6,27 @@ export const root = fileURLToPath(new URL("..", import.meta.url));
 
 export function run(cmd: string, args: string[], opts: SpawnSyncOptions = {}) {
   const r = spawnSync(cmd, args, { encoding: "utf8", cwd: root, ...opts });
+  const stderr = (r.stderr ?? "").toString().trim();
   return {
     ok: r.status === 0,
     status: r.status,
     out: (r.stdout ?? "").toString().trim(),
-    err: (r.stderr ?? "").toString().trim(),
+    // A command that could not start (e.g. `docker` not installed) has no stderr; report why instead.
+    err: [stderr, r.error?.message ?? ""].filter(Boolean).join("\n"),
   };
 }
 
+/** An environment variable, or the fallback when it is unset or empty (`KEY=` in .env). */
 export function env(name: string, fallback = ""): string {
-  return process.env[name] ?? fallback;
+  return process.env[name] || fallback;
 }
 
 /** Query ClickHouse over HTTP as the news user. */
 export async function chQuery(sql: string): Promise<{ ok: boolean; body: string }> {
   const url = env("NEWS_CH_HTTP", "http://127.0.0.1:8123");
-  const auth = btoa(`${env("NEWS_CH_USER", "news")}:${env("NEWS_CH_PASSWORD")}`);
   try {
+    // UTF-8 Basic auth: btoa would throw on any character outside Latin-1.
+    const auth = Buffer.from(`${env("NEWS_CH_USER", "news")}:${env("NEWS_CH_PASSWORD")}`, "utf8").toString("base64");
     const res = await fetch(url, { method: "POST", body: sql, headers: { authorization: `Basic ${auth}` } });
     return { ok: res.ok, body: (await res.text()).trim() };
   } catch (e) {

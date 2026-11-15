@@ -1,5 +1,12 @@
 // Local telemetry dashboard (Phase 8). Listens on localhost only.
-const port = Number(process.env.NEWS_DASHBOARD_PORT ?? 4400);
+import { resolvePort } from "./port";
+
+const resolved = resolvePort(process.env.NEWS_DASHBOARD_PORT);
+if ("error" in resolved) {
+  console.error(resolved.error);
+  process.exit(1);
+}
+const { port } = resolved;
 Bun.serve({
   hostname: "127.0.0.1",
   port,

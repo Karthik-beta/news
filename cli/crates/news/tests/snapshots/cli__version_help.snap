@@ -1,0 +1,10 @@
+---
+source: crates/news/tests/cli.rs
+expression: "stdout_of(&[\"version\", \"--help\"])"
+---
+Print the CLI version as JSON
+
+Usage: news version
+
+Options:
+  -h, --help  Print help

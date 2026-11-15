@@ -2,24 +2,19 @@
 // then the events table. Idempotent. The password comes from .env and is passed on stdin, not argv.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { chQuery, env, root, run } from "./lib";
+import { applyAccess, passwordProblem, renderAccessSql } from "./clickhouse";
+import { chQuery, env, root } from "./lib";
 
 const container = env("NEWS_CH_CONTAINER", "shorts-clickhouse-1");
 const password = env("NEWS_CH_PASSWORD");
-if (!password) {
-  console.error("NEWS_CH_PASSWORD is empty. Run `bun run setup` first.");
-  process.exit(1);
-}
-if (/['\\]/.test(password)) {
-  console.error("NEWS_CH_PASSWORD must not contain quotes or backslashes.");
+const problem = passwordProblem(password);
+if (problem) {
+  console.error(problem);
   process.exit(1);
 }
 
-const access = readFileSync(join(root, "infra/clickhouse/001_access.sql"), "utf8").replaceAll(
-  "{{NEWS_CH_PASSWORD}}",
-  password,
-);
-const admin = run("docker", ["exec", "-i", container, "clickhouse-client", "--multiquery"], { input: access });
+const access = renderAccessSql(readFileSync(join(root, "infra/clickhouse/001_access.sql"), "utf8"), password);
+const admin = applyAccess(container, access);
 if (!admin.ok) {
   console.error(`Access setup failed in ${container}:\n${admin.err}`);
   process.exit(1);

@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "bun --watch src/index.ts",
     "typecheck": "tsc --noEmit",
-    "test": "echo \"no tests until Phase 8\""
+    "test": "bun test src --pass-with-no-tests",
+    "test:e2e": "bun test tests/e2e"
   },
   "devDependencies": {
     "@types/bun": "^1.4.4",
