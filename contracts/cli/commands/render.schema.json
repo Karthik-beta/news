@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/render.schema.json",
+  "title": "news render",
+  "description": "Render a story's page bundle. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "W",
+  "x-news-status": "stub until #17",
+  "x-news-errors": [
+    "validation_failed"
+  ],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "story": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "story"
+      ],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "paths": {
+          "type": "object",
+          "properties": {
+            "html": {
+              "type": "string"
+            },
+            "md": {
+              "type": "string"
+            },
+            "json": {
+              "type": "string"
+            },
+            "bundle": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "html",
+            "md",
+            "json",
+            "bundle"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "paths"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

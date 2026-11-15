@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/component.schema.json",
+  "title": "news component",
+  "description": "One component's props, data shape and example. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "R",
+  "x-news-status": "built",
+  "x-news-errors": [
+    "not_found",
+    "precondition"
+  ],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "summary": {},
+        "props": {
+          "type": "object"
+        },
+        "data_shape": {},
+        "example": {}
+      },
+      "required": [
+        "type",
+        "summary",
+        "props",
+        "data_shape",
+        "example"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

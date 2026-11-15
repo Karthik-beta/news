@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/jobs.heartbeat.schema.json",
+  "title": "news jobs heartbeat",
+  "description": "Extend a running job's lease. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "W",
+  "x-news-status": "built",
+  "x-news-errors": [
+    "not_found",
+    "conflict"
+  ],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "job": {
+          "type": "integer"
+        },
+        "worker": {
+          "type": "string"
+        },
+        "lease_seconds": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "job"
+      ],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "job_id": {
+          "type": "integer"
+        },
+        "lease_until": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "job_id",
+        "lease_until"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

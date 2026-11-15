@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/sources.list.schema.json",
+  "title": "news sources list",
+  "description": "All sources. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "R",
+  "x-news-status": "stub until #9",
+  "x-news-errors": [],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "source_id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "publisher": {
+                "type": "string"
+              },
+              "source_tier": {
+                "type": "integer"
+              },
+              "licence": {
+                "type": "string"
+              },
+              "enabled": {
+                "type": "boolean"
+              },
+              "health": {
+                "enum": [
+                  "unknown",
+                  "green",
+                  "amber",
+                  "red"
+                ]
+              }
+            },
+            "required": [
+              "source_id",
+              "name",
+              "publisher",
+              "source_tier",
+              "licence",
+              "enabled",
+              "health"
+            ],
+            "additionalProperties": true
+          }
+        },
+        "next_cursor": {
+          "type": "string",
+          "description": "Present when truncated: pass to --cursor"
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

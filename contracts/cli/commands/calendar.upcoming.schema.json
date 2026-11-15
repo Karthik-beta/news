@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/calendar.upcoming.schema.json",
+  "title": "news calendar upcoming",
+  "description": "Expected releases. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "R",
+  "x-news-status": "stub until #12",
+  "x-news-errors": [],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "days": {
+          "type": "integer"
+        },
+        "region": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "days"
+      ],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "event_key": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "source_id": {
+                "type": "string"
+              },
+              "expected_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "expected_day": {
+                "type": "string",
+                "format": "date"
+              },
+              "precision": {
+                "enum": [
+                  "exact",
+                  "day",
+                  "window"
+                ]
+              },
+              "status": {
+                "enum": [
+                  "expected",
+                  "captured",
+                  "late",
+                  "cancelled"
+                ]
+              }
+            },
+            "required": [
+              "event_key",
+              "title",
+              "source_id",
+              "expected_at",
+              "expected_day",
+              "precision",
+              "status"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "next_cursor": {
+          "type": "string",
+          "description": "Present when truncated: pass to --cursor"
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

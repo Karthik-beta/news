@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/entities.alias.add.schema.json",
+  "title": "news entities alias add",
+  "description": "Add an alias to an entity. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "H",
+  "x-news-status": "stub until #12",
+  "x-news-errors": [
+    "not_found",
+    "conflict",
+    "gated"
+  ],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "alias": {
+          "type": "string"
+        },
+        "entity": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "alias",
+        "entity"
+      ],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "alias_norm": {
+          "type": "string"
+        },
+        "entity_id": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "alias_norm",
+        "entity_id"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

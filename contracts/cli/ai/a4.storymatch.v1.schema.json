@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/ai/a4.storymatch.v1.schema.json",
+  "title": "A4 storymatch",
+  "description": "Same story? for grey-zone pairs (Bureau §7.1 A4). One answer per input pair.",
+  "type": "object",
+  "properties": {
+    "pairs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "a": {
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "b": {
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "same": {
+            "type": "boolean"
+          },
+          "basis": {
+            "enum": [
+              "same_event",
+              "same_entity_different_event",
+              "different"
+            ]
+          }
+        },
+        "required": [
+          "a",
+          "b",
+          "same",
+          "basis"
+        ],
+        "additionalProperties": false
+      },
+      "maxItems": 20
+    }
+  },
+  "required": [
+    "pairs"
+  ],
+  "additionalProperties": false
+}

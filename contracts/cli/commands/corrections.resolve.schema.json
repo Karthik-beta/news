@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/corrections.resolve.schema.json",
+  "title": "news corrections resolve",
+  "description": "Resolve a report (update is G tier). Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "W",
+  "x-news-status": "stub until #21",
+  "x-news-errors": [
+    "not_found",
+    "gated"
+  ],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "report": {
+          "type": "string"
+        },
+        "action": {
+          "enum": [
+            "update",
+            "dismiss"
+          ]
+        }
+      },
+      "required": [
+        "report",
+        "action"
+      ],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "report_id": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string"
+        },
+        "page_version": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "report_id",
+        "action"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

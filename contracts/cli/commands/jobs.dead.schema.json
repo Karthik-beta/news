@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/jobs.dead.schema.json",
+  "title": "news jobs dead",
+  "description": "Discarded jobs grouped by error class and message fingerprint. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "R",
+  "x-news-status": "built",
+  "x-news-errors": [
+    "usage",
+    "precondition"
+  ],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "class": {
+          "enum": [
+            "transient",
+            "rate_limited",
+            "ai_usage_limit",
+            "ai_invalid_output",
+            "check_failed",
+            "upstream_changed",
+            "invalid_data",
+            "licence_blocked",
+            "bug"
+          ]
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "error_class": {
+                "type": "string"
+              },
+              "fingerprint": {
+                "type": "string"
+              },
+              "count": {
+                "type": "integer"
+              },
+              "job_ids": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                },
+                "maxItems": 5
+              },
+              "last_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "error_class",
+              "fingerprint",
+              "count",
+              "job_ids",
+              "last_at"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "text": {
+          "type": "string",
+          "description": "Code-rendered text, printed verbatim to Karthik"
+        },
+        "next_cursor": {
+          "type": "string",
+          "description": "Present when truncated: pass to --cursor"
+        }
+      },
+      "required": [
+        "items",
+        "text"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

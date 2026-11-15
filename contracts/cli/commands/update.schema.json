@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/update.schema.json",
+  "title": "news update",
+  "description": "Load a published page for revision. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "R",
+  "x-news-status": "stub until #20",
+  "x-news-errors": [
+    "not_found"
+  ],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "page": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "page"
+      ],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "page": {
+          "type": "object"
+        },
+        "changed_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^(dp|dv|sr|pd|q|cx)_[a-z0-9]+(_[a-z0-9]+)*$"
+          }
+        }
+      },
+      "required": [
+        "page",
+        "changed_refs"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/run.resume.schema.json",
+  "title": "news run resume",
+  "description": "Resume a paused or stalled run. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "W",
+  "x-news-status": "stub until #10",
+  "x-news-errors": [
+    "conflict"
+  ],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "run": {
+          "type": "string",
+          "description": "Run id or short id (r_…)"
+        }
+      },
+      "required": [
+        "run"
+      ],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "stop": {
+          "enum": [
+            "ai_batch",
+            "session_task",
+            "approval",
+            "paused_usage",
+            "done",
+            "failed",
+            "cancelled"
+          ]
+        },
+        "command": {
+          "type": "string"
+        },
+        "task": {
+          "type": "string"
+        },
+        "submit": {
+          "type": "string"
+        },
+        "gate": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "object"
+        },
+        "subject_sha": {
+          "type": "string"
+        },
+        "resume_hint": {
+          "type": "string"
+        },
+        "reference": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string",
+          "description": "Code-rendered text, printed verbatim to Karthik"
+        }
+      },
+      "required": [
+        "stop",
+        "text"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

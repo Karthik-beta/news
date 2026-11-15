@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/jobs.unpause.schema.json",
+  "title": "news jobs unpause",
+  "description": "Unpause a pool. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "H",
+  "x-news-status": "built",
+  "x-news-errors": [
+    "usage",
+    "not_found",
+    "gated"
+  ],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "pool": {
+          "enum": [
+            "net",
+            "cpu",
+            "docling",
+            "render",
+            "ai",
+            "publish"
+          ]
+        }
+      },
+      "required": [
+        "pool"
+      ],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "pool": {
+          "type": "string"
+        },
+        "paused_until": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "pool",
+        "paused_until"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

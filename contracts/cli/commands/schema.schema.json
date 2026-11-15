@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/schema.schema.json",
+  "title": "news schema",
+  "description": "Input and output schemas of a command; without one, the list of commands. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "R",
+  "x-news-status": "built",
+  "x-news-errors": [
+    "not_found"
+  ],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "command"
+      ],
+      "additionalProperties": false
+    },
+    "output": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "command": {
+              "type": "string"
+            },
+            "schema": {
+              "type": "object"
+            }
+          },
+          "required": [
+            "command",
+            "schema"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "count": {
+              "type": "integer"
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "envelope": {
+              "type": "object"
+            },
+            "next_cursor": {
+              "type": "string",
+              "description": "Present when truncated: pass to --cursor"
+            }
+          },
+          "required": [
+            "count",
+            "items",
+            "envelope"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}

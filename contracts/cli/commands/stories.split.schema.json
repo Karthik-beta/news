@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/stories.split.schema.json",
+  "title": "news stories split",
+  "description": "Split candidates out of a story. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "H",
+  "x-news-status": "stub until #15",
+  "x-news-errors": [
+    "not_found",
+    "gated"
+  ],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "story": {
+          "type": "string"
+        },
+        "cands": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "story",
+        "cands"
+      ],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "story_id": {
+          "type": "integer"
+        },
+        "new_story_id": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "story_id",
+        "new_story_id"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

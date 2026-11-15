@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/stories.merge.schema.json",
+  "title": "news stories merge",
+  "description": "Merge two stories. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "H",
+  "x-news-status": "stub until #15",
+  "x-news-errors": [
+    "not_found",
+    "gated"
+  ],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "a": {
+          "type": "string"
+        },
+        "b": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "a",
+        "b"
+      ],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "story_id": {
+          "type": "integer"
+        },
+        "merged": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "story_id",
+        "merged"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

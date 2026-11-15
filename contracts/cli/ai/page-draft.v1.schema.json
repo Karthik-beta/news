@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/ai/page-draft.v1.schema.json",
+  "title": "page-draft.v1",
+  "description": "A Copy: Reporter's output for A1 and A2 (Bureau §3.9). Numbers appear only as {ref} tokens.",
+  "type": "object",
+  "properties": {
+    "headline": {
+      "type": "string",
+      "minLength": 20,
+      "maxLength": 110
+    },
+    "fly_title": {
+      "type": "string",
+      "maxLength": 40
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 60,
+      "maxLength": 240
+    },
+    "oui": {
+      "type": "string",
+      "maxLength": 24000
+    },
+    "refs_used": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^(dp|dv|sr|pd|q|cx)_[a-z0-9]+(_[a-z0-9]+)*$"
+      }
+    },
+    "components_used": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "angle": {
+      "enum": [
+        "latest-figure",
+        "change",
+        "composition",
+        "trend",
+        "decision",
+        "finding",
+        "comparison",
+        "timeline"
+      ]
+    }
+  },
+  "required": [
+    "headline",
+    "fly_title",
+    "summary",
+    "oui",
+    "refs_used",
+    "components_used",
+    "angle"
+  ],
+  "additionalProperties": false
+}

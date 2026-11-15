@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/scores.adopt.schema.json",
+  "title": "news scores adopt",
+  "description": "Adopt a weights version. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "G",
+  "x-news-status": "stub until #15",
+  "x-news-errors": [
+    "not_found",
+    "gated"
+  ],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "version"
+      ],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string"
+        },
+        "adopted": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "version",
+        "adopted"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

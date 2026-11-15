@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/eval.report.schema.json",
+  "title": "news eval report",
+  "description": "An evaluation run's report. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "R",
+  "x-news-status": "stub until #19",
+  "x-news-errors": [
+    "not_found"
+  ],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "eval_run": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "eval_run"
+      ],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "eval_run": {
+          "type": "string"
+        },
+        "metrics": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number"
+          }
+        },
+        "text": {
+          "type": "string",
+          "description": "Code-rendered text, printed verbatim to Karthik"
+        }
+      },
+      "required": [
+        "eval_run",
+        "metrics",
+        "text"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

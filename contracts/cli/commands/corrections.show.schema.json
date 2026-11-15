@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/corrections.show.schema.json",
+  "title": "news corrections show",
+  "description": "One report. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "R",
+  "x-news-status": "stub until #21",
+  "x-news-errors": [
+    "not_found"
+  ],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "report": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "report"
+      ],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "report_id": {
+          "type": "string"
+        },
+        "page_id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "report_id",
+        "page_id",
+        "kind",
+        "text"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

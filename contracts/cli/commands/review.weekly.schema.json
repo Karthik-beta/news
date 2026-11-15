@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/review.weekly.schema.json",
+  "title": "news review weekly",
+  "description": "The Debrief: the week's statistics. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "R",
+  "x-news-status": "stub until #19",
+  "x-news-errors": [],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "Code-rendered text, printed verbatim to Karthik"
+        },
+        "coverage": {
+          "type": "object"
+        },
+        "failures": {
+          "type": "object"
+        },
+        "tokens_per_page": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "text",
+        "coverage",
+        "failures",
+        "tokens_per_page"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

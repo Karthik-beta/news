@@ -1,0 +1,326 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/ai/brief.v1.schema.json",
+  "title": "brief.v1",
+  "description": "Fixer's research pack for Reporter (Bureau §3.8). Target 1–3k tokens, hard cap 4k. Facts carry values so Reporter understands direction and size, but it may output only ref tokens.",
+  "type": "object",
+  "properties": {
+    "brief_version": {
+      "const": 1
+    },
+    "item": {
+      "type": "object",
+      "properties": {
+        "story_id": {
+          "type": "integer"
+        },
+        "event_key": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "page_type": {
+          "type": "string"
+        },
+        "tier": {
+          "enum": [
+            1,
+            2
+          ]
+        },
+        "action": {
+          "enum": [
+            "new",
+            "update"
+          ]
+        },
+        "slug_hint": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        },
+        "data_as_of": {
+          "type": "string",
+          "format": "date"
+        }
+      },
+      "required": [
+        "story_id",
+        "page_type",
+        "tier",
+        "action"
+      ],
+      "additionalProperties": false
+    },
+    "entities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "facts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ref": {
+            "type": "string",
+            "pattern": "^(dp|dv)_[a-z0-9]+(_[a-z0-9]+)*$"
+          },
+          "label": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string",
+            "description": "Verbatim value text; never converted"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "period": {
+            "type": "string"
+          },
+          "derived": {
+            "enum": [
+              "pct_change",
+              "pp_change",
+              "diff",
+              "share"
+            ]
+          }
+        },
+        "required": [
+          "ref",
+          "label",
+          "value",
+          "unit"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "series": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ref": {
+            "type": "string",
+            "pattern": "^sr_[a-z0-9]+(_[a-z0-9]+)*$"
+          },
+          "label": {
+            "type": "string"
+          },
+          "points": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ref",
+          "label",
+          "points"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "periods": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ref": {
+            "type": "string",
+            "pattern": "^pd_[a-z0-9]+(_[a-z0-9]+)*$"
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ref",
+          "label"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "context": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^cx_[a-z0-9]+(_[a-z0-9]+)*$"
+          },
+          "text": {
+            "type": "string"
+          },
+          "rule": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "text",
+          "rule"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "quotes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^q_[a-z0-9]+(_[a-z0-9]+)*$"
+          },
+          "doc": {
+            "type": "integer"
+          },
+          "block": {
+            "type": "integer"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "doc",
+          "block",
+          "text"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "source_text": {
+      "type": "object",
+      "properties": {
+        "untrusted": {
+          "const": true
+        },
+        "points": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "untrusted",
+        "points"
+      ],
+      "additionalProperties": false
+    },
+    "media": {
+      "type": "object",
+      "properties": {
+        "images": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "video": {
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "images",
+        "video"
+      ],
+      "additionalProperties": false
+    },
+    "related_pages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "page_id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "page_id",
+          "title"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "components": {
+      "type": "object",
+      "properties": {
+        "suggested": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "suggested"
+      ],
+      "additionalProperties": false
+    },
+    "rules": {
+      "type": "object",
+      "properties": {
+        "disclaimer": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fiscal_note": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "disclaimer",
+        "fiscal_note"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "brief_version",
+    "item",
+    "entities",
+    "facts",
+    "series",
+    "periods",
+    "context",
+    "quotes",
+    "source_text",
+    "components",
+    "rules"
+  ],
+  "additionalProperties": false
+}

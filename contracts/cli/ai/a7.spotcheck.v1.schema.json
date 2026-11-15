@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/ai/a7.spotcheck.v1.schema.json",
+  "title": "A7 spot check",
+  "description": "Sample spot check of a page against its brief (Bureau §7.1 A7).",
+  "type": "object",
+  "properties": {
+    "verdict": {
+      "enum": [
+        "pass",
+        "flag"
+      ]
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "enum": [
+              "unsupported_claim",
+              "wrong_direction",
+              "missing_context",
+              "tone",
+              "attribution",
+              "other"
+            ]
+          },
+          "where": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "severity": {
+            "enum": [
+              "low",
+              "high"
+            ]
+          }
+        },
+        "required": [
+          "kind",
+          "where",
+          "evidence",
+          "severity"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "verdict",
+    "issues"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/plan.schema.json",
+  "title": "news plan",
+  "description": "Score, cluster and select stories for a run (the Budget). Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "W",
+  "x-news-status": "stub until #15",
+  "x-news-errors": [
+    "precondition"
+  ],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "run": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "required": [
+        "run"
+      ],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "planned": {
+          "type": "integer"
+        },
+        "by_tier": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer"
+          }
+        },
+        "by_bucket": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer"
+          }
+        },
+        "top": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "story_id": {
+                "type": "integer"
+              },
+              "S": {
+                "type": "number"
+              },
+              "tier": {
+                "enum": [
+                  1,
+                  2
+                ]
+              },
+              "reason": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "story_id",
+              "S",
+              "tier",
+              "reason"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 10
+        }
+      },
+      "required": [
+        "run_id",
+        "planned",
+        "by_tier",
+        "by_bucket",
+        "top"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

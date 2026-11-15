@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/ai/a3.classify.v1.schema.json",
+  "title": "A3 classify",
+  "description": "Classify an ambiguous item (Bureau §7.1 A3). Labels come from closed sets given in the input; the validator checks them against the taxonomy.",
+  "type": "object",
+  "properties": {
+    "page_type": {
+      "type": "string"
+    },
+    "categories": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 3
+    },
+    "region": {
+      "type": "string"
+    },
+    "confidence": {
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ]
+    }
+  },
+  "required": [
+    "page_type",
+    "categories",
+    "region",
+    "confidence"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/eval.run.schema.json",
+  "title": "news eval run",
+  "description": "Run an evaluation suite. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "W",
+  "x-news-status": "stub until #19",
+  "x-news-errors": [
+    "budget_exceeded",
+    "not_found"
+  ],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "suite": {
+          "type": "string"
+        },
+        "prompt_version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "suite"
+      ],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "eval_run": {
+          "type": "string"
+        },
+        "passed": {
+          "type": "integer"
+        },
+        "failed": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "eval_run",
+        "passed",
+        "failed"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

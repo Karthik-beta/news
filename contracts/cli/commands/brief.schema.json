@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/brief.schema.json",
+  "title": "news brief",
+  "description": "Build the brief for a story. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "R",
+  "x-news-status": "stub until #18",
+  "x-news-errors": [
+    "not_found",
+    "budget_exceeded"
+  ],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "story": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "story"
+      ],
+      "additionalProperties": false
+    },
+    "output": {
+      "$ref": "../ai/brief.v1.schema.json"
+    }
+  }
+}

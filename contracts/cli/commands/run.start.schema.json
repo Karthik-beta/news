@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/run.start.schema.json",
+  "title": "news run start",
+  "description": "Start a preset; needs an issued start ticket. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "W",
+  "x-news-status": "stub until #10",
+  "x-news-errors": [
+    "gated",
+    "conflict",
+    "precondition"
+  ],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "preset": {
+          "type": "string"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "preset"
+      ],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "short_id": {
+          "type": "string"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "seq": {
+                "type": "integer"
+              },
+              "step": {
+                "type": "string"
+              },
+              "kind": {
+                "enum": [
+                  "code",
+                  "ai_batch",
+                  "session",
+                  "approval"
+                ]
+              }
+            },
+            "required": [
+              "seq",
+              "step",
+              "kind"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "next": {
+          "type": "string"
+        },
+        "reference": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "run_id",
+        "short_id",
+        "steps",
+        "next",
+        "reference"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
