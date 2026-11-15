@@ -12,13 +12,21 @@ These skills are for the **production pipeline**: the `claude -p` calls (Sonnet 
 | [page-news-story](page-news-story/SKILL.md) | News stories | Draft, finalised in Phase 4 |
 | [page-science](page-science/SKILL.md) | Science pages | Draft, finalised in Phase 4 |
 | [page-explainer](page-explainer/SKILL.md) | Explainers | Draft, finalised in Phase 4 |
-| news-home-curation | The home page curator in the `curate-home` workflow (every 2–3 days) | Planned: written in Phase 7 (Development Plan) |
+| news-home-curation | The home page curator in the Frontpage preset (`/bureau curate home`, every 2–3 days); loaded by the `/bureau` session, not by a `claude -p` call | Planned: written in Phase 7 (Development Plan) |
+| A3: classify an ambiguous item (name to be chosen) | Haiku batches for free-text items the rules table cannot classify | Planned: Phase 7 |
+| A4: same story? (name to be chosen) | Haiku batches for grey-zone story pairs | Planned: Phase 7 |
+| A5: condense long source text (name to be chosen) | Haiku, when a brief's source text is too long; extractive and digit-free | Planned: Phase 7 |
+| A7: sample check (name to be chosen) | Haiku comparison of a page with its brief, on a sample of pages | Planned: Phase 7 |
+| A9: triage a reader error report (name to be chosen) | Haiku batches in the Errata workflow | Planned: Phase 7 |
+| A6 entity shortlist, A10 alt text (names to be chosen) | Only if switched on; off at launch (Bureau design, decision D12 — recommended, pending Karthik's confirmation) | Not planned yet |
+
+Each AI step's contract (input, output schema, validator, fallback, budget) is in the [Bureau design §7](../News%20—%20Bureau%20Design.md#7-ai-usage-ledger).
 
 ## How the pipeline uses them
 
-The bun runner (Phase 7) builds each page call's prompt from: instructions, `news-brand`, the one page-type skill for the item, the component index, then the brief. Keep the prefix identical across calls so prompt caching stays warm, and keep each skill short: every word is paid for on every page.
+Ghost, the Bun AI runner (Phase 7), builds each page call's prompt prefix from: instructions, `news-brand`, the one page-type skill for the item, the component index and that page type's pre-selected component specs; the brief is the input. Keep the prefix identical across calls so prompt caching stays warm, and keep each skill short: every word is paid for on every page.
 
-Page calls must not load the project's development plugins and skills. Run them with an explicit settings file that enables no plugins, an empty strict MCP config (`--strict-mcp-config`), and only the `news` CLI tools allowed (see the Technical Design, "Keeping each claude -p call lean").
+Page calls must not load the project's development plugins and skills, and get no tools at all. Run them with `--tools ""`, an explicit settings file that enables no plugins or hooks, and an empty strict MCP config (`--strict-mcp-config`) (see the Technical Design, "Keeping each claude -p call lean", and the [Bureau design §3.9](../News%20—%20Bureau%20Design.md#39-reporter)).
 
 ## Development skills
 
