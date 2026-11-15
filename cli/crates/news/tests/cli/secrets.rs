@@ -11,7 +11,10 @@ fn work_refuses_ai_render_and_publish_pools_with_exit_2() {
         assert_eq!(code, 2, "{pools}: {env}");
         assert_eq!(env["error"]["code"], "usage", "{pools}");
         assert!(
-            env["error"]["message"].as_str().unwrap().contains("never in news work"),
+            env["error"]["message"]
+                .as_str()
+                .unwrap()
+                .contains("never in news work"),
             "{pools}: {env}"
         );
     }
@@ -30,7 +33,11 @@ fn work_refuses_bad_pools_before_reading_any_environment() {
         .output()
         .unwrap();
     assert_eq!(out.status.code(), Some(2));
-    let all = format!("{}{}", String::from_utf8_lossy(&out.stdout), String::from_utf8_lossy(&out.stderr));
+    let all = format!(
+        "{}{}",
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr)
+    );
     assert!(!all.contains(sentinel));
 }
 
@@ -57,8 +64,17 @@ fn only_the_secrets_guard_names_the_write_api_key() {
     rust_files(&crates, &mut files);
     let naming: Vec<String> = files
         .iter()
-        .filter(|f| std::fs::read_to_string(f).unwrap().contains("NEWS_WRITE_API_KEY"))
-        .map(|f| f.strip_prefix(&crates).unwrap().to_string_lossy().replace('\\', "/"))
+        .filter(|f| {
+            std::fs::read_to_string(f)
+                .unwrap()
+                .contains("NEWS_WRITE_API_KEY")
+        })
+        .map(|f| {
+            f.strip_prefix(&crates)
+                .unwrap()
+                .to_string_lossy()
+                .replace('\\', "/")
+        })
         .collect();
     assert_eq!(naming, ["news-core/src/secrets.rs"], "{naming:?}");
     let reading: Vec<String> = files
@@ -69,7 +85,12 @@ fn only_the_secrets_guard_names_the_write_api_key() {
                 .replace("forbid_write_api_key()", "")
                 .contains("write_api_key()")
         })
-        .map(|f| f.strip_prefix(&crates).unwrap().to_string_lossy().replace('\\', "/"))
+        .map(|f| {
+            f.strip_prefix(&crates)
+                .unwrap()
+                .to_string_lossy()
+                .replace('\\', "/")
+        })
         .filter(|f| f != "news-core/src/secrets.rs")
         .collect();
     assert!(

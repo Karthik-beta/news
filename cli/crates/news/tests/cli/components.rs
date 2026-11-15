@@ -47,7 +47,10 @@ fn component_returns_props_data_shape_and_example() {
     let d = &env["data"];
     assert_eq!(d["type"], "KeyFigures");
     assert_eq!(d["props"]["figures"]["minItems"], 2);
-    assert_eq!(d["data_shape"], "figures[] of {ref: dp_*|dv_*, period: pd_*}");
+    assert_eq!(
+        d["data_shape"],
+        "figures[] of {ref: dp_*|dv_*, period: pd_*}"
+    );
     assert!(d["example"].as_str().unwrap().starts_with("KeyFigures("));
 }
 
@@ -56,7 +59,12 @@ fn unknown_component_is_not_found_with_suggestions() {
     let (env, code, _) = with_index(&["component", "keyfigures"]);
     assert_eq!(code, 3);
     assert_eq!(env["error"]["code"], "not_found");
-    assert!(env["error"]["hint"].as_str().unwrap().contains("KeyFigures"));
+    assert!(
+        env["error"]["hint"]
+            .as_str()
+            .unwrap()
+            .contains("KeyFigures")
+    );
 }
 
 #[test]
@@ -69,7 +77,12 @@ fn missing_index_is_a_precondition_that_says_how_to_build_it() {
     );
     assert_eq!(code, 4);
     assert_eq!(env["error"]["code"], "precondition");
-    assert!(env["error"]["hint"].as_str().unwrap().contains("NEWS_COMPONENT_INDEX"));
+    assert!(
+        env["error"]["hint"]
+            .as_str()
+            .unwrap()
+            .contains("NEWS_COMPONENT_INDEX")
+    );
 }
 
 #[test]

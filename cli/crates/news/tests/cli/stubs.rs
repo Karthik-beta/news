@@ -91,10 +91,16 @@ fn every_stub_returns_precondition_with_exit_4() {
         assert_eq!(env["error"]["code"], "precondition", "{argv}");
         assert_eq!(env["error"]["retryable"], false, "{argv}");
         assert!(
-            env["error"]["message"].as_str().unwrap().contains("not built yet"),
+            env["error"]["message"]
+                .as_str()
+                .unwrap()
+                .contains("not built yet"),
             "{argv}: {env}"
         );
-        assert!(env["error"]["hint"].as_str().unwrap().contains(issue), "{argv}: {env}");
+        assert!(
+            env["error"]["hint"].as_str().unwrap().contains(issue),
+            "{argv}: {env}"
+        );
         assert!(stderr.is_empty(), "{argv}: {stderr}");
     }
 }
@@ -106,9 +112,14 @@ fn stubs_cover_every_leaf_that_has_a_stub_contract() {
     let mut stub_contracts = BTreeSet::new();
     for e in std::fs::read_dir(dir).unwrap() {
         let p = e.unwrap().path();
-        let v: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&p).unwrap()).unwrap();
+        let v: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&p).unwrap()).unwrap();
         if v["x-news-status"].as_str().unwrap().starts_with("stub") {
-            let name = p.file_name().unwrap().to_string_lossy().replace(".schema.json", "");
+            let name = p
+                .file_name()
+                .unwrap()
+                .to_string_lossy()
+                .replace(".schema.json", "");
             stub_contracts.insert(name);
         }
     }
@@ -119,8 +130,15 @@ fn stubs_cover_every_leaf_that_has_a_stub_contract() {
             let words: Vec<&str> = argv.split(' ').collect();
             let mut path = Vec::new();
             for w in words {
-                let candidate = if path.is_empty() { w.to_owned() } else { format!("{}.{w}", path.join(".")) };
-                if stub_contracts.iter().any(|c| c == &candidate || c.starts_with(&format!("{candidate}."))) {
+                let candidate = if path.is_empty() {
+                    w.to_owned()
+                } else {
+                    format!("{}.{w}", path.join("."))
+                };
+                if stub_contracts
+                    .iter()
+                    .any(|c| c == &candidate || c.starts_with(&format!("{candidate}.")))
+                {
                     path.push(w);
                 } else {
                     break;

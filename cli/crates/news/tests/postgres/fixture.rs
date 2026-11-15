@@ -5,11 +5,12 @@ use news_store::{DbConfig, PgPool};
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-pub const IGNORE: &str = "needs Postgres: `bun run infra:up`, then `bun run test:integration`";
-
 pub fn url() -> String {
     std::env::var(super::URL_VAR).unwrap_or_else(|_| {
-        panic!("{} is not set: run `bun run infra:up`, then `bun run test:integration` (CI sets it)", super::URL_VAR)
+        panic!(
+            "{} is not set: run `bun run infra:up`, then `bun run test:integration` (CI sets it)",
+            super::URL_VAR
+        )
     })
 }
 
@@ -21,7 +22,10 @@ pub struct Fixture {
 
 fn unique_schema() -> String {
     static COUNTER: AtomicU32 = AtomicU32::new(0);
-    let nanos = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
     format!(
         "news_it_{}_{}_{nanos}",
         std::process::id(),
@@ -94,7 +98,11 @@ pub fn call(cmd: &mut assert_cmd::Command) -> (serde_json::Value, i32, String, S
     let out = cmd.output().unwrap();
     let stdout = String::from_utf8(out.stdout).unwrap();
     let stderr = String::from_utf8(out.stderr).unwrap();
-    assert_eq!(stdout.matches('\n').count(), 1, "stdout is not one line: {stdout:?} / {stderr}");
+    assert_eq!(
+        stdout.matches('\n').count(),
+        1,
+        "stdout is not one line: {stdout:?} / {stderr}"
+    );
     let env = serde_json::from_str(&stdout).unwrap_or_else(|e| panic!("{e}: {stdout}"));
     (env, out.status.code().unwrap(), stdout, stderr)
 }

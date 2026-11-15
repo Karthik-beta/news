@@ -31,14 +31,23 @@ const EXIT: &[(&str, i32)] = &[
     ("internal", 10),
 ];
 
+/// (expected error code, argv, extra environment).
+type Case<'a> = (&'a str, Vec<&'a str>, Vec<(&'a str, String)>);
+
 fn exit_for(code: &str) -> i32 {
-    EXIT.iter().find(|(c, _)| *c == code).map(|(_, e)| *e).unwrap_or_else(|| panic!("unknown code {code}"))
+    EXIT.iter()
+        .find(|(c, _)| *c == code)
+        .map(|(_, e)| *e)
+        .unwrap_or_else(|| panic!("unknown code {code}"))
 }
 
 fn check(env: &Value, code: i32) {
     let v = envelope_validator();
     let errors: Vec<String> = v.iter_errors(env).map(|e| e.to_string()).collect();
-    assert!(errors.is_empty(), "{env} breaks envelope.schema.json: {errors:?}");
+    assert!(
+        errors.is_empty(),
+        "{env} breaks envelope.schema.json: {errors:?}"
+    );
     match env["ok"].as_bool() {
         Some(true) => assert_eq!(code, 0, "{env}"),
         Some(false) => {
@@ -64,9 +73,10 @@ fn the_contract_table_matches_the_published_exit_codes() {
 #[test]
 fn each_error_code_the_binary_can_reach_offline_exits_with_its_code() {
     let fixture = super::components::fixture();
-    let bad_index = std::env::temp_dir().join(format!("news-bad-index-{}.json", std::process::id()));
+    let bad_index =
+        std::env::temp_dir().join(format!("news-bad-index-{}.json", std::process::id()));
     std::fs::write(&bad_index, "{not json").unwrap();
-    let cases: Vec<(&str, Vec<&str>, Vec<(&str, String)>)> = vec![
+    let cases: Vec<Case> = vec![
         ("usage", vec!["frobnicate"], vec![]),
         ("usage", vec!["work", "--pools", "ai"], vec![]),
         ("usage", vec!["version", "--limit", "0"], vec![]),
@@ -83,12 +93,18 @@ fn each_error_code_the_binary_can_reach_offline_exits_with_its_code() {
         (
             "validation_failed",
             vec!["components"],
-            vec![("NEWS_COMPONENT_INDEX", bad_index.to_string_lossy().into_owned())],
+            vec![(
+                "NEWS_COMPONENT_INDEX",
+                bad_index.to_string_lossy().into_owned(),
+            )],
         ),
         (
             "upstream_unavailable",
             vec!["jobs", "list"],
-            vec![("DATABASE_URL", "postgres://news:x@127.0.0.1:1/news".to_owned())],
+            vec![(
+                "DATABASE_URL",
+                "postgres://news:x@127.0.0.1:1/news".to_owned(),
+            )],
         ),
         (
             "gated",
@@ -134,14 +150,23 @@ fn logs_go_to_stderr_and_never_to_stdout() {
     let (env, code, stderr) = call_with(&mut cmd);
     check(&env, code);
     assert!(!stderr.is_empty(), "expected debug logs on stderr");
-    assert!(!stderr.contains("\"ok\""), "envelope leaked to stderr: {stderr}");
+    assert!(
+        !stderr.contains("\"ok\""),
+        "envelope leaked to stderr: {stderr}"
+    );
 }
 
 #[test]
 fn usage_errors_put_clap_text_on_stderr_and_the_envelope_on_stdout() {
     let (env, code, stderr) = call(&["jobs", "claim", "--pool", "net"]);
     check(&env, code);
-    assert!(env["error"]["message"].as_str().unwrap().contains("--worker"), "{env}");
+    assert!(
+        env["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("--worker"),
+        "{env}"
+    );
     assert!(stderr.contains("Usage: news jobs claim"), "{stderr}");
 }
 
@@ -163,7 +188,11 @@ fn shaping_options_are_accepted_by_every_command() {
 
 #[test]
 fn output_is_deterministic() {
-    for args in [vec!["schema"], vec!["schema", "jobs", "list"], vec!["ai", "schema", "brief"]] {
+    for args in [
+        vec!["schema"],
+        vec!["schema", "jobs", "list"],
+        vec!["ai", "schema", "brief"],
+    ] {
         assert_eq!(call(&args).0, call(&args).0, "{args:?}");
     }
 }
@@ -175,7 +204,8 @@ fn fake_clickhouse() -> (String, std::thread::JoinHandle<String>) {
     let url = format!("http://{}", listener.local_addr().unwrap());
     let handle = std::thread::spawn(move || {
         let (mut s, _) = listener.accept().unwrap();
-        s.set_read_timeout(Some(std::time::Duration::from_secs(5))).unwrap();
+        s.set_read_timeout(Some(std::time::Duration::from_secs(5)))
+            .unwrap();
         let mut buf = Vec::new();
         let mut chunk = [0u8; 4096];
         // Read headers, then Content-Length bytes of body.
@@ -189,7 +219,11 @@ fn fake_clickhouse() -> (String, std::thread::JoinHandle<String>) {
             if let Some(end) = text.find("\r\n\r\n") {
                 let len = text[..end]
                     .lines()
-                    .find_map(|l| l.to_ascii_lowercase().strip_prefix("content-length:").map(|v| v.trim().parse::<usize>().unwrap()))
+                    .find_map(|l| {
+                        l.to_ascii_lowercase()
+                            .strip_prefix("content-length:")
+                            .map(|v| v.trim().parse::<usize>().unwrap())
+                    })
                     .unwrap_or(0);
                 if buf.len() >= end + 4 + len {
                     break;
@@ -215,7 +249,10 @@ fn every_call_writes_one_event_with_run_and_job_ids() {
     );
     check(&env, code);
     let request = server.join().unwrap();
-    assert!(request.starts_with("POST /?query=INSERT+INTO+news.events"), "{request}");
+    assert!(
+        request.starts_with("POST /?query=INSERT+INTO+news.events"),
+        "{request}"
+    );
     let body = request.split("\r\n\r\n").nth(1).unwrap();
     let lines: Vec<&str> = body.lines().collect();
     assert_eq!(lines.len(), 1, "one event per call: {body}");
@@ -230,7 +267,11 @@ fn every_call_writes_one_event_with_run_and_job_ids() {
 
 #[test]
 fn an_unreachable_clickhouse_never_fails_the_call() {
-    let (env, code, stderr) = call_with(news().args(["version"]).env("NEWS_CH_HTTP", "http://127.0.0.1:1"));
+    let (env, code, stderr) = call_with(
+        news()
+            .args(["version"])
+            .env("NEWS_CH_HTTP", "http://127.0.0.1:1"),
+    );
     assert_eq!(code, 0, "{env}");
     assert!(stderr.is_empty(), "{stderr}");
 }
@@ -239,9 +280,21 @@ fn an_unreachable_clickhouse_never_fails_the_call() {
 fn no_command_prints_a_secret_from_the_environment() {
     let secret = "pw-4f9c-never-print-me";
     let url = format!("postgres://news:{secret}@127.0.0.1:1/news");
-    for args in [vec!["jobs", "list"], vec!["db", "status"], vec!["work", "--pools", "net", "--once"]] {
-        let out = news().args(&args).env("DATABASE_URL", &url).output().unwrap();
-        let all = format!("{}{}", String::from_utf8_lossy(&out.stdout), String::from_utf8_lossy(&out.stderr));
+    for args in [
+        vec!["jobs", "list"],
+        vec!["db", "status"],
+        vec!["work", "--pools", "net", "--once"],
+    ] {
+        let out = news()
+            .args(&args)
+            .env("DATABASE_URL", &url)
+            .output()
+            .unwrap();
+        let all = format!(
+            "{}{}",
+            String::from_utf8_lossy(&out.stdout),
+            String::from_utf8_lossy(&out.stderr)
+        );
         assert!(!all.contains(secret), "{args:?}: {all}");
     }
 }

@@ -54,7 +54,11 @@ pub fn call_with(cmd: &mut Command) -> (Value, i32, String) {
     let stdout = String::from_utf8(out.stdout).expect("stdout is UTF-8");
     let stderr = String::from_utf8(out.stderr).expect("stderr is UTF-8");
     assert!(stdout.ends_with('\n'), "no trailing newline: {stdout:?}");
-    assert_eq!(stdout.matches('\n').count(), 1, "stdout is not one line: {stdout:?}");
+    assert_eq!(
+        stdout.matches('\n').count(),
+        1,
+        "stdout is not one line: {stdout:?}"
+    );
     let env: Value = serde_json::from_str(&stdout).expect("stdout is JSON");
     assert!(env.is_object(), "stdout is not an object: {stdout}");
     (env, out.status.code().expect("exit code"), stderr)
@@ -379,7 +383,10 @@ fn piped_output_has_no_ansi_escapes() {
     }
     let out = news().arg("frobnicate").output().unwrap();
     for stream in [out.stdout, out.stderr] {
-        assert!(no_ansi().eval(&String::from_utf8_lossy(&stream)), "ANSI escape in error output");
+        assert!(
+            no_ansi().eval(&String::from_utf8_lossy(&stream)),
+            "ANSI escape in error output"
+        );
     }
 }
 

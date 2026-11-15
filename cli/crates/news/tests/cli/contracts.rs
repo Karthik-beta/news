@@ -28,7 +28,11 @@ fn all() -> Vec<(String, Value)> {
     paths
         .into_iter()
         .map(|p| {
-            let rel = p.strip_prefix(&root).unwrap().to_string_lossy().replace('\\', "/");
+            let rel = p
+                .strip_prefix(&root)
+                .unwrap()
+                .to_string_lossy()
+                .replace('\\', "/");
             let text = std::fs::read_to_string(&p).unwrap();
             let v: Value = serde_json::from_str(&text).unwrap_or_else(|e| panic!("{rel}: {e}"));
             (rel, v)
@@ -45,7 +49,10 @@ fn every_contract_validates_against_the_2020_12_meta_schema() {
     let contracts = all();
     assert!(contracts.len() > 80, "only {} contracts", contracts.len());
     for (rel, v) in &contracts {
-        assert!(rel.ends_with(".schema.json"), "{rel}: not a .schema.json file");
+        assert!(
+            rel.ends_with(".schema.json"),
+            "{rel}: not a .schema.json file"
+        );
         assert_eq!(v["$schema"], META, "{rel}");
         assert_eq!(v["$id"], format!("{BASE}{rel}"), "{rel}");
         if let Err(e) = jsonschema::draft202012::meta::validate(v) {
@@ -62,9 +69,16 @@ fn command_contracts_have_input_output_tier_and_status() {
         let tier = v["x-news-tier"].as_str().unwrap_or_default();
         assert!(["R", "W", "G", "H"].contains(&tier), "{rel}: tier {tier:?}");
         let status = v["x-news-status"].as_str().unwrap_or_default();
-        assert!(status == "built" || status.starts_with("stub until #"), "{rel}: {status:?}");
+        assert!(
+            status == "built" || status.starts_with("stub until #"),
+            "{rel}: {status:?}"
+        );
         for code in v["x-news-errors"].as_array().unwrap() {
-            assert!(schema_of("envelope.schema.json")["x-news-exit-codes"][code.as_str().unwrap()].is_number(), "{rel}: {code}");
+            assert!(
+                schema_of("envelope.schema.json")["x-news-exit-codes"][code.as_str().unwrap()]
+                    .is_number(),
+                "{rel}: {code}"
+            );
         }
     }
 }
@@ -96,7 +110,10 @@ fn the_ai_contracts_compile_and_accept_the_design_examples() {
     assert!(errs.is_empty(), "{errs:?}");
     let mut bad = example.clone();
     bad["source_text"]["untrusted"] = json!(false);
-    assert!(!brief.is_valid(&bad), "source text must be fenced as untrusted");
+    assert!(
+        !brief.is_valid(&bad),
+        "source text must be fenced as untrusted"
+    );
 
     let draft = jsonschema::draft202012::new(&schema_of("ai/page-draft.v1.schema.json")).unwrap();
     let copy = json!({
@@ -125,8 +142,15 @@ fn the_ai_contracts_compile_and_accept_the_design_examples() {
     assert!(!draft.is_valid(&extra), "no extra properties");
 
     let a5 = jsonschema::draft202012::new(&schema_of("ai/a5.condense.v1.schema.json")).unwrap();
-    assert!(a5.is_valid(&json!({"points": [{"text": "Shelter costs slowed", "support": [3]}], "quotes": []})));
-    assert!(!a5.is_valid(&json!({"points": [{"text": "Rose 2 percent", "support": [3]}], "quotes": []})), "digits in A5 text");
+    assert!(a5.is_valid(
+        &json!({"points": [{"text": "Shelter costs slowed", "support": [3]}], "quotes": []})
+    ));
+    assert!(
+        !a5.is_valid(
+            &json!({"points": [{"text": "Rose 2 percent", "support": [3]}], "quotes": []})
+        ),
+        "digits in A5 text"
+    );
 }
 
 #[test]
@@ -151,7 +175,13 @@ fn news_schema_serves_the_files_verbatim() {
         assert_eq!(&env["data"]["schema"], v, "{rel}");
     }
     let (env, _, _) = call(&["schema", "--limit", "500"]);
-    assert_eq!(env["data"]["count"], all().iter().filter(|(r, _)| r.starts_with("commands/")).count());
+    assert_eq!(
+        env["data"]["count"],
+        all()
+            .iter()
+            .filter(|(r, _)| r.starts_with("commands/"))
+            .count()
+    );
     assert_eq!(env["data"]["envelope"], schema_of("envelope.schema.json"));
 }
 
