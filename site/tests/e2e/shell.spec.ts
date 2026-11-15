@@ -3,8 +3,10 @@
 
 import { tokenValue } from "../support/tokens";
 import {
+  cumulativeLayoutShift,
   expect,
   expectAccessible,
+  expectDesignFonts,
   expectNoSidewaysScroll,
   expectNoSmallText,
   expectTargetSize,
@@ -15,6 +17,7 @@ import {
   setTextSize,
   setTheme,
   test,
+  zoomTo200,
 } from "./fixtures";
 
 const opposite = (t: "light" | "dark") => (t === "light" ? "dark" : "light");
@@ -30,6 +33,16 @@ test.describe("site shell", () => {
     await expectNoSidewaysScroll(page);
     await expectNoSmallText(page);
     await expectTargetSize(page);
+  });
+
+  test("sets all text in the two design typefaces", { tag: "@smoke" }, async ({ page }) => {
+    await expectDesignFonts(page);
+  });
+
+  test("does not shift layout after load (CLS 0)", async ({ page, browserName }) => {
+    const cls = await cumulativeLayoutShift(page);
+    test.skip(cls === null, `${browserName} does not report layout shifts`);
+    expect(cls).toBe(0);
   });
 
   test("uses the gutter for this breakpoint (design/layout.md)", { tag: "@smoke" }, async ({ page }) => {
@@ -65,6 +78,15 @@ test.describe("site shell", () => {
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await expect(page.locator("main")).toHaveText(before, { useInnerText: true });
     await expectNoSidewaysScroll(page);
+  });
+
+  test("reflows at 200% browser zoom, without sideways scroll", { tag: "@zoom" }, async ({ page }) => {
+    // biome-ignore lint/performance/useDomNodeTextContent: rendered text (innerText) is what must not be lost
+    const before = await page.locator("main").innerText();
+    test.skip(!(await zoomTo200(page)), "below 640px wide, 200% zoom is the 320 project (400%)");
+    await expect(page.locator("main")).toHaveText(before, { useInnerText: true });
+    await expectNoSidewaysScroll(page);
+    await expectNoSmallText(page);
   });
 
   test("has no motion under reduced motion", async ({ page }) => {

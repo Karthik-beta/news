@@ -154,6 +154,80 @@ export async function expectTheme(page: Page, theme: Theme): Promise<void> {
   });
 }
 
+/**
+ * Every visible piece of text is set in one of the two design typefaces (design/typography.md: Literata and
+ * Fira Sans, no third face, no monospace): its computed font-family list is exactly one of the font tokens.
+ */
+export async function expectDesignFonts(page: Page, scope: Locator = page.locator("body")): Promise<void> {
+  const allowed = ["--font-family-serif", "--font-family-sans"].map((t) => squashFont(tokenValue(t)));
+  const fonts = await scope.evaluate((root) => {
+    const found: { family: string; text: string; tag: string }[] = [];
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      const el = node.parentElement;
+      if (!el || !node.textContent?.trim()) continue;
+      const rect = el.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) continue;
+      found.push({
+        family: getComputedStyle(el).fontFamily,
+        text: node.textContent.trim().slice(0, 40),
+        tag: el.tagName.toLowerCase(),
+      });
+    }
+    return found;
+  });
+  const wrong = fonts
+    .filter((f) => !allowed.includes(squashFont(f.family)))
+    .map((f) => `${f.tag} [${f.family}]: "${f.text}"`);
+  expect(wrong, "text outside the two design typefaces").toEqual([]);
+}
+
+const squashFont = (family: string) =>
+  family
+    .replace(/["']/g, "")
+    .replace(/\s*,\s*/g, ",")
+    .trim()
+    .toLowerCase();
+
+/**
+ * Cumulative layout shift since navigation (the page must not move: CLS 0). Only Chromium exposes layout-shift
+ * entries; returns null elsewhere, so callers skip the assertion in Firefox and WebKit.
+ */
+export async function cumulativeLayoutShift(page: Page): Promise<number | null> {
+  return page.evaluate(
+    () =>
+      new Promise<number | null>((resolve) => {
+        if (!PerformanceObserver.supportedEntryTypes?.includes("layout-shift")) {
+          resolve(null);
+          return;
+        }
+        type Shift = PerformanceEntry & { value: number; hadRecentInput: boolean };
+        let cls = 0;
+        const add = (entries: PerformanceEntry[]) => {
+          for (const e of entries as Shift[]) if (!e.hadRecentInput) cls += e.value;
+        };
+        const observer = new PerformanceObserver((list) => add(list.getEntries()));
+        observer.observe({ type: "layout-shift", buffered: true });
+        setTimeout(() => {
+          add(observer.takeRecords());
+          observer.disconnect();
+          resolve(cls);
+        }, 250);
+      }),
+  );
+}
+
+/**
+ * Emulates 200% browser zoom: the CSS viewport becomes half as wide and half as tall (a 1280px window shows a
+ * 640px layout). Returns false when that would go below 320px, which the 320 project already covers (400%).
+ */
+export async function zoomTo200(page: Page): Promise<boolean> {
+  const size = page.viewportSize();
+  if (!size || size.width / 2 < 320) return false;
+  await page.setViewportSize({ width: Math.floor(size.width / 2), height: Math.floor(size.height / 2) });
+  return true;
+}
+
 /** Text size at `percent`% of the default (the "200% text size" check), without zooming the layout. */
 export async function setTextSize(page: Page, percent: number): Promise<void> {
   await page.evaluate((p) => {

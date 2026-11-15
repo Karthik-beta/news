@@ -9,9 +9,9 @@ Run from `site/` (or the same script from the repo root with `bun --filter @news
 | Level | Command | What runs | Needs |
 |---|---|---|---|
 | Unit | `bun run test` | Vitest projects `unit` (Node), `component` (React in jsdom + Testing Library + jest-dom), `astro` (`.astro` rendered with the Container API) | nothing; no network. `pretest` syncs `tokens.css` |
-| Integration | `bun run test:integration` | builds `dist/`, then Vitest project `integration`: HTML validity (html-validate), internal links and fragments, tokens in the shipped CSS | a build (the script does it) |
+| Integration | `bun run test:integration` | builds `dist/`, then Vitest project `integration`: HTML validity (html-validate), internal links and fragments, tokens in the shipped CSS. The checkers themselves are unit-tested on known-bad input (`tests/unit/links.test.ts`, `html-validate-config.test.ts`) | a build (the script does it) |
 | E2E smoke | `bun run test:e2e` | Playwright `smoke-*`: Chromium, 360 and 1440, light and dark, tests tagged `@smoke` | Chromium |
-| E2E full matrix | `bun run test:e2e:full` | Playwright `chromium-*`, `firefox-*`, `webkit-*`: every screen below | all three browsers; CPU-heavy, run alone |
+| E2E full matrix | `bun run test:e2e:full` | Playwright `chromium-*`, `firefox-*`, `webkit-*`: every screen below (74 projects, 800 runs for the shell today) | all three browsers; CPU-heavy, run alone: about 70 min on the 4-core Windows laptop, WebKit alone about 26 min |
 | Screenshots | `bun run test:visual` | `@visual` tests inside the Playwright Docker image | Docker |
 
 Useful while working: `bun run test:watch`; `bunx vitest run --project component`; `bunx playwright test --project='webkit-*' -g "KeyFigures"`; `bunx playwright show-report`.
@@ -19,6 +19,13 @@ Useful while working: `bun run test:watch`; `bunx vitest run --project component
 Browsers: `bunx playwright install chromium firefox webkit` (Linux CI adds `--with-deps`).
 
 E2E always runs against the built site served by `astro preview` on port 4329, never the dev server. Environment switches: `E2E_SKIP_BUILD=1` serves the existing `dist/` (CI builds once), `E2E_REUSE_SERVER=1` reuses a preview you started yourself, `E2E_PORT` changes the port.
+
+## In CI
+
+- Every PR (fast): `bun run lint`, `bun run typecheck`, `bun run test`, `bun run test:integration`, then `bun run test:e2e` with `E2E_SKIP_BUILD=1` after `bunx playwright install --with-deps chromium`. Always pass a project filter: a bare `playwright test` runs the whole matrix.
+- `main` / nightly (full): `bunx playwright install --with-deps chromium firefox webkit`, then `bun run test:e2e:full`.
+- Screenshots: a job with `container: mcr.microsoft.com/playwright:v<@playwright/test version>-noble`, `NEWS_VISUAL=1`, running `bunx playwright test --grep @visual` (what `bun run test:visual` does locally). Upload `playwright-report/` and `test-results/` as artifacts on failure.
+- Cache `~/.bun/install/cache` (key: `bun.lock`) and `~/.cache/ms-playwright` (key: the `@playwright/test` version).
 
 ## Screens and tags
 
@@ -42,11 +49,15 @@ Tags (Playwright `tag` option) decide where a test runs:
 - `@a11y`, `@zoom`, `@interaction`, `@visual`: descriptive, runs on every screen; filter with `-g @a11y`;
 - `@print`, `@motion`, `@forced-colors`: only in their own projects.
 
+Expected skips, not failures: `@visual` outside the Docker image; CLS outside Chromium (no layout-shift API); the 200% browser-zoom test below 640px wide (the 320 project is the 400% case). The per-test timeout is 60 s because WebKit on Windows runs axe at 3× scale slowly under load.
+
 ## Shared checks
 
 Import `test` and `expect` from `tests/e2e/fixtures.ts`, never from `@playwright/test`: its auto fixture fails any test with a console error, an uncaught exception or a failed same-origin request (allow a known one with `test.use({ allowedConsoleErrors: [/…/] })`). It also exports:
 
-`gotoPage` (waits for fonts) · `expectAccessible` (axe, WCAG 2.2 A/AA tags, fails on any violation; `include` scopes it to a component) · `expectNoSidewaysScroll` · `expectNoSmallText` (12px floor) · `expectTargetSize` (24 × 24, inline text links exempt) · `setTheme` / `expectTheme` (`data-theme` override and system setting, checked against `tokens.json`) · `setTextSize` (200% text) · `longestMotionMs` / `runningAnimations`.
+`gotoPage` (waits for fonts) · `expectAccessible` (axe, WCAG 2.2 A/AA tags, fails on any violation; `include` scopes it to a component) · `expectNoSidewaysScroll` · `expectNoSmallText` (12px floor) · `expectTargetSize` (24 × 24, inline text links exempt) · `expectDesignFonts` (every visible text uses exactly the serif or sans font token; catches monospace and stray faces) · `setTheme` / `expectTheme` (`data-theme` override and system setting, checked against `tokens.json`) · `setTextSize` (200% text) · `zoomTo200` (200% browser zoom: halves the CSS viewport; skips below 640px, where the 320 project is the 400% case) · `cumulativeLayoutShift` (CLS; Chromium only, `null` elsewhere) · `longestMotionMs` / `runningAnimations`.
+
+Failures (blocked images, offline video, missing data): block with `page.route(glob, (r) => r.abort())` before `gotoPage`, and list the errors the block causes in `test.use({ allowedConsoleErrors: [/…/] })` so nothing else slips through.
 
 For jsdom tests, `tests/support/render.tsx` has `renderComponent(ui, { theme })` (loads `tokens.css`, sets `data-theme`), `cssToken` and `expectNoAxeViolations`. `tests/support/tokens.ts` reads `tokens.json` independently of the generator, so tests compare against the source of truth.
 

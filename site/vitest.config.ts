@@ -10,6 +10,9 @@ import { getViteConfig } from "astro/config";
 // `bun run test` runs the first three; `bun run test:integration` builds, then runs the last.
 export default getViteConfig({
   test: {
+    // Threads start far faster than forked processes on Windows; with forks, a loaded laptop could miss
+    // Vitest's 60 s worker start timeout. Nothing here needs process isolation.
+    pool: "threads",
     projects: [
       {
         extends: true,

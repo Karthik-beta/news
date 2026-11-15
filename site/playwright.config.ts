@@ -111,6 +111,8 @@ const preview = `bun --bun astro preview --host 127.0.0.1 --port ${port}`;
 export default defineConfig<NewsOptions>({
   testDir: "./tests/e2e",
   fullyParallel: true,
+  // WebKit on Windows runs axe at 3x scale in ~15 s on an idle laptop; 30 s timed out under load in the full matrix.
+  timeout: 60_000,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   workers: 2, // the laptop has 4 cores and heavy runs go one at a time; CI runners have 2-4

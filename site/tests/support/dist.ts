@@ -32,11 +32,11 @@ export const urlPathOf = (file: string) => `/${relative(distRoot, file).split(se
  * Resolves a site-relative URL path to the file the static host would serve, following Astro's
  * `build.format: "directory"` output: `/a` and `/a/` serve `/a/index.html`; `/a.html` serves itself.
  */
-export function resolveToDistFile(pathname: string): string | undefined {
+export function resolveToDistFile(pathname: string, root = distRoot): string | undefined {
   const clean = decodeURIComponent(pathname).replace(/^\/+/, "");
   const candidates = [clean, join(clean, "index.html"), `${clean.replace(/\/$/, "")}.html`];
   for (const c of candidates) {
-    const file = join(distRoot, c);
+    const file = join(root, c);
     if (existsSync(file) && statSync(file).isFile()) return file;
   }
   return undefined;
