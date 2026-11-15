@@ -24,6 +24,7 @@ export declare const validatePutPageResponse: Validator;
 export declare const validatePageOpResponse: Validator;
 export declare const validateCurationResponse: Validator;
 export declare const validateReportsResponse: Validator;
+export declare const validateReportsCursor: Validator;
 export declare const validateReportIntake: Validator;
 export declare const validateReportRecord: Validator;
 export declare const validatePageItem: Validator;

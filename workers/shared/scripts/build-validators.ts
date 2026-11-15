@@ -31,6 +31,7 @@ export const VALIDATORS: Record<string, string> = {
   validatePageOpResponse: `${BASE}/cloud/write-api.schema.json#/$defs/pageOpResponse`,
   validateCurationResponse: `${BASE}/cloud/write-api.schema.json#/$defs/curationResponse`,
   validateReportsResponse: `${BASE}/cloud/write-api.schema.json#/$defs/reportsResponse`,
+  validateReportsCursor: `${BASE}/cloud/write-api.schema.json#/$defs/reportsCursor`,
   validateReportIntake: `${BASE}/cloud/report.schema.json#/$defs/intake`,
   validateReportRecord: `${BASE}/cloud/report.schema.json#/$defs/record`,
   validatePageItem: `${BASE}/cloud/dynamodb-items.schema.json#/$defs/pageRecord`,

@@ -154,3 +154,29 @@ export async function searchPages(shards: SearchShard[], params: SearchParams): 
   }
   return hits;
 }
+
+/** What the write API needs from the search index. */
+export interface SearchIndex {
+  /** Throws MissingShardError when no shard is bound for the page's year (checked before anything is written). */
+  assertShard(publishedAt: string): void;
+  index(page: PageRecord): Promise<void>;
+  remove(page: Pick<PageRecord, "page_id" | "published_at">): Promise<void>;
+  setIndexStatus(page: Pick<PageRecord, "page_id" | "published_at">, status: "index" | "noindex"): Promise<void>;
+}
+
+/** The D1 shards bound to the Worker (SEARCH_<YYYY>). */
+export class D1SearchIndex implements SearchIndex {
+  constructor(readonly env: object) {}
+  assertShard(publishedAt: string): void {
+    shardFor(this.env, publishedAt);
+  }
+  index(page: PageRecord): Promise<void> {
+    return indexPage(shardFor(this.env, page.published_at), page);
+  }
+  remove(page: Pick<PageRecord, "page_id" | "published_at">): Promise<void> {
+    return removePage(shardFor(this.env, page.published_at), page.page_id);
+  }
+  setIndexStatus(page: Pick<PageRecord, "page_id" | "published_at">, status: "index" | "noindex"): Promise<void> {
+    return setIndexStatus(shardFor(this.env, page.published_at), page.page_id, status);
+  }
+}

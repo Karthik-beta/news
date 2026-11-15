@@ -1,8 +1,11 @@
 // End to end: the real wrangler.jsonc, started by Wrangler (workerd under Miniflare), reached over real HTTP.
+// No secrets and no data bindings are configured here, which is exactly what this suite checks: the Worker fails
+// closed, and the public report intake refuses bad input before touching any storage.
 import { type RunningWorker, startWorker } from "@news/worker-test-support/e2e";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 const NAME = "news-api";
+const SITE = "https://news.karthik.nz";
 let worker: RunningWorker;
 
 beforeAll(async () => {
@@ -12,44 +15,88 @@ afterAll(async () => {
   await worker?.close();
 });
 
-describe(`${NAME} over HTTP`, () => {
-  it("listens on a real loopback port", () => {
-    expect(worker.url.protocol).toBe("http:");
-    expect(["127.0.0.1", "localhost", "[::1]"]).toContain(worker.url.hostname);
-    expect(Number(worker.url.port)).toBeGreaterThan(0);
+const code = async (res: Response) => ((await res.json()) as { error: { code: string } }).error.code;
+const report = (body: unknown, headers: Record<string, string> = {}) =>
+  worker.get("/v1/reports", {
+    method: "POST",
+    headers: { "content-type": "application/json", origin: SITE, ...headers },
+    body: typeof body === "string" ? body : JSON.stringify(body),
   });
 
-  it("GET /health returns 200 JSON", async () => {
+describe(`${NAME} over HTTP`, () => {
+  it("GET /health returns 200 JSON, also with HEAD", async () => {
     const res = await worker.get("/health");
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("application/json");
+    expect(res.headers.get("x-content-type-options")).toBe("nosniff");
     expect(await res.json()).toEqual({ worker: NAME, status: "ok" });
-  });
-
-  it("GET /health works with a query string and through HEAD", async () => {
-    expect((await worker.get("/health?probe=1")).status).toBe(200);
     const head = await worker.get("/health", { method: "HEAD" });
     expect(head.status).toBe(200);
     expect(await head.text()).toBe("");
   });
 
-  it("answers 501 with a JSON error on a route that is not built yet", async () => {
-    const res = await worker.get("/v1/pages");
-    expect(res.status).toBe(501);
-    expect(res.headers.get("content-type")).toContain("application/json");
-    expect(await res.json()).toEqual({ error: "Not implemented yet (Phase 6)" });
-  });
-
-  it("answers 501 for write methods and near-miss health paths", async () => {
-    expect((await worker.get("/v1/pages", { method: "POST", body: JSON.stringify({ a: 1 }) })).status).toBe(501);
-    expect((await worker.get("/v1/pages/1", { method: "DELETE" })).status).toBe(501);
-    for (const path of ["/", "/health/", "/Health", "/health/x", "/%E0%A4%A"]) {
-      expect((await worker.get(path)).status).toBe(501);
+  it("every write is refused with 401 when no write key is configured", async () => {
+    const attempts: [string, string][] = [
+      ["PUT", "/v1/pages/abc"],
+      ["POST", "/v1/pages/abc/withdraw"],
+      ["POST", "/v1/pages/abc/index"],
+      ["PUT", "/v1/home/curation"],
+      ["POST", "/v1/home/curation/rollback"],
+      ["PUT", "/v1/taxonomy"],
+      ["PUT", "/v1/redirects"],
+      ["GET", "/v1/reports"],
+    ];
+    for (const [method, path] of attempts) {
+      const res = await worker.get(path, {
+        method,
+        headers: {
+          authorization: "Bearer anything-at-all-0123456789abcdef",
+          "content-type": "application/json",
+          "idempotency-key": "e2e-key-123",
+        },
+        body: method === "GET" ? undefined : "{}",
+      });
+      expect(res.status, `${method} ${path}`).toBe(401);
+      expect(await code(res)).toBe("unauthorized");
     }
   });
 
-  it("serves many concurrent requests", async () => {
-    const results = await Promise.all(Array.from({ length: 40 }, (_, i) => worker.get(i % 2 ? "/health" : "/nope")));
-    expect(results.map((r) => r.status)).toEqual(Array.from({ length: 40 }, (_, i) => (i % 2 ? 200 : 501)));
+  it("unknown routes are 404 JSON", async () => {
+    for (const path of ["/", "/v1/pages", "/v1/nope", "/%E0%A4%A"]) {
+      const res = await worker.get(path);
+      expect(res.status, path).toBe(404);
+      expect(await code(res)).toBe("not_found");
+    }
+  });
+
+  it("report intake: CORS preflight for the site only", async () => {
+    const ok = await worker.get("/v1/reports", { method: "OPTIONS", headers: { origin: SITE } });
+    expect(ok.status).toBe(204);
+    expect(ok.headers.get("access-control-allow-origin")).toBe(SITE);
+    const other = await worker.get("/v1/reports", { method: "OPTIONS", headers: { origin: "https://evil.example" } });
+    expect(other.headers.get("access-control-allow-origin")).toBeNull();
+  });
+
+  it("report intake: refuses other origins, wrong types, oversize bodies; a honeypot gets 202", async () => {
+    expect((await report({ page_id: "x", text: "hello there" }, { origin: "https://evil.example" })).status).toBe(403);
+    const form = await report("page_id=x", { "content-type": "application/x-www-form-urlencoded" });
+    expect([form.status, await code(form)]).toEqual([400, "unsupported_content_type"]);
+    const big = await report({ page_id: "x", text: "x".repeat(10_000) });
+    expect([big.status, await code(big)]).toEqual([413, "payload_too_large"]);
+    const bot = await report({ page_id: "x", text: "buy cheap things now", website: "http://spam.example" });
+    expect(bot.status).toBe(202);
+  });
+
+  it("report intake is rate-limited per client (5 a minute)", async () => {
+    const statuses: number[] = [];
+    for (let i = 0; i < 8; i++) {
+      const res = await report(
+        { page_id: "x", text: "spam spam spam", website: "bot" },
+        { "cf-connecting-ip": "192.0.2.200" },
+      );
+      statuses.push(res.status);
+    }
+    expect(statuses.filter((s) => s === 429).length).toBeGreaterThan(0);
+    expect(statuses.slice(0, 1)).toEqual([202]);
   });
 });

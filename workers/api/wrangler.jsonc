@@ -1,15 +1,29 @@
 {
-  // Write API used by news publish (Phase 6). Requires the secret key; never public-writable.
+  // Write API used by `news publish` and `news home publish` (Phase 6). Requires the secret key; never public-writable
+  // except the rate-limited report intake. Routes, bindings and local testing: workers/README.md.
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "news-api",
   "main": "src/index.ts",
   "compatibility_date": "2026-11-01",
-  "observability": { "enabled": true }
+  "observability": { "enabled": true },
+  "vars": {
+    "NEWS_SITE_ORIGIN": "https://news.karthik.nz"
+  },
+  // Workers Rate Limiting (free plan). The namespace IDs are numbers we choose; nothing to create in the account.
+  "ratelimits": [
+    { "name": "AUTH_FAILURE_LIMITER", "namespace_id": "1101", "simple": { "limit": 10, "period": 60 } },
+    { "name": "REPORT_IP_LIMITER", "namespace_id": "1102", "simple": { "limit": 5, "period": 60 } },
+    { "name": "REPORT_GLOBAL_LIMITER", "namespace_id": "1103", "simple": { "limit": 60, "period": 60 } }
+  ]
 
-  // TODO(Karthik, Phase 0 accounts step): declare the real bindings here once the resources exist, with your real IDs.
-  // Names below are what the tests use (workers/test-support). The tests do NOT read this file for them: Miniflare
-  // creates empty local D1/R2 instead, so no account and no fake ID is ever needed.
-  // "d1_databases": [{ "binding": "SEARCH_DB", "database_name": "news-search", "database_id": "<real D1 id>" }],
+  // TODO(Karthik, Phase 6 provisioning, #21): declare the real bindings and settings here once the resources exist.
+  // The tests do NOT read these: Miniflare creates local D1/R2 and the harness injects DynamoDB Local settings.
+  // "vars": add "NEWS_DYNAMODB_TABLE": "<table>", "NEWS_DYNAMODB_REGION": "<region>", "CLOUDFLARE_ZONE_ID": "<zone id>"
+  // "d1_databases": one search shard per year, binding SEARCH_<YYYY>, migrations from ../shared/migrations/search:
+  //   [{ "binding": "SEARCH_2026", "database_name": "news-search-2026", "database_id": "<real D1 id>",
+  //      "migrations_dir": "../shared/migrations/search" }],
   // "r2_buckets": [{ "binding": "PAGES", "bucket_name": "<real R2 bucket>" }],
-  // Secrets (AWS key pair for DynamoDB, NEWS_WRITE_API_KEY) are set with `wrangler secret put`, never in this file.
+  // Secrets, set with `wrangler secret put`, never in this file: NEWS_WRITE_API_KEY (32+ random characters),
+  // NEWS_DYNAMODB_ACCESS_KEY_ID and NEWS_DYNAMODB_SECRET_ACCESS_KEY (the publish-only IAM key),
+  // CLOUDFLARE_PURGE_TOKEN (API token with only Zone > Cache Purge on the site's zone).
 }

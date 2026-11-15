@@ -29,7 +29,14 @@ export interface IntegrationOptions extends WorkerTestOptions {
   r2?: string[];
   /** Inject the DynamoDB Local settings as Worker bindings and fail fast when the service is down. */
   dynamodb?: boolean;
+  /**
+   * Search shard bindings to create (SEARCH_<YYYY>, empty in-memory D1). Also injects `SEARCH_MIGRATIONS`, the real
+   * search schema from workers/shared/migrations/search, for the tests to apply.
+   */
+  searchShards?: string[];
 }
+
+const SEARCH_MIGRATIONS_DIR = fileURLToPath(new URL("../../shared/migrations/search", import.meta.url));
 
 const wranglerConfig = (root: string) => ({ configPath: join(root, "wrangler.jsonc") });
 
@@ -41,17 +48,18 @@ export function unitConfig({ root }: WorkerTestOptions) {
   });
 }
 
-export function integrationConfig({ root, d1 = [], r2 = [], dynamodb = false }: IntegrationOptions) {
+export function integrationConfig({ root, d1 = [], r2 = [], dynamodb = false, searchShards = [] }: IntegrationOptions) {
   return defineConfig(async () => {
     const bindings: Record<string, string | D1Migration[]> = {};
     if (dynamodb) Object.assign(bindings, dynamoBindings(dynamoConfigFromEnv(repoEnv())));
     if (d1.length > 0) bindings.TEST_MIGRATIONS = await readD1Migrations(MIGRATIONS_DIR);
+    if (searchShards.length > 0) bindings.SEARCH_MIGRATIONS = await readD1Migrations(SEARCH_MIGRATIONS_DIR);
     return {
       root,
       plugins: [
         cloudflareTest({
           wrangler: wranglerConfig(root),
-          miniflare: { d1Databases: d1, r2Buckets: r2, bindings },
+          miniflare: { d1Databases: [...d1, ...searchShards], r2Buckets: r2, bindings },
         }),
       ],
       test: {
