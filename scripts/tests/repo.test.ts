@@ -78,6 +78,11 @@ describe(".env.example", () => {
     for (const name of required) expect(generatedBySetup, `${name} is required by compose`).toContain(name);
   });
 
+  test("DynamoDB Local allows one specific CORS origin, not its default `*`", () => {
+    const m = read("infra/docker-compose.yml").match(/"-cors",\s*"([^"]+)"/);
+    expect(m?.[1]).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/);
+  });
+
   test("the default Postgres port matches the compose default and the CLI test layer", () => {
     expect(getEnvValue(example, "NEWS_PG_PORT")).toBe("5433");
     expect(read("infra/docker-compose.yml")).toMatch(/\$\{NEWS_PG_PORT:-5433\}:5432/);

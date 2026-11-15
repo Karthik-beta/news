@@ -62,7 +62,9 @@ services:
     image: amazon/dynamodb-local:3.3.2
     container_name: news-dynamodb
     restart: unless-stopped
-    command: ["-jar", "DynamoDBLocal.jar", "-inMemory", "-sharedDb"]
+    # -cors: the default is `*`, which lets any web page open in a browser on this machine read and write the tables.
+    # Only the site's dev server (astro.config.mjs) is allowed; the tests call it from Node and workerd, not a browser.
+    command: ["-jar", "DynamoDBLocal.jar", "-inMemory", "-sharedDb", "-cors", "http://127.0.0.1:4321"]
     ports:
       - "127.0.0.1:${NEWS_DYNAMODB_PORT:-8000}:8000"
     cpus: 1
