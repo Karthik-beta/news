@@ -187,11 +187,13 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
-      # Advisories, licences, bans and sources, from cli/deny.toml.
+      # Licences, bans and sources, from cli/deny.toml: these change only with a commit, so they can gate a merge.
+      # Advisories change without one, so they run in validate.yml's non-required "Rust advisories" job instead.
       - uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1
         with:
           manifest-path: cli/Cargo.toml
           command: check
+          command-arguments: bans licenses sources
 
   secrets:
     name: Secret scan

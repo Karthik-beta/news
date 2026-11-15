@@ -51,6 +51,8 @@ jobs:
       # Every SKILL.md and .claude/agents/*.md has `name` and `description`; a skill's name matches its folder.
       - run: bun scripts/validate-skills.ts
 
+  # The two advisory jobs below are signals, not merge gates: the advisory feeds change without any commit, so a
+  # required check here could block an unrelated PR. Do not mark them required.
   audit:
     name: Dependency audit (bun audit)
     runs-on: ubuntu-latest
@@ -60,6 +62,21 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
-      # Only high and critical advisories are reported, and they fail the job. The advisory feed changes without
-      # any commit, so this job is a signal, not a merge gate: do not mark it required.
+      # Only high and critical advisories are reported, and they fail the job.
       - run: bun audit --audit-level=high
+
+  rust-advisories:
+    name: Rust advisories (cargo deny)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      # RustSec advisories for cli/Cargo.lock, with the ignore list in cli/deny.toml. Bans, licences and sources are
+      # the required "Dependencies (cargo deny)" check in ci.yml.
+      - uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1
+        with:
+          manifest-path: cli/Cargo.toml
+          command: check
+          command-arguments: advisories
