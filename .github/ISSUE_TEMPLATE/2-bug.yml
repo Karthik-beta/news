@@ -1,0 +1,46 @@
+name: Bug report
+description: Something in the code, a tool or the pipeline is broken.
+title: "<What is broken, in a few words>"
+labels: ["type: bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What should have happened
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Commands, inputs or the page and screen size. Never paste secrets or the contents of .env.
+      value: |
+        1. 
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Areas
+      multiple: true
+      options: [site, components, charts, cli, connectors, bureau, workers, infra, design, docs]
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where
+      options: [Laptop (Windows), CI (GitHub Actions), Live site, Other]
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      render: shell
