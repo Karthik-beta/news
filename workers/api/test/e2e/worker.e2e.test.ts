@@ -88,15 +88,15 @@ describe(`${NAME} over HTTP`, () => {
   });
 
   it("report intake is rate-limited per client (5 a minute)", async () => {
-    const statuses: number[] = [];
-    for (let i = 0; i < 8; i++) {
-      const res = await report(
-        { page_id: "x", text: "spam spam spam", website: "bot" },
-        { "cf-connecting-ip": "192.0.2.200" },
-      );
-      statuses.push(res.status);
-    }
-    expect(statuses.filter((s) => s === 429).length).toBeGreaterThan(0);
-    expect(statuses.slice(0, 1)).toEqual([202]);
+    // One burst, so that it cannot straddle two limiter windows.
+    const statuses = await Promise.all(
+      Array.from({ length: 20 }, () =>
+        report({ page_id: "x", text: "spam spam spam", website: "bot" }, { "cf-connecting-ip": "192.0.2.200" }).then(
+          (r) => r.status,
+        ),
+      ),
+    );
+    expect(statuses).toContain(429);
+    expect(statuses.every((s) => s === 202 || s === 429)).toBe(true);
   });
 });
