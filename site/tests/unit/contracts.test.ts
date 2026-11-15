@@ -18,7 +18,8 @@ const validateSources = ajv.compile(sourcesSchema);
 describe("bundle contracts", () => {
   it("are JSON Schema 2020-12 and match the zod schemas (run `bun run contracts` after a change)", () => {
     for (const [path, text] of Object.entries(contractSchemas())) {
-      expect(readFileSync(join(repoRoot, path), "utf8").replaceAll("\r\n", "\n"), path).toBe(text);
+      // Compared as JSON, so formatting (Biome) doesn't matter; content does.
+      expect(read(path), path).toEqual(JSON.parse(text));
     }
     expect(dataSchema.$schema).toBe("https://json-schema.org/draft/2020-12/schema");
     expect(sourcesSchema.$schema).toBe("https://json-schema.org/draft/2020-12/schema");
