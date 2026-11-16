@@ -251,6 +251,88 @@ mod tests {
         );
     }
 
+    /// SQL statements, lower-cased, without `--` comments, whitespace collapsed to single spaces.
+    fn statements(sql: &str) -> Vec<String> {
+        let code: String = sql
+            .lines()
+            .map(|l| l.split_once("--").map_or(l, |(code, _)| code))
+            .collect::<Vec<_>>()
+            .join(" ");
+        code.to_lowercase()
+            .split(';')
+            .map(|s| s.split_whitespace().collect::<Vec<_>>().join(" "))
+            .filter(|s| !s.is_empty())
+            .collect()
+    }
+
+    /// True unless `stmt` is an `ALTER TABLE` with an action that fails or changes something on a
+    /// second run. Guarded forms re-run as no-ops: `add column if not exists`, `drop column if exists`,
+    /// `drop constraint if exists`, `alter column … set default` / `drop default`.
+    fn alter_is_guarded(stmt: &str) -> bool {
+        const GUARDED: [&str; 3] = [
+            "add column if not exists ",
+            "drop column if exists ",
+            "drop constraint if exists ",
+        ];
+        let Some(rest) = stmt.strip_prefix("alter table ") else {
+            return true;
+        };
+        let rest = rest.strip_prefix("if exists ").unwrap_or(rest);
+        let rest = rest.strip_prefix("only ").unwrap_or(rest);
+        let Some((_table, actions)) = rest.split_once(' ') else {
+            return false;
+        };
+        // Split on the commas between actions, not those inside a type such as numeric(10, 2).
+        let mut parts: Vec<String> = Vec::new();
+        for piece in actions.split(',') {
+            let p = piece.trim();
+            match parts.last_mut() {
+                Some(last)
+                    if !["add ", "drop ", "alter ", "rename ", "set ", "validate "]
+                        .iter()
+                        .any(|k| p.starts_with(k)) =>
+                {
+                    last.push(',');
+                    last.push_str(p);
+                }
+                _ => parts.push(p.to_owned()),
+            }
+        }
+        parts.iter().all(|a| {
+            GUARDED.iter().any(|g| a.starts_with(g))
+                || (a.starts_with("alter column ")
+                    && (a.contains(" set default ") || a.ends_with(" drop default")))
+        })
+    }
+
+    #[test]
+    fn guarded_alters_pass_and_others_fail() {
+        for ok in [
+            "alter table jobs add column if not exists lease_token uuid",
+            "alter table if exists jobs add column if not exists a numeric(10, 2), add column if not exists b text",
+            "alter table only jobs drop column if exists a, drop constraint if exists jobs_x",
+            "alter table jobs alter column priority set default 2",
+            "alter table jobs alter column priority drop default",
+            "create table if not exists x (a int)",
+        ] {
+            assert!(alter_is_guarded(ok), "{ok}");
+        }
+        for bad in [
+            "alter table jobs add column a int",
+            "alter table jobs add constraint c check (a > 0)",
+            "alter table jobs add column if not exists a int, add column b int",
+            "alter table jobs rename column a to b",
+            "alter table jobs drop column a",
+            "alter table jobs",
+        ] {
+            assert!(!alter_is_guarded(bad), "{bad}");
+        }
+        assert_eq!(
+            statements("ALTER TABLE x\n  ADD COLUMN IF NOT EXISTS y int; -- note; here\nselect 1;"),
+            ["alter table x add column if not exists y int", "select 1"]
+        );
+    }
+
     #[test]
     fn every_migration_statement_is_idempotent() {
         // Plain CREATE TABLE / INDEX without IF NOT EXISTS, and INSERT without ON CONFLICT, would fail
@@ -270,11 +352,12 @@ mod tests {
                         i + 1
                     );
                 }
+            }
+            for stmt in statements(&sql) {
                 assert!(
-                    !t.starts_with("alter table"),
-                    "{}:{}: use CREATE … IF NOT EXISTS",
-                    m.description,
-                    i + 1
+                    alter_is_guarded(&stmt),
+                    "{}: unguarded {stmt:?}; use CREATE … IF NOT EXISTS or a guarded ALTER (add column if not exists, drop … if exists, set/drop default)",
+                    m.description
                 );
             }
             let inserts = sql.matches("insert into").count();

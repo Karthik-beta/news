@@ -43,7 +43,7 @@ Subsystem crates depend only on `news-core`; `news` wires them together. A new h
 
 - `DATABASE_URL` (from `.env`; the CLI does not read `.env` itself, so `bun run …` scripts or the shell pass it) and `NEWS_DB_SCHEMA` (default `news`). Extensions (`vector`, `pg_trgm`, `unaccent`) are installed once per database by `infra/postgres/init/`; migrations check for them.
 - `news db migrate` creates the schema if needed and applies pending migrations; `news db status` lists applied and pending ones. `bun run setup` runs the migration.
-- Files are `cli/migrations/NNNN_name.sql`, embedded in the binary. Every statement is idempotent (`create … if not exists`, seeds with `on conflict do nothing`, constraints inline); a unit test refuses `alter table` and unguarded creates, and an integration test re-runs every file on a migrated schema and compares the catalogue. Never edit an applied migration: add a new one.
+- Files are `cli/migrations/NNNN_name.sql`, embedded in the binary. Every statement is idempotent (`create … if not exists`, seeds with `on conflict do nothing`, constraints inline). A later block changes an earlier table only with guarded forms that re-run as no-ops: `alter table … add column if not exists`, `drop column if exists`, `drop constraint if exists`, `alter column … set default` / `drop default`. A unit test refuses unguarded creates and any other `alter table`, and an integration test re-runs every file on a migrated schema and compares the catalogue. Never edit an applied migration: add a new one.
 - **Blocks**, so parallel PRs never collide on a number:
 
   | Block | Owner |
@@ -58,6 +58,8 @@ Subsystem crates depend only on `news-core`; `news` wires them together. A new h
   | 0700–0799 | Fixer, Ghost (#18) |
   | 0800–0899 | Critic, Huddle (#19) |
   | 0900–0999 | Press, home, Rewrite (#20), Errata (#21) |
+
+  Migrations run in version order, so **a lower block must never depend on a higher block's tables** (no foreign key, view, index or function on them): a fresh database applies the lower file first, and the table it names does not exist yet. A block may depend on the core block (0001–0099) and on lower blocks only; a link between two subsystems goes in the higher block of the two.
 
 ## Dispatch in short
 
