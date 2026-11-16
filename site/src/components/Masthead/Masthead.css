@@ -1,0 +1,95 @@
+/* Masthead (design/components.md, "Masthead"): 16px top and 14px bottom padding, a hairline underneath. Section
+   links Fira 500 15px in ink; Search in secondary ink with a 15px magnifier. Current section: a 2px crimson
+   underline; hover: a 2px rule-colour underline. Crimson here is brand and current-navigation only. */
+.masthead {
+  border-bottom: var(--border-hairline) solid var(--color-rule);
+}
+
+.masthead__inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "wordmark search"
+    "nav nav";
+  align-items: baseline;
+  column-gap: var(--space-7);
+  row-gap: var(--space-3);
+  max-width: var(--layout-container);
+  margin: 0 auto;
+  padding-block: var(--space-5) calc(var(--space-4) + var(--space-1));
+  padding-inline: max(var(--gutter), env(safe-area-inset-left, 0px)) max(var(--gutter), env(safe-area-inset-right, 0px));
+}
+
+.masthead__wordmark {
+  grid-area: wordmark;
+  justify-self: start;
+  text-decoration: none;
+}
+.masthead__wordmark:hover {
+  text-decoration: underline;
+  text-decoration-thickness: var(--border-section);
+}
+
+.masthead__nav {
+  grid-area: nav;
+  min-width: 0;
+}
+
+.masthead__links {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--space-6);
+  row-gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.masthead__link,
+.masthead__search {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--space-7);
+  font-family: var(--font-family-sans);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-ui);
+  line-height: var(--font-line-height-ui);
+  color: var(--color-ink);
+  text-decoration: none;
+  border-bottom: var(--border-section) solid transparent;
+}
+.masthead__link:hover {
+  border-bottom-color: var(--color-rule);
+}
+.masthead__link[aria-current="page"] {
+  border-bottom-color: var(--color-brand);
+}
+
+.masthead__search {
+  grid-area: search;
+  color: var(--color-ink-2);
+}
+.masthead__search:hover {
+  border-bottom-color: var(--color-rule);
+}
+
+@media (min-width: 600px) {
+  .masthead__inner {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "wordmark nav search";
+  }
+}
+
+@media (forced-colors: active) {
+  .masthead__link[aria-current="page"] {
+    border-bottom-color: LinkText;
+  }
+}
+
+@media print {
+  .masthead__nav,
+  .masthead__search {
+    display: none;
+  }
+}

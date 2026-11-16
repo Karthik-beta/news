@@ -1,0 +1,2 @@
+root = Page([orbit])
+orbit = ImageFigure("/fixtures/images/orbit-1600x900.svg", "Diagram of the probe's elliptical orbit around the planet, with the probe at the far right of the ellipse.", 1600, 900, "NASA/JPL-Caltech", "Public domain", "The probe's orbit takes it far from the planet before each close pass.")

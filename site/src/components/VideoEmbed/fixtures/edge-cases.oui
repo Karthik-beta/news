@@ -1,0 +1,4 @@
+root = Page([link, long, nodate])
+link = VideoEmbed("Fourth quarter results webcast", "Apple", "https://investor.apple.com/investor-relations/default.aspx")
+long = VideoEmbed("A very long video title that goes on to describe the whole press conference, including the opening statement, the questions from reporters and the closing remarks, which will not fit", "Board of Governors of the Federal Reserve System", "https://www.federalreserve.gov/monetarypolicy/fomcpresconf20240918.htm", "ZyXwVuTsRqP", "2026-09-30")
+nodate = VideoEmbed("Launch of the probe", "NASA", "https://www.nasa.gov/", "Lm_NoPq-RsT")

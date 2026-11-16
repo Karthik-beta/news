@@ -95,6 +95,8 @@ describe("fixture pages", () => {
       "/fixtures/renderer/[bundle]",
       "/fixtures/renderer/[bundle]/[...file]",
       "/fixtures/primitives/[name]",
+      "/fixtures/components/[name]/[fixture]",
+      "/fixtures/images/[file]",
     ]);
     expect(injected({ OPENUI_SPIKE: "1" })).toEqual(["/fixtures/openui-ssr/[approach]"]);
   });

@@ -1,0 +1,21 @@
+/* Badges (design/components.md, "Badges"): Fira 600 at the source size (12.5px; the spec's 12px has no token),
+   a 1px border in the text colour, 3px radius, 1px 7px padding (hairline and space-3 less a hairline). */
+.badge {
+  display: inline-block;
+  padding: var(--border-hairline) calc(var(--space-3) - var(--border-hairline));
+  border: var(--border-hairline) solid currentColor;
+  border-radius: var(--radius-chip);
+  font-family: var(--font-family-sans);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-source);
+  line-height: var(--font-line-height-ui);
+  white-space: nowrap;
+  color: var(--color-ink-2);
+}
+
+.badge--primary {
+  color: var(--color-focus);
+}
+.badge--context {
+  color: var(--color-ink-3);
+}

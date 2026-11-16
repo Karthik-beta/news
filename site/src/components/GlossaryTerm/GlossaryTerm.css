@@ -1,0 +1,25 @@
+/* biome-ignore-all lint/complexity/noImportantStyles: base.css hides every button in print with !important; a term
+   is words in a sentence and must print */
+/* Glossary term: a dotted 1px tertiary-ink underline, offset 4px (design/typography.md, "Links"). The popover is
+   the shared one (Popover.css). */
+.glossary-term {
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-thickness: var(--border-hairline);
+  text-decoration-color: var(--color-ink-3);
+  text-underline-offset: 4px;
+}
+.glossary-term:hover {
+  text-decoration-color: var(--color-ink);
+}
+
+.glossary-term__definition {
+  color: var(--color-ink);
+}
+
+@media print {
+  button.glossary-term.popover-trigger {
+    display: inline !important;
+    text-decoration: none;
+  }
+}

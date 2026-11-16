@@ -1,0 +1,67 @@
+/* Image with credit (design/components.md, "Image with credit"). No border, radius or shadow on the image. */
+.image-figure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: var(--layout-article);
+}
+
+.image-figure__caption {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  max-width: var(--layout-prose);
+  overflow-wrap: anywhere;
+}
+
+/* The frame: the image's intrinsic size comes inline as --image-w and --image-h (computed geometry), giving the
+   aspect ratio and the natural width it grows to at most. The wash shows while the image loads. */
+.image-frame {
+  position: relative;
+  display: block;
+  width: 100%;
+  max-width: calc(var(--image-w) * 1px);
+  aspect-ratio: var(--image-w) / var(--image-h);
+  overflow: hidden;
+  background: var(--color-wash);
+  border-radius: var(--radius-none);
+}
+
+.image-frame__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Keeps a broken image's own alt rendering out of sight; the fallback layer below says it instead. */
+  color: transparent;
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-label);
+}
+
+/* The fallback: drawn only for an image that failed to load. Alt text and credit, centred on the wash, in
+   Fira 13.5 secondary ink. A loaded image is a replaced element and never draws ::after. */
+.image-frame__img::after {
+  content: attr(alt) "\A" attr(data-credit);
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5);
+  background: var(--color-wash);
+  color: var(--color-ink-2);
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-label);
+  line-height: var(--font-line-height-ui);
+  text-align: center;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  overflow: hidden;
+}
+
+@media (forced-colors: active) {
+  .image-frame {
+    border: var(--border-hairline) solid CanvasText;
+  }
+}

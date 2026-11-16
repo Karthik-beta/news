@@ -1,0 +1,30 @@
+/* Method summary (design/components.md, "Method summary"): a definition list, labels Fira 13.5 secondary ink,
+   values Literata. Rows are separated by hairlines (design/layout.md: hairlines between list items). The label
+   sits above its value on phones and in a 12em column from tablet width. */
+.method-summary {
+  display: flex;
+  flex-direction: column;
+  max-width: var(--layout-article);
+  border-top: var(--border-hairline) solid var(--color-rule);
+}
+
+.method-summary__row {
+  display: grid;
+  gap: var(--space-1);
+  padding-block: var(--space-3);
+  border-bottom: var(--border-hairline) solid var(--color-rule);
+}
+
+.method-summary__value {
+  margin: 0;
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 600px) {
+  .method-summary__row {
+    grid-template-columns: 12em minmax(0, 1fr);
+    gap: var(--space-5);
+    align-items: baseline;
+  }
+}

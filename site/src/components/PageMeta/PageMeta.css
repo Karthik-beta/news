@@ -1,0 +1,29 @@
+/* Byline and meta (design/components.md): Fira 13.5, secondary ink, lines 3px apart (2 + 1 on the spacing scale's
+   steps); topic links 14px apart (12 + 2); the "Updated on" line in ink. Links keep the text's own ink. */
+.page-meta {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--space-1) + var(--border-hairline));
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-label);
+  line-height: 1.35; /* typography.md: type.label */
+  color: var(--color-ink-2);
+  overflow-wrap: anywhere;
+}
+
+.page-meta__line {
+  margin: 0;
+}
+
+.page-meta__topics {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: calc(var(--space-4) + var(--space-1));
+  row-gap: var(--space-1);
+  padding: 0;
+  list-style: none;
+}
+
+.page-meta__updated {
+  color: var(--color-ink);
+}

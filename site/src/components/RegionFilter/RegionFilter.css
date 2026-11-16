@@ -1,0 +1,44 @@
+/* Region filter (design/components.md): Fira 13.5; the selected region in ink, weight 600, with a 2px crimson
+   underline (current navigation); the others in secondary ink. The links wrap on phones. */
+.region-filter__list {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--space-5);
+  row-gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.region-filter__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--space-7);
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-label);
+  line-height: var(--font-line-height-ui);
+  color: var(--color-ink-2);
+  text-decoration: none;
+  border-bottom: var(--border-section) solid transparent;
+}
+.region-filter__link:hover {
+  color: var(--color-ink);
+  border-bottom-color: var(--color-rule);
+}
+.region-filter__link[aria-current="page"] {
+  color: var(--color-ink);
+  font-weight: var(--font-weight-semibold);
+  border-bottom-color: var(--color-brand);
+}
+
+@media (forced-colors: active) {
+  .region-filter__link[aria-current="page"] {
+    border-bottom-color: LinkText;
+  }
+}
+
+@media print {
+  .region-filter {
+    display: none;
+  }
+}
