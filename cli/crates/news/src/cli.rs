@@ -290,15 +290,19 @@ pub enum JobsCmd {
     Unpause { pool: String },
 }
 
-/// The lease a claim handed out: heartbeat, complete and fail must name both (ADR 0003).
+/// The lease a claim handed out: heartbeat, complete and fail must name the worker and the lease id
+/// (ADR 0003).
 #[derive(Args, Debug)]
 pub struct Holder {
     /// The worker name given to `jobs claim`
     #[arg(long)]
     pub worker: String,
-    /// The job's `attempt` from `jobs claim`
+    /// The job's `lease_id` from `jobs claim`
+    #[arg(long, value_name = "LEASE_ID")]
+    pub lease: uuid::Uuid,
+    /// The job's `attempt` from `jobs claim`, recorded on the telemetry event; not part of the lease
     #[arg(long, value_parser = clap::value_parser!(i16).range(1..))]
-    pub attempt: i16,
+    pub attempt: Option<i16>,
 }
 
 #[derive(Args, Debug)]

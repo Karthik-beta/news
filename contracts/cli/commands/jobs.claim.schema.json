@@ -49,6 +49,11 @@
                 "type": "integer",
                 "minimum": 1
               },
+              "lease_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "New for every claim; pass it with the worker name to jobs heartbeat, complete and fail"
+              },
               "run_id": {
                 "type": ["string", "null"],
                 "format": "uuid"
@@ -72,6 +77,7 @@
               "kind",
               "pool",
               "attempt",
+              "lease_id",
               "run_id",
               "item_ref",
               "args",

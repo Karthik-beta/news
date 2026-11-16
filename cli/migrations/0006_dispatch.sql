@@ -33,13 +33,17 @@ create table if not exists jobs (
   run_after    timestamptz not null default now(),
   lease_until  timestamptz,
   locked_by    text,
+  -- A fresh token per claim; heartbeat, complete and fail must name it. Never reused, unlike attempt,
+  -- which a snooze gives back and a retry resets.
+  lease_id     uuid,
   error_class  text,
   errors       jsonb not null default '[]',
   result       jsonb,
   created_at   timestamptz not null default now(),
   finished_at  timestamptz,
   -- A running job always has a lease; a finished one never does.
-  check ((state = 'running') = (lease_until is not null))
+  check ((state = 'running') = (lease_until is not null)),
+  check ((state = 'running') = (lease_id is not null))
 );
 -- Unique jobs: one live job per key (River's unique jobs).
 create unique index if not exists jobs_unique_live on jobs (unique_key)

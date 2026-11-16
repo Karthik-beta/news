@@ -71,12 +71,12 @@ fn job_context(command: &cli::Command) -> JobContext {
     match command {
         Command::Jobs(JobsCmd::Fail { class, holder, .. }) => JobContext {
             error_class: Some(class.clone()),
-            attempt: Some(holder.attempt),
+            attempt: holder.attempt,
         },
         Command::Jobs(JobsCmd::Heartbeat { holder, .. } | JobsCmd::Complete { holder, .. }) => {
             JobContext {
                 error_class: None,
-                attempt: Some(holder.attempt),
+                attempt: holder.attempt,
             }
         }
         Command::Jobs(JobsCmd::Retry { class, .. }) => JobContext {

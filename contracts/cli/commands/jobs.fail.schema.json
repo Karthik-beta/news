@@ -37,13 +37,18 @@
           "type": "string",
           "description": "The worker name given to jobs claim"
         },
+        "lease": {
+          "type": "string",
+          "format": "uuid",
+          "description": "The job's lease_id from jobs claim; with worker it names the lease"
+        },
         "attempt": {
           "type": "integer",
           "minimum": 1,
-          "description": "The job's attempt from jobs claim; with worker it names the lease"
+          "description": "The job's attempt from jobs claim, recorded on the telemetry event; not part of the lease"
         }
       },
-      "required": ["job", "class", "message", "worker", "attempt"],
+      "required": ["job", "class", "message", "worker", "lease"],
       "additionalProperties": false
     },
     "output": {

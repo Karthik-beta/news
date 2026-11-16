@@ -276,6 +276,8 @@ fn event_of(args: &[&str]) -> Value {
     serde_json::from_str(body.trim()).unwrap()
 }
 
+const LEASE_ID: &str = "00000000-0000-4000-8000-000000000007";
+
 #[test]
 fn job_events_carry_the_error_class_and_attempt() {
     // No database: the call fails as precondition, and the event still records what the job reported.
@@ -289,13 +291,25 @@ fn job_events_carry_the_error_class_and_attempt() {
         "429",
         "--worker",
         "w",
+        "--lease",
+        LEASE_ID,
         "--attempt",
         "2",
     ]);
     assert_eq!(ev["event"], "jobs.fail");
     assert_eq!(ev["error_class"], "rate_limited");
     assert_eq!(ev["attempt"], 2);
-    let ev = event_of(&["jobs", "heartbeat", "7", "--worker", "w", "--attempt", "3"]);
+    let ev = event_of(&[
+        "jobs",
+        "heartbeat",
+        "7",
+        "--worker",
+        "w",
+        "--lease",
+        LEASE_ID,
+        "--attempt",
+        "3",
+    ]);
     assert_eq!(
         (ev["error_class"].as_str(), ev["attempt"].as_i64()),
         (Some(""), Some(3))

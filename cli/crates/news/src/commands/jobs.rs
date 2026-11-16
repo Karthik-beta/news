@@ -188,7 +188,7 @@ pub async fn run(cmd: JobsCmd, shape: &Shape) -> NewsResult<Reply> {
 }
 
 fn lease_of(h: &Holder) -> Lease<'_> {
-    Lease::new(&h.worker, h.attempt)
+    Lease::new(&h.worker, h.lease)
 }
 
 fn summary(j: &Job) -> Value {
@@ -213,6 +213,8 @@ fn claimed_job(j: &Job) -> Value {
         "kind": j.kind,
         "pool": j.pool,
         "attempt": j.attempt,
+        // With the worker name, this names the lease for heartbeat, complete and fail.
+        "lease_id": j.lease_id,
         "run_id": j.run_id,
         "item_ref": j.item_ref,
         "args": j.args,

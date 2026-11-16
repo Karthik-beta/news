@@ -22,7 +22,7 @@ pub const DEFAULT_USAGE_PAUSE: Duration = Duration::from_secs(3600);
 pub const ERRORS_KEPT: usize = 5;
 
 const JOB_COLUMNS: &str = "job_id, kind, pool, run_id, item_ref, args, unique_key, priority, state, attempt, \
-    max_attempts, snoozes, run_after, lease_until, locked_by, error_class, errors, result, created_at, finished_at";
+    max_attempts, snoozes, run_after, lease_until, locked_by, lease_id, error_class, errors, result, created_at, finished_at";
 
 /// A row of `jobs`.
 #[derive(Debug, Clone, PartialEq, Serialize, sqlx::FromRow)]
@@ -42,6 +42,8 @@ pub struct Job {
     pub run_after: DateTime<Utc>,
     pub lease_until: Option<DateTime<Utc>>,
     pub locked_by: Option<String>,
+    /// The token of the current claim; set exactly while the job is `running`.
+    pub lease_id: Option<Uuid>,
     pub error_class: Option<String>,
     pub errors: Value,
     pub result: Option<Value>,
@@ -49,26 +51,27 @@ pub struct Job {
     pub finished_at: Option<DateTime<Utc>>,
 }
 
-/// Who holds a running job: the worker that claimed it and the attempt that claim started. Heartbeat,
-/// complete and fail must name both, so a holder whose lease expired (and whose job was rescued and
-/// claimed again, even under the same worker name) gets `conflict` instead of finishing someone else's
-/// attempt.
+/// Who holds a running job: the worker that claimed it and the `lease_id` that claim created.
+/// Heartbeat, complete and fail must name both, so a holder whose lease expired (and whose job was
+/// rescued, snoozed or retried and claimed again, even under the same worker name and attempt number)
+/// gets `conflict` instead of finishing someone else's claim. `attempt` is only retry accounting: a
+/// snooze gives it back and a retry resets it, so it cannot identify a claim.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Lease<'a> {
     pub worker: &'a str,
-    pub attempt: i16,
+    pub lease_id: Uuid,
 }
 
 impl<'a> Lease<'a> {
-    pub fn new(worker: &'a str, attempt: i16) -> Self {
-        Self { worker, attempt }
+    pub fn new(worker: &'a str, lease_id: Uuid) -> Self {
+        Self { worker, lease_id }
     }
 }
 
 impl Job {
-    /// The lease a claim gave `worker` on this job.
+    /// The lease a claim gave `worker` on this job (a nil id, which matches nothing, when it has none).
     pub fn lease<'a>(&self, worker: &'a str) -> Lease<'a> {
-        Lease::new(worker, self.attempt)
+        Lease::new(worker, self.lease_id.unwrap_or_default())
     }
 
     pub fn input(&self) -> JobInput {
@@ -280,7 +283,8 @@ pub async fn claim(
             limit greatest(0, least($2, $3 - (select count(*) from jobs where pool = $1 and state = 'running')))
          )
          update jobs j set state = 'running', attempt = j.attempt + 1,
-                lease_until = statement_timestamp() + make_interval(secs => $4), locked_by = $5
+                lease_until = statement_timestamp() + make_interval(secs => $4), locked_by = $5,
+                lease_id = gen_random_uuid()
            from c where j.job_id = c.job_id
          returning {}",
         JOB_COLUMNS
@@ -320,7 +324,6 @@ pub async fn get(db: &PgPool, job_id: i64) -> Result<Job, NewsError> {
     .ok_or_else(|| NewsError::not_found(format!("job {job_id} not found")))
 }
 
-/// Why a running-job update matched nothing.
 /// Why a running-job update that names `lease` matched nothing.
 async fn not_held(db: &PgPool, job_id: i64, lease: Lease<'_>) -> NewsError {
     match get(db, job_id).await {
@@ -335,12 +338,11 @@ async fn not_held(db: &PgPool, job_id: i64, lease: Lease<'_>) -> NewsError {
             job.locked_by.as_deref().unwrap_or("nobody"),
             lease.worker
         )),
-        Ok(job) => NewsError::conflict(format!(
-            "job {job_id} is on attempt {}, not {}",
-            job.attempt, lease.attempt
+        Ok(_) => NewsError::conflict(format!(
+            "job {job_id} is held under another lease, not {}",
+            lease.lease_id
         ))
-        .with_hint("your lease expired and the job was claimed again; drop this attempt")
-        .with_details(json!({"attempt": job.attempt})),
+        .with_hint("your lease expired and the job was claimed again; drop this claim"),
     }
 }
 
@@ -355,14 +357,14 @@ pub async fn heartbeat(
     let until: Option<DateTime<Utc>> = sqlx::query_scalar(
         "with j as (
            update jobs set lease_until = now() + make_interval(secs => $4)
-            where job_id = $1 and state = 'running' and locked_by = $2 and attempt = $3
+            where job_id = $1 and state = 'running' and locked_by = $2 and lease_id = $3
             returning lease_until, run_id),
          r as (update runs set last_seen_at = now() where run_id = (select run_id from j))
          select lease_until from j",
     )
     .bind(job_id)
     .bind(lease.worker)
-    .bind(lease.attempt)
+    .bind(lease.lease_id)
     .bind(extend.as_secs_f64())
     .fetch_optional(db)
     .await
@@ -382,12 +384,12 @@ pub async fn complete(
 ) -> Result<(), NewsError> {
     let done = sqlx::query(
         "update jobs set state = 'completed', result = $4, finished_at = now(),
-                lease_until = null, locked_by = null
-          where job_id = $1 and state = 'running' and locked_by = $2 and attempt = $3",
+                lease_until = null, locked_by = null, lease_id = null
+          where job_id = $1 and state = 'running' and locked_by = $2 and lease_id = $3",
     )
     .bind(job_id)
     .bind(lease.worker)
-    .bind(lease.attempt)
+    .bind(lease.lease_id)
     .bind(result)
     .execute(db)
     .await
@@ -442,12 +444,12 @@ pub async fn fail(
     }
     let current: Option<(i16, i16, String)> = sqlx::query_as(
         "select attempt, max_attempts, pool from jobs
-          where job_id = $1 and state = 'running' and locked_by = $2 and attempt = $3
+          where job_id = $1 and state = 'running' and locked_by = $2 and lease_id = $3
           for update",
     )
     .bind(job_id)
     .bind(lease.worker)
-    .bind(lease.attempt)
+    .bind(lease.lease_id)
     .fetch_optional(&mut *tx)
     .await
     .map_err(map_err)?;
@@ -490,7 +492,7 @@ pub async fn fail(
             attempt = attempt + $3,
             snoozes = snoozes + $4,
             run_after = now() + make_interval(secs => $5),
-            lease_until = null, locked_by = null,
+            lease_until = null, locked_by = null, lease_id = null,
             error_class = $6,
             errors = jsonb_path_query_array(
                 jsonb_build_array(jsonb_build_object('class', $6::text, 'message', $7::text, 'at', now(), 'attempt', attempt))
@@ -531,7 +533,7 @@ fn truncate(s: &str, max: usize) -> &str {
 pub async fn retry(db: &PgPool, job_id: i64) -> Result<i64, NewsError> {
     let res = sqlx::query(
         "update jobs set state = 'available', attempt = 0, run_after = now(), finished_at = null,
-                error_class = null, lease_until = null, locked_by = null
+                error_class = null, lease_until = null, locked_by = null, lease_id = null
           where job_id = $1 and state in ('discarded', 'cancelled', 'retryable', 'snoozed')",
     )
     .bind(job_id)
@@ -642,7 +644,7 @@ pub async fn rescue(db: &PgPool) -> Result<Rescued, NewsError> {
     let rows: Vec<(i64, String)> = sqlx::query_as(
         "update jobs set
             state = case when attempt >= max_attempts then 'discarded' else 'retryable' end,
-            run_after = now(), lease_until = null, locked_by = null,
+            run_after = now(), lease_until = null, locked_by = null, lease_id = null,
             error_class = 'transient',
             errors = jsonb_path_query_array(
                 jsonb_build_array(jsonb_build_object('class', 'transient', 'message',
@@ -777,6 +779,6 @@ mod tests {
 
     #[test]
     fn job_columns_match_the_struct() {
-        assert_eq!(JOB_COLUMNS.split(", ").count(), 20);
+        assert_eq!(JOB_COLUMNS.split(", ").count(), 21);
     }
 }

@@ -3,7 +3,7 @@
 
 use super::fixture::Fixture;
 use news_core::job::{ErrorClass, JobFailure};
-use news_dispatch::queue::{self, Lease, NewJob};
+use news_dispatch::queue::{self, NewJob};
 use news_dispatch::schedule;
 use serde_json::json;
 use std::collections::{HashMap, HashSet};
@@ -247,9 +247,13 @@ async fn a_rate_limited_snooze_leaves_the_attempt_unchanged() {
     let f = Fixture::migrated().await;
     let id = enqueue(&f, "doc.fetch", "net").await;
     assert_eq!(state_of(&f, id).await.attempt, 0);
-    let (_, code, _, _) = f.call(&["jobs", "claim", "--pool", "net", "--worker", "w1"]);
+    let (env, code, _, _) = f.call(&["jobs", "claim", "--pool", "net", "--worker", "w1"]);
     assert_eq!(code, 0);
     assert_eq!(state_of(&f, id).await.attempt, 1);
+    let lease = env["data"]["items"][0]["lease_id"]
+        .as_str()
+        .unwrap()
+        .to_owned();
 
     let id_s = id.to_string();
     let (env, code, _, _) = f.call(&[
@@ -264,8 +268,8 @@ async fn a_rate_limited_snooze_leaves_the_attempt_unchanged() {
         "30",
         "--worker",
         "w1",
-        "--attempt",
-        "1",
+        "--lease",
+        &lease,
     ]);
     assert_eq!(code, 0, "{env}");
     assert_eq!(env["data"]["state"], "snoozed");
@@ -287,20 +291,28 @@ async fn a_rate_limited_snooze_leaves_the_attempt_unchanged() {
             .is_empty()
     );
     make_ready(&f).await;
-    let again = queue::claim(&f.pool, "net", 1, LEASE, "w2").await.unwrap();
-    assert_eq!(again.jobs[0].attempt, 1);
+    let mut held = queue::claim(&f.pool, "net", 1, LEASE, "w2")
+        .await
+        .unwrap()
+        .jobs
+        .remove(0);
+    assert_eq!(held.attempt, 1);
     // Snoozing many times never discards the job.
     for _ in 0..10 {
         queue::fail(
             &f.pool,
             id,
-            Lease::new("w2", 1),
+            held.lease("w2"),
             &JobFailure::new(ErrorClass::RateLimited, "429"),
         )
         .await
         .unwrap();
         make_ready(&f).await;
-        queue::claim(&f.pool, "net", 1, LEASE, "w2").await.unwrap();
+        held = queue::claim(&f.pool, "net", 1, LEASE, "w2")
+            .await
+            .unwrap()
+            .jobs
+            .remove(0);
     }
     let job = state_of(&f, id).await;
     assert_eq!(
@@ -526,6 +538,7 @@ async fn heartbeats_extend_the_lease_and_only_the_holder_finishes_the_job() {
         .await
         .unwrap();
     let before = c.jobs[0].lease_until.unwrap();
+    let lease = c.jobs[0].lease_id.unwrap().to_string();
     let id_s = id.to_string();
     let (env, code, _, _) = f.call(&[
         "jobs",
@@ -533,8 +546,8 @@ async fn heartbeats_extend_the_lease_and_only_the_holder_finishes_the_job() {
         &id_s,
         "--worker",
         "holder",
-        "--attempt",
-        "1",
+        "--lease",
+        &lease,
         "--lease-seconds",
         "300",
     ]);
@@ -545,15 +558,7 @@ async fn heartbeats_extend_the_lease_and_only_the_holder_finishes_the_job() {
     std::fs::write(&result, r#"{"snapshots": 2}"#).unwrap();
     let result_s = result.to_string_lossy().into_owned();
     let (env, code, _, _) = f.call(&[
-        "jobs",
-        "complete",
-        &id_s,
-        "--result",
-        &result_s,
-        "--worker",
-        "intruder",
-        "--attempt",
-        "1",
+        "jobs", "complete", &id_s, "--result", &result_s, "--worker", "intruder", "--lease", &lease,
     ]);
     assert_eq!(
         (code, env["error"]["code"].as_str()),
@@ -561,22 +566,14 @@ async fn heartbeats_extend_the_lease_and_only_the_holder_finishes_the_job() {
         "{env}"
     );
     let (env, code, _, _) = f.call(&[
-        "jobs",
-        "complete",
-        &id_s,
-        "--result",
-        &result_s,
-        "--worker",
-        "holder",
-        "--attempt",
-        "1",
+        "jobs", "complete", &id_s, "--result", &result_s, "--worker", "holder", "--lease", &lease,
     ]);
     assert_eq!(code, 0, "{env}");
     let job = state_of(&f, id).await;
     assert_eq!(job.state, "completed");
     assert_eq!(job.result, Some(json!({"snapshots": 2})));
     // Finished jobs take no heartbeat.
-    let holder = ["--worker", "holder", "--attempt", "1"];
+    let holder = ["--worker", "holder", "--lease", &lease];
     let (env, code, _, _) = f.call(&[&["jobs", "heartbeat", &id_s][..], &holder].concat());
     assert_eq!((code, env["error"]["code"].as_str()), (4, Some("conflict")));
     let (env, code, _, _) = f.call(&[&["jobs", "heartbeat", "999999"][..], &holder].concat());
@@ -810,7 +807,7 @@ async fn the_old_holder_of_a_rescued_and_reclaimed_job_cannot_finish_it() {
     let f = Fixture::migrated().await;
     let id = enqueue(&f, "doc.fetch", "net").await;
     let id_s = id.to_string();
-    // The same worker name both times: only the attempt tells the two leases apart.
+    // The same worker name both times: only the lease id tells the two claims apart.
     let (env, _, _, _) = f.call(&[
         "jobs",
         "claim",
@@ -822,10 +819,19 @@ async fn the_old_holder_of_a_rescued_and_reclaimed_job_cannot_finish_it() {
         "1",
     ]);
     assert_eq!(env["data"]["items"][0]["attempt"], 1, "{env}");
+    let stale = env["data"]["items"][0]["lease_id"]
+        .as_str()
+        .unwrap()
+        .to_owned();
     tokio::time::sleep(Duration::from_millis(1500)).await;
     assert_eq!(queue::rescue(&f.pool).await.unwrap().retryable, vec![id]);
     let (env, _, _, _) = f.call(&["jobs", "claim", "--pool", "net", "--worker", "w1"]);
     assert_eq!(env["data"]["items"][0]["attempt"], 2, "{env}");
+    let current = env["data"]["items"][0]["lease_id"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    assert_ne!(stale, current);
 
     let result = std::env::temp_dir().join(format!("news-stale-{}-{id}.json", std::process::id()));
     std::fs::write(&result, r#"{"stale": true}"#).unwrap();
@@ -844,7 +850,7 @@ async fn the_old_holder_of_a_rescued_and_reclaimed_job_cannot_finish_it() {
         ],
     ] {
         let mut argv = args.clone();
-        argv.extend(["--worker", "w1", "--attempt", "1"]);
+        argv.extend(["--worker", "w1", "--lease", &stale]);
         let (env, code, _, _) = f.call(&argv);
         assert_eq!(
             (code, env["error"]["code"].as_str()),
@@ -852,7 +858,7 @@ async fn the_old_holder_of_a_rescued_and_reclaimed_job_cannot_finish_it() {
             "{argv:?}: {env}"
         );
     }
-    // Without --worker or --attempt the CLI refuses before touching the job.
+    // Without --worker or --lease the CLI refuses before touching the job.
     let (env, code, _, _) = f.call(&["jobs", "complete", &id_s, "--result", &result_s]);
     assert_eq!(
         (code, env["error"]["code"].as_str()),
@@ -861,15 +867,7 @@ async fn the_old_holder_of_a_rescued_and_reclaimed_job_cannot_finish_it() {
     );
     assert_eq!(state_of(&f, id).await.state, "running");
     let (env, code, _, _) = f.call(&[
-        "jobs",
-        "complete",
-        &id_s,
-        "--result",
-        &result_s,
-        "--worker",
-        "w1",
-        "--attempt",
-        "2",
+        "jobs", "complete", &id_s, "--result", &result_s, "--worker", "w1", "--lease", &current,
     ]);
     assert_eq!(code, 0, "{env}");
     assert_eq!(state_of(&f, id).await.result, Some(json!({"stale": true})));
@@ -1003,6 +1001,10 @@ async fn a_heartbeat_marks_the_jobs_run_as_seen() {
     .job_id;
     let (env, _, _, _) = f.call(&["jobs", "claim", "--pool", "net", "--worker", "w"]);
     assert_eq!(env["data"]["items"][0]["job_id"], id, "{env}");
+    let lease = env["data"]["items"][0]["lease_id"]
+        .as_str()
+        .unwrap()
+        .to_owned();
     let id_s = id.to_string();
     let (env, code, _, _) = f.call(&[
         "jobs",
@@ -1010,8 +1012,8 @@ async fn a_heartbeat_marks_the_jobs_run_as_seen() {
         &id_s,
         "--worker",
         "w",
-        "--attempt",
-        "1",
+        "--lease",
+        &lease,
     ]);
     assert_eq!(code, 0, "{env}");
     assert_eq!(
@@ -1053,4 +1055,92 @@ async fn a_claim_that_waited_for_the_pool_lock_still_gets_its_full_lease() {
         ))
         .await;
     assert!(left > 2000, "only {left} ms of a 3 s lease left");
+}
+
+/// The old lease is refused by heartbeat, complete and fail, and the job stays with the new holder.
+async fn assert_stale(f: &Fixture, old: &queue::Job, worker: &str) {
+    let id = old.job_id;
+    let errs = [
+        queue::heartbeat(&f.pool, id, old.lease(worker), LEASE)
+            .await
+            .map(|_| ())
+            .unwrap_err(),
+        queue::complete(&f.pool, id, old.lease(worker), &json!({"stale": true}))
+            .await
+            .unwrap_err(),
+        queue::fail(
+            &f.pool,
+            id,
+            old.lease(worker),
+            &JobFailure::new(ErrorClass::Transient, "late"),
+        )
+        .await
+        .map(|_| ())
+        .unwrap_err(),
+    ];
+    for e in errs {
+        assert_eq!(e.code, news_core::ErrorCode::Conflict, "{e}");
+    }
+    let job = state_of(f, id).await;
+    assert_eq!((job.state.as_str(), job.result), ("running", None));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn a_lease_is_not_reused_after_a_discard_and_retry_under_the_same_worker() {
+    let f = Fixture::migrated().await;
+    let id = queue::enqueue(&f.pool, &NewJob::new("doc.fetch").max_attempts(1))
+        .await
+        .unwrap()
+        .job_id;
+    let first = queue::claim(&f.pool, "net", 1, Duration::from_millis(10), "w")
+        .await
+        .unwrap()
+        .jobs
+        .remove(0);
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    assert_eq!(queue::rescue(&f.pool).await.unwrap().discarded, vec![id]);
+    queue::retry(&f.pool, id).await.unwrap();
+    let second = queue::claim(&f.pool, "net", 1, LEASE, "w")
+        .await
+        .unwrap()
+        .jobs
+        .remove(0);
+    // Same job, same worker, same attempt number: only the lease tells the two claims apart.
+    assert_eq!((second.job_id, second.attempt), (id, first.attempt));
+    assert_stale(&f, &first, "w").await;
+    queue::complete(&f.pool, id, second.lease("w"), &json!({}))
+        .await
+        .unwrap();
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn a_lease_is_not_reused_after_a_snooze_under_the_same_worker() {
+    let f = Fixture::migrated().await;
+    let id = enqueue(&f, "doc.fetch", "net").await;
+    let first = queue::claim(&f.pool, "net", 1, LEASE, "w")
+        .await
+        .unwrap()
+        .jobs
+        .remove(0);
+    queue::fail(
+        &f.pool,
+        id,
+        first.lease("w"),
+        &JobFailure::new(ErrorClass::RateLimited, "429"),
+    )
+    .await
+    .unwrap();
+    make_ready(&f).await;
+    let second = queue::claim(&f.pool, "net", 1, LEASE, "w")
+        .await
+        .unwrap()
+        .jobs
+        .remove(0);
+    assert_eq!((second.job_id, second.attempt), (id, first.attempt));
+    assert_stale(&f, &first, "w").await;
+    queue::complete(&f.pool, id, second.lease("w"), &json!({}))
+        .await
+        .unwrap();
 }
