@@ -256,21 +256,29 @@ fn parse_uuid(s: &str) -> NewsResult<uuid::Uuid> {
 /// RFC 3339, or `+<n>m`, `+<n>h`, `+<n>d` from `now`.
 pub fn parse_until(s: &str, now: DateTime<Utc>) -> NewsResult<DateTime<Utc>> {
     if let Some(rel) = s.strip_prefix('+') {
-        let (num, unit) = rel.split_at(rel.len().saturating_sub(1));
-        let n: i64 = num
-            .parse()
-            .map_err(|_| NewsError::usage(format!("bad --until {s:?}")))?;
-        let d = match unit {
-            "m" => ChronoDuration::minutes(n),
-            "h" => ChronoDuration::hours(n),
-            "d" => ChronoDuration::days(n),
-            _ => {
-                return Err(NewsError::usage(format!(
-                    "bad --until {s:?}: use m, h or d"
-                )));
-            }
+        // strip_suffix, not a byte split: a non-ASCII last character must be an error, not a panic.
+        let (num, unit_secs) = if let Some(n) = rel.strip_suffix('m') {
+            (n, 60)
+        } else if let Some(n) = rel.strip_suffix('h') {
+            (n, 3600)
+        } else if let Some(n) = rel.strip_suffix('d') {
+            (n, 86_400)
+        } else {
+            return Err(NewsError::usage(format!(
+                "bad --until {s:?}: use m, h or d"
+            )));
         };
-        return Ok(now + d);
+        if num.is_empty() || !num.bytes().all(|b| b.is_ascii_digit()) {
+            return Err(NewsError::usage(format!("bad --until {s:?}")));
+        }
+        // Checked all the way: a huge count is a usage error, never a panic.
+        return num
+            .parse::<i64>()
+            .ok()
+            .and_then(|n| n.checked_mul(unit_secs))
+            .and_then(ChronoDuration::try_seconds)
+            .and_then(|d| now.checked_add_signed(d))
+            .ok_or_else(|| NewsError::usage(format!("--until {s:?} is out of range")));
     }
     DateTime::parse_from_rfc3339(s)
         .map(|t| t.with_timezone(&Utc))
@@ -304,6 +312,23 @@ mod tests {
         );
         for bad in ["", "+", "+5", "+5s", "tomorrow", "+xh"] {
             assert!(parse_until(bad, now).is_err(), "{bad}");
+        }
+    }
+
+    #[test]
+    fn until_rejects_non_ascii_and_out_of_range_values_without_panicking() {
+        let now = Utc.with_ymd_and_hms(2026, 11, 15, 12, 0, 0).unwrap();
+        for bad in [
+            "+1é",
+            "+é",
+            "+9223372036854775807d",
+            "+9223372036854775807h",
+            "+9223372036854775807m",
+            "+100000000d",
+            "+-5h",
+        ] {
+            let err = parse_until(bad, now).unwrap_err();
+            assert_eq!(err.exit_code(), 2, "{bad}: {err}");
         }
     }
 
