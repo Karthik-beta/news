@@ -1,12 +1,13 @@
 //! `news db migrate|status`.
 
-use super::{Reply, database};
+use super::{Reply, open_database};
 use crate::cli::DbCmd;
 use news_core::NewsResult;
 use serde_json::json;
 
 pub async fn run(cmd: DbCmd) -> NewsResult<Reply> {
-    let (pool, cfg) = database(2).await?;
+    // Not `database`: migrate creates the schema, and status reports a missing one as unmigrated.
+    let (pool, cfg) = open_database(2).await?;
     match cmd {
         DbCmd::Migrate => {
             let report = news_store::migrate(&pool, &cfg.schema).await?;
@@ -26,7 +27,12 @@ pub async fn run(cmd: DbCmd) -> NewsResult<Reply> {
             })))
         }
         DbCmd::Status => {
-            let applied = news_store::applied_versions(&pool).await?;
+            // A missing schema would make current_schema() fall back to `public`.
+            let applied = if news_store::schema_exists(&pool, &cfg.schema).await? {
+                news_store::applied_versions(&pool).await?
+            } else {
+                Vec::new()
+            };
             let known = news_store::known_versions();
             let pending: Vec<i64> = known
                 .iter()

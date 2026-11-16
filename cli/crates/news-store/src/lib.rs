@@ -3,7 +3,8 @@
 //! * One schema per database (`news` by default, `NEWS_DB_SCHEMA` to change it). Every connection sets
 //!   `search_path` to `<schema>, public`, so migrations and queries use unqualified names and the
 //!   extensions (installed in `public` by `infra/postgres/init`) resolve. Tests point it at a
-//!   throwaway schema.
+//!   throwaway schema. PostgreSQL skips a missing schema on the search path, so commands other than
+//!   `db migrate` call [`require_schema`] first and never fall back to `public`.
 //! * Migrations live in `cli/migrations/`, numbered in blocks (cli/README.md) and embedded in the
 //!   binary. Each file is idempotent, and sqlx records applied versions, so re-running is a no-op.
 //! * Errors are mapped to the stable codes. Messages never contain the connection URL.
@@ -119,6 +120,28 @@ pub struct MigrateReport {
     pub applied: Vec<i64>,
     /// Every version now recorded.
     pub current: Vec<i64>,
+}
+
+/// Whether `schema` exists in the database.
+pub async fn schema_exists(pool: &PgPool, schema: &str) -> Result<bool, NewsError> {
+    sqlx::query_scalar("select exists (select 1 from pg_namespace where nspname = $1)")
+        .bind(schema)
+        .fetch_one(pool)
+        .await
+        .map_err(map_err)
+}
+
+/// Refuse a schema that does not exist: PostgreSQL would skip it on the search path, and unqualified
+/// queries would read and change tables in `public` instead.
+pub async fn require_schema(pool: &PgPool, schema: &str) -> Result<(), NewsError> {
+    if schema_exists(pool, schema).await? {
+        Ok(())
+    } else {
+        Err(
+            NewsError::precondition(format!("schema {schema:?} does not exist"))
+                .with_hint("run `news db migrate`"),
+        )
+    }
 }
 
 /// Create the schema if needed, then apply pending migrations. Idempotent.

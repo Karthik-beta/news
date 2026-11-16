@@ -103,8 +103,16 @@ pub fn schema_commands() -> Vec<String> {
     schema::commands()
 }
 
-/// Open the database from `DATABASE_URL` / `NEWS_DB_SCHEMA`.
+/// Open the database from `DATABASE_URL` / `NEWS_DB_SCHEMA`; the schema must exist, so queries never
+/// fall back to `public`.
 pub async fn database(max: u32) -> NewsResult<(news_store::PgPool, news_store::DbConfig)> {
+    let (pool, cfg) = open_database(max).await?;
+    news_store::require_schema(&pool, &cfg.schema).await?;
+    Ok((pool, cfg))
+}
+
+/// [`database`] without the schema check, for `db migrate` (which creates it) and `db status`.
+pub async fn open_database(max: u32) -> NewsResult<(news_store::PgPool, news_store::DbConfig)> {
     let cfg = news_store::DbConfig::from_env()?;
     let pool = news_store::connect(&cfg, max).await?;
     Ok((pool, cfg))

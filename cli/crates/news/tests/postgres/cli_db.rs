@@ -131,3 +131,38 @@ async fn jobs_claim_returns_args_and_respects_limit() {
     let (env, _, _, _) = f.call(&["jobs", "claim", "--pool", "ai", "--worker", "ghost"]);
     assert_eq!(env["data"]["items"].as_array().unwrap().len(), 0);
 }
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn a_missing_schema_is_refused_instead_of_falling_back_to_public() {
+    let f = Fixture::new().await;
+    // PostgreSQL skips a missing schema on the search_path, so queries would reach `public`.
+    sqlx::query(sqlx::AssertSqlSafe(format!("drop schema {}", f.schema)))
+        .execute(&f.pool)
+        .await
+        .unwrap();
+    for args in [
+        vec!["jobs", "list"],
+        vec!["jobs", "retry", "1"],
+        vec!["work", "--once"],
+    ] {
+        let (env, code, _, _) = f.call(&args);
+        assert_eq!(code, 4, "{args:?}: {env}");
+        assert_eq!(env["error"]["code"], "precondition", "{args:?}");
+        assert_eq!(
+            env["error"]["message"],
+            format!("schema {:?} does not exist", f.schema),
+            "{args:?}"
+        );
+        assert_eq!(env["error"]["hint"], "run `news db migrate`", "{args:?}");
+    }
+    let (env, code, _, _) = f.call(&["db", "status"]);
+    assert_eq!(code, 0, "{env}");
+    assert_eq!(env["data"]["applied"], serde_json::json!([]));
+    assert_eq!(env["data"]["up_to_date"], false);
+    // `db migrate` still creates it.
+    let (env, code, _, _) = f.call(&["db", "migrate"]);
+    assert_eq!(code, 0, "{env}");
+    let (env, code, _, _) = f.call(&["jobs", "list"]);
+    assert_eq!(code, 0, "{env}");
+}
