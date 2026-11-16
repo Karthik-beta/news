@@ -5,7 +5,7 @@
   "description": "Extend a running job's lease. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "W",
   "x-news-status": "built",
-  "x-news-errors": ["not_found", "conflict"],
+  "x-news-errors": ["usage", "not_found", "conflict"],
   "$defs": {
     "input": {
       "type": "object",
@@ -14,13 +14,19 @@
           "type": "integer"
         },
         "worker": {
-          "type": "string"
+          "type": "string",
+          "description": "The worker name given to jobs claim"
+        },
+        "attempt": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "The job's attempt from jobs claim; with worker it names the lease"
         },
         "lease_seconds": {
           "type": "integer"
         }
       },
-      "required": ["job"],
+      "required": ["job", "worker", "attempt"],
       "additionalProperties": false
     },
     "output": {

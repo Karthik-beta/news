@@ -49,7 +49,28 @@ pub struct Job {
     pub finished_at: Option<DateTime<Utc>>,
 }
 
+/// Who holds a running job: the worker that claimed it and the attempt that claim started. Heartbeat,
+/// complete and fail must name both, so a holder whose lease expired (and whose job was rescued and
+/// claimed again, even under the same worker name) gets `conflict` instead of finishing someone else's
+/// attempt.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Lease<'a> {
+    pub worker: &'a str,
+    pub attempt: i16,
+}
+
+impl<'a> Lease<'a> {
+    pub fn new(worker: &'a str, attempt: i16) -> Self {
+        Self { worker, attempt }
+    }
+}
+
 impl Job {
+    /// The lease a claim gave `worker` on this job.
+    pub fn lease<'a>(&self, worker: &'a str) -> Lease<'a> {
+        Lease::new(worker, self.attempt)
+    }
+
     pub fn input(&self) -> JobInput {
         JobInput {
             job_id: self.job_id,
@@ -205,6 +226,9 @@ pub struct Claimed {
 ///
 /// One claimer per pool at a time: the pool's row is locked `FOR UPDATE` first (others wait, they do
 /// not skip), so the running count cannot change under us and `max_running` is never exceeded.
+///
+/// Every claim first runs the rescuer (a cheap check when no lease has expired), so expired leases come
+/// back even when no `news work` is running: Ghost's `news jobs claim` is then the only claimer.
 pub async fn claim(
     db: &PgPool,
     pool_name: &str,
@@ -214,6 +238,9 @@ pub async fn claim(
 ) -> Result<Claimed, NewsError> {
     if limit < 1 {
         return Err(NewsError::usage("--limit must be at least 1"));
+    }
+    if let Err(e) = rescue(db).await {
+        tracing::warn!(error = %e, "rescuer failed before a claim");
     }
     let mut tx = db.begin().await.map_err(map_err)?;
     let row = sqlx::query(
@@ -285,7 +312,8 @@ pub async fn get(db: &PgPool, job_id: i64) -> Result<Job, NewsError> {
 }
 
 /// Why a running-job update matched nothing.
-async fn not_running(db: &PgPool, job_id: i64, worker: Option<&str>) -> NewsError {
+/// Why a running-job update that names `lease` matched nothing.
+async fn not_held(db: &PgPool, job_id: i64, lease: Lease<'_>) -> NewsError {
     match get(db, job_id).await {
         Err(e) => e,
         Ok(job) if job.state != "running" => {
@@ -293,52 +321,64 @@ async fn not_running(db: &PgPool, job_id: i64, worker: Option<&str>) -> NewsErro
                 .with_hint("its lease may have expired; the rescuer made it retryable")
                 .with_details(json!({"state": job.state}))
         }
-        Ok(job) => NewsError::conflict(format!(
+        Ok(job) if job.locked_by.as_deref() != Some(lease.worker) => NewsError::conflict(format!(
             "job {job_id} is leased to {}, not {}",
             job.locked_by.as_deref().unwrap_or("nobody"),
-            worker.unwrap_or("?")
+            lease.worker
         )),
+        Ok(job) => NewsError::conflict(format!(
+            "job {job_id} is on attempt {}, not {}",
+            job.attempt, lease.attempt
+        ))
+        .with_hint("your lease expired and the job was claimed again; drop this attempt")
+        .with_details(json!({"attempt": job.attempt})),
     }
 }
 
-/// Extend a running job's lease. `worker`, when given, must hold it.
+/// Extend a running job's lease; `lease` must hold it. When the job belongs to a run, the run's
+/// `last_seen_at` moves too, so Chief's stall check sees a live job (§5.5).
 pub async fn heartbeat(
     db: &PgPool,
     job_id: i64,
-    worker: Option<&str>,
-    lease: Duration,
+    lease: Lease<'_>,
+    extend: Duration,
 ) -> Result<DateTime<Utc>, NewsError> {
     let until: Option<DateTime<Utc>> = sqlx::query_scalar(
-        "update jobs set lease_until = now() + make_interval(secs => $3)
-          where job_id = $1 and state = 'running' and ($2::text is null or locked_by = $2)
-          returning lease_until",
+        "with j as (
+           update jobs set lease_until = now() + make_interval(secs => $4)
+            where job_id = $1 and state = 'running' and locked_by = $2 and attempt = $3
+            returning lease_until, run_id),
+         r as (update runs set last_seen_at = now() where run_id = (select run_id from j))
+         select lease_until from j",
     )
     .bind(job_id)
-    .bind(worker)
-    .bind(lease.as_secs_f64())
+    .bind(lease.worker)
+    .bind(lease.attempt)
+    .bind(extend.as_secs_f64())
     .fetch_optional(db)
     .await
     .map_err(map_err)?;
     match until {
         Some(u) => Ok(u),
-        None => Err(not_running(db, job_id, worker).await),
+        None => Err(not_held(db, job_id, lease).await),
     }
 }
 
-/// Mark a running job completed with its result.
+/// Mark a running job completed with its result; `lease` must hold it.
 pub async fn complete(
     db: &PgPool,
     job_id: i64,
-    worker: Option<&str>,
+    lease: Lease<'_>,
     result: &Value,
 ) -> Result<(), NewsError> {
     let done = sqlx::query(
-        "update jobs set state = 'completed', result = $3, finished_at = now(),
+        "update jobs set state = 'completed', result = $4, finished_at = now(),
                 lease_until = null, locked_by = null
-          where job_id = $1 and state = 'running' and ($2::text is null or locked_by = $2)",
+          where job_id = $1 and state = 'running' and locked_by = $2 and attempt = $3",
     )
     .bind(job_id)
-    .bind(worker)
+    .bind(lease.worker)
+    .bind(lease.attempt)
     .bind(result)
     .execute(db)
     .await
@@ -346,7 +386,7 @@ pub async fn complete(
     if done.rows_affected() == 1 {
         Ok(())
     } else {
-        Err(not_running(db, job_id, worker).await)
+        Err(not_held(db, job_id, lease).await)
     }
 }
 
@@ -363,30 +403,50 @@ pub struct Failed {
 }
 
 /// Record a failure and apply the class's policy (§5.4): retry with full-jitter backoff, snooze
-/// without spending the attempt, pause the pool, or discard.
+/// without spending the attempt, pause the pool, or discard. `lease` must hold the job.
+///
+/// Lock order is pool row, then job row, the same as the claim and the rescuer, so a usage-limit
+/// failure (which updates the pool) can never deadlock against them.
 pub async fn fail(
     db: &PgPool,
     job_id: i64,
-    worker: Option<&str>,
+    lease: Lease<'_>,
     failure: &JobFailure,
 ) -> Result<Failed, NewsError> {
+    let class = failure.class;
     let mut tx = db.begin().await.map_err(map_err)?;
+    if class.policy() == Policy::PausePool {
+        // A job's pool never changes, so it can be read before any lock is taken.
+        let pool_name: Option<String> =
+            sqlx::query_scalar("select pool from jobs where job_id = $1")
+                .bind(job_id)
+                .fetch_optional(&mut *tx)
+                .await
+                .map_err(map_err)?;
+        if let Some(p) = pool_name {
+            sqlx::query("select pool from pools where pool = $1 for update")
+                .bind(p)
+                .execute(&mut *tx)
+                .await
+                .map_err(map_err)?;
+        }
+    }
     let current: Option<(i16, i16, String)> = sqlx::query_as(
         "select attempt, max_attempts, pool from jobs
-          where job_id = $1 and state = 'running' and ($2::text is null or locked_by = $2)
+          where job_id = $1 and state = 'running' and locked_by = $2 and attempt = $3
           for update",
     )
     .bind(job_id)
-    .bind(worker)
+    .bind(lease.worker)
+    .bind(lease.attempt)
     .fetch_optional(&mut *tx)
     .await
     .map_err(map_err)?;
     let Some((attempt, max_attempts, pool_name)) = current else {
         drop(tx);
-        return Err(not_running(db, job_id, worker).await);
+        return Err(not_held(db, job_id, lease).await);
     };
 
-    let class = failure.class;
     let mut pool_paused_until = None;
     // (state, delay, attempt delta, snooze delta, finished)
     let (state, delay, attempt_delta, snooze_delta) = match class.policy() {
@@ -534,18 +594,31 @@ pub async fn unpause(db: &PgPool, pool_name: &str) -> Result<(), NewsError> {
 /// Result of one rescuer pass.
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]
 pub struct Rescued {
-    /// False when another process held the rescuer lock; nothing was done.
+    /// False when no lease had expired or another process held the rescuer lock; nothing was done.
     pub ran: bool,
     pub retryable: Vec<i64>,
     pub discarded: Vec<i64>,
 }
 
 /// Move `running` jobs whose lease has expired back to `retryable` (or `discarded` when their attempts
-/// are spent). Runs only in the process that gets advisory lock 42, and takes every pool's row lock
-/// first, in pool order, so an expired job's slot and a new claim never race.
+/// are spent). Runs only in the process that gets advisory lock (42, schema), and takes every pool's row lock
+/// first, in pool order, so an expired job's slot and a new claim never race. Every lock order in the
+/// queue is pool rows (in pool order) before job rows; claims and `fail` follow it too.
+///
+/// Called before every claim, so it starts with a lock-free check and returns at once when no lease
+/// has expired (`ran` is then false).
 pub async fn rescue(db: &PgPool) -> Result<Rescued, NewsError> {
+    let expired: bool = sqlx::query_scalar(
+        "select exists (select 1 from jobs where state = 'running' and lease_until < now())",
+    )
+    .fetch_one(db)
+    .await
+    .map_err(map_err)?;
+    if !expired {
+        return Ok(Rescued::default());
+    }
     let mut tx = db.begin().await.map_err(map_err)?;
-    let got: bool = sqlx::query_scalar("select pg_try_advisory_xact_lock($1)")
+    let got: bool = sqlx::query_scalar(crate::TRY_SCHEMA_LOCK)
         .bind(crate::RESCUER_LOCK)
         .fetch_one(&mut *tx)
         .await

@@ -245,8 +245,8 @@ pub enum JobsCmd {
     /// Extend a running job's lease
     Heartbeat {
         job: i64,
-        #[arg(long)]
-        worker: Option<String>,
+        #[command(flatten)]
+        holder: Holder,
         #[arg(long, value_name = "SECS")]
         lease_seconds: Option<u64>,
     },
@@ -256,8 +256,8 @@ pub enum JobsCmd {
         /// Result JSON file, or - for stdin
         #[arg(long)]
         result: String,
-        #[arg(long)]
-        worker: Option<String>,
+        #[command(flatten)]
+        holder: Holder,
     },
     /// Record a failure; the error class decides retry, snooze or discard
     Fail {
@@ -269,8 +269,8 @@ pub enum JobsCmd {
         /// For rate_limited and ai_usage_limit: seconds to wait
         #[arg(long, value_name = "SECS")]
         retry_after: Option<u64>,
-        #[arg(long)]
-        worker: Option<String>,
+        #[command(flatten)]
+        holder: Holder,
     },
     /// Re-enqueue a discarded job, or every discarded job of a class
     Retry {
@@ -288,6 +288,17 @@ pub enum JobsCmd {
     },
     /// Unpause a pool (H tier)
     Unpause { pool: String },
+}
+
+/// The lease a claim handed out: heartbeat, complete and fail must name both (ADR 0003).
+#[derive(Args, Debug)]
+pub struct Holder {
+    /// The worker name given to `jobs claim`
+    #[arg(long)]
+    pub worker: String,
+    /// The job's `attempt` from `jobs claim`
+    #[arg(long, value_parser = clap::value_parser!(i16).range(1..))]
+    pub attempt: i16,
 }
 
 #[derive(Args, Debug)]

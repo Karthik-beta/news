@@ -1,11 +1,11 @@
 //! `news jobs …`: the Dispatch tools (Bureau §6.4).
 
 use super::{Reply, database, read_json};
-use crate::cli::JobsCmd;
+use crate::cli::{Holder, JobsCmd};
 use chrono::{DateTime, Duration as ChronoDuration, Utc};
 use news_core::job::{ErrorClass, JobFailure};
 use news_core::{NewsError, NewsResult, Shape, tier};
-use news_dispatch::queue::{self, Job, ListFilter};
+use news_dispatch::queue::{self, Job, Lease, ListFilter};
 use news_dispatch::{STATES, is_pool, kinds};
 use serde_json::{Value, json};
 use std::fmt::Write as _;
@@ -96,7 +96,7 @@ pub async fn run(cmd: JobsCmd, shape: &Shape) -> NewsResult<Reply> {
         }
         JobsCmd::Heartbeat {
             job,
-            worker,
+            holder,
             lease_seconds,
         } => {
             let current = queue::get(&db, job).await?;
@@ -108,16 +108,16 @@ pub async fn run(cmd: JobsCmd, shape: &Shape) -> NewsResult<Reply> {
                 },
                 Duration::from_secs,
             );
-            let until = queue::heartbeat(&db, job, worker.as_deref(), lease).await?;
+            let until = queue::heartbeat(&db, job, lease_of(&holder), lease).await?;
             Ok(Reply::new(json!({ "job_id": job, "lease_until": until })))
         }
         JobsCmd::Complete {
             job,
             result,
-            worker,
+            holder,
         } => {
             let value = read_json(&result)?;
-            queue::complete(&db, job, worker.as_deref(), &value).await?;
+            queue::complete(&db, job, lease_of(&holder), &value).await?;
             Ok(Reply::new(json!({ "job_id": job, "state": "completed" })))
         }
         JobsCmd::Fail {
@@ -125,13 +125,13 @@ pub async fn run(cmd: JobsCmd, shape: &Shape) -> NewsResult<Reply> {
             class,
             message,
             retry_after,
-            worker,
+            holder,
         } => {
             let mut failure = JobFailure::new(parse_class(&class)?, message);
             if let Some(s) = retry_after {
                 failure = failure.with_retry_after(Duration::from_secs(s));
             }
-            let failed = queue::fail(&db, job, worker.as_deref(), &failure).await?;
+            let failed = queue::fail(&db, job, lease_of(&holder), &failure).await?;
             Ok(Reply::new(
                 serde_json::to_value(failed).unwrap_or(Value::Null),
             ))
@@ -176,6 +176,10 @@ pub async fn run(cmd: JobsCmd, shape: &Shape) -> NewsResult<Reply> {
             Ok(Reply::new(json!({ "pool": pool, "paused_until": null })))
         }
     }
+}
+
+fn lease_of(h: &Holder) -> Lease<'_> {
+    Lease::new(&h.worker, h.attempt)
 }
 
 fn summary(j: &Job) -> Value {

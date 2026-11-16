@@ -3,7 +3,7 @@
 
 use super::fixture::Fixture;
 use news_core::job::{ErrorClass, JobFailure};
-use news_dispatch::queue::{self, NewJob};
+use news_dispatch::queue::{self, Lease, NewJob};
 use news_dispatch::schedule;
 use serde_json::json;
 use std::collections::{HashMap, HashSet};
@@ -120,7 +120,7 @@ async fn eight_workers_and_200_jobs_never_exceed_max_running_and_never_double_cl
                         tokio::time::sleep(Duration::from_millis(1 + (job.job_id as u64 % 4)))
                             .await;
                         holding[pool].fetch_sub(1, Ordering::SeqCst);
-                        queue::complete(&db, job.job_id, Some(&name), &json!({"ok": true}))
+                        queue::complete(&db, job.job_id, job.lease(&name), &json!({"ok": true}))
                             .await
                             .unwrap();
                         done.fetch_add(1, Ordering::SeqCst);
@@ -221,14 +221,14 @@ async fn the_rescuer_discards_a_stuck_job_with_no_attempts_left_and_runs_once_at
         .await
         .unwrap();
     tokio::time::sleep(Duration::from_millis(50)).await;
-    // Another session holding advisory lock 42 keeps this rescuer out.
+    // Another session holding advisory lock (42, this schema) keeps this rescuer out.
     let mut holder = f.pool.acquire().await.unwrap();
-    sqlx::query("select pg_advisory_lock(42)")
+    sqlx::query("select pg_advisory_lock(42, hashtext(current_schema()))")
         .execute(&mut *holder)
         .await
         .unwrap();
     assert!(!queue::rescue(&f.pool).await.unwrap().ran);
-    sqlx::query("select pg_advisory_unlock(42)")
+    sqlx::query("select pg_advisory_unlock(42, hashtext(current_schema()))")
         .execute(&mut *holder)
         .await
         .unwrap();
@@ -264,6 +264,8 @@ async fn a_rate_limited_snooze_leaves_the_attempt_unchanged() {
         "30",
         "--worker",
         "w1",
+        "--attempt",
+        "1",
     ]);
     assert_eq!(code, 0, "{env}");
     assert_eq!(env["data"]["state"], "snoozed");
@@ -292,7 +294,7 @@ async fn a_rate_limited_snooze_leaves_the_attempt_unchanged() {
         queue::fail(
             &f.pool,
             id,
-            None,
+            Lease::new("w2", 1),
             &JobFailure::new(ErrorClass::RateLimited, "429"),
         )
         .await
@@ -345,7 +347,7 @@ async fn re_enqueueing_a_live_unique_key_returns_the_existing_job_id() {
         queue::enqueue(&f.pool, &job).await.unwrap().job_id,
         first.job_id
     );
-    queue::complete(&f.pool, first.job_id, Some("w"), &json!({}))
+    queue::complete(&f.pool, first.job_id, c.jobs[0].lease("w"), &json!({}))
         .await
         .unwrap();
     let third = queue::enqueue(&f.pool, &job).await.unwrap();
@@ -368,7 +370,7 @@ async fn transient_failures_back_off_then_discard_when_attempts_run_out() {
         let failed = queue::fail(
             &f.pool,
             id,
-            Some("w"),
+            c.jobs[0].lease("w"),
             &JobFailure::new(ErrorClass::Transient, "timeout"),
         )
         .await
@@ -399,11 +401,11 @@ async fn permanent_classes_go_straight_to_the_dead_list_and_retry_brings_them_ba
     let mut ids = Vec::new();
     for i in 0..3 {
         let id = enqueue(&f, "doc.parse", "cpu").await;
-        queue::claim(&f.pool, "cpu", 1, LEASE, "w").await.unwrap();
+        let c = queue::claim(&f.pool, "cpu", 1, LEASE, "w").await.unwrap();
         queue::fail(
             &f.pool,
             id,
-            None,
+            c.jobs[0].lease("w"),
             &JobFailure::new(ErrorClass::InvalidData, format!("unknown unit in row {i}")),
         )
         .await
@@ -477,7 +479,7 @@ async fn a_usage_limit_pauses_the_ai_pool_without_spending_the_attempt() {
     let failed = queue::fail(
         &f.pool,
         a,
-        Some("ghost"),
+        c.jobs[0].lease("ghost"),
         &JobFailure::new(ErrorClass::AiUsageLimit, "plan limit reached")
             .with_retry_after(Duration::from_secs(600)),
     )
@@ -530,6 +532,8 @@ async fn heartbeats_extend_the_lease_and_only_the_holder_finishes_the_job() {
         &id_s,
         "--worker",
         "holder",
+        "--attempt",
+        "1",
         "--lease-seconds",
         "300",
     ]);
@@ -540,7 +544,15 @@ async fn heartbeats_extend_the_lease_and_only_the_holder_finishes_the_job() {
     std::fs::write(&result, r#"{"snapshots": 2}"#).unwrap();
     let result_s = result.to_string_lossy().into_owned();
     let (env, code, _, _) = f.call(&[
-        "jobs", "complete", &id_s, "--result", &result_s, "--worker", "intruder",
+        "jobs",
+        "complete",
+        &id_s,
+        "--result",
+        &result_s,
+        "--worker",
+        "intruder",
+        "--attempt",
+        "1",
     ]);
     assert_eq!(
         (code, env["error"]["code"].as_str()),
@@ -548,16 +560,25 @@ async fn heartbeats_extend_the_lease_and_only_the_holder_finishes_the_job() {
         "{env}"
     );
     let (env, code, _, _) = f.call(&[
-        "jobs", "complete", &id_s, "--result", &result_s, "--worker", "holder",
+        "jobs",
+        "complete",
+        &id_s,
+        "--result",
+        &result_s,
+        "--worker",
+        "holder",
+        "--attempt",
+        "1",
     ]);
     assert_eq!(code, 0, "{env}");
     let job = state_of(&f, id).await;
     assert_eq!(job.state, "completed");
     assert_eq!(job.result, Some(json!({"snapshots": 2})));
     // Finished jobs take no heartbeat.
-    let (env, code, _, _) = f.call(&["jobs", "heartbeat", &id_s]);
+    let holder = ["--worker", "holder", "--attempt", "1"];
+    let (env, code, _, _) = f.call(&[&["jobs", "heartbeat", &id_s][..], &holder].concat());
     assert_eq!((code, env["error"]["code"].as_str()), (4, Some("conflict")));
-    let (env, code, _, _) = f.call(&["jobs", "heartbeat", "999999"]);
+    let (env, code, _, _) = f.call(&[&["jobs", "heartbeat", "999999"][..], &holder].concat());
     assert_eq!(
         (code, env["error"]["code"].as_str()),
         (3, Some("not_found"))
@@ -710,5 +731,152 @@ async fn the_worker_runs_handlers_completes_jobs_and_turns_panics_into_bugs() {
             .as_str()
             .unwrap()
             .contains("no handler")
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn a_claim_rescues_expired_leases_when_no_worker_is_running() {
+    let f = Fixture::migrated().await;
+    let id = enqueue(&f, "doc.fetch", "net").await;
+    let (env, code, _, _) = f.call(&[
+        "jobs",
+        "claim",
+        "--pool",
+        "net",
+        "--worker",
+        "doomed",
+        "--lease-seconds",
+        "1",
+    ]);
+    assert_eq!(code, 0, "{env}");
+    assert_eq!(env["data"]["items"][0]["job_id"], id);
+    tokio::time::sleep(Duration::from_millis(1500)).await;
+    // No `news work` runs: the next claim runs the rescuer itself and gets the job back.
+    let (env, code, _, _) = f.call(&["jobs", "claim", "--pool", "net", "--worker", "next"]);
+    assert_eq!(code, 0, "{env}");
+    assert_eq!(env["data"]["items"][0]["job_id"], id, "{env}");
+    assert_eq!(env["data"]["items"][0]["attempt"], 2);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn the_old_holder_of_a_rescued_and_reclaimed_job_cannot_finish_it() {
+    let f = Fixture::migrated().await;
+    let id = enqueue(&f, "doc.fetch", "net").await;
+    let id_s = id.to_string();
+    // The same worker name both times: only the attempt tells the two leases apart.
+    let (env, _, _, _) = f.call(&[
+        "jobs",
+        "claim",
+        "--pool",
+        "net",
+        "--worker",
+        "w1",
+        "--lease-seconds",
+        "1",
+    ]);
+    assert_eq!(env["data"]["items"][0]["attempt"], 1, "{env}");
+    tokio::time::sleep(Duration::from_millis(1500)).await;
+    assert_eq!(queue::rescue(&f.pool).await.unwrap().retryable, vec![id]);
+    let (env, _, _, _) = f.call(&["jobs", "claim", "--pool", "net", "--worker", "w1"]);
+    assert_eq!(env["data"]["items"][0]["attempt"], 2, "{env}");
+
+    let result = std::env::temp_dir().join(format!("news-stale-{}-{id}.json", std::process::id()));
+    std::fs::write(&result, r#"{"stale": true}"#).unwrap();
+    let result_s = result.to_string_lossy().into_owned();
+    for args in [
+        vec!["jobs", "complete", &id_s, "--result", &result_s],
+        vec!["jobs", "heartbeat", &id_s],
+        vec![
+            "jobs",
+            "fail",
+            &id_s,
+            "--class",
+            "transient",
+            "--message",
+            "late",
+        ],
+    ] {
+        let mut argv = args.clone();
+        argv.extend(["--worker", "w1", "--attempt", "1"]);
+        let (env, code, _, _) = f.call(&argv);
+        assert_eq!(
+            (code, env["error"]["code"].as_str()),
+            (4, Some("conflict")),
+            "{argv:?}: {env}"
+        );
+    }
+    // Without --worker or --attempt the CLI refuses before touching the job.
+    let (env, code, _, _) = f.call(&["jobs", "complete", &id_s, "--result", &result_s]);
+    assert_eq!(
+        (code, env["error"]["code"].as_str()),
+        (2, Some("usage")),
+        "{env}"
+    );
+    assert_eq!(state_of(&f, id).await.state, "running");
+    let (env, code, _, _) = f.call(&[
+        "jobs",
+        "complete",
+        &id_s,
+        "--result",
+        &result_s,
+        "--worker",
+        "w1",
+        "--attempt",
+        "2",
+    ]);
+    assert_eq!(code, 0, "{env}");
+    assert_eq!(state_of(&f, id).await.result, Some(json!({"stale": true})));
+    let _ = std::fs::remove_file(result);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn a_heartbeat_marks_the_jobs_run_as_seen() {
+    let f = Fixture::migrated().await;
+    let run_id = uuid::Uuid::new_v4();
+    sqlx::query(
+        "with t as (
+           insert into start_tickets (preset, args, canonical, prompt, match, state)
+           values ('edition', '{}', 'run edition', 'run edition', 'grammar', 'consumed') returning ticket_id)
+         insert into runs (run_id, short_id, preset, args, heavy, origin, ticket_id, status, config, budget,
+                           started_at, last_seen_at)
+         select $1, 'r_test1', 'edition', '{}', false, 'terminal', ticket_id, 'running', '{}', '{}',
+                now() - interval '2 hours', now() - interval '1 hour' from t",
+    )
+    .bind(run_id)
+    .execute(&f.pool)
+    .await
+    .unwrap();
+    let id = queue::enqueue(
+        &f.pool,
+        &NewJob {
+            run_id: Some(run_id),
+            ..NewJob::new("doc.fetch")
+        },
+    )
+    .await
+    .unwrap()
+    .job_id;
+    let (env, _, _, _) = f.call(&["jobs", "claim", "--pool", "net", "--worker", "w"]);
+    assert_eq!(env["data"]["items"][0]["job_id"], id, "{env}");
+    let id_s = id.to_string();
+    let (env, code, _, _) = f.call(&[
+        "jobs",
+        "heartbeat",
+        &id_s,
+        "--worker",
+        "w",
+        "--attempt",
+        "1",
+    ]);
+    assert_eq!(code, 0, "{env}");
+    assert_eq!(
+        f.scalar_i64(&format!(
+            "select count(*) from runs where run_id = '{run_id}' and last_seen_at > now() - interval '1 minute'"
+        ))
+        .await,
+        1
     );
 }

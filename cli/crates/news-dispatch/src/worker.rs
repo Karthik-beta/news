@@ -131,15 +131,14 @@ async fn maintenance(db: &PgPool, report: &mut WorkReport) {
 /// Run one claimed job: the handler in its own task (so a panic becomes a `bug` failure, not a stuck
 /// lease), a heartbeat every lease/3, then complete or fail.
 async fn run_one(db: PgPool, job: Job, resolve: Resolver, worker: String) -> Outcome {
-    let lease = Duration::from_secs(u64::from(
-        kinds::spec(&job.kind).map_or(120, |s| s.lease_secs),
-    ));
+    let spec = kinds::spec(&job.kind);
+    let lease = Duration::from_secs(u64::from(spec.map_or(120, |s| s.lease_secs)));
     let Some(handler) = resolve(&job.kind) else {
         let f = JobFailure::new(
             ErrorClass::Bug,
             format!("no handler for job kind {:?}", job.kind),
         );
-        return finish_failed(&db, job.job_id, &worker, &f).await;
+        return finish_failed(&db, &job, &worker, &f).await;
     };
     let mut handle = tokio::spawn(handler(job.input()));
     let mut beat = tokio::time::interval(lease / 3);
@@ -148,7 +147,7 @@ async fn run_one(db: PgPool, job: Job, resolve: Resolver, worker: String) -> Out
         tokio::select! {
             r = &mut handle => break r,
             _ = beat.tick() => {
-                if let Err(e) = queue::heartbeat(&db, job.job_id, Some(&worker), lease).await {
+                if let Err(e) = queue::heartbeat(&db, job.job_id, job.lease(&worker), lease).await {
                     tracing::warn!(job_id = job.job_id, error = %e, "lease lost");
                     handle.abort();
                     return Outcome::Lost;
@@ -157,26 +156,27 @@ async fn run_one(db: PgPool, job: Job, resolve: Resolver, worker: String) -> Out
         }
     };
     match joined {
-        Ok(Ok(result)) => match queue::complete(&db, job.job_id, Some(&worker), &result).await {
+        Ok(Ok(result)) => match queue::complete(&db, job.job_id, job.lease(&worker), &result).await
+        {
             Ok(()) => Outcome::Completed,
             Err(e) => {
                 tracing::warn!(job_id = job.job_id, error = %e, "complete failed");
                 Outcome::Lost
             }
         },
-        Ok(Err(failure)) => finish_failed(&db, job.job_id, &worker, &failure).await,
+        Ok(Err(failure)) => finish_failed(&db, &job, &worker, &failure).await,
         Err(join) => {
             let f = JobFailure::new(ErrorClass::Bug, format!("handler panicked: {join}"));
-            finish_failed(&db, job.job_id, &worker, &f).await
+            finish_failed(&db, &job, &worker, &f).await
         }
     }
 }
 
-async fn finish_failed(db: &PgPool, job_id: i64, worker: &str, f: &JobFailure) -> Outcome {
-    match queue::fail(db, job_id, Some(worker), f).await {
+async fn finish_failed(db: &PgPool, job: &Job, worker: &str, f: &JobFailure) -> Outcome {
+    match queue::fail(db, job.job_id, job.lease(worker), f).await {
         Ok(_) => Outcome::Failed,
         Err(e) => {
-            tracing::warn!(job_id, error = %e, "fail failed");
+            tracing::warn!(job_id = job.job_id, error = %e, "fail failed");
             Outcome::Lost
         }
     }

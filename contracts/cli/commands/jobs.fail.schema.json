@@ -34,10 +34,16 @@
           "minimum": 0
         },
         "worker": {
-          "type": "string"
+          "type": "string",
+          "description": "The worker name given to jobs claim"
+        },
+        "attempt": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "The job's attempt from jobs claim; with worker it names the lease"
         }
       },
-      "required": ["job", "class", "message"],
+      "required": ["job", "class", "message", "worker", "attempt"],
       "additionalProperties": false
     },
     "output": {

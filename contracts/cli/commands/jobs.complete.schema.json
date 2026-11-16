@@ -5,7 +5,7 @@
   "description": "Mark a running job completed with its result. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "W",
   "x-news-status": "built",
-  "x-news-errors": ["not_found", "conflict", "validation_failed"],
+  "x-news-errors": ["usage", "not_found", "conflict", "validation_failed"],
   "$defs": {
     "input": {
       "type": "object",
@@ -18,10 +18,16 @@
           "description": "JSON file, or - for stdin"
         },
         "worker": {
-          "type": "string"
+          "type": "string",
+          "description": "The worker name given to jobs claim"
+        },
+        "attempt": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "The job's attempt from jobs claim; with worker it names the lease"
         }
       },
-      "required": ["job", "result"],
+      "required": ["job", "result", "worker", "attempt"],
       "additionalProperties": false
     },
     "output": {
