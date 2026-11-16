@@ -43,8 +43,14 @@ export function createNewsLibrary(specs: readonly AnyComponentSpec[]): NewsLibra
     props: root.props(children),
     component: root.component as never,
   });
+  const library = createLibrary({ components: [rootComponent, ...children], root: root.name });
+  // OpenUI's Renderer.Root asks for the library's JSON Schema on every render (a useMemo, which does not survive
+  // between server renders), and building it walks every component's zod schema: about 2 ms for the fixture
+  // library and growing with each component. The schema never changes for a library, so build it once.
+  const schema = library.toJSONSchema();
+  library.toJSONSchema = () => schema;
   return {
-    library: createLibrary({ components: [rootComponent, ...children], root: root.name }),
+    library,
     specs: new Map(specs.map((s) => [s.name, s])),
   };
 }
