@@ -87,7 +87,7 @@ Transitions. Anything not in this table is refused (`precondition`, exit 4). One
 
 | From | To | Cause | Who |
 | --- | --- | --- | --- |
-| (new) | `running` | Start; slot free or light preset; `StartPolicy` allows | Board (`run.start`); Rota |
+| (new) | `running` | Start; light preset, or slot free and no rank-0 run `queued` (otherwise the slot counts as busy); `StartPolicy` allows | Board (`run.start`); Rota |
 | (new) | `queued` | Heavy, slot busy, `if_busy: "queue"` | Board (`run.start`) |
 | (new) | `queued` (rank 0) | Start after pausing the holder | Board (`run.start_after_pause`) |
 | (new) | `queued` with `start_by` | Scheduled heavy run, slot busy or quiet hours "don't start" | Rota |
@@ -154,6 +154,7 @@ At start, before any worker claims (§9), recovery completes every `pausing` run
 ### 5. The Lineup and the heavy slot
 
 - **The slot is the index.** `runs_one_heavy` (unique, `where heavy and status in ('running','waiting_ai','pausing')`) is the only arbiter. Chief tries the transition; a unique violation means "busy". No in-memory flag.
+- **The slot counts as busy for a new heavy start while any rank-0 run is `queued`**, even if no run holds it: a direct `run.start` (or a scheduled fire) does not take it, and gets the same answer as for a busy slot, joining the Lineup behind the rank-0 run if queued.
 - **`run.start`** with the slot busy and `if_busy` absent or `"offer"` returns `conflict` with `details.reason = "queue_offer"`, `details.blocking` (the holder, its step and progress) and `details.offers` (`["queue", "pause_running"]`, or `["queue"]` when the holder is already `pausing`), plus code-rendered `text`. `retryable` stays false (ADR 0002 item 3; the §8.1 example shows true, which this corrects). Board then sends `run.start` with `if_busy: "queue"`, or `run.start_after_pause` naming the holder it showed; if the holder has changed, that is `conflict` with a fresh offer.
 - **`run.start_after_pause`** in one transaction: lock the named holder, check it is still the holder and `running`/`waiting_ai`, set it `pausing` (`drain`, `karthik`), insert the new run `queued` with `lineup_rank = 0`. The reply's `position` is the run's real place in the Lineup order below: rank-0 runs come before rank-1 runs, oldest first, so it is 1 unless an earlier rank-0 run is still queued. A resume or approval while the holder is pausing finds the slot busy and queues at rank 1, so it never overtakes. The new run takes the slot when the holder's pause completes, unless an earlier rank-0 run goes first.
 - **Promotion.** On every Chief tick (1 s, and when a run leaves a slot-holding status): first end every `queued` run whose `start_by < now` as `skipped` with a Wrap; then, if `StartPolicy` allows, try the first `queued` heavy run by (`lineup_rank`, `queued_at`, `run_id`) whose `start_by` is null or not passed. Chief clears `start_by` on a run's first start, so a run that rejoins later is never late.
