@@ -44,3 +44,10 @@ PostgreSQL tests (each in its own schema) cover: 8 concurrent workers × 200 job
 - **Salvage and Karthik, new wording.** `news jobs retry` re-enqueues discarded jobs with fresh attempts; above 50 at once it runs only as Salvage's gated step or as an H-tier action from Board. `news jobs pause|unpause` are H tier, from Board only.
 - **Schedules, added.** Preset schedules are settings and are evaluated by Rota, the service's scheduler (Bureau Design §5.6); this table keeps the code-only recurring jobs.
 - **Tests.** "a live `news work` round with a sentinel `NEWS_WRITE_API_KEY` that never reads it" becomes "a live round of the service's background pools with a sentinel write-API key that is never read".
+
+## Applied in code by #30
+
+- **`news work` is removed**, with `infra/windows/news-work.task.xml`, `scripts/work.ts` and `bun run work`. The loop is `news_dispatch::worker::run`, which the Bureau service hosts (#10). `WorkOptions::background` names the `net`, `cpu` and `docling` pools that run all the time (`BACKGROUND_POOLS`, formerly `WORK_POOLS`). The binding of job kinds to handlers is `news::registry::resolve`.
+- **`news jobs pause|unpause` have no CLI form.** `queue::pause` and `queue::unpause` stay as library operations for Board's actions (#10).
+- **The sentinel test** (`the_background_pools_never_read_the_write_api_key`) runs the loop once over the background pools with the real handlers and a sentinel write-API key in the environment of the process that runs it. It asserts that the guard counted no read, that the sentinel appears in no output or stored error, and that the `publish` job is never claimed.
+- **`traffic.pull`** is owned by `news-telemetry` (kind owner `telemetry`).
