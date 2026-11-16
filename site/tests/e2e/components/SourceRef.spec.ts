@@ -66,7 +66,7 @@ test.describe("SourceRef", () => {
 
   test("a click opens the citation popover with the exact value, document, location, date and link", {
     tag: "@interaction",
-  }, async ({ page, theme }) => {
+  }, async ({ page, theme, browserName }) => {
     await gotoPage(page, PATH);
     const trigger = fixtureCase(page, "money, compact").locator("button.source-ref");
     const panel = await panelFor(page, trigger);
@@ -82,6 +82,14 @@ test.describe("SourceRef", () => {
     await expectPopoverPlacement(page, trigger, panel);
     await expectPopoverLook(panel, theme);
     await setTheme(page, theme === "light" ? "dark" : "light");
+    if (browserName === "firefox") {
+      // Firefox 159 keeps the old colours of a popover placed by a position-try fallback (flipped above, moved in
+      // from the edges, capped) until it is laid out again: an engine bug, reproduced without our CSS. Readers
+      // switch theme with a button, which closes an open popover, so re-open it before checking the colours.
+      test.info().annotations.push({ type: "firefox", description: "popover re-opened after the theme switch" });
+      await page.keyboard.press("Escape");
+      await trigger.click();
+    }
     await expectPopoverLook(panel, theme === "light" ? "dark" : "light");
     await expectAccessible(page);
   });
