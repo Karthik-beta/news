@@ -8,8 +8,8 @@
   "vars": {
     "NEWS_SITE_ORIGIN": "https://news.karthik.nz"
   },
-  // Workers Rate Limiting (free plan): 60 MCP requests a minute per client IP. The namespace ID is a number we choose.
-  "ratelimits": [{ "name": "MCP_RATE_LIMITER", "namespace_id": "1201", "simple": { "limit": 60, "period": 60 } }]
+  // Workers Rate Limiting (free plan): 30 MCP requests a minute per client IP (per Cloudflare location). The namespace ID is a number we choose.
+  "ratelimits": [{ "name": "MCP_RATE_LIMITER", "namespace_id": "1201", "simple": { "limit": 30, "period": 60 } }]
 
   // TODO(Karthik, Phase 6 provisioning, #21): declare the real read bindings here once the resources exist.
   // The tests do NOT read these: Miniflare creates local D1/R2 and the harness injects DynamoDB Local settings.

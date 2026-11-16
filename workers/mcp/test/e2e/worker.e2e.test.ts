@@ -96,10 +96,10 @@ describe("news-mcp over HTTP", () => {
     expect(((await res.json()) as Rpc).error?.code).toBe(-32020);
   });
 
-  it("is rate-limited (60 requests a minute per client)", async () => {
-    // One burst, so that it cannot straddle two limiter windows (a window allows 60).
+  it("is rate-limited (30 requests a minute per client)", async () => {
+    // One burst, so that it cannot straddle two limiter windows (a window allows 30).
     const burst = await Promise.all(
-      Array.from({ length: 130 }, () => mcp("ping", {}, { "cf-connecting-ip": "192.0.2.77" }).then((r) => r.status)),
+      Array.from({ length: 70 }, () => mcp("ping", {}, { "cf-connecting-ip": "192.0.2.77" }).then((r) => r.status)),
     );
     expect(burst).toContain(200);
     expect(burst).toContain(429);
