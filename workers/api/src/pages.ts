@@ -1,6 +1,6 @@
 // Page operations: publish (PUT /v1/pages/{id}), withdraw, and index promotion.
 import { sha256Hex } from "@news/worker-shared/crypto";
-import { eq, le, notExists, or } from "@news/worker-shared/dynamo/conditions";
+import { and, eq, le, notExists, or } from "@news/worker-shared/dynamo/conditions";
 import { ConditionFailedError, type Doc, itemSize } from "@news/worker-shared/dynamo/table";
 import {
   entityKey,
@@ -41,17 +41,20 @@ async function eachLimited<T>(items: T[], n: number, fn: (item: T) => Promise<un
 
 // --- publish ------------------------------------------------------------------------------------------------------
 
-export interface PreparedPage {
+export interface CheckedBundle {
   meta: PageMeta;
   manifest: Manifest;
   files: Record<string, string>;
+}
+
+export interface PreparedPage extends CheckedBundle {
   previous: PageRecord | undefined;
 }
 
 const enc = new TextEncoder();
 
-/** Validates the whole bundle (no writes): schema, hashes, meta, and that it may replace the live version. */
-export async function preparePut(deps: Deps, pageId: string, body: unknown): Promise<PreparedPage> {
+/** Validates the whole bundle (no reads, no writes): schema, hashes and sizes, meta. */
+export async function checkBundle(pageId: string, body: unknown): Promise<CheckedBundle> {
   const req = check<{ manifest: Manifest; files: Record<string, string> }>(schemas.validatePutPageRequest, body);
   if (!req.ok) throw new ApiError("invalid_request", "the request body does not match putPageRequest", req.issues);
   const { manifest, files } = req.value;
@@ -109,9 +112,17 @@ export async function preparePut(deps: Deps, pageId: string, body: unknown): Pro
       bad("meta.chart_ids", `charts/${chart}.csv is not in chart_ids`, "/chart_ids");
   }
   if (issues.length > 0) throw new ApiError("invalid_meta", "meta.json does not fit the bundle", issues);
+  return { meta, manifest, files };
+}
 
+/** Checks (no writes, page lock held) that the bundle may replace the live version and that its shard is bound. */
+export async function preparePut(deps: Deps, pageId: string, bundle: CheckedBundle): Promise<PreparedPage> {
+  const { meta, manifest } = bundle;
+  const reader = new Reader(deps.table());
+  const previous = await reader.getPage(pageId);
+  // A page keeps its first publication time, and with it its search shard: check the shard the record will use.
   try {
-    deps.search.assertShard(meta.published_at);
+    deps.search.assertShard(previous?.published_at ?? meta.published_at);
   } catch (e) {
     if (e instanceof MissingShardError) {
       deps.log.error("search_shard_missing", { year: e.year });
@@ -120,9 +131,13 @@ export async function preparePut(deps: Deps, pageId: string, body: unknown): Pro
     throw e;
   }
 
-  const previous = await new Reader(deps.table()).getPage(pageId);
   if (previous) assertCanReplace(previous, meta, manifest);
-  return { meta, manifest, files, previous };
+  // A version number is used once. A stored version with other content (one that never went live) is refused here,
+  // before any file is written.
+  const stored = await reader.getPageVersion(pageId, meta.version);
+  if (stored && stored.bundle_sha256 !== manifest.bundle_sha256)
+    throw new ApiError("version_conflict", `version ${meta.version} already exists with different content`);
+  return { ...bundle, previous };
 }
 
 function assertCanReplace(previous: PageRecord, meta: PageMeta, manifest: Manifest): void {
@@ -130,6 +145,12 @@ function assertCanReplace(previous: PageRecord, meta: PageMeta, manifest: Manife
     throw new ApiError(
       "path_conflict",
       `page ${meta.id} is published at ${previous.path}; a page never changes its URL`,
+    );
+  // Withdrawn stays withdrawn: only a higher version brings the page back (a retry of the old one must not).
+  if (previous.status === "withdrawn" && meta.version <= previous.version)
+    throw new ApiError(
+      "page_withdrawn",
+      `page ${meta.id} was withdrawn at version ${previous.version}; publish a higher version to bring it back`,
     );
   if (meta.version < previous.version)
     throw new ApiError(
@@ -184,13 +205,32 @@ export function hubEntry(page: PageRecord, hub: string): HubEntry {
   };
 }
 
+const unique = (...lists: string[][]) => [...new Set(lists.flat())];
+
+/**
+ * What the replaced version had and this one dropped: hubs to leave and files to delete. A retry of the live version
+ * keeps the cleanup it recorded; a new version also takes over whatever the live one recorded and has not finished.
+ */
+export function cleanupFor(previous: PageRecord | undefined, page: PageRecord): PageRecord["cleanup"] {
+  if (!previous) return undefined;
+  const retry =
+    previous.status === "published" &&
+    previous.version === page.version &&
+    previous.bundle_sha256 === page.bundle_sha256;
+  const hubs = unique(retry ? [] : previous.hubs, previous.cleanup?.hubs ?? []).filter((h) => !page.hubs.includes(h));
+  const files = unique(retry ? [] : previous.files, previous.cleanup?.files ?? []).filter(
+    (f) => !page.files.includes(f),
+  );
+  return hubs.length + files.length > 0 ? { hubs, files } : undefined;
+}
+
 /** URLs to purge after a page changes: its files, every hub it is or was in, and the home page. */
-function affectedUrls(deps: Deps, page: PageRecord, previous: PageRecord | undefined): string[] {
-  const hubs = new Set([...page.hubs, ...(previous?.hubs ?? [])]);
-  const files = new Set([...page.files, ...(previous?.files ?? [])]);
+function affectedUrls(deps: Deps, page: PageRecord): string[] {
+  const hubs = unique(page.hubs, page.cleanup?.hubs ?? []);
+  const files = unique(page.files, page.cleanup?.files ?? []);
   return [
-    ...pageFileUrls(deps.siteOrigin, page.path, [...files]),
-    ...[...hubs].map((h) => absolute(deps.siteOrigin, hubPath(h))),
+    ...pageFileUrls(deps.siteOrigin, page.path, files),
+    ...hubs.map((h) => absolute(deps.siteOrigin, hubPath(h))),
     absolute(deps.siteOrigin, HOME_PATH),
   ];
 }
@@ -200,8 +240,13 @@ export async function executePut(deps: Deps, p: PreparedPage): Promise<OpResult>
   const bucket = deps.bucket();
   const now = deps.now();
   const page = pageRecord(p.meta, p.manifest, p.previous, now);
-  if (itemSize(page as unknown as Doc) > MAX_PAGE_ITEM_BYTES)
+  const cleanup = cleanupFor(p.previous, page);
+  const live: PageRecord = cleanup ? { ...page, cleanup } : page;
+  if (itemSize(live as unknown as Doc) > MAX_PAGE_ITEM_BYTES)
     throw new ApiError("invalid_meta", "page metadata is too large for one record (64 KB)");
+
+  // The caller holds the page lock (lock.ts) and preparePut refused every conflict it could see, so nothing below
+  // races another write to this page. Every step is an idempotent put: a retry after a failure anywhere finishes.
 
   // 1. Claim the path for this page, so no other page can publish at the same URL (or R2 prefix).
   const claimItem: PathClaim = {
@@ -220,10 +265,11 @@ export async function executePut(deps: Deps, p: PreparedPage): Promise<OpResult>
     throw e;
   }
 
-  // 2. The files, then stale chart files of the previous version.
-  await eachLimited(Object.entries(p.files), CONCURRENCY, ([name, text]) => putPageFile(bucket, page.path, name, text));
-  const stale = (p.previous?.files ?? []).filter((f) => !page.files.includes(f));
-  if (stale.length > 0) await deletePageFiles(bucket, page.path, stale);
+  // 2. The files, each stamped with its version, so a reader can tell which version it got.
+  const stamp = { version: page.version, bundle_sha256: page.bundle_sha256 };
+  await eachLimited(Object.entries(p.files), CONCURRENCY, ([name, text]) =>
+    putPageFile(bucket, page.path, name, text, stamp),
+  );
 
   // 3. The immutable version record; an identical retry passes, different content under the same version does not.
   try {
@@ -237,37 +283,55 @@ export async function executePut(deps: Deps, p: PreparedPage): Promise<OpResult>
     throw e;
   }
 
-  // 4. Hubs and entities. Entries of hubs the page left are removed.
-  const entries = page.hubs.map((h) => hubEntry(page, h));
-  const keep = new Set(entries.map((e) => `${e.PK}\u0000${e.SK}`));
-  const removed = (p.previous?.hubs ?? [])
-    .map((h) => ({ PK: hubPk(h), SK: hubSk(p.previous?.published_at ?? page.published_at, page.page_id) }))
-    .filter((k) => !keep.has(`${k.PK}\u0000${k.SK}`));
-  await eachLimited(entries, CONCURRENCY, (e) => table.put(e as never));
-  await eachLimited(removed, CONCURRENCY, (k) => table.delete(k));
-  const entities: EntityRecord[] = p.meta.entities.map((e) => ({
-    ...entityKey(e.id),
-    SK: "META",
-    type: "entity",
-    lang: page.lang,
-    id: e.id,
-    name: e.name,
-    kind: e.kind,
-    updated_at: now.toISOString(),
-  }));
+  // 4. Hub entries and entities. An entity the live version already listed with the same name and kind is not
+  //    rewritten: its item exists, because entities are written before LATEST moves.
+  await eachLimited(
+    page.hubs.map((h) => hubEntry(page, h)),
+    CONCURRENCY,
+    (e) => table.put(e as never),
+  );
+  const entityId = (e: { id: string; name: string; kind: string }) => `${e.id}\u0000${e.name}\u0000${e.kind}`;
+  const known = new Set((p.previous?.entities ?? []).map(entityId));
+  const entities: EntityRecord[] = p.meta.entities
+    .filter((e) => !known.has(entityId(e)))
+    .map((e) => ({
+      ...entityKey(e.id),
+      SK: "META",
+      type: "entity",
+      lang: page.lang,
+      id: e.id,
+      name: e.name,
+      kind: e.kind,
+      updated_at: now.toISOString(),
+    }));
   await eachLimited(entities, CONCURRENCY, (e) => table.put(e as never));
 
   // 5. Search row, then LATEST last: moving LATEST is the commit point readers see.
   await deps.search.index(page);
   try {
-    await table.put(page as never, or(notExists(), le("version", page.version)));
+    await table.put(live as never, or(notExists(), le("version", page.version)));
   } catch (e) {
     if (e instanceof ConditionFailedError)
       throw new ApiError("version_conflict", "a newer version was published while this one was being written");
     throw e;
   }
 
-  const purged = await deps.purger.purge(affectedUrls(deps, page, p.previous));
+  // 6. After the commit: leave the hubs and delete the files the page dropped, purge, then clear the cleanup note.
+  //    The note is part of LATEST, so a retry of this request (or the next version) finishes it if this fails.
+  if (cleanup) {
+    await eachLimited(cleanup.hubs, CONCURRENCY, (h) =>
+      table.delete({ PK: hubPk(h), SK: hubSk(page.published_at, page.page_id) }),
+    );
+    await deletePageFiles(bucket, page.path, cleanup.files);
+  }
+  const purged = await deps.purger.purge(affectedUrls(deps, live));
+  if (cleanup) {
+    await table
+      .put(page as never, and(eq("version", page.version), eq("bundle_sha256", page.bundle_sha256)))
+      .catch((e) => {
+        if (!(e instanceof ConditionFailedError)) throw e;
+      });
+  }
   return {
     status: 200,
     body: {
@@ -288,74 +352,83 @@ export interface PreparedPageOp {
   indexStatus?: "index" | "noindex";
 }
 
-export async function prepareWithdraw(deps: Deps, pageId: string, body: unknown): Promise<PreparedPageOp> {
+export async function checkWithdraw(body: unknown): Promise<{ reason: string }> {
   const req = check<{ reason: string }>(schemas.validateWithdrawRequest, body);
   if (!req.ok) throw new ApiError("invalid_request", "the request body does not match withdrawRequest", req.issues);
+  return req.value;
+}
+
+export async function prepareWithdraw(deps: Deps, pageId: string, req: { reason: string }): Promise<PreparedPageOp> {
   const page = await new Reader(deps.table()).getPage(pageId);
   if (!page) throw new ApiError("not_found", `page ${pageId} does not exist`);
-  return { page, reason: req.value.reason };
+  return { page, reason: req.reason };
 }
 
+/**
+ * Marks the page withdrawn (unless it already is), then removes its hub entries, search row and public files and
+ * purges. Those steps run on every attempt, including when the page is already withdrawn, so a retry finishes a
+ * withdrawal that failed half way. Versions stay in DynamoDB and the bundle on the laptop.
+ */
 export async function executeWithdraw(deps: Deps, p: PreparedPageOp): Promise<OpResult> {
   const table = deps.table();
-  const now = deps.now();
-  const page = p.page;
-  const body = (status: PageRecord["status"], purged: string[]) => ({
-    page_id: page.page_id,
-    version: page.version,
-    status,
-    index_status: page.index_status,
-    purged,
-  });
-  // Already withdrawn: nothing to change.
-  if (page.status === "withdrawn") return { status: 200, body: body("withdrawn", []) };
-
-  const withdrawn: PageRecord = {
-    ...page,
-    status: "withdrawn",
-    withdrawn_at: now.toISOString(),
-    withdraw_reason: p.reason,
-  };
-  try {
-    await table.put(withdrawn as never, eq("version", page.version));
-  } catch (e) {
-    if (e instanceof ConditionFailedError)
-      throw new ApiError("version_conflict", "the page changed; read it again and retry");
-    throw e;
+  let page = p.page;
+  if (page.status !== "withdrawn") {
+    const withdrawn: PageRecord = {
+      ...page,
+      status: "withdrawn",
+      withdrawn_at: deps.now().toISOString(),
+      withdraw_reason: p.reason,
+    };
+    try {
+      await table.put(withdrawn as never, and(eq("version", page.version), eq("status", "published")));
+    } catch (e) {
+      if (e instanceof ConditionFailedError)
+        throw new ApiError("version_conflict", "the page changed; read it again and retry");
+      throw e;
+    }
+    page = withdrawn;
   }
-  await eachLimited(page.hubs, CONCURRENCY, (h) =>
-    table.delete({ PK: hubPk(h), SK: hubSk(page.published_at, page.page_id) }),
+  const gone = page;
+  await eachLimited(unique(gone.hubs, gone.cleanup?.hubs ?? []), CONCURRENCY, (h) =>
+    table.delete({ PK: hubPk(h), SK: hubSk(gone.published_at, gone.page_id) }),
   );
-  await deps.search.remove(page);
-  // The public files go: a withdrawn page must stop being served. Versions stay in DynamoDB and the bundle on the laptop.
-  await deletePageFiles(deps.bucket(), page.path, page.files);
-  const purged = await deps.purger.purge(affectedUrls(deps, page, undefined));
-  return { status: 200, body: body("withdrawn", purged) };
+  await deps.search.remove(gone);
+  // The public files go: a withdrawn page must stop being served.
+  await deletePageFiles(deps.bucket(), gone.path, unique(gone.files, gone.cleanup?.files ?? []));
+  const purged = await deps.purger.purge(affectedUrls(deps, gone));
+  return {
+    status: 200,
+    body: { page_id: gone.page_id, version: gone.version, status: "withdrawn", index_status: gone.index_status, purged },
+  };
 }
 
-export async function prepareIndex(deps: Deps, pageId: string, body: unknown): Promise<PreparedPageOp> {
+export async function checkIndex(body: unknown): Promise<{ index_status: "index" | "noindex" }> {
   const req = check<{ index_status: "index" | "noindex" }>(schemas.validateIndexRequest, body);
   if (!req.ok) throw new ApiError("invalid_request", "the request body does not match indexRequest", req.issues);
+  return req.value;
+}
+
+export async function prepareIndex(
+  deps: Deps,
+  pageId: string,
+  req: { index_status: "index" | "noindex" },
+): Promise<PreparedPageOp> {
   const page = await new Reader(deps.table()).getPage(pageId);
   if (!page) throw new ApiError("not_found", `page ${pageId} does not exist`);
   if (page.status === "withdrawn") throw new ApiError("page_withdrawn", `page ${pageId} is withdrawn`);
-  return { page, indexStatus: req.value.index_status };
+  return { page, indexStatus: req.index_status };
 }
 
+/**
+ * Sets index_status on the live record (only while it is still the published version that was read), its hub
+ * entries and its search row, then purges the page. Every step runs on every attempt, so a retry finishes.
+ */
 export async function executeIndex(deps: Deps, p: PreparedPageOp): Promise<OpResult> {
   const table = deps.table();
   const status = p.indexStatus as "index" | "noindex";
   const page: PageRecord = { ...p.page, index_status: status };
-  const result = (purged: string[]) => ({
-    page_id: page.page_id,
-    version: page.version,
-    status: page.status,
-    index_status: status,
-    purged,
-  });
-  if (p.page.index_status === status) return { status: 200, body: result([]) };
   try {
-    await table.put(page as never, eq("version", page.version));
+    await table.put(page as never, and(eq("version", page.version), eq("status", "published")));
   } catch (e) {
     if (e instanceof ConditionFailedError)
       throw new ApiError("version_conflict", "the page changed; read it again and retry");
@@ -365,5 +438,8 @@ export async function executeIndex(deps: Deps, p: PreparedPageOp): Promise<OpRes
   await deps.search.setIndexStatus(page, status);
   // The page's own URLs: its robots meta and sitemap entry follow index_status (ADR 0004).
   const purged = await deps.purger.purge(pageFileUrls(deps.siteOrigin, page.path, ["index.html"]));
-  return { status: 200, body: result(purged) };
+  return {
+    status: 200,
+    body: { page_id: page.page_id, version: page.version, status: page.status, index_status: status, purged },
+  };
 }

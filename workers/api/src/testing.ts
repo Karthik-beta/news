@@ -103,6 +103,7 @@ const validators: Record<string, (d: unknown) => boolean> = {
   hub_entry: schemas.validateHubEntryItem,
   entity: schemas.validateEntityItem,
   path_claim: schemas.validatePathClaimItem,
+  page_lock: schemas.validatePageLockItem,
   idempotency: schemas.validateIdempotencyItem,
   curation: schemas.validateCurationItem,
   taxonomy_node: schemas.validateTaxonomyItem,

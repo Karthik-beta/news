@@ -187,7 +187,9 @@ describe("PUT /v1/pages/{id}", () => {
     const res = await put(h, await makeBundle());
     expect(res.status).toBe(500);
     expect(((await res.json()) as { error: { code: string } }).error.code).toBe("not_configured");
-    expect(h.writeCount()).toBe(0);
+    // Only the page lock was taken and given back.
+    expect(h.table.writes.flatMap((c) => c.keys.map((k) => k.SK))).toEqual(["LOCK", "LOCK"]);
+    expect(h.writeCount()).toBe(2);
   });
 
   it("an update keeps the hub position, drops hubs and chart files the page left, keeps old versions", async () => {
@@ -233,10 +235,12 @@ describe("POST /v1/pages/{id}/withdraw", () => {
     expect(h.bucket.objects.size).toBe(0);
     expect(h.search.rows.has("test-page")).toBe(false);
     expect(h.purger.calls[1]).toEqual(expect.arrayContaining([`${ORIGIN}/2026/11/test-page`, `${ORIGIN}/`]));
-    // Withdrawing again changes nothing.
-    const before = h.writeCount();
+    // Withdrawing again keeps the first reason and time; it only repeats the (idempotent) clean-up and purge.
+    const before = JSON.stringify(h.table.dump());
     expect((await h.call("POST", "/v1/pages/test-page/withdraw", { body: { reason: "again" } })).status).toBe(200);
-    expect(h.writeCount() - before).toBe(2); // only the idempotency record: claim and complete
+    const content = (dump: string) =>
+      (JSON.parse(dump) as { PK: string }[]).filter((i) => !i.PK.startsWith("IDEM#")).map((i) => JSON.stringify(i));
+    expect(content(JSON.stringify(h.table.dump()))).toEqual(content(before));
   });
 
   it("404 for an unknown page; 400 without a reason", async () => {

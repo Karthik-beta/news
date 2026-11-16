@@ -4,7 +4,7 @@
 // Secret key:    everything else under /v1 (Authorization: Bearer <NEWS_WRITE_API_KEY>)
 // Every write needs an Idempotency-Key. Contract: contracts/cloud/write-api.openapi.json.
 import { secretsEqual } from "@news/worker-shared/crypto";
-import { ThrottledError } from "@news/worker-shared/dynamo/table";
+import { OutcomeUnknownError, ThrottledError } from "@news/worker-shared/dynamo/table";
 import { BodyTooLargeError, clientIp, isJsonContentType, json, readBodyCapped } from "@news/worker-shared/http";
 import { PurgeError } from "@news/worker-shared/purge";
 import { executeRedirects, executeTaxonomy, prepareRedirects, prepareTaxonomy } from "./catalog";
@@ -12,8 +12,12 @@ import { type Deps, NotConfiguredError } from "./deps";
 import { ApiError } from "./errors";
 import { executeCuration, executeRollback, prepareCuration, prepareRollback } from "./home";
 import { claim, complete, lookup, readKey, release, requestHash } from "./idempotency";
+import { type HeldLock, lockPage, unlockPage } from "./lock";
 import {
   executeIndex,
+  checkBundle,
+  checkIndex,
+  checkWithdraw,
   executePut,
   executeWithdraw,
   type OpResult,
@@ -26,11 +30,21 @@ import { corsHeaders, listReports, receiveReport } from "./reports";
 const MiB = 1024 * 1024;
 const PAGE_ID = "([a-z0-9](?:[a-z0-9-]{0,118}[a-z0-9])?)";
 
-interface WriteRoute<P> {
+/** What an operation knows about the request it runs for. */
+export interface OpContext {
+  /** SHA-256 of the Idempotency-Key: a retry of this request carries the same one. */
+  requestId: string;
+}
+
+interface WriteRoute<P, C = unknown> {
   operation: string;
   maxBody: number;
-  prepare(deps: Deps, params: string[], body: unknown): Promise<P>;
-  execute(deps: Deps, prepared: P): Promise<OpResult>;
+  /** Checks the body without reading or writing anything; runs before any lock is taken. Default: the body as is. */
+  check?: (params: string[], body: unknown) => Promise<C>;
+  /** For page operations: the page whose lock is held from before `prepare` reads it until the operation is done. */
+  lockPage?: (params: string[]) => string;
+  prepare(deps: Deps, params: string[], checked: C): Promise<P>;
+  execute(deps: Deps, prepared: P, ctx: OpContext): Promise<OpResult>;
 }
 
 interface Route {
@@ -39,7 +53,7 @@ interface Route {
 }
 
 const write =
-  <P>(route: WriteRoute<P>) =>
+  <P, C>(route: WriteRoute<P, C>) =>
   (deps: Deps, request: Request, params: string[], url: URL) =>
     handleWrite(deps, request, params, url, route);
 
@@ -50,6 +64,8 @@ const ROUTES: Route[] = [
       PUT: write({
         operation: "put_page",
         maxBody: 5 * MiB,
+        lockPage: ([id]) => id as string,
+        check: ([id], b) => checkBundle(id as string, b),
         prepare: (d, [id], b) => preparePut(d, id as string, b),
         execute: executePut,
       }),
@@ -61,6 +77,8 @@ const ROUTES: Route[] = [
       POST: write({
         operation: "withdraw",
         maxBody: 4096,
+        lockPage: ([id]) => id as string,
+        check: (_p, b) => checkWithdraw(b),
         prepare: (d, [id], b) => prepareWithdraw(d, id as string, b),
         execute: executeWithdraw,
       }),
@@ -72,6 +90,8 @@ const ROUTES: Route[] = [
       POST: write({
         operation: "index_promote",
         maxBody: 4096,
+        lockPage: ([id]) => id as string,
+        check: (_p, b) => checkIndex(b),
         prepare: (d, [id], b) => prepareIndex(d, id as string, b),
         execute: executeIndex,
       }),
@@ -145,12 +165,12 @@ async function authenticate(deps: Deps, request: Request): Promise<void> {
   });
 }
 
-async function handleWrite<P>(
+async function handleWrite<P, C>(
   deps: Deps,
   request: Request,
   params: string[],
   url: URL,
-  route: WriteRoute<P>,
+  route: WriteRoute<P, C>,
 ): Promise<Response> {
   if (!isJsonContentType(request.headers.get("content-type")))
     throw new ApiError("unsupported_content_type", "the body must be application/json");
@@ -174,26 +194,43 @@ async function handleWrite<P>(
   const seen = await lookup(table, key, await requestHash(request.method, url.pathname, text), deps.now());
   if (seen.kind === "replay") return seen.response;
 
-  const prepared = await route.prepare(deps, params, body);
-  const lock = await claim(table, seen, route.operation, deps.now());
-  let result: OpResult;
+  const checked = route.check ? await route.check(params, body) : (body as C);
+  // A page operation holds the page lock from before it reads the page, so nothing else changes the page under it.
+  const pageLock: HeldLock | undefined = route.lockPage
+    ? await lockPage(table, route.lockPage(params), deps.now())
+    : undefined;
+  // After a write whose outcome is unknown, both locks stay held until they go stale (2 minutes), so the retry runs
+  // only once that write has certainly landed or failed. Every operation detects work it already committed.
+  let keepLocks = false;
   try {
-    result = await route.execute(deps, prepared);
+    const prepared = await route.prepare(deps, params, checked);
+    const idem = await claim(table, seen, route.operation, deps.now());
+    let result: OpResult;
+    try {
+      result = await route.execute(deps, prepared, { requestId: seen.keyHash });
+    } catch (e) {
+      if (e instanceof OutcomeUnknownError) keepLocks = true;
+      // Any other failure: release the key so the retry runs the operation again, which finishes what is missing.
+      else await release(table, idem);
+      throw e;
+    }
+    const responseText = JSON.stringify(result.body);
+    try {
+      await complete(table, idem, route.operation, deps.now(), result.status, responseText);
+    } catch (e) {
+      // The work is done; only the replay record is missing, so a retry would redo it (safely). Report success.
+      deps.log.warn("idempotency_complete_failed", {
+        operation: route.operation,
+        error: e instanceof Error ? e.name : "unknown",
+      });
+    }
+    return json(result.body, result.status);
   } catch (e) {
-    await release(table, lock);
+    if (e instanceof OutcomeUnknownError) keepLocks = true;
     throw e;
+  } finally {
+    if (pageLock && !keepLocks) await unlockPage(table, pageLock);
   }
-  const responseText = JSON.stringify(result.body);
-  try {
-    await complete(table, lock, route.operation, deps.now(), result.status, responseText);
-  } catch (e) {
-    // The work is done; only the replay record is missing, so a retry would redo it (safely). Report success.
-    deps.log.warn("idempotency_complete_failed", {
-      operation: route.operation,
-      error: e instanceof Error ? e.name : "unknown",
-    });
-  }
-  return json(result.body, result.status);
 }
 
 function toResponse(deps: Deps, e: unknown, extra: Record<string, string> = {}): Response {
@@ -202,6 +239,15 @@ function toResponse(deps: Deps, e: unknown, extra: Record<string, string> = {}):
     return new ApiError("throttled", "the database is busy; retry with the same Idempotency-Key", undefined, {
       "retry-after": "2",
     }).toResponse(extra);
+  if (e instanceof OutcomeUnknownError) {
+    deps.log.error("outcome_unknown", { message: e.message.slice(0, 200) });
+    return new ApiError(
+      "outcome_unknown",
+      "a database write may or may not have been applied; retry with the same Idempotency-Key in 2 minutes",
+      undefined,
+      { "retry-after": "120" },
+    ).toResponse(extra);
+  }
   if (e instanceof PurgeError) {
     deps.log.error("purge_failed", { status: e.status });
     return new ApiError(

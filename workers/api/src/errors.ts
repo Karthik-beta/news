@@ -22,11 +22,13 @@ export type ErrorCode =
   | "path_conflict"
   | "unknown_page"
   | "page_withdrawn"
+  | "page_busy"
   | "purge_failed"
   | "not_configured"
   | "payload_too_large"
   | "rate_limited"
   | "throttled"
+  | "outcome_unknown"
   | "internal";
 
 export const STATUS: Record<ErrorCode, number> = {
@@ -48,11 +50,13 @@ export const STATUS: Record<ErrorCode, number> = {
   path_conflict: 409,
   unknown_page: 400,
   page_withdrawn: 409,
+  page_busy: 409,
   purge_failed: 502,
   not_configured: 500,
   payload_too_large: 413,
   rate_limited: 429,
   throttled: 503,
+  outcome_unknown: 503,
   internal: 500,
 };
 

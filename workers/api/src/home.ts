@@ -9,6 +9,7 @@ import { Reader } from "@news/worker-shared/read";
 import type { Curation, CurationRecord } from "@news/worker-shared/records";
 import { homeUrls } from "@news/worker-shared/urls";
 import { check, schemas } from "@news/worker-shared/validate";
+import type { OpContext } from "./app";
 import type { Deps } from "./deps";
 import { ApiError } from "./errors";
 import type { OpResult } from "./pages";
@@ -42,12 +43,22 @@ export async function prepareCuration(deps: Deps, body: unknown): Promise<Prepar
   return { curation: c.value };
 }
 
-export async function executeCuration(deps: Deps, p: PreparedCuration): Promise<OpResult> {
+/**
+ * Writes the next version and makes it live in one transaction, then purges. A retry of the same request (same
+ * Idempotency-Key, after a failed purge, a lost response or a crash) finds the version it already wrote, by its
+ * request_id, and only purges again: one curation never becomes two versions.
+ */
+export async function executeCuration(deps: Deps, p: PreparedCuration, ctx: OpContext): Promise<OpResult> {
   const table = deps.table();
   const reader = new Reader(table);
   const now = deps.now().toISOString();
-  const [newest, live] = await Promise.all([reader.newestCurationVersion(), reader.getLiveCuration()]);
-  const version = newest + 1;
+  const [recent, live] = await Promise.all([reader.recentCurationVersions(), reader.getLiveCuration()]);
+  const done = recent.find((r) => r.request_id === ctx.requestId);
+  if (done) {
+    const purged = await deps.purger.purge(homeUrls(deps.siteOrigin, deps.regions));
+    return { status: 200, body: { version: done.version, live_version: live?.version ?? done.version, purged } };
+  }
+  const version = (recent[0]?.version ?? 0) + 1;
   const record: CurationRecord = {
     ...p.curation,
     ...curationVersionKey(version),
@@ -56,6 +67,7 @@ export async function executeCuration(deps: Deps, p: PreparedCuration): Promise<
     version,
     published_at: now,
     server_checks: { passed: true, run_at: now },
+    request_id: ctx.requestId,
   };
   try {
     // Both or neither: a new immutable version, and LATEST moved to it (only if nobody moved it meanwhile).

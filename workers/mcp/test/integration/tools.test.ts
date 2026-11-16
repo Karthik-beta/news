@@ -115,19 +115,22 @@ beforeAll(async () => {
     order: 1,
     updated_at: page.updated_at,
   });
+  const stamp = { version: page.version, bundle_sha256: page.bundle_sha256 };
   await putPageFile(
     env.PAGES,
     page.path,
     "index.md",
     "# Euro area wages accelerate\n\nNegotiated wages (ECB series).\n",
+    stamp,
   );
   await putPageFile(
     env.PAGES,
     page.path,
     "data.json",
     '{"points":[{"id":"dp:wages","value":"4.4","source":"src:ecb"}]}',
+    stamp,
   );
-  await putPageFile(env.PAGES, page.path, "charts/wages.csv", "quarter,value\n2026-Q2,4.4\n");
+  await putPageFile(env.PAGES, page.path, "charts/wages.csv", "quarter,value\n2026-Q2,4.4\n", stamp);
   await indexPage(env.SEARCH_2026, page);
 });
 afterAll(async () => {

@@ -28,9 +28,22 @@ export function pageObjectKey(pagePath: string, file: string): string {
 /** Cache lifetime at the edge for page files; purges on publish keep them fresh. */
 export const PAGE_CACHE_CONTROL = "public, max-age=300, s-maxage=86400";
 
-export async function putPageFile(bucket: R2Bucket, pagePath: string, file: string, body: string): Promise<void> {
+/** Which version of the page a stored file belongs to (R2 custom metadata), so a reader can tell mid-publish. */
+export interface FileStamp {
+  version: number;
+  bundle_sha256: string;
+}
+
+export async function putPageFile(
+  bucket: R2Bucket,
+  pagePath: string,
+  file: string,
+  body: string,
+  stamp: FileStamp,
+): Promise<void> {
   await bucket.put(pageObjectKey(pagePath, file), body, {
     httpMetadata: { contentType: contentTypeFor(file), cacheControl: PAGE_CACHE_CONTROL },
+    customMetadata: { version: String(stamp.version), bundle_sha256: stamp.bundle_sha256 },
   });
 }
 
@@ -45,6 +58,8 @@ export interface CappedText {
   truncated: boolean;
   /** Size of the whole object in bytes. */
   size: number;
+  /** The page version the file was written for (its stamp), when it has one. */
+  version?: number;
 }
 
 /**
@@ -58,5 +73,6 @@ export async function readCapped(bucket: R2Bucket, key: string, maxBytes: number
   const truncated = object.size > bytes.length;
   // A cut can split a multi-byte character; the decoder drops the incomplete tail instead of inventing one.
   const text = new TextDecoder("utf-8", { fatal: false, ignoreBOM: false }).decode(bytes, { stream: truncated });
-  return { text, truncated, size: object.size };
+  const version = Number(object.customMetadata?.version);
+  return { text, truncated, size: object.size, ...(Number.isInteger(version) && version > 0 ? { version } : {}) };
 }

@@ -5,18 +5,27 @@ interface Stored {
   bytes: Uint8Array;
   contentType?: string;
   cacheControl?: string;
+  customMetadata?: Record<string, string>;
 }
 
 export class FakeBucket {
   readonly objects = new Map<string, Stored>();
   readonly writes: { op: "put" | "delete"; key: string }[] = [];
 
-  async put(key: string, value: string, options?: { httpMetadata?: { contentType?: string; cacheControl?: string } }) {
+  async put(
+    key: string,
+    value: string,
+    options?: {
+      httpMetadata?: { contentType?: string; cacheControl?: string };
+      customMetadata?: Record<string, string>;
+    },
+  ) {
     this.writes.push({ op: "put", key });
     this.objects.set(key, {
       bytes: new TextEncoder().encode(value),
       contentType: options?.httpMetadata?.contentType,
       cacheControl: options?.httpMetadata?.cacheControl,
+      ...(options?.customMetadata ? { customMetadata: { ...options.customMetadata } } : {}),
     });
     return { key };
   }
@@ -43,6 +52,7 @@ export class FakeBucket {
       key,
       size: o.bytes.length,
       httpMetadata: { contentType: o.contentType, cacheControl: o.cacheControl },
+      customMetadata: o.customMetadata ?? {},
       arrayBuffer: async () => slice.buffer.slice(slice.byteOffset, slice.byteOffset + slice.byteLength),
       text: async () => new TextDecoder().decode(slice),
     };
