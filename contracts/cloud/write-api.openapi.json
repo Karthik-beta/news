@@ -20,7 +20,7 @@
     "/v1/pages/{page_id}": {
       "put": {
         "summary": "Publish or update a page bundle",
-        "description": "Validates the bundle (schema, file hashes and sizes, bundle_sha256, meta.json against meta.v1), then writes the R2 files under the page path, PAGE#/V#<n>, HUB# entries (latest, categories with parents, entities, region), ENT# records and the D1 search row, moves PAGE#/LATEST last, and purges the page's files, its hubs (old and new) and the home page. Body limit 5 MiB.",
+        "description": "Validates the bundle (schema, file hashes and sizes, bundle_sha256, meta.json against meta.v1), then writes the R2 files under the page path, PAGE#/V#<n>, HUB# entries (latest, categories with parents, entities, region), ENT# records and the D1 search row, moves PAGE#/LATEST last, then removes the hub entries and files the previous version had and this one dropped, and purges the page's files, its hubs (old and new) and the home page. Refused before anything is written: an older version, a reused version number with other content, a URL change (409), and re-sending the version of a withdrawn page (409 page_withdrawn; a higher version publishes it again). One operation per page at a time: another one running gives 409 page_busy. A retry with the same key after any failure finishes the job. Body limit 1 MiB.",
         "parameters": [
           { "$ref": "#/components/parameters/pageId" },
           { "$ref": "#/components/parameters/idempotencyKey" }
@@ -41,14 +41,14 @@
           "429": { "$ref": "#/components/responses/RateLimited" },
           "500": { "$ref": "#/components/responses/ServerError" },
           "502": { "$ref": "#/components/responses/PurgeFailed" },
-          "503": { "$ref": "#/components/responses/Throttled" }
+          "503": { "$ref": "#/components/responses/Unavailable" }
         }
       }
     },
     "/v1/pages/{page_id}/withdraw": {
       "post": {
         "summary": "Withdraw a page",
-        "description": "Marks PAGE#/LATEST withdrawn (versions are kept), deletes its hub entries, its search row and its public R2 files, and purges. Withdrawing a withdrawn page changes nothing.",
+        "description": "Marks PAGE#/LATEST withdrawn (versions are kept), deletes its hub entries, its search row and its public R2 files, and purges. Those steps run again on every call, so a retry after a failure (or withdrawing again) finishes a withdrawal; the first reason and time are kept.",
         "parameters": [
           { "$ref": "#/components/parameters/pageId" },
           { "$ref": "#/components/parameters/idempotencyKey" }
@@ -65,7 +65,12 @@
           "400": { "$ref": "#/components/responses/BadRequest" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "404": { "$ref": "#/components/responses/NotFound" },
-          "409": { "$ref": "#/components/responses/Conflict" }
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "413": { "$ref": "#/components/responses/TooLarge" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" },
+          "502": { "$ref": "#/components/responses/PurgeFailed" },
+          "503": { "$ref": "#/components/responses/Unavailable" }
         }
       }
     },
@@ -89,7 +94,12 @@
           "400": { "$ref": "#/components/responses/BadRequest" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "404": { "$ref": "#/components/responses/NotFound" },
-          "409": { "$ref": "#/components/responses/Conflict" }
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "413": { "$ref": "#/components/responses/TooLarge" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" },
+          "502": { "$ref": "#/components/responses/PurgeFailed" },
+          "503": { "$ref": "#/components/responses/Unavailable" }
         }
       }
     },
@@ -110,7 +120,11 @@
           "400": { "$ref": "#/components/responses/BadRequest" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "409": { "$ref": "#/components/responses/Conflict" },
-          "413": { "$ref": "#/components/responses/TooLarge" }
+          "413": { "$ref": "#/components/responses/TooLarge" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" },
+          "502": { "$ref": "#/components/responses/PurgeFailed" },
+          "503": { "$ref": "#/components/responses/Unavailable" }
         }
       }
     },
@@ -131,7 +145,12 @@
           "400": { "$ref": "#/components/responses/BadRequest" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "404": { "$ref": "#/components/responses/NotFound" },
-          "409": { "$ref": "#/components/responses/Conflict" }
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "413": { "$ref": "#/components/responses/TooLarge" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" },
+          "502": { "$ref": "#/components/responses/PurgeFailed" },
+          "503": { "$ref": "#/components/responses/Unavailable" }
         }
       }
     },
@@ -149,7 +168,13 @@
             "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/countResponse" } } }
           },
           "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "413": { "$ref": "#/components/responses/TooLarge" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" },
+          "502": { "$ref": "#/components/responses/PurgeFailed" },
+          "503": { "$ref": "#/components/responses/Unavailable" }
         }
       }
     },
@@ -167,7 +192,13 @@
             "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/countResponse" } } }
           },
           "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "413": { "$ref": "#/components/responses/TooLarge" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" },
+          "502": { "$ref": "#/components/responses/PurgeFailed" },
+          "503": { "$ref": "#/components/responses/Unavailable" }
         }
       }
     },
@@ -193,13 +224,15 @@
             "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/reportsResponse" } } }
           },
           "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" }
         }
       },
       "post": {
         "security": [],
         "summary": "Public report intake (the page's error form)",
-        "description": "No key. Accepted from the site's origin or from clients that send no Origin; other origins get 403. Rate limits: 5 a minute per client IP and 60 a minute overall (429). Body limit 8 KiB (413). A filled `website` honeypot gets the same 202 and stores nothing. Stores the report text, the page and the optional e-mail; never the IP address or other request details. Records expire after 180 days.",
+        "description": "No key. Accepted from the site's origin or from clients that send no Origin; other origins get 403. Rate limits: 5 a minute per client IP and 60 a minute per Cloudflare location, then a site-wide daily cap (NEWS_REPORT_DAILY_CAP, default 200; 429 with Retry-After until midnight UTC). Body limit 8 KiB (413); text at most 4,000 bytes. A filled `website` honeypot gets the same 202 and stores nothing. Stores the report text, the page, the optional where and e-mail in the reports D1 database; never the IP address or other request details. Records expire after 180 days. Report text is untrusted input.",
         "requestBody": {
           "required": true,
           "content": { "application/json": { "schema": { "$ref": "report.schema.json#/$defs/intake" } } }
@@ -216,7 +249,8 @@
           "400": { "$ref": "#/components/responses/BadRequest" },
           "403": { "$ref": "#/components/responses/Forbidden" },
           "413": { "$ref": "#/components/responses/TooLarge" },
-          "429": { "$ref": "#/components/responses/RateLimited" }
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" }
         }
       },
       "options": {
@@ -231,7 +265,7 @@
       "writeKey": {
         "type": "http",
         "scheme": "bearer",
-        "description": "The one write key (NEWS_WRITE_API_KEY, at least 32 characters), compared in constant time. Failed attempts are rate-limited per client (10 a minute)."
+        "description": "The one write key (NEWS_WRITE_API_KEY, at least 32 characters), compared in constant time. Failed attempts are rate-limited per client (10 a minute); a limited client is refused before any key comparison until its minute is up."
       }
     },
     "parameters": {
@@ -267,7 +301,7 @@
         "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/error" } } }
       },
       "Conflict": {
-        "description": "idempotency_key_reused, idempotency_in_progress, version_conflict, path_conflict or page_withdrawn",
+        "description": "idempotency_key_reused, idempotency_in_progress, version_conflict, path_conflict, page_withdrawn or page_busy (Retry-After: 5)",
         "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/error" } } }
       },
       "TooLarge": {
@@ -286,8 +320,8 @@
         "description": "purge_failed: the data was written but the cache purge failed; retry with the same Idempotency-Key",
         "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/error" } } }
       },
-      "Throttled": {
-        "description": "throttled: DynamoDB capacity used up (Retry-After: 2); retry with the same Idempotency-Key",
+      "Unavailable": {
+        "description": "throttled: DynamoDB capacity used up (Retry-After: 2), or outcome_unknown: a database write got no answer and may have been applied (Retry-After: 120; the key stays held until then). Retry with the same Idempotency-Key.",
         "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/error" } } }
       }
     }

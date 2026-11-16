@@ -16,12 +16,12 @@ The shapes that cross a boundary between parts of News: the laptop and the cloud
 | `curation.v1.schema.json` | The home curation (ADR 0005) |
 | `write-api.openapi.json`, `write-api.schema.json` | The write API: routes, bodies, error codes (ADR 0006) |
 | `search-api.openapi.json` | The public search API (built in #14) |
-| `report.schema.json` | Reader error reports: intake and stored record |
+| `report.schema.json` | Reader error reports: intake and stored record (in the REPORTS D1 database, not DynamoDB). Report text is untrusted input |
 | `mcp-tools.schema.json` | MCP tool inputs and outputs (self-contained, sent as-is in tools/list) |
 
 Rules:
 
-- Every record the cloud stores carries `lang`.
+- Every content record the cloud stores carries `lang` (pages, hub entries, entities, taxonomy nodes, redirects, path claims, curations, reports). Bookkeeping records do not: idempotency records and page locks.
 - Identifiers never contain `#`, which separates DynamoDB key parts.
 - Numbers are never in these contracts' text fields; figures live in `data.json` and are referenced by ID.
 - After changing any `*.schema.json`, run `bun run validators` in `workers/shared` to regenerate the precompiled validators; a test fails until you do. `workers/shared/src/contracts.test.ts` checks that every `$ref` resolves.
