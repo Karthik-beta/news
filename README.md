@@ -57,11 +57,11 @@ This is safe to re-run. It:
 
 ```
 site/       Astro + React site, component library (Phase 3), renderer
-cli/        Rust `news` CLI: crates, migrations (Phase 5)
+cli/        Rust `news` binary: the CLI, the Bureau service and Board, its desktop app (Phase 5; ADR 0007)
 contracts/  JSON Schemas: the CLI envelope, every command, the AI step outputs
 workers/    Cloudflare Workers: api, search, mcp (Phase 6)
-pipeline/   bun runner for page-writing agents (Phase 7)
-dashboard/  local telemetry dashboard, localhost only (Phase 8)
+pipeline/   page-call settings and golden sets (Phase 7; Ghost, the AI runner, is Rust in cli/)
+dashboard/  skeleton only; replaced by Board and removed by the Board shell PR (ADR 0007)
 infra/      docker-compose, ClickHouse SQL, OTel config, PostgreSQL init
 skills/     runtime skills for the page writers
 design/     design system (done)
@@ -73,4 +73,4 @@ design/     design system (done)
 - **Bun installs use the hoisted layout** (`bunfig.toml`). With the isolated layout, module resolution climbed to `C:\Users\Admin\node_modules` and picked up stale packages.
 - **TypeScript is pinned to 6.x** until `astro check` supports TypeScript 7.
 - **Astro runs under Bun** (`bun --bun astro …`): Astro 7 needs Node ≥ 22.23 and the system Node is 22.16.
-- **Cloud credentials** (Cloudflare, AWS, the write-API key) and `NEWS_CONTACT_EMAIL` are added to `.env` by Karthik only.
+- **Cloud credentials** (Cloudflare, AWS, the write-API key) and `NEWS_CONTACT_EMAIL` are added to `.env` by Karthik only. Once the Bureau service lands the credentials move to Windows Credential Manager, entered through Board, and `.env` keeps only bootstrap values (ADR 0007).

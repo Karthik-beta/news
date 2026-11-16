@@ -170,17 +170,94 @@ async fn a_missing_schema_is_refused_instead_of_falling_back_to_public() {
 #[tokio::test(flavor = "multi_thread")]
 #[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
 async fn a_schema_named_like_a_keyword_migrates() {
-    // `select` passes valid_schema; the statements must quote it. One fixed name, so it is
-    // dropped first in case an earlier run stopped half-way.
+    // `select` passes valid_schema; the statements must quote it. The name is fixed, so the test
+    // refuses to touch a `select` schema it did not create, and drops only the one it created.
     let cfg = news_store::DbConfig::new(super::fixture::url(), "select").unwrap();
     let pool = news_store::connect(&cfg, 2).await.unwrap();
-    let drop = || sqlx::query(r#"drop schema if exists "select" cascade"#);
-    drop().execute(&pool).await.unwrap();
+    assert!(
+        !news_store::schema_exists(&pool, "select").await.unwrap(),
+        "schema \"select\" already exists in the test database; this test creates and drops it,          so it will not touch one it did not create (drop it by hand if an earlier run left it)"
+    );
     let migrated = news_store::migrate(&pool, "select").await;
     let pools: Result<i64, _> = sqlx::query_scalar(r#"select count(*) from "select".pools"#)
         .fetch_one(&pool)
         .await;
-    drop().execute(&pool).await.unwrap();
+    if news_store::schema_exists(&pool, "select").await.unwrap() {
+        sqlx::query(r#"drop schema "select" cascade"#)
+            .execute(&pool)
+            .await
+            .unwrap();
+    }
     assert_eq!(migrated.unwrap().schema, "select");
     assert_eq!(pools.unwrap(), 6);
+}
+
+/// Drops the decoy `public.jobs` when the test ends, panicking or not.
+struct DropPublicJobs;
+
+impl Drop for DropPublicJobs {
+    fn drop(&mut self) {
+        let _ = std::thread::spawn(|| {
+            let _ = super::connect().batch_execute("drop table if exists public.jobs");
+        })
+        .join();
+    }
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn an_existing_but_unmigrated_schema_never_falls_back_to_public() {
+    let source = Fixture::migrated().await;
+    let target = Fixture::new().await;
+    let mut lock = source.pool.acquire().await.unwrap();
+    sqlx::query("select pg_advisory_lock($1)")
+        .bind(super::fixture::PUBLIC_LOCK)
+        .execute(&mut *lock)
+        .await
+        .unwrap();
+    let in_public: bool = sqlx::query_scalar("select to_regclass('public.jobs') is not null")
+        .fetch_one(&mut *lock)
+        .await
+        .unwrap();
+    assert!(
+        !in_public,
+        "public.jobs already exists in the test database; this test creates and drops its own"
+    );
+    let _cleanup = DropPublicJobs;
+    // A populated public.jobs, and a target schema that exists but has no tables.
+    sqlx::raw_sql(sqlx::AssertSqlSafe(format!(
+        "create table public.jobs (like {}.jobs including defaults including constraints);
+         insert into public.jobs (job_id, kind, pool, state, error_class, finished_at)
+         values (1, 'doc.fetch', 'net', 'discarded', 'parse_error', now());",
+        source.schema
+    )))
+    .execute(&mut *lock)
+    .await
+    .unwrap();
+    for args in [vec!["jobs", "retry", "1"], vec!["jobs", "list"]] {
+        let (env, code, _, _) = target.call(&args);
+        assert_eq!(code, 4, "{args:?}: {env}");
+        assert_eq!(env["error"]["code"], "precondition", "{args:?}");
+        assert_eq!(env["error"]["hint"], "run `news db migrate`", "{args:?}");
+    }
+    let state: String = sqlx::query_scalar("select state from public.jobs where job_id = 1")
+        .fetch_one(&mut *lock)
+        .await
+        .unwrap();
+    assert_eq!(state, "discarded", "jobs retry changed public.jobs");
+    // `db migrate` still initialises the target, and then it is used.
+    let (env, code, _, _) = target.call(&["db", "migrate"]);
+    assert_eq!(code, 0, "{env}");
+    let (env, code, _, _) = target.call(&["jobs", "retry", "1"]);
+    assert_eq!(
+        (code, env["error"]["code"].as_str()),
+        (3, Some("not_found")),
+        "{env}"
+    );
+    drop(_cleanup);
+    sqlx::query("select pg_advisory_unlock($1)")
+        .bind(super::fixture::PUBLIC_LOCK)
+        .execute(&mut *lock)
+        .await
+        .unwrap();
 }

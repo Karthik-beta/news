@@ -3,8 +3,9 @@
 //! * One schema per database (`news` by default, `NEWS_DB_SCHEMA` to change it). Every connection sets
 //!   `search_path` to `<schema>, public`, so migrations and queries use unqualified names and the
 //!   extensions (installed in `public` by `infra/postgres/init`) resolve. Tests point it at a
-//!   throwaway schema. PostgreSQL skips a missing schema on the search path, so commands other than
-//!   `db migrate` call [`require_schema`] first and never fall back to `public`.
+//!   throwaway schema. PostgreSQL skips a missing schema on the search path, and resolves a table the
+//!   schema lacks in `public`, so commands other than `db migrate` and `db status` call
+//!   [`require_schema`] first: the schema must exist and hold every migration this binary knows.
 //! * Migrations live in `cli/migrations/`, numbered in blocks (cli/README.md) and embedded in the
 //!   binary. Each file is idempotent, and sqlx records applied versions, so re-running is a no-op.
 //! * Errors are mapped to the stable codes. Messages never contain the connection URL.
@@ -131,16 +132,50 @@ pub async fn schema_exists(pool: &PgPool, schema: &str) -> Result<bool, NewsErro
         .map_err(map_err)
 }
 
-/// Refuse a schema that does not exist: PostgreSQL would skip it on the search path, and unqualified
-/// queries would read and change tables in `public` instead.
+/// Refuse a schema that does not exist or is not fully migrated. PostgreSQL skips a missing schema
+/// on the search path and looks up a table the schema lacks in `public`, so unqualified queries
+/// would read and change tables there instead. Once every migration this binary knows is recorded
+/// in the schema's own `_sqlx_migrations`, every table it queries exists in the schema.
 pub async fn require_schema(pool: &PgPool, schema: &str) -> Result<(), NewsError> {
-    if schema_exists(pool, schema).await? {
-        Ok(())
-    } else {
-        Err(
+    if !valid_schema(schema) {
+        return Err(NewsError::usage("invalid schema name"));
+    }
+    if !schema_exists(pool, schema).await? {
+        return Err(
             NewsError::precondition(format!("schema {schema:?} does not exist"))
                 .with_hint("run `news db migrate`"),
-        )
+        );
+    }
+    let tracked: bool = sqlx::query_scalar(
+        "select exists (select 1 from information_schema.tables
+          where table_schema = $1 and table_name = '_sqlx_migrations')",
+    )
+    .bind(schema)
+    .fetch_one(pool)
+    .await
+    .map_err(map_err)?;
+    let applied: Vec<i64> = if tracked {
+        // Qualified, so it never reads `public._sqlx_migrations`. valid_schema keeps `"` out.
+        sqlx::query_scalar(sqlx::AssertSqlSafe(format!(
+            "select version from \"{schema}\"._sqlx_migrations where success"
+        )))
+        .fetch_all(pool)
+        .await
+        .map_err(map_err)?
+    } else {
+        Vec::new()
+    };
+    let pending: Vec<i64> = known_versions()
+        .into_iter()
+        .filter(|v| !applied.contains(v))
+        .collect();
+    if pending.is_empty() {
+        Ok(())
+    } else {
+        Err(NewsError::precondition(format!(
+            "the database is not migrated (schema {schema:?} lacks migrations {pending:?})"
+        ))
+        .with_hint("run `news db migrate`"))
     }
 }
 

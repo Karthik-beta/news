@@ -11,10 +11,10 @@ Read first: the Bureau design §3.1–§3.4 (Contacts; Wire: Stringers, Runner, 
 
 ## What a connector delivers
 
-1. **Registry entry** (Contacts) in the `sources` table seed: id, name, publisher to credit, base URL, connector, source tier, licence (public domain, CC BY, custom, unclear), required attribution text, image policy, redistribution allowed (yes/no), rate limit (the documented limit, halved), concurrency, daily quota, the *name* of the env var holding a free key, regions, categories, calendar kind.
+1. **Registry entry** (Contacts) in the `sources` table seed: id, name, publisher to credit, base URL, connector, source tier, licence (public domain, CC BY, custom, unclear), required attribution text, image policy, redistribution allowed (yes/no), rate limit (the documented limit, halved), concurrency, daily quota, the *name* of the Credential Manager entry holding a free key, regions, categories, calendar kind.
    - Unclear redistribution terms → `redistribution: false`: the page links and summarises; data files are not republished.
 2. **Discover** (`discover`): a cheap listing since a cursor (feed, index, API "updated after"), returning item refs with an event-key hint, not content.
-3. **Fetch** (`fetch`) through the shared **Runner**, never your own HTTP client: conditional GET (`ETag` / `Last-Modified`, so a 304 costs no parse), the per-host rate limit, `Retry-After` (the job is snoozed, not failed) and `robots.txt`. The Runner stores the bytes exactly as received in Morgue (`work/raw/sha256/…`, content-addressed, with a `snapshots` row) and sets the User-Agent; a contact e-mail (`NEWS_CONTACT_EMAIL` from `.env`) is added only for sources that require one, such as SEC EDGAR.
+3. **Fetch** (`fetch`) through the shared **Runner**, never your own HTTP client: conditional GET (`ETag` / `Last-Modified`, so a 304 costs no parse), the per-host rate limit, `Retry-After` (the job is snoozed, not failed) and `robots.txt`. The Runner stores the bytes exactly as received in Morgue (`work/raw/sha256/…`, content-addressed, with a `snapshots` row) and sets the User-Agent; a contact e-mail (the `NEWS_CONTACT_EMAIL` setting, read from Standing, the versioned settings table; `.env` holds only bootstrap values) is added only for sources that require one, such as SEC EDGAR.
 4. **Parse** (`parse`) into normalised `data_points`. `parse` must be **pure**: a function of the snapshot bytes only, with no network, versioned by `PARSER_VERSION`, so it can be tested from fixtures and re-run on old snapshots. Each data point carries the value exactly as published (`value_text`, plus an exact decimal, never a float), unit, currency, scale (as stated, e.g. "millions"), period label exactly as the source writes it plus machine dates, the vintage (when the value was published or filed), and a **locator** that points to the value inside the stored snapshot (XBRL tag and context, JSON path, PDF page and table cell, SDMX key and observation).
 5. **Event keys**: candidates for structured items carry their event key, following the patterns in Bureau design §3.4 (for example `earnings:<cik>:<fiscal_year><fiscal_period>`, `macro:<country>.<series_family>:<reference_period>`, `policy:<central_bank>:<decision_date>`), so story identity comes from the key, not from similarity.
 6. **Calendar entries**: if the source publishes a release calendar (ICS, API or a meeting-calendar page), map its entries to event keys for Diary, so releases are pre-warmed and captured on time.
@@ -25,11 +25,11 @@ Read first: the Bureau design §3.1–§3.4 (Contacts; Wire: Stringers, Runner, 
 
 - **Never convert** currencies, units or fiscal periods. Store what the source says; formatting happens at render time.
 - **Revisions are data**: when a source revises a figure, store the new value as a new vintage that supersedes the old one and let Rewrite queue a page update.
-- **No `unwrap` on external data.** Every parse failure becomes a typed error with the locator where it failed; the job goes to the dead list, not into blind retries. After a parser fix, the Salvage workflow (`/bureau retry`) re-parses the stored snapshots.
+- **No `unwrap` on external data.** Every parse failure becomes a typed error with the locator where it failed; the job goes to the dead list, not into blind retries. After a parser fix, the Salvage workflow (started from Board) re-parses the stored snapshots.
 - **No AI.** Discovery, fetching, parsing and classification of structured items are code only.
 - **Idempotent and resumable**: running a command twice changes nothing the second time.
 - **Low CPU**: stream large files; use Docling only for hard PDF tables, one at a time.
-- **No paid APIs, no API keys that cost money.** If a source needs a free key, it goes in the local secrets file, never in code or fixtures.
+- **No paid APIs, no API keys that cost money.** If a source needs a free key, Karthik stores it in Windows Credential Manager (entered through Board, ADR 0007), and the registry records only the entry's name; never in code, fixtures, `.env` or PostgreSQL.
 
 ## Tests
 
