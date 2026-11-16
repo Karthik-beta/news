@@ -15,8 +15,10 @@
   border-bottom: var(--border-hairline) solid var(--color-rule);
 }
 
-.method-summary__value {
+.method-summary .method-summary__value {
   margin: 0;
+  /* As the note text: 1.6, never under 24px, so cited figures and glossary terms are full targets on phones. */
+  line-height: max(1.6em, var(--space-7));
   color: var(--color-ink);
   overflow-wrap: anywhere;
 }

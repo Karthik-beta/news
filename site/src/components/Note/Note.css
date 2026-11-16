@@ -20,8 +20,11 @@
   overflow-wrap: anywhere;
 }
 
-.note__text {
+.note .note__text {
   max-width: var(--layout-prose);
+  /* components.md, "Note": line height 1.6, and never under 24px, so cited figures and glossary terms in the text
+     are full targets at the phone size (15px). */
+  line-height: max(1.6em, var(--space-7));
   overflow-wrap: anywhere;
 }
 

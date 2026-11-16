@@ -46,7 +46,7 @@
   color: var(--color-ink-2);
 }
 
-.sources-panel__actions ul {
+.sources-panel__actions {
   display: flex;
   flex-wrap: wrap;
   column-gap: var(--space-5);

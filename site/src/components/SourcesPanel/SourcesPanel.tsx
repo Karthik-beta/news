@@ -89,7 +89,8 @@ export function SourcesPanel({ sources, changeNote, disclaimer, links, idPrefix 
   const headingId = `${idPrefix}sources`;
   const ordered = orderSources(sources);
   return (
-    <section className="sources-panel" aria-labelledby={headingId}>
+    // A plain section, not a named region: the page has one, and its h2 already puts it in the outline.
+    <section className="sources-panel">
       <h2 className="sources-panel__heading text-headline-l" id={headingId}>
         Sources
       </h2>
@@ -112,15 +113,13 @@ export function SourcesPanel({ sources, changeNote, disclaimer, links, idPrefix 
       ) : (
         <p className="sources-panel__empty text-label">No sources.</p>
       )}
-      <nav className="sources-panel__actions" aria-label="Page actions">
-        <ul>
-          {actionLinks(all).map((l) => (
-            <li key={l.label}>
-              <a href={l.href}>{l.label}</a>
-            </li>
-          ))}
-        </ul>
-      </nav>
+      <ul className="sources-panel__actions">
+        {actionLinks(all).map((l) => (
+          <li key={l.label}>
+            <a href={l.href}>{l.label}</a>
+          </li>
+        ))}
+      </ul>
       {changeNote ? (
         <p className="sources-panel__change" id={`${idPrefix}${CHANGE_NOTE_ID}`}>
           {changeNoteText(changeNote)}

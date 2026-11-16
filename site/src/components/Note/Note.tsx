@@ -3,6 +3,7 @@
 // text; and an attribution line built by code from the sources the note cites, so a reader always knows the words
 // are Claude's and the figures are the source's. Static: 0 KB JS.
 import type { ComponentRenderer } from "@openuidev/react-lang";
+import { useId } from "react";
 import type { SourceT } from "../../renderer/bundle/schema";
 import { usePageData } from "../../renderer/data/context";
 import { type CitedSource, type PageDataResolver, refKind, refsInText } from "../../renderer/data/resolve";
@@ -62,9 +63,11 @@ export const Note: ComponentRenderer<NoteProps> = ({ props }) => {
     b.type === "paragraph" ? b.text : b.type === "heading" ? b.text : b.items.join(" "),
   );
   const sources = noteSources(blocks, data);
+  // Named by its heading, so two notes on a page are two distinct landmarks.
+  const headingId = `note-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   return (
-    <aside className="note">
-      <h2 className="note__heading">
+    <aside className="note" aria-labelledby={headingId}>
+      <h2 className="note__heading" id={headingId}>
         <CopyText text={props.heading} cite="plain" />
       </h2>
       {blocks.map((text, i) => (

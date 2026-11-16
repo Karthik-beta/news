@@ -24,6 +24,15 @@
   list-style: none;
 }
 
+/* Topic links and the "Updated on" link are not inside a sentence, so each is a full 24px target
+   (WCAG 2.2, 2.5.8). */
+.page-meta__topics a,
+.page-meta__updated a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--space-7);
+}
+
 .page-meta__updated {
   color: var(--color-ink);
 }

@@ -67,34 +67,24 @@ async function hydrated(page: Page, island: string) {
 }
 
 for (const [name, path] of PAGES) {
-  test(`${name}: reads at this screen size, accessible, in the design fonts`, async ({ page }) => {
+  test(`${name}: accessible in both themes, reads at this screen size, in the design fonts`, {
+    tag: ["@smoke", "@a11y"],
+  }, async ({ page, theme }) => {
     await gotoPage(page, path);
     await expectAccessible(page);
     await expectNoSidewaysScroll(page);
     await expectNoSmallText(page);
     await expectTargetSize(page);
     await expectDesignFonts(page);
+    await setTheme(page, theme === "light" ? "dark" : "light");
+    await expectAccessible(page);
   });
 }
 
-test("every fixture page and gallery passes axe in both themes", { tag: ["@smoke", "@a11y"] }, async ({
-  page,
-  theme,
-}) => {
-  test.setTimeout(240_000);
-  for (const [, path] of PAGES) {
-    await gotoPage(page, path);
-    await expectAccessible(page);
-    await expectNoSidewaysScroll(page);
-    await setTheme(page, theme === "light" ? "dark" : "light");
-    await expectAccessible(page);
-  }
-});
-
-test("static components ship no JavaScript", { tag: "@smoke" }, async ({ page }) => {
+test("static components ship no JavaScript", { tag: "@smoke" }, async ({ request }) => {
   for (const [n, f] of FIXTURES.filter(([n]) => !["ImageGallery", "VideoEmbed"].includes(n))) {
-    await gotoPage(page, fixture(n, f));
-    expect(await page.locator("script").count(), `${n}/${f}`).toBe(0);
+    const html = await (await request.get(fixture(n, f))).text();
+    expect(html, `${n}/${f}`).not.toContain("<script");
   }
 });
 
@@ -142,7 +132,8 @@ test.describe("VideoEmbed", () => {
 
 test.describe("ImageFigure", () => {
   const BLOCKED = /orbit-1600x900\.svg/;
-  test.use({ allowedConsoleErrors: [BLOCKED, /Failed to load resource/] });
+  // A fixture's value that is an array must be wrapped as [value, options], or Playwright reads it as that pair.
+  test.use({ allowedConsoleErrors: [[BLOCKED, /Failed to load resource/], { scope: "test" }] });
 
   test("a blocked image keeps its size and shows its alt text and credit, with no layout shift", {
     tag: "@smoke",

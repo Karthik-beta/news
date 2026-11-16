@@ -16,7 +16,7 @@ export const cases: FixtureCase[] = [
     name: "a region selected",
     render: () => (
       <DateLine date="2024-11-06">
-        <RegionFilter selected="india" />
+        <RegionFilter selected="india" label="Regions, India case" />
       </DateLine>
     ),
   },

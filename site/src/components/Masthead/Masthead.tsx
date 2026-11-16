@@ -25,6 +25,8 @@ export interface MastheadProps {
   current?: string | null;
   homeHref?: string;
   searchHref?: string;
+  /** The navigation landmark's name. Change it only where two mastheads share a page (fixture galleries). */
+  navLabel?: string;
 }
 
 export function Masthead({
@@ -32,6 +34,7 @@ export function Masthead({
   current = null,
   homeHref = "/",
   searchHref = "/search/",
+  navLabel = "Sections",
 }: MastheadProps) {
   return (
     <header className="masthead">
@@ -39,7 +42,7 @@ export function Masthead({
         <a className="masthead__wordmark text-wordmark" href={homeHref}>
           {WORDMARK}
         </a>
-        <nav className="masthead__nav" aria-label="Sections">
+        <nav className="masthead__nav" aria-label={navLabel}>
           <ul className="masthead__links">
             {sections.map((s) => (
               <li key={s.href}>

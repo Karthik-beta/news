@@ -27,11 +27,13 @@ export interface RegionFilterProps {
   regions?: readonly Region[];
   /** The page the filter applies to. */
   base?: string;
+  /** The navigation landmark's name. Change it only where two filters share a page (fixture galleries). */
+  label?: string;
 }
 
-export function RegionFilter({ selected, regions = REGIONS, base = "/" }: RegionFilterProps) {
+export function RegionFilter({ selected, regions = REGIONS, base = "/", label = "Regions" }: RegionFilterProps) {
   return (
-    <nav className="region-filter" aria-label="Regions">
+    <nav className="region-filter" aria-label={label}>
       <ul className="region-filter__list">
         {regions.map((r) => (
           <li key={r.slug}>

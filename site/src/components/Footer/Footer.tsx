@@ -23,16 +23,18 @@ export const LICENCE_LINE =
 export interface FooterProps {
   links?: readonly NavLink[];
   homeHref?: string;
+  /** The navigation landmark's name. Change it only where two footers share a page (fixture galleries). */
+  navLabel?: string;
 }
 
-export function Footer({ links = FOOTER_LINKS, homeHref = "/" }: FooterProps) {
+export function Footer({ links = FOOTER_LINKS, homeHref = "/", navLabel = "About this site" }: FooterProps) {
   return (
     <footer className="site-footer">
       <div className="site-footer__inner">
         <a className="site-footer__wordmark" href={homeHref}>
           {WORDMARK}
         </a>
-        <nav aria-label="About this site">
+        <nav aria-label={navLabel}>
           <ul className="site-footer__links">
             {links.map((l) => (
               <li key={l.href}>
