@@ -206,6 +206,27 @@ fn news_ai_schema_serves_each_step() {
 }
 
 #[test]
+fn the_ai_schema_input_contract_accepts_what_the_cli_accepts() {
+    let mut schema = schema_of("commands/ai.schema.schema.json");
+    schema["$ref"] = json!("#/$defs/input");
+    let input = jsonschema::draft202012::new(&schema).unwrap();
+    // The CLI matches step names in any letter case.
+    for step in ["A1", "a2", "A12", "a12", "brief", "BRIEF", "Brief"] {
+        assert!(input.is_valid(&json!({ "step": step })), "{step}");
+        let (env, code, _) = call(&["ai", "schema", step]);
+        assert_eq!(code, 0, "{step}: {env}");
+    }
+    for step in ["A8", "A99", "a", "brief2", " A1", "A1 ", ""] {
+        assert!(!input.is_valid(&json!({ "step": step })), "{step:?}");
+        let (_, code, _) = call(&["ai", "schema", step]);
+        assert_ne!(code, 0, "{step:?}");
+    }
+    // The response names the step in its canonical form.
+    let (env, _, _) = call(&["ai", "schema", "a2"]);
+    assert_eq!(env["data"]["step"], "A2");
+}
+
+#[test]
 fn the_reference_pattern_is_the_one_from_the_design() {
     let draft = schema_of("ai/page-draft.v1.schema.json");
     assert_eq!(

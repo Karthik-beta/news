@@ -11,7 +11,9 @@
       "type": "object",
       "properties": {
         "step": {
-          "enum": ["A1", "A2", "A3", "A4", "A5", "A6", "A7", "A9", "A12", "brief"]
+          "type": "string",
+          "pattern": "^([Aa]([1-7]|9|12)|[Bb][Rr][Ii][Ee][Ff])$",
+          "description": "One of A1, A2, A3, A4, A5, A6, A7, A9, A12, brief, in any letter case; the output names it in this form"
         }
       },
       "required": ["step"],
