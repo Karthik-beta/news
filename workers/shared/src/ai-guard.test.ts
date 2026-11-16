@@ -52,6 +52,14 @@ describe("the scanner catches", () => {
     ['name = "x"\n\n[env.production.ai]\nbinding = "AI"\n', 3],
     ['name = "x"\n[ai_search]\nbinding = "S"\n', 2],
     ['name = "x"\nai = { binding = "AI" }\n', 2],
+    // Quoted keys are the same keys in TOML.
+    ['["ai"]\nbinding = "MODEL"\n', 1],
+    ["[ 'ai_search' ]\nbinding = \"S\"\n", 1],
+    ['name = "x"\n[env.production."ai"]\nbinding = "AI"\n', 2],
+    ['name = "x"\n"ai" = { "binding" = "AI" }\n', 2],
+    // Dotted keys define the same table.
+    ['name = "x"\nai.binding = "AI"\n', 2],
+    ['name = "x"\nenv.production.ai.binding = "AI"\n', 2],
   ])("an AI binding in wrangler.toml: %j", (toml, line) => {
     expect(scanFile("wrangler.toml", toml)[0]).toMatchObject({ rule: "ai-binding", line });
   });

@@ -42,8 +42,15 @@ export function isModelPackage(specifier: string): boolean {
 const IMPORT = /(?:\bfrom\s*|\bimport\s*\(\s*|\brequire\s*\(\s*|\bimport\s+)["']([^"'\n]+)["']/g;
 // Workers AI and AI Gateway bindings in a wrangler config, and code that reaches for an AI binding on env.
 const BINDING_CONFIG = /"(ai|ai_search)"\s*:/;
-// TOML: a table `[ai]` / `[ai_search]`, also per environment (`[env.production.ai]`), or an inline `ai = { … }`.
-const BINDING_TOML = /^[ \t]*(?:\[\s*(?:env\.[A-Za-z0-9_-]+\.)?(ai|ai_search)\s*\]|(ai|ai_search)\s*=)/m;
+// TOML: a table `[ai]` / `[ai_search]`, also per environment (`[env.production.ai]`), an inline `ai = { … }` or a
+// dotted key `ai.binding = …`. A key may be bare, "quoted" or 'literal' (`["ai"]` is the same table as `[ai]`).
+const TOML_SEGMENT = String.raw`(?:[A-Za-z0-9_-]+|"[^"\n]*"|'[^'\n]*')`;
+const TOML_AI_KEY = String.raw`(?:"(ai|ai_search)"|'(ai|ai_search)'|(ai|ai_search))`;
+const TOML_ENV = String.raw`(?:(?:env|"env"|'env')[ \t]*\.[ \t]*${TOML_SEGMENT}[ \t]*\.[ \t]*)?`;
+const BINDING_TOML = new RegExp(
+  String.raw`^[ \t]*(?:\[[ \t]*${TOML_ENV}${TOML_AI_KEY}[ \t]*[\].]|${TOML_ENV}${TOML_AI_KEY}[ \t]*[=.])`,
+  "m",
+);
 const BINDING_CODE = /\benv\s*\.\s*AI\b|\benv\s*\[\s*["']AI["']\s*\]/;
 
 const lineOf = (text: string, index: number) => text.slice(0, index).split("\n").length;
@@ -69,7 +76,12 @@ export function scanFile(file: string, text: string): Finding[] {
     const live = text.replace(toml ? /^[ \t]*#.*$/gm : /^[ \t]*\/\/.*$/gm, "");
     const m = (toml ? BINDING_TOML : BINDING_CONFIG).exec(live);
     if (m)
-      findings.push({ file, line: lineOf(live, m.index), rule: "ai-binding", detail: `"${m[1] ?? m[2]}" binding` });
+      findings.push({
+        file,
+        line: lineOf(live, m.index),
+        rule: "ai-binding",
+        detail: `"${m.slice(1).find((g) => g !== undefined)}" binding`,
+      });
     return findings;
   }
   if (/\.(?:[cm]?[jt]sx?)$/.test(name)) {
