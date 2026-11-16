@@ -15,6 +15,7 @@ const TABLES: &[&str] = &[
     "edges",
     "embeddings",
     "taxonomy",
+    "page_categories",
     "data_points",
     "home_curations",
     // Bureau §14
@@ -343,5 +344,38 @@ async fn ledger_keeps_values_verbatim_and_refs_are_checked() {
             .execute(&f.pool)
             .await;
         assert_eq!(res.is_ok(), ok, "{r}: {res:?}");
+    }
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn a_page_belongs_to_several_categories() {
+    let f = Fixture::migrated().await;
+    sqlx::raw_sql(
+        "insert into taxonomy (tax_id, slug, name) values (1, 'economy', 'Economy'), (2, 'markets', 'Markets');
+         insert into taxonomy (tax_id, parent_id, slug, name) values (3, 1, 'inflation', 'Inflation');
+         insert into pages (page_id, slug, version, status) values ('p', 'p', 1, 'draft');
+         insert into page_categories (page_id, tax_id) values ('p', 1), ('p', 2), ('p', 3);",
+    )
+    .execute(&f.pool)
+    .await
+    .unwrap();
+    assert_eq!(
+        f.scalar_i64("select count(*) from page_categories where page_id = 'p'")
+            .await,
+        3
+    );
+    for bad in [
+        "insert into page_categories values ('p', 1)",
+        "insert into page_categories values ('p', 99)",
+        "insert into page_categories values ('nope', 1)",
+    ] {
+        assert!(
+            sqlx::query(sqlx::AssertSqlSafe(bad.to_owned()))
+                .execute(&f.pool)
+                .await
+                .is_err(),
+            "{bad}"
+        );
     }
 }
