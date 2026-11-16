@@ -1,8 +1,8 @@
 // Consistency checks between the files the setup scripts depend on. They fail when one is edited
 // without the other (for example a new ${VAR} in the compose file with no entry in .env.example).
 import { describe, expect, test } from "bun:test";
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { join, relative } from "node:path";
 import { getEnvValue } from "../env-file";
 import { root } from "../lib";
 
@@ -56,9 +56,39 @@ describe(".env.example", () => {
     }
   });
 
-  test("holds no secret values: tokens, passwords and keys are blank", () => {
-    for (const key of ["CLOUDFLARE_API_TOKEN", "NEWS_WRITE_API_KEY", "NEWS_PG_PASSWORD", "NEWS_CH_PASSWORD"])
-      expect(getEnvValue(example, key), key).toBe("");
+  test("holds no secret values: the generated passwords are blank, and no token or key has a line at all", () => {
+    for (const key of ["NEWS_PG_PASSWORD", "NEWS_CH_PASSWORD"]) expect(getEnvValue(example, key), key).toBe("");
+    // Secrets live in Windows Credential Manager, entered in Board (ADR 0007), never in .env.
+    for (const key of [
+      "CLOUDFLARE_ACCOUNT_ID",
+      "CLOUDFLARE_API_TOKEN",
+      "AWS_REGION",
+      "AWS_ACCESS_KEY_ID",
+      "AWS_SECRET_ACCESS_KEY",
+      "NEWS_WRITE_API_KEY",
+    ])
+      expect(exampleKeys.has(key), key).toBe(false);
+  });
+
+  test("keeps only bootstrap values: the settings of Technical Design are not here", () => {
+    // Settings are rows in Standing, edited in Board; .env says only how to reach PostgreSQL, ClickHouse
+    // and the OTel Collector. The comment at the top may name them, so look for assignments only.
+    for (const key of [
+      "NEWS_TARGET_PAGES",
+      "NEWS_INDEX_PER_DAY",
+      "SAMPLE_RATE",
+      "NEWS_PARALLEL",
+      "NEWS_MODEL_MAIN",
+      "NEWS_MODEL_LIGHT",
+      "NEWS_MODEL_CURATOR",
+      "NEWS_HOME_STALE_DAYS",
+      "BACKFILL_FROM",
+      "NEWS_AI_RUN_TOKENS",
+      "NEWS_CONTACT_EMAIL",
+      "NEWS_RAW_RETAIN_DAYS_DATA",
+      "NEWS_RAW_RETAIN_DAYS_DOCS",
+    ])
+      expect(exampleKeys.has(key), key).toBe(false);
   });
 
   test("every variable the compose file reads is in .env.example or has a default", () => {
@@ -103,5 +133,47 @@ describe("infra/postgres/init", () => {
     const sql = read("infra/postgres/init/001_extensions.sql");
     for (const ext of ["vector", "pg_trgm", "unaccent"])
       expect(sql, ext).toMatch(new RegExp(`CREATE EXTENSION IF NOT EXISTS ${ext};`));
+  });
+});
+
+describe("no agent-shell guard", () => {
+  // ADR 0007: H-tier actions are accepted only from Board over the Hotline, so nothing checks the
+  // environment variable Claude Code sets in its tool shells. The name is built here so that this file
+  // does not contain it either.
+  const marker = ["CLAUDE", "CODE"].join("");
+  const roots = [
+    "cli",
+    "contracts",
+    "infra",
+    "scripts",
+    "workers",
+    "pipeline",
+    "dashboard",
+    "skills",
+    "site/src",
+    ".github",
+    ".claude",
+  ];
+  // `worktrees` holds other checkouts of this repository, which are not this tree's files.
+  const skip = new Set(["node_modules", "target", "dist", ".astro", ".wrangler", "worktrees"]);
+
+  const walk = (dir: string, out: string[] = []): string[] => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (skip.has(entry.name)) continue;
+      const path = join(dir, entry.name);
+      if (entry.isDirectory()) walk(path, out);
+      else if (statSync(path).size < 2_000_000) out.push(path);
+    }
+    return out;
+  };
+
+  test("no source file names the agent-shell variable", () => {
+    const hits = roots
+      .map((r) => join(root, r))
+      .filter((r) => existsSync(r))
+      .flatMap((r) => walk(r))
+      .filter((f) => readFileSync(f, "utf8").includes(marker))
+      .map((f) => relative(root, f).replaceAll("\\", "/"));
+    expect(hits).toEqual([]);
   });
 });
