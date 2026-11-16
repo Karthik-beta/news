@@ -97,6 +97,7 @@ Windows service registration, install, update, settings UI and secrets, and Boar
 - [ ] A database constraint test shows every terminal status has a Wrap. After the service is killed between steps, it resumes without repeating finished steps.
 - [ ] `bureau-single-entry` passes in CI.
 - [ ] The security review is posted with no open high findings.
+- Pausing a stalled run: a claim racing the pause either commits before `pausing` and is cancelled, or finds nothing (test); a worker task that does not stop keeps the heavy slot held and the run `pausing` until it stops, and no other run starts meanwhile (test).
 
 ### Docs
 

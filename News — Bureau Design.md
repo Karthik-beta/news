@@ -989,7 +989,7 @@ returning j.*;
 commit;
 ```
 
-**Jobs of paused runs.** Step 3 of the claim skips jobs whose run is queued, paused, waiting at a gate or finished, so pausing a run (including the at-once pause of a stalled run, §6.4) stops all its work in every pool, and nothing of it is claimed until it resumes.
+**Jobs of paused runs.** Step 3 of the claim skips jobs whose run is queued, pausing, paused, waiting at a gate or finished, so pausing a run (including the at-once pause of a stalled run, §6.4) stops all its work in every pool, and nothing of it is claimed until it resumes.
 
 **Releasing a slot.** Capacity is counted from jobs in state `running`, so a slot frees itself the moment a job leaves that state: completion, failure, snooze or cancel each update the job's state in their own transaction. The lease reaper, which moves `running` jobs whose `lease_until` has passed back to `retryable`, takes the same pool lock first, so an expired job's slot and a new claim never race. No separate counter exists, so there is nothing to drift.
 
@@ -1035,7 +1035,7 @@ create table runs (
   origin text not null check (origin in ('board','schedule')),
   schedule_key text,        -- the schedule setting that started it, when origin = 'schedule'
   settings_version int not null,                 -- the settings version the run started with (§5.6)
-  status text not null,     -- 'queued' | 'running' | 'waiting_approval' | 'waiting_ai' | 'paused'
+  status text not null,     -- 'queued' | 'running' | 'waiting_approval' | 'waiting_ai' | 'pausing' | 'paused'
                             -- | 'succeeded' | 'failed' | 'cancelled' | 'skipped'
   queued_at timestamptz, start_by timestamptz,   -- a queued scheduled run is skipped after start_by (§5.6)
   paused_reason text,       -- 'karthik' | 'usage_limit' | 'quiet_hours' | 'quota' | 'update'
@@ -1047,9 +1047,9 @@ create table runs (
 );
 -- One live or queued run per preset; one heavy run holding the laptop at a time (§8.1).
 create unique index runs_one_per_preset on runs (preset)
-  where status in ('queued','running','waiting_ai','waiting_approval','paused');
+  where status in ('queued','running','waiting_ai','waiting_approval','pausing','paused');
 create unique index runs_one_heavy on runs ((true))
-  where heavy and status in ('running','waiting_ai');
+  where heavy and status in ('running','waiting_ai','pausing');   -- a pausing run keeps the slot until its workers stop
 create table run_steps (
   run_id uuid references runs, seq smallint, step text not null,
   kind text not null,       -- 'code' | 'ai_batch' | 'draft' | 'form' | 'approval'
@@ -1232,7 +1232,7 @@ Existing TD commands keep their names; each new command group is a tool family n
 | `news run status [<run>]` | — | no run: the status board (§8.1); with a run: step table, counts, budget used, open gate with its summary, Wrap if finished | `not_found` | R |
 | Approve / Request changes / Reject (Board: `gate.approve\|changes\|reject`) | run, gate, round, the `subject_sha` Board showed; a note for changes | `{decision, round, subject_sha}` | `precondition` (gate not waiting), `gated` (hash differs, or not sent by Board) | H |
 | Resume (Board: `run.resume`) | run | `{status}`; joins the Lineup when the heavy slot is busy. A stalled run is still `running`, so it is paused first (it pauses at once), then resumed | `precondition` (not paused or waiting) | H |
-| Pause (Board: `run.pause`) | run | `{pausing, after_step}`; the run stops at the next step boundary and frees the heavy slot. On a stalled run (`last_seen_at` more than 15 minutes old) it takes effect at once, and nothing of the run keeps working once the slot is free: (1) Chief terminates the run's AI Job Object, ending any `claude -p` still going; (2) it cancels the run's in-flight jobs in every pool (`cpu`, `docling`, `render`, `publish` as well as `ai`): the workers are tasks inside the service, so it signals them and waits for them to stop, up to the lease length; (3) it waits for any publish request already sent to the write API to return or time out (the same "no publish in flight" rule as an update, §5.9), and Press sends none of the run's other outbox rows until it resumes (a resend reuses the idempotency key, §3.12); (4) in one transaction it sets the run `paused` and moves all its `running` jobs, in every pool, to `retryable` with a new attempt and no holder. Because the claim query skips jobs whose run is not `running` or `waiting_ai` (§5.4), none of them can be claimed again until the run resumes. Only then is the slot free. A worker that did not stop in time finds it no longer holds its job: its heartbeat, completion or failure is rejected (`conflict`, the holder check of ADR 0003), so its result is never recorded, and any write it made before that is keyed and idempotent (§5.8), so the re-run after resume is safe | `precondition` (not running) | H |
+| Pause (Board: `run.pause`) | run | `{pausing, after_step}`; the run stops at the next step boundary and frees the heavy slot. On a stalled run (`last_seen_at` more than 15 minutes old) it takes effect at once, and nothing of the run keeps working once the slot is free: (0) in its own transaction Chief first sets the run `pausing`, so from that moment the claim query (§5.4) starts none of its jobs, and a claim racing the pause either committed before it (and is cancelled in step 2) or finds nothing; (1) Chief terminates the run's AI Job Object, ending any `claude -p` still going; (2) it cancels the run's in-flight jobs in every pool (`cpu`, `docling`, `render`, `publish` as well as `ai`): the workers are tasks inside the service and any child process they start (Docling, the renderer call) runs in a per-run Job Object, so Chief signals the tasks, terminates that Job Object and waits until every task has stopped; the heavy slot stays held, with the run shown as `pausing` in Board, for as long as any task has not stopped, so no other run can start beside it; (3) it waits for any publish request already sent to the write API to return or time out (the same "no publish in flight" rule as an update, §5.9), and Press sends none of the run's other outbox rows until it resumes (a resend reuses the idempotency key, §3.12); (4) in one transaction it sets the run `paused` and moves all its `running` jobs, in every pool, to `retryable` with a new attempt and no holder. Because the claim query skips jobs whose run is not `running` or `waiting_ai` (§5.4), none of them can be claimed again until the run resumes. Only then is the slot free. A worker that still reports afterwards (a race with step 4) finds it no longer holds its job: its heartbeat, completion or failure is rejected (`conflict`, the holder check of ADR 0003), so its result is never recorded, and any write it made before that is keyed and idempotent (§5.8), so the re-run after resume is safe | `precondition` (not running) | H |
 | Cancel (Board: `run.cancel`) | run | `{cancelled, wrap}` | | H |
 | `news run lineup` | — | the Lineup in order, with `start_by` (cancelling an entry is a Board action, `lineup.cancel`) | — | R |
 | `news run list [--active]` | — | recent runs | | R |
@@ -1873,7 +1873,7 @@ Mapped onto the Development Plan. Agent choices follow its rules (Opus for judge
 | 4 | Golden-set labelling: G2, G3, G7 (Karthik with Opus); event weights, prominence lists, coverage targets as seed data | Opus + Karthik | Sets in `pipeline/eval/` |
 | 5 Rust CLI | 1 Core crates, migrations, JSON envelope, error codes, telemetry, Dispatch (claim, leases, rescuer, retry classes) | Opus feature builder (one agent) | Golden CLI and concurrency tests |
 | 5 | 2 **Right after wave 1, before the connectors.** Chief in the Bureau service: runs and steps, approvals, the G-tier rule, the Lineup, Rota (preset schedules, missed slots, quiet hours, quota guard), Dispatch workers hosted in the service, the Hotline and the spawn marker; the `claude -p`-from-service spike (login under the service account, usage-limit error shape, job-object inheritance, ClickHouse reachability) | Opus; Opus security review | Pipe and marker tests; crash and queue tests; spike findings in ADR 0008 |
-| 5 | 3 **Then:** the Windows service (`news service install\|uninstall\|update`), Standing and Credential Manager, and the Board shell: Runs & approvals, Settings & schedules, Docker health (screens step 1), toasts; remove `dashboard/` | Opus for the service parts; Sonnet for Board; Opus review; a different Opus agent checks token styling | Karthik starts, approves and cancels a fixture run from Board |
+| 5 | 3 **Then:** the Windows service (`news service install\|uninstall`; updates from Board, `service.update`), Standing and Credential Manager, and the Board shell: Runs & approvals, Settings & schedules, Docker health (screens step 1), toasts; remove `dashboard/` | Opus for the service parts; Sonnet for Board; Opus review; a different Opus agent checks token styling | Karthik starts, approves and cancels a fixture run from Board |
 | 5 | 4 Runner + Morgue + `fetch_state` | Sonnet; Opus review | Fake-server tests |
 | 5 | 5 Contacts rows and Stringers in parallel: SEC EDGAR, FRED, BLS, ECB, arXiv, central-bank statements, then IMF, World Bank, Eurostat, ONS, StatCan | Sonnet ×3; Opus review for XBRL/units/periods | Fixture tests |
 | 5 | 6 Clerk and Ledger (data points, derived points with guards) | Opus | Property tests |
@@ -2047,7 +2047,7 @@ The approved names (Karthik, final). **Bureau** is the whole laptop system, and 
 
 | Name | What it is | Kind | Command or CLI group | Where described |
 | --- | --- | --- | --- | --- |
-| Bureau | Everything in this document: the laptop side of News, running as a Windows service logged on as Karthik's account | System, service | `news service run\|install\|uninstall\|update` | §1, §2, §8.1 |
+| Bureau | Everything in this document: the laptop side of News, running as a Windows service logged on as Karthik's account | System, service | `news service run\|install\|uninstall` (updates: Board `service.update`) | §1, §2, §8.1 |
 | Board | The desktop app (egui) in `news.exe`: runs and approvals, settings and schedules, Docker health, the service log, content and sources, analytics, whole-project actions. Replaces `/bureau` and the planned web dashboard (TD "Board") | App | `news board` | §8.1, §9.2 |
 
 **Gathering**
