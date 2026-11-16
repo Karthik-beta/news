@@ -1,7 +1,7 @@
 // The five read-only tools. Schemas come from contracts/cloud/mcp-tools.schema.json (one source for tools/list and
 // for the precompiled validators that check every call's arguments).
 import { categoryHub, entityHub } from "@news/worker-shared/keys";
-import { pageObjectKey, readCapped } from "@news/worker-shared/r2";
+import { type CappedText, pageObjectKey, readCapped } from "@news/worker-shared/r2";
 import type { PageRecord } from "@news/worker-shared/records";
 import { searchPages } from "@news/worker-shared/search";
 import { absolute, hubPath } from "@news/worker-shared/urls";
@@ -47,6 +47,37 @@ async function livePage(deps: Deps, args: { page_id?: string; path?: string }): 
   if (page.status !== "published") throw new ToolError(`Page ${page.page_id} has been withdrawn.`);
   return page;
 }
+
+/**
+ * Reads one file of the live page and makes sure it belongs to the version the page record names. Files are
+ * rewritten in place before a publish moves the live record, so for a moment the stored file can be newer than the
+ * record (each file carries its version as R2 metadata). Then the record is read again once; if they still differ the
+ * caller is told to retry, so content is never labelled with another version.
+ */
+async function readLiveFile(
+  deps: Deps,
+  page: PageRecord,
+  file: string,
+  cap: number,
+): Promise<{ page: PageRecord; got: CappedText }> {
+  let current = page;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const got = await readCapped(deps.bucket(), pageObjectKey(current.path, file), cap);
+    if (!got && attempt > 0) break; // the newer version dropped the file
+    if (!got) throw new Error(`${file} missing in storage for ${current.page_id}`);
+    if (got.version === undefined || got.version === current.version) return { page: current, got };
+    current = await livePage(deps, { page_id: current.page_id });
+  }
+  throw new ToolError(`Page ${page.page_id} is being updated right now; try again in a few seconds.`);
+}
+
+const summaryOf = (deps: Deps, p: PageRecord) => ({
+  page_id: p.page_id,
+  url: absolute(deps.siteOrigin, p.path),
+  version: p.version,
+  lang: p.lang,
+  title: p.title,
+});
 
 /** The public view of a page record: no storage keys, hashes or internal bookkeeping. */
 function publicPage(deps: Deps, p: PageRecord): Record<string, unknown> {
@@ -114,20 +145,22 @@ export const TOOLS: Tool[] = [
     inputSchema: defs.getPageInput,
     outputSchema: defs.getPageOutput,
     async run(deps, args) {
-      const page = await livePage(deps, args as { page_id?: string; path?: string });
-      const base = {
-        page_id: page.page_id,
-        url: absolute(deps.siteOrigin, page.path),
-        version: page.version,
-        lang: page.lang,
-        title: page.title,
-      };
+      const record = await livePage(deps, args as { page_id?: string; path?: string });
       if (args.format === "json") {
-        return { structured: { ...base, format: "json", page: publicPage(deps, page), truncated: false } };
+        return {
+          structured: {
+            ...summaryOf(deps, record),
+            format: "json",
+            page: publicPage(deps, record),
+            truncated: false,
+          },
+        };
       }
-      const md = await readCapped(deps.bucket(), pageObjectKey(page.path, "index.md"), CAPS.markdownBytes);
-      if (!md) throw new Error(`index.md missing in storage for ${page.page_id}`);
-      const note = md.truncated ? `\n\n[Truncated. Full page: ${base.url}/index.md]` : "";
+      const { page, got: md } = await readLiveFile(deps, record, "index.md", CAPS.markdownBytes);
+      const base = summaryOf(deps, page);
+      const note = md.truncated ? `
+
+[Truncated. Full page: ${base.url}/index.md]` : "";
       return {
         structured: { ...base, format: "markdown", markdown: md.text, truncated: md.truncated },
         text: md.text + note,
@@ -195,13 +228,12 @@ export const TOOLS: Tool[] = [
     inputSchema: defs.getDataInput,
     outputSchema: defs.getDataOutput,
     async run(deps, args) {
-      const page = await livePage(deps, { page_id: String(args.page_id) });
+      const record = await livePage(deps, { page_id: String(args.page_id) });
       const chart = args.chart_id === undefined ? undefined : String(args.chart_id);
       const file = chart ? `charts/${chart}.csv` : "data.json";
-      if (chart && !page.files.includes(file))
-        throw new ToolError(`Page ${page.page_id} has no chart data for ${chart}.`);
-      const got = await readCapped(deps.bucket(), pageObjectKey(page.path, file), CAPS.dataBytes);
-      if (!got) throw new Error(`${file} missing in storage for ${page.page_id}`);
+      if (chart && !record.files.includes(file))
+        throw new ToolError(`Page ${record.page_id} has no chart data for ${chart}.`);
+      const { page, got } = await readLiveFile(deps, record, file, CAPS.dataBytes);
       const url = absolute(deps.siteOrigin, `${page.path}/${file}`);
       const note = got.truncated ? `\n\n[Truncated at ${CAPS.dataBytes} bytes. Full file: ${url}]` : "";
       return {

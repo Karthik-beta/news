@@ -230,6 +230,27 @@ describe("tools/call", () => {
     for (const sql of h.d1.statements) expect(sql.trim()).toMatch(/^SELECT\b/i);
   });
 
+  it("never labels a file with the wrong version: mid-publish it re-reads the live record or says to retry", async () => {
+    const h = harness();
+    const v2 = { customMetadata: { version: "2", bundle_sha256: "b".repeat(64) } };
+    // A publish of version 2 has written its files but not yet moved the live record (still version 1).
+    await h.bucket.put("2026/11/us-cpi-october/index.md", "# Version two\n", v2);
+    await h.bucket.put("2026/11/us-cpi-october/data.json", '{"v":2}', v2);
+    for (const [name, args] of [
+      ["get_page", { page_id: "us-cpi-october" }],
+      ["get_data", { page_id: "us-cpi-october" }],
+    ] as const) {
+      const b = await body(await callTool(h.deps, name, args));
+      expect(b.result?.isError, name).toBe(true);
+      expect(b.result?.content[0].text).toMatch(/being updated/);
+    }
+    // Once the live record says version 2, the same files are served as version 2.
+    const live = h.table.dump().find((i) => i.PK === "PAGE#us-cpi-october" && i.SK === "LATEST") as Record<string, never>;
+    h.table.seed({ ...live, version: 2 as never });
+    const b = await body(await callTool(h.deps, "get_page", { page_id: "us-cpi-october" }));
+    expect(b.result?.structuredContent).toMatchObject({ version: 2, markdown: "# Version two\n" });
+  });
+
   it("keeps responses within their size caps, and says when it truncated", async () => {
     const h = harness();
     await h.bucket.put("2026/11/us-cpi-october/index.md", `# Big\n${"é paragraph text. ".repeat(20_000)}`);
