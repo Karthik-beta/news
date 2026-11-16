@@ -379,3 +379,32 @@ async fn a_page_belongs_to_several_categories() {
         );
     }
 }
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn embeddings_take_page_keys_as_well_as_story_and_candidate_ids() {
+    let f = Fixture::migrated().await;
+    // Pages are keyed by text (`pages.page_id`); stories and candidates by number, stored as text.
+    sqlx::raw_sql(
+        "insert into embeddings (owner_kind, owner_id, model, v) values
+           ('page', '2026/10/us-cpi-september-2026', 'bge-small-en-v1.5@int8', array_fill(0.1::real, array[384])::halfvec(384)),
+           ('story', '42', 'bge-small-en-v1.5@int8', array_fill(0.2::real, array[384])::halfvec(384))",
+    )
+    .execute(&f.pool)
+    .await
+    .unwrap();
+    assert_eq!(
+        f.scalar_str("select owner_id from embeddings where owner_kind = 'page'")
+            .await,
+        "2026/10/us-cpi-september-2026"
+    );
+    assert!(
+        sqlx::query(
+            "insert into embeddings (owner_kind, owner_id, model, v)
+             values ('snippet', '1', 'm', array_fill(0.1::real, array[384])::halfvec(384))"
+        )
+        .execute(&f.pool)
+        .await
+        .is_err()
+    );
+}

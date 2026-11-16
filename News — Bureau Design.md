@@ -532,7 +532,7 @@ No published throughput exists for this CPU. A server benchmark of MiniLM-L12 on
 ```sql
 create table embeddings (
   owner_kind text not null,        -- 'candidate' | 'story' | 'page'
-  owner_id bigint not null, model text not null,   -- 'bge-small-en-v1.5@int8'
+  owner_id text not null, model text not null,     -- pages.page_id, or a story/candidate id; 'bge-small-en-v1.5@int8'
   v halfvec(384) not null, created_at timestamptz not null default now(),
   primary key (owner_kind, owner_id, model)
 );

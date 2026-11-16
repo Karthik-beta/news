@@ -53,9 +53,11 @@ create table if not exists clusters (
   created_at timestamptz not null default now()
 );
 
+-- owner_id is text so one key column serves every owner: pages are keyed by text (pages.page_id,
+-- e.g. '2026/10/us-cpi-september-2026'); stories and candidates store their bigint id in decimal.
 create table if not exists embeddings (
   owner_kind text not null check (owner_kind in ('candidate', 'story', 'page')),
-  owner_id   bigint not null,
+  owner_id   text not null,
   model      text not null,
   v          halfvec(384) not null,
   created_at timestamptz not null default now(),
