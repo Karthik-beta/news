@@ -58,14 +58,13 @@ export function generate(dir = componentsDir): Generated {
   const problems = folders.flatMap((name) => folderProblems(dir, name));
   const ident = (name: string) => `${name.charAt(0).toLowerCase()}${name.slice(1)}Spec`;
 
-  const registry = [
-    `// ${HEADER}`,
-    'import type { AnySpec } from "./contract";',
-    ...folders.map((name) => `import ${ident(name)} from "./${name}/spec";`),
-    "",
-    specsLine(folders.map(ident)),
-    "",
-  ].join("\n");
+  // Imports in the order Biome's organizeImports keeps them: by source path, ignoring case, so "./contract" sits
+  // between "./ComparisonTable/spec" and "./DataTable/spec".
+  const imports = [
+    { from: "./contract", line: 'import type { AnySpec } from "./contract";' },
+    ...folders.map((name) => ({ from: `./${name}/spec`, line: `import ${ident(name)} from "./${name}/spec";` })),
+  ].sort((a, b) => a.from.toLowerCase().localeCompare(b.from.toLowerCase()));
+  const registry = [`// ${HEADER}`, ...imports.map((i) => i.line), "", specsLine(folders.map(ident)), ""].join("\n");
 
   const islands = folders.flatMap((name) =>
     readdirSync(join(dir, name))
