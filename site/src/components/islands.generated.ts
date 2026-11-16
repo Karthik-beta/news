@@ -2,4 +2,8 @@
 // Island components by name, loaded only when a page has one. Server and client agree on these names.
 import type { IslandLoaders } from "../renderer/islands/types";
 
-export const islands: IslandLoaders = {};
+export const islands: IslandLoaders = {
+  BarChartPlot: () => import("./BarChart/BarChartPlot.client"),
+  ColumnChartPlot: () => import("./ColumnChart/ColumnChartPlot.client"),
+  LineChartPlot: () => import("./LineChart/LineChartPlot.client"),
+};

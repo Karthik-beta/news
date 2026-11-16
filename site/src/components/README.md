@@ -63,9 +63,13 @@ A primitive's spec (`definePrimitive`) has `name`, `purpose` and a TSX `example`
 | `Rule` | Hairline, ink, section and brand rules, as an element or as `ruleTop(kind)` classes |
 | `VisuallyHidden` | Screen-reader-only text; `focusable` for skip links |
 | `Icon` | The eight icons, 1em, in `currentColor`, hidden from assistive technology unless labelled |
+| `ChartFigure` | The data-aware chart wrapper: `FigureFrame` filled from one table model (`ChartFigure/model.ts`), so the data table, CSV, JSON, Markdown and accessible summary agree; legend keys; "No data". Also holds the shared chart parts: `scale.ts` (axis, bare labels, x-label thinning), `interaction.tsx` (keys, taps, tooltip, live region, client-safe) and `plot.tsx` |
+| `SourcePopover` | The citation popover for one cited value; `SourceRef` renders every cited figure through it |
+| `DataLinks` | The downloads row: CSV, JSON and Markdown as text links |
+| `Sparkline` | A 120×36 static trend line from an `sr_` series, latest point as a crimson dot |
 
 The shared formatters (numbers, currencies, units, fiscal labels, minus signs, dates) are in `src/format/`.
 
 ## Fixture pages
 
-With `NEWS_FIXTURES=1` (test and CI builds), `/fixtures/primitives/<Name>/` shows every case in a primitive's `fixtures/cases.tsx`, and `/fixtures/renderer/<bundle>/` renders each fixture bundle in `src/renderer/fixtures/bundles/` through the real renderer. Production builds leave them out.
+With `NEWS_FIXTURES=1` (test and CI builds), `/fixtures/primitives/<Name>/` shows every case in a primitive's `fixtures/cases.tsx`, `/fixtures/components/<Name>/<fixture>/` renders each component's `fixtures/<fixture>.oui` through the real renderer with the data of every fixture bundle merged (with its `index.md` and chart CSV and JSON beside it), and `/fixtures/renderer/<bundle>/` renders each fixture bundle in `src/renderer/fixtures/bundles/` through the real renderer. Production builds leave them out.

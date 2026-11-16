@@ -1,0 +1,28 @@
+/* Downloads row: underlined text links in ink-2 at the label size (13.5px), spaced like the chart actions. Each link
+   is at least 24 × 24px (WCAG 2.2 target size), even "CSV". */
+.data-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--space-5);
+  row-gap: var(--space-2);
+  margin: 0;
+}
+.data-links__link {
+  display: inline-flex;
+  align-items: center;
+  min-width: var(--space-7);
+  min-height: var(--space-7);
+  color: var(--color-ink-2);
+  text-decoration-line: underline;
+  text-decoration-thickness: var(--border-hairline);
+  text-underline-offset: 3px;
+}
+.data-links__link:hover {
+  color: var(--color-ink);
+}
+@media print {
+  .data-links {
+    display: none;
+  }
+}

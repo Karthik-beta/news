@@ -1,0 +1,5 @@
+root = Page([margins, compact, segments, wide])
+margins = DataTable("Services margins have stayed about twice those of products", "Gross margin as a share of net sales, fiscal years, %", ["sr_aapl_gm_products", "sr_aapl_gm_services"], "pd_fy2024")
+compact = DataTable("Total sales and Services sales, written compact", "Net sales, fiscal years", ["sr_aapl_net_sales_5y", "sr_aapl_services_5y"], null, null, "compact")
+segments = DataTable("Each segment's margin by year", "Gross margin as a share of net sales, %", ["sr_aapl_gm_products", "sr_aapl_gm_services"], "sr_aapl_gm_services", "series")
+wide = DataTable("Sixty months scroll sideways with the first column fixed", "Synthetic index", ["sr_fx_long"], null, "series")

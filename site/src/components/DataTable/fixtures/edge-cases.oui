@@ -1,0 +1,7 @@
+root = Page([gaps, sizes, mixedUnits, unknown, restricted, single])
+gaps = DataTable("Gaps and unpublished values say No data", "Growth, %", ["sr_fx_gaps", "sr_fx_allnull"])
+sizes = DataTable("Very large and very small values as reported", "Synthetic measures", ["sr_fx_large", "sr_fx_small", "sr_fx_negative"])
+mixedUnits = DataTable("Rows of series in another unit are left out", "Synthetic measures, %", ["sr_fx_other", "sr_fx_mixed"], null, "series")
+unknown = DataTable("An unknown series", "Nothing to show", ["sr_fx_not_in_data"])
+restricted = DataTable("A licence that forbids downloads", "Licensed measure, %", ["sr_fx_restricted"])
+single = DataTable("A single period", "Turnout, %", ["sr_fx_single"])

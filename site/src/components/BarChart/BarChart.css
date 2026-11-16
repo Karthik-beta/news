@@ -1,0 +1,113 @@
+/* Horizontal bar chart (design/charts.md, "Marks" and "Bar charts"): 22px bars, 8px between rows, square ends,
+   the value just past the bar's end in ink (the highlight's bold and crimson), a zero line in ink. On phones each
+   label sits above its bar; from 600px up labels take a column on the left. */
+.bar-chart__plot {
+  position: relative;
+}
+.bar-chart__rows {
+  display: flex;
+  flex-direction: column;
+  /* 8px between bars: a 6px gap plus 1px of each row's padding, which makes every row a 24px target. */
+  gap: calc(var(--space-3) - var(--space-1));
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-label);
+  line-height: 1.35;
+  touch-action: pan-y;
+}
+.bar-chart__rows:focus-visible {
+  outline: var(--border-focus) solid var(--color-focus);
+  outline-offset: var(--space-1);
+}
+.bar-chart__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: var(--space-1);
+  padding-block: calc(var(--space-1) / 2);
+  cursor: default;
+}
+@media (min-width: 600px) {
+  .bar-chart__row {
+    grid-template-columns: minmax(0, 32%) minmax(0, 1fr);
+    column-gap: var(--space-4);
+    align-items: center;
+  }
+}
+.bar-chart__label {
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+.bar-chart__row.is-highlight .bar-chart__label {
+  font-weight: var(--font-weight-bold);
+}
+
+/* The track: the bars' coordinate box, with room either side for the value labels. */
+.bar-chart__track {
+  position: relative;
+  height: var(--chart-mark-bar-thickness-h);
+  margin-inline-start: var(--bar-room-negative, 0ch);
+  margin-inline-end: var(--bar-room-positive, 0ch);
+}
+/* The zero line, continuous through the 8px gaps between rows. */
+.bar-chart__track::before {
+  content: "";
+  position: absolute;
+  inset-block: calc(-1 * var(--space-2));
+  left: var(--bar-zero);
+  width: var(--border-hairline);
+  background: var(--chart-baseline);
+  z-index: 1;
+  forced-color-adjust: none;
+}
+.bar-chart__row:first-child .bar-chart__track::before {
+  top: 0;
+}
+.bar-chart__row:last-child .bar-chart__track::before {
+  bottom: 0;
+}
+.bar-chart__bar {
+  position: absolute;
+  inset-block: 0;
+  background: var(--chart-mark);
+  forced-color-adjust: none;
+  print-color-adjust: exact;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .bar-chart__bar {
+    transition: opacity var(--motion-fast);
+  }
+}
+.bar-chart__row.is-active .bar-chart__bar:not(.chart-hatch) {
+  opacity: 0.8;
+}
+.bar-chart__bar--missing {
+  left: var(--bar-zero);
+  width: var(--space-9);
+}
+.bar-chart__value {
+  position: absolute;
+  top: 50%;
+  translate: 0 -50%;
+  padding-inline: var(--space-2);
+  color: var(--color-ink);
+  white-space: nowrap;
+}
+.bar-chart__value.is-highlight {
+  font-weight: var(--font-weight-bold);
+  color: var(--chart-highlight);
+}
+.bar-chart__value--missing {
+  left: calc(var(--bar-zero) + var(--space-9));
+  color: var(--color-ink-2);
+}
+
+@media (forced-colors: active) {
+  .bar-chart__bar:not(.chart-hatch) {
+    background: CanvasText;
+  }
+  .bar-chart__bar.chart-colour--highlight {
+    background: Highlight;
+  }
+  .bar-chart__track::before {
+    background: CanvasText;
+  }
+}
