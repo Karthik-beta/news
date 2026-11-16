@@ -64,7 +64,7 @@ pub async fn run(cli: Cli, path: &str, shape: &Shape) -> NewsResult<Reply> {
         C::Related { .. } | C::Entities(_) => stub(path, news_roster::ISSUE),
         C::Stories(_) => stub(path, news_taster::ISSUE),
         C::Plan { .. } | C::Scores(_) => stub(path, news_nose::ISSUE),
-        C::Stats => stub(path, news_board::ISSUE),
+        C::Stats => stub(path, news_telemetry::ISSUE),
         C::Save { .. } | C::Render { .. } | C::Check { .. } => stub(path, news_proof::ISSUE),
         C::Brief { .. } => stub(path, news_fixer::ISSUE),
         C::Ai(_) => stub(path, news_ghost::ISSUE),
