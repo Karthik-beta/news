@@ -61,11 +61,16 @@ describe(`${NAME} over HTTP`, () => {
     }
   });
 
-  it("unknown routes are 404 JSON", async () => {
-    for (const path of ["/", "/v1/pages", "/v1/nope", "/%E0%A4%A"]) {
+  it("unknown routes are 404 JSON; under /v1/ a caller without the key gets 401 first", async () => {
+    for (const path of ["/", "/v1", "/%E0%A4%A"]) {
       const res = await worker.get(path);
       expect(res.status, path).toBe(404);
       expect(await code(res)).toBe("not_found");
+    }
+    for (const path of ["/v1/pages", "/v1/nope"]) {
+      const res = await worker.get(path);
+      expect(res.status, path).toBe(401);
+      expect(await code(res)).toBe("unauthorized");
     }
   });
 
