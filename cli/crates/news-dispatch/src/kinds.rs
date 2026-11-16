@@ -109,7 +109,7 @@ mod tests {
     #[test]
     fn publishing_kinds_never_run_in_work_pools() {
         for s in all().filter(|s| s.owner == "press") {
-            assert!(!crate::WORK_POOLS.contains(&s.pool), "{}", s.kind);
+            assert!(!crate::BACKGROUND_POOLS.contains(&s.pool), "{}", s.kind);
         }
     }
 }

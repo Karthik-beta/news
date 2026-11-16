@@ -90,14 +90,12 @@ pub enum Command {
     Home(HomeCmd),
 
     // --- Bureau command groups -----------------------------------------------------------------
-    /// Chief: preset runs behind /bureau
+    /// Chief: preset runs and their status
     #[command(subcommand)]
     Run(RunCmd),
     /// Dispatch: the job queue
     #[command(subcommand)]
     Jobs(JobsCmd),
-    /// Dispatch: the background worker for code-only pools (net, cpu, docling)
-    Work(WorkArgs),
     /// Ghost: contracts for every AI step
     #[command(subcommand)]
     Ai(AiCmd),
@@ -152,8 +150,6 @@ pub enum HomeCmd {
     Preview { draft: String },
     /// Publish an approved curation (G tier)
     Publish { draft: String },
-    /// Make an earlier curation live again (H tier)
-    Rollback { version: String },
     /// The live curation and its age
     Show,
 }
@@ -162,58 +158,17 @@ pub enum HomeCmd {
 pub enum RunCmd {
     /// The preset catalogue
     Presets,
-    /// Map what Karthik typed after /bureau to an action
-    Intent {
-        text: Vec<String>,
-        #[arg(long)]
-        canonical: Option<String>,
-    },
-    /// Start a preset (needs an issued start ticket)
-    Start {
-        preset: String,
-        /// Preset argument, k=v; repeatable
-        #[arg(long = "arg", value_name = "K=V")]
-        args: Vec<String>,
-    },
     /// Advance a run to its next stop
     Next { run: String },
     /// The status board, or one run
     Status { run: Option<String> },
-    /// Approve the open gate (H tier)
-    Approve(GateArgs),
-    /// Ask for changes at the open gate (H tier)
-    Changes(GateArgs),
-    /// Reject at the open gate (H tier)
-    Reject(GateArgs),
-    /// Resume a paused or stalled run
-    Resume { run: String },
-    /// Pause a run at the next step boundary
-    Pause { run: String },
     /// Submit a session step's result
     Submit { run: String, file: String },
-    /// Cancel a run (H tier)
-    Cancel { run: String },
-    /// The UserPromptSubmit hook (H tier)
-    HookPrompt,
-    /// Issue a start ticket from a terminal (H tier)
-    Ticket {
-        preset: String,
-        #[arg(long = "arg", value_name = "K=V")]
-        args: Vec<String>,
-    },
     /// Recent runs
     List {
         #[arg(long)]
         active: bool,
     },
-}
-
-#[derive(Args, Debug)]
-pub struct GateArgs {
-    pub run: Option<String>,
-    pub gate: Option<String>,
-    #[arg(long)]
-    pub note: Option<String>,
 }
 
 #[derive(Subcommand, Debug)]
@@ -272,22 +227,13 @@ pub enum JobsCmd {
         #[command(flatten)]
         holder: Holder,
     },
-    /// Re-enqueue a discarded job, or every discarded job of a class
+    /// Re-enqueue a discarded job, or every discarded job of a class (more than 50 is gated)
     Retry {
         #[arg(required_unless_present = "class", conflicts_with = "class")]
         job: Option<i64>,
         #[arg(long)]
         class: Option<String>,
     },
-    /// Pause a pool (H tier)
-    Pause {
-        pool: String,
-        /// RFC 3339 time, or +30m, +2h, +1d
-        #[arg(long)]
-        until: String,
-    },
-    /// Unpause a pool (H tier)
-    Unpause { pool: String },
 }
 
 /// The lease a claim handed out: heartbeat, complete and fail must name the worker and the lease id
@@ -303,22 +249,6 @@ pub struct Holder {
     /// The job's `attempt` from `jobs claim`, recorded on the telemetry event; not part of the lease
     #[arg(long, value_parser = clap::value_parser!(i16).range(1..))]
     pub attempt: Option<i16>,
-}
-
-#[derive(Args, Debug)]
-pub struct WorkArgs {
-    /// Pools to run, comma-separated: net, cpu, docling
-    #[arg(long, default_value = "net,cpu,docling")]
-    pub pools: String,
-    /// Worker name recorded on leases
-    #[arg(long)]
-    pub worker: Option<String>,
-    /// One maintenance pass and one claim round, then exit
-    #[arg(long)]
-    pub once: bool,
-    /// Stop claiming after this many seconds, finish in-flight jobs, exit
-    #[arg(long, value_name = "SECS")]
-    pub max_seconds: Option<u64>,
 }
 
 #[derive(Subcommand, Debug)]
@@ -346,10 +276,6 @@ pub enum SourcesCmd {
     },
     /// One live discovery call, no writes
     Probe { source: String },
-    /// Enable a source (G/H tier)
-    Enable { source: String },
-    /// Disable a source (G/H tier)
-    Disable { source: String },
 }
 
 #[derive(Subcommand, Debug)]
@@ -380,14 +306,6 @@ pub enum StoriesCmd {
         #[arg(long)]
         cand: Option<String>,
     },
-    /// Merge two stories (H tier)
-    Merge { a: String, b: String },
-    /// Split candidates out of a story (H tier)
-    Split {
-        story: String,
-        #[arg(required = true)]
-        cands: Vec<String>,
-    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -407,8 +325,6 @@ pub enum ScoresCmd {
         run: String,
         file: String,
     },
-    /// Adopt a weights version (G/H tier)
-    Adopt { version: String },
 }
 
 #[derive(Subcommand, Debug)]
@@ -423,17 +339,6 @@ pub enum EntitiesCmd {
     Show { entity: String },
     /// Mentions that did not resolve
     Unresolved,
-    /// Aliases (H tier)
-    #[command(subcommand)]
-    Alias(AliasCmd),
-}
-
-#[derive(Subcommand, Debug)]
-pub enum AliasCmd {
-    /// Add an alias to an entity
-    Add { alias: String, entity: String },
-    /// Merge one entity into another
-    Merge { from: String, into: String },
 }
 
 #[derive(Subcommand, Debug)]
@@ -446,8 +351,6 @@ pub enum EvalCmd {
     },
     /// An evaluation run's report
     Report { eval_run: String },
-    /// Interactive labelling helper (H tier)
-    Label { set: String },
     /// Promote a prompt version (G tier)
     Promote {
         step: String,

@@ -1,6 +1,6 @@
 [package]
 name = "news-dispatch"
-description = "Dispatch: the PostgreSQL job queue (claims, leases, retries, snoozes, unique keys, rescuer, schedules) and the news work loop."
+description = "Dispatch: the PostgreSQL job queue (claims, leases, retries, snoozes, unique keys, rescuer, schedules) and the worker loop the Bureau service hosts."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

@@ -3,7 +3,7 @@
 //!
 //! Modules: `contract` (envelope, exit codes, stdout/stderr discipline), `stubs` (every command not
 //! built yet), `contracts` (every file in contracts/cli against the JSON Schema 2020-12 meta-schema),
-//! `components` (the component index), `secrets` (the write-API key never reaches `news work`).
+//! `components` (the component index), `secrets` (only the secrets guard names the write-API key).
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
@@ -13,6 +13,8 @@ mod components;
 mod contract;
 #[path = "cli/contracts.rs"]
 mod contracts;
+#[path = "cli/retired.rs"]
+mod retired;
 #[path = "cli/secrets.rs"]
 mod secrets;
 #[path = "cli/stubs.rs"]
@@ -38,7 +40,6 @@ pub fn news() -> Command {
         .env_remove("NEWS_RUN_ID")
         .env_remove("NEWS_JOB_ID")
         .env_remove("NEWS_COMPONENT_INDEX")
-        .env_remove("CLAUDECODE")
         .env("NO_COLOR", "1");
     cmd
 }
@@ -227,7 +228,6 @@ pub const GROUPS: &[&str] = &[
     "home",
     "run",
     "jobs",
-    "work",
     "ai",
     "sources",
     "calendar",
@@ -298,8 +298,15 @@ fn version_help_snapshot() {
 fn group_help_snapshots() {
     // The Bureau groups built here, so a renamed flag shows up in review.
     insta::assert_snapshot!("jobs_help", stdout_of(&["jobs", "--help"]));
-    insta::assert_snapshot!("work_help", stdout_of(&["work", "--help"]));
     insta::assert_snapshot!("run_help", stdout_of(&["run", "--help"]));
+}
+
+#[test]
+fn groups_that_once_had_h_tier_forms_list_none() {
+    // H-tier actions are Board's (ADR 0007): these groups show only their R, W and G commands.
+    for group in ["home", "sources", "stories", "scores", "entities", "eval"] {
+        insta::assert_snapshot!(format!("{group}_help"), stdout_of(&[group, "--help"]));
+    }
 }
 
 // --- Malformed input: usage envelope, exit 2 ---------------------------------------------------
@@ -315,7 +322,7 @@ fn no_arguments_is_a_usage_error() {
 
 #[test]
 fn a_group_without_its_subcommand_is_a_usage_error() {
-    for g in ["jobs", "run", "home", "db", "entities alias"] {
+    for g in ["jobs", "run", "home", "db"] {
         let args: Vec<&str> = g.split(' ').collect();
         assert_usage(&args, "subcommand is required");
     }

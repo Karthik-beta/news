@@ -9,7 +9,6 @@
 
 mod cli;
 mod commands;
-mod registry;
 
 use clap::error::ErrorKind;
 use clap::{CommandFactory, FromArgMatches};
@@ -394,7 +393,7 @@ mod tests {
             );
             stubs += 1;
         }
-        assert!(stubs > 60, "only {stubs} stubs");
+        assert!(stubs > 45, "only {stubs} stubs");
     }
 
     #[test]
