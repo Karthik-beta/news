@@ -267,8 +267,9 @@ pub async fn sync(pool: &sqlx::PgPool, sources: &[Source]) -> Result<usize, Cont
         sqlx::query(
             "insert into sources (source_id, name, publisher, connector, base_url, source_tier, licence,
                attribution, redistribution, image_policy, auth_env, rate_per_sec, max_concurrency,
-               daily_quota, robots_respect, regions, categories, calendar_kind, enabled, notes)
-             values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::float8::numeric(6,3),$13,$14,$15,$16,$17,$18,$19,$20)
+               daily_quota, robots_respect, regions, categories, calendar_kind, enabled, notes,
+               requires_contact_email)
+             values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::float8::numeric(6,3),$13,$14,$15,$16,$17,$18,$19,$20,$21)
              on conflict (source_id) do update set
                name = excluded.name, publisher = excluded.publisher, connector = excluded.connector,
                base_url = excluded.base_url, source_tier = excluded.source_tier, licence = excluded.licence,
@@ -277,7 +278,8 @@ pub async fn sync(pool: &sqlx::PgPool, sources: &[Source]) -> Result<usize, Cont
                rate_per_sec = excluded.rate_per_sec, max_concurrency = excluded.max_concurrency,
                daily_quota = excluded.daily_quota, robots_respect = excluded.robots_respect,
                regions = excluded.regions, categories = excluded.categories,
-               calendar_kind = excluded.calendar_kind, notes = excluded.notes",
+               calendar_kind = excluded.calendar_kind, notes = excluded.notes,
+               requires_contact_email = excluded.requires_contact_email",
         )
         .bind(&s.source_id)
         .bind(&s.name)
@@ -299,6 +301,7 @@ pub async fn sync(pool: &sqlx::PgPool, sources: &[Source]) -> Result<usize, Cont
         .bind(s.calendar_kind.as_deref())
         .bind(s.enabled)
         .bind(s.notes.as_deref())
+        .bind(s.requires_contact_email)
         .execute(&mut *tx)
         .await?;
     }

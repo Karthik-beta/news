@@ -263,3 +263,24 @@ async fn sources_snapshots_and_the_ledger_end_to_end() {
     assert_eq!(bls_link, 1);
     let _ = std::fs::remove_dir_all(work);
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn the_runner_policy_comes_from_contacts() {
+    let f = Fixture::migrated().await;
+    let dir = news_contacts::default_dir(Path::new(env!("CARGO_MANIFEST_DIR"))).unwrap();
+    let mut sources = news_contacts::load_dir(&dir).unwrap();
+    // Contacts decides, not the connector name: flip the flag in the registry rows before sync.
+    for s in &mut sources {
+        s.requires_contact_email = s.source_id == "fred";
+        s.max_concurrency = if s.source_id == "fred" { 2 } else { 1 };
+        s.enabled = true;
+    }
+    news_contacts::sync(&f.pool, &sources).await.unwrap();
+    let fred = policy(&f.pool, "fred").await.unwrap().unwrap();
+    assert!(fred.requires_contact_email);
+    assert_eq!(fred.max_concurrency, 2);
+    let sec = policy(&f.pool, "sec-edgar").await.unwrap().unwrap();
+    assert!(!sec.requires_contact_email);
+    assert_eq!(sec.max_concurrency, 1);
+}
