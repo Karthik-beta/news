@@ -1146,6 +1146,7 @@ Heavy development jobs (Playwright matrices, release builds) should not overlap 
 | Event | What happens |
 | --- | --- |
 | Service or Ghost crash | Leases expire; the rescuer makes jobs `retryable`; Windows restarts the service, and Chief continues every live run from its last finished step |
+| Service stops while a run is `pausing` | On start, before any claim, Chief completes the pause; it never reverses it, because Karthik asked for it. The old service's worker tasks ended with its process; Chief terminates the run's named Job Objects (AI and child processes) if any outlived it and waits until they are empty; a publish that was in flight becomes `sent_unknown` and is reconciled on resume (§6.4); then, in one transaction, it sets the run `paused` and moves its `running` jobs to `retryable` with no holder. Only then is the heavy slot free |
 | Laptop sleeps mid-run | Same as a crash; leases expire on wake |
 | PostgreSQL restart | Transactions roll back; jobs stay in their last committed state |
 | Plan usage limit | `-p` calls fail rather than wait [64]. Ghost pauses pool `ai` until the reset time the error gives and sets the run `paused` (reason `usage_limit`); Board raises a toast. At the reset time the service unpauses the pool and resumes the run on its own. The error's shape and reset time are confirmed in the service spike (ADR 0007) |
