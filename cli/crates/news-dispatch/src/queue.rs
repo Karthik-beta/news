@@ -340,6 +340,11 @@ async fn not_held(db: &PgPool, job_id: i64, lease: Lease<'_>) -> NewsError {
             job.locked_by.as_deref().unwrap_or("nobody"),
             lease.worker
         )),
+        Ok(job) if job.lease_id == Some(lease.lease_id) => NewsError::conflict(format!(
+            "job {job_id}: lease {} has expired",
+            lease.lease_id
+        ))
+        .with_hint("an expired lease is not renewed; drop this claim"),
         Ok(_) => NewsError::conflict(format!(
             "job {job_id} is held under another lease, not {}",
             lease.lease_id
@@ -362,8 +367,10 @@ pub async fn holds_lease(db: &PgPool, job_id: i64, lease_id: Uuid) -> Result<boo
     .map_err(map_err)
 }
 
-/// Extend a running job's lease; `lease` must hold it. When the job belongs to a run, the run's
-/// `last_seen_at` moves too, so Chief's stall check sees a live job (§5.5).
+/// Extend a running job's lease; `lease` must hold it and must not have expired (the rule of
+/// [`holds_lease`]), so a lease that `ensure_lease` already saw as lost is never brought back. When
+/// the job belongs to a run, the run's `last_seen_at` moves too, so Chief's stall check sees a live
+/// job (§5.5).
 pub async fn heartbeat(
     db: &PgPool,
     job_id: i64,
@@ -372,8 +379,9 @@ pub async fn heartbeat(
 ) -> Result<DateTime<Utc>, NewsError> {
     let until: Option<DateTime<Utc>> = sqlx::query_scalar(
         "with j as (
-           update jobs set lease_until = now() + make_interval(secs => $4)
+           update jobs set lease_until = clock_timestamp() + make_interval(secs => $4)
             where job_id = $1 and state = 'running' and locked_by = $2 and lease_id = $3
+              and lease_until > clock_timestamp()
             returning lease_until, run_id),
          r as (update runs set last_seen_at = now() where run_id = (select run_id from j))
          select lease_until from j",
