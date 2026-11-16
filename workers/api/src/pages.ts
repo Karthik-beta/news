@@ -43,9 +43,10 @@ const CONCURRENCY = 6;
 export const SUBREQUEST_BUDGET = 45;
 /**
  * DynamoDB calls of a publish that are not batches: idempotency lookup, claim and completion; page lock and unlock;
- * live record and stored version reads; path claim; version record; LATEST; clearing the cleanup note.
+ * live record, newer version records and stored version reads; path claim; version record; LATEST; clearing the
+ * cleanup note.
  */
-const PUBLISH_SINGLE_CALLS = 11;
+const PUBLISH_SINGLE_CALLS = 12;
 const batches = (n: number, size: number) => Math.ceil(n / size);
 
 export interface OpResult {
@@ -165,14 +166,21 @@ export async function checkBundle(pageId: string, body: unknown): Promise<Checke
   return { meta, manifest, files };
 }
 
-/** Checks (no writes, page lock held) that the bundle may replace the live version and that its shard is bound. */
+/**
+ * Checks (no writes, page lock held) that the bundle may replace the live version and that its shard is bound, and
+ * plans every write: the new record, what to clean up, and the subrequests it all takes.
+ */
 export async function preparePut(deps: Deps, pageId: string, bundle: CheckedBundle): Promise<PreparedPage> {
   const { meta, manifest } = bundle;
   const reader = new Reader(deps.table());
   const previous = await reader.getPage(pageId);
+  // Versions above the live one never committed. Their version records list what they may have written (files, hub
+  // entries), so this publish removes whatever of that it does not keep, and keeps their URL and publication time.
+  const newer = await reader.pageVersionsAfter(pageId, previous?.version ?? 0);
+  const firstTry = newer[0];
   // A page keeps its first publication time, and with it its search shard: check the shard the record will use.
   try {
-    deps.search.assertShard(previous?.published_at ?? meta.published_at);
+    deps.search.assertShard(previous?.published_at ?? firstTry?.published_at ?? meta.published_at);
   } catch (e) {
     if (e instanceof MissingShardError) {
       deps.log.error("search_shard_missing", { year: e.year });
@@ -182,15 +190,24 @@ export async function preparePut(deps: Deps, pageId: string, bundle: CheckedBund
   }
 
   if (previous) assertCanReplace(previous, meta, manifest);
+  else if (firstTry && firstTry.path !== meta.path)
+    throw new ApiError(
+      "path_conflict",
+      `page ${meta.id} was first published at ${firstTry.path}; a page never changes its URL`,
+    );
   // A version number is used once. A stored version with other content (one that never went live) is refused here,
   // before any file is written.
-  const stored = await reader.getPageVersion(pageId, meta.version);
+  const stored = newer.find((v) => v.version === meta.version) ?? (await reader.getPageVersion(pageId, meta.version));
   if (stored && stored.bundle_sha256 !== manifest.bundle_sha256)
     throw new ApiError("version_conflict", `version ${meta.version} already exists with different content`);
 
   const now = deps.now();
-  const page = pageRecord(meta, manifest, previous, now);
-  const cleanup = cleanupFor(previous, page);
+  const page = pageRecord(meta, manifest, previous, now, firstTry);
+  const cleanup = cleanupFor(
+    previous,
+    page,
+    newer.filter((v) => v.version !== page.version),
+  );
   const entities = newEntities(meta, previous, page.lang, now);
   const planned =
     PUBLISH_SINGLE_CALLS +
@@ -263,10 +280,12 @@ export function pageRecord(
   manifest: Manifest,
   previous: PageRecord | undefined,
   now: Date,
+  /** The oldest version record above the live one, when a first attempt never committed. */
+  firstTry?: Pick<PageRecord, "published_at">,
 ): PageRecord {
   const { schema: _schema, id, ...fields } = meta;
   // A page keeps its first publication time, so its hub entries keep their place and SK.
-  const publishedAt = previous?.published_at ?? meta.published_at;
+  const publishedAt = previous?.published_at ?? firstTry?.published_at ?? meta.published_at;
   return {
     ...pageLatestKey(id),
     type: "page",
@@ -306,18 +325,29 @@ const unique = (...lists: string[][]) => [...new Set(lists.flat())];
 
 /**
  * What the replaced version had and this one dropped: hubs to leave and files to delete. A retry of the live version
- * keeps the cleanup it recorded; a new version also takes over whatever the live one recorded and has not finished.
+ * keeps the cleanup it recorded; a new version also takes over whatever the live one recorded and has not finished,
+ * and whatever versions that never committed (`abandoned`, from their version records) may have written.
  */
-export function cleanupFor(previous: PageRecord | undefined, page: PageRecord): PageRecord["cleanup"] {
-  if (!previous) return undefined;
+export function cleanupFor(
+  previous: PageRecord | undefined,
+  page: PageRecord,
+  abandoned: Pick<PageRecord, "hubs" | "files">[] = [],
+): PageRecord["cleanup"] {
   const retry =
-    previous.status === "published" &&
+    previous?.status === "published" &&
     previous.version === page.version &&
     previous.bundle_sha256 === page.bundle_sha256;
-  const hubs = unique(retry ? [] : previous.hubs, previous.cleanup?.hubs ?? []).filter((h) => !page.hubs.includes(h));
-  const files = unique(retry ? [] : previous.files, previous.cleanup?.files ?? []).filter(
-    (f) => !page.files.includes(f),
-  );
+  const replaced = previous && !retry ? [previous] : [];
+  const hubs = unique(
+    ...replaced.map((v) => v.hubs),
+    previous?.cleanup?.hubs ?? [],
+    ...abandoned.map((v) => v.hubs),
+  ).filter((h) => !page.hubs.includes(h));
+  const files = unique(
+    ...replaced.map((v) => v.files),
+    previous?.cleanup?.files ?? [],
+    ...abandoned.map((v) => v.files),
+  ).filter((f) => !page.files.includes(f));
   return hubs.length + files.length > 0 ? { hubs, files } : undefined;
 }
 
@@ -360,13 +390,9 @@ export async function executePut(deps: Deps, p: PreparedPage): Promise<OpResult>
     throw e;
   }
 
-  // 2. The files, each stamped with its version, so a reader can tell which version it got.
-  const stamp = { version: page.version, bundle_sha256: page.bundle_sha256 };
-  await eachLimited(Object.entries(p.files), CONCURRENCY, ([name, text]) =>
-    putPageFile(bucket, page.path, name, text, stamp),
-  );
-
-  // 3. The immutable version record; an identical retry passes, different content under the same version does not.
+  // 2. The immutable version record, before anything it lists is written: if this publish never commits, the next one
+  //    (or a withdrawal) finds it above LATEST and removes its files and hub entries. An identical retry passes,
+  //    different content under the same version does not.
   try {
     await table.put(
       { ...page, SK: pageVersionKey(page.page_id, page.version).SK } as never,
@@ -377,6 +403,12 @@ export async function executePut(deps: Deps, p: PreparedPage): Promise<OpResult>
       throw new ApiError("version_conflict", `version ${page.version} already exists with different content`);
     throw e;
   }
+
+  // 3. The files, each stamped with its version, so a reader can tell which version it got.
+  const stamp = { version: page.version, bundle_sha256: page.bundle_sha256 };
+  await eachLimited(Object.entries(p.files), CONCURRENCY, ([name, text]) =>
+    putPageFile(bucket, page.path, name, text, stamp),
+  );
 
   // 4. Hub entries and entities, in batches. An entity the live version already listed with the same name and kind
   //    is not rewritten: its item exists, because entities are written before LATEST moves.
@@ -430,6 +462,8 @@ export interface PreparedPageOp {
   page: PageRecord;
   reason?: string;
   indexStatus?: "index" | "noindex";
+  /** Withdraw: hubs and files listed by version records above the live one (publishes that never committed). */
+  leftovers?: { hubs: string[]; files: string[] };
 }
 
 export async function checkWithdraw(body: unknown): Promise<{ reason: string }> {
@@ -439,15 +473,19 @@ export async function checkWithdraw(body: unknown): Promise<{ reason: string }> 
 }
 
 export async function prepareWithdraw(deps: Deps, pageId: string, req: { reason: string }): Promise<PreparedPageOp> {
-  const page = await new Reader(deps.table()).getPage(pageId);
+  const reader = new Reader(deps.table());
+  const page = await reader.getPage(pageId);
   if (!page) throw new ApiError("not_found", `page ${pageId} does not exist`);
-  return { page, reason: req.reason };
+  const newer = await reader.pageVersionsAfter(pageId, page.version);
+  const leftovers = { hubs: unique(...newer.map((v) => v.hubs)), files: unique(...newer.map((v) => v.files)) };
+  return { page, reason: req.reason, leftovers };
 }
 
 /**
- * Marks the page withdrawn (unless it already is), then removes its hub entries, search row and public files and
- * purges. Those steps run on every attempt, including when the page is already withdrawn, so a retry finishes a
- * withdrawal that failed half way. Versions stay in DynamoDB and the bundle on the laptop.
+ * Marks the page withdrawn (unless it already is), then removes its hub entries (and those of any publish that never
+ * committed), search row and public files and purges. Those steps run on every attempt, including when the page is
+ * already withdrawn, so a retry finishes a withdrawal that failed half way. Versions stay in DynamoDB and the bundle
+ * on the laptop.
  */
 export async function executeWithdraw(deps: Deps, p: PreparedPageOp): Promise<OpResult> {
   const table = deps.table();
@@ -469,14 +507,18 @@ export async function executeWithdraw(deps: Deps, p: PreparedPageOp): Promise<Op
     page = withdrawn;
   }
   const gone = page;
+  const removed = {
+    hubs: unique(gone.hubs, gone.cleanup?.hubs ?? [], p.leftovers?.hubs ?? []),
+    files: unique(gone.files, gone.cleanup?.files ?? [], p.leftovers?.files ?? []),
+  };
   await writeBatches(
     table,
-    unique(gone.hubs, gone.cleanup?.hubs ?? []).map((h) => ({ delete: hubKey(gone, h) })),
+    removed.hubs.map((h) => ({ delete: hubKey(gone, h) })),
   );
   await deps.search.remove(gone);
   // The public files go: a withdrawn page must stop being served.
-  await deletePageFiles(deps.bucket(), gone.path, unique(gone.files, gone.cleanup?.files ?? []));
-  const purged = await deps.purger.purge(affectedUrls(deps, gone));
+  await deletePageFiles(deps.bucket(), gone.path, removed.files);
+  const purged = await deps.purger.purge(affectedUrls(deps, { ...gone, cleanup: removed }));
   return {
     status: 200,
     body: {

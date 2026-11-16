@@ -192,6 +192,76 @@ describe("publishing retries keep the invalidation set", () => {
   });
 });
 
+describe("a publish abandoned before its commit leaves nothing behind", () => {
+  /** v2 adds a category, an entity and a chart, writes its files and hub entries, then fails before LATEST moves. */
+  async function abandonedV2(h: H) {
+    await published(h);
+    const v1 = makeMeta();
+    const v2 = makeMeta({
+      version: 2,
+      categories: [...v1.categories, "technology"],
+      entities: [...v1.entities, { id: "country:FR", name: "France", kind: "country" }],
+      chart_ids: [...v1.chart_ids, "gdp-new"],
+    });
+    const index = h.search.index.bind(h.search);
+    h.search.index = async () => {
+      h.search.index = index;
+      throw new Error("D1 unavailable (test)");
+    };
+    expect((await h.call("PUT", "/v1/pages/test-page", { body: await makeBundle(v2) })).status).toBe(500);
+    expect(items(h, "HUB#cat/technology")).toHaveLength(1);
+    expect(h.bucket.objects.has("2026/11/test-page/charts/gdp-new.csv")).toBe(true);
+    expect(latest(h)).toMatchObject({ version: 1 });
+  }
+
+  it("v2 fails, v3 leaves out what v2 added: v3 removes v2's hub entries and files and purges them", async () => {
+    const h = harness();
+    await abandonedV2(h);
+    const v3 = await h.call("PUT", "/v1/pages/test-page", { body: await makeBundle(makeMeta({ version: 3 })) });
+    expect(v3.status).toBe(200);
+    expect(items(h, "HUB#cat/technology")).toEqual([]);
+    expect(items(h, "HUB#ent/country:FR")).toEqual([]);
+    expect(h.bucket.objects.has("2026/11/test-page/charts/gdp-new.csv")).toBe(false);
+    expect(((await v3.json()) as { purged: string[] }).purged).toContain(
+      `${ORIGIN}/2026/11/test-page/charts/gdp-new.csv`,
+    );
+    expectItemsValid(h.table.dump());
+    expect((await h.call("POST", "/v1/pages/test-page/withdraw", { body: { reason: "wrong" } })).status).toBe(200);
+    expect(items(h, "HUB#")).toEqual([]);
+    expect(h.bucket.objects.size).toBe(0);
+  });
+
+  it("v2 fails, then the page is withdrawn: v2's hub entries and files go too", async () => {
+    const h = harness();
+    await abandonedV2(h);
+    const res = await h.call("POST", "/v1/pages/test-page/withdraw", { body: { reason: "wrong" } });
+    expect(res.status).toBe(200);
+    expect(items(h, "HUB#")).toEqual([]);
+    expect(h.bucket.objects.size).toBe(0);
+    expect(((await res.json()) as { purged: string[] }).purged).toContain(
+      `${ORIGIN}/2026/11/test-page/charts/gdp-new.csv`,
+    );
+  });
+
+  it("a first publish that never committed fixes the page's URL and publication time for the next attempt", async () => {
+    const h = harness();
+    const index = h.search.index.bind(h.search);
+    h.search.index = async () => {
+      h.search.index = index;
+      throw new Error("D1 unavailable (test)");
+    };
+    expect((await h.call("PUT", "/v1/pages/test-page", { body: await makeBundle() })).status).toBe(500);
+    const moved = makeMeta({ version: 2, path: "/2026/11/elsewhere" });
+    const refused = await h.call("PUT", "/v1/pages/test-page", { body: await makeBundle(moved) });
+    expect(await errorCode(refused)).toBe("path_conflict");
+    const later = makeMeta({ version: 2, published_at: "2026-11-12T09:00:00Z", updated_at: "2026-11-12T09:00:00Z" });
+    expect((await h.call("PUT", "/v1/pages/test-page", { body: await makeBundle(later) })).status).toBe(200);
+    // One entry per hub, at the first attempt's time: no duplicate left at the abandoned attempt's sort key.
+    expect(items(h, "HUB#latest")).toHaveLength(1);
+    expect(latest(h)?.published_at).toBe(makeMeta().published_at.replace("Z", ".000Z"));
+  });
+});
+
 describe("a withdrawn page stays withdrawn", () => {
   it("re-sending the withdrawn version → 409 page_withdrawn; a higher version publishes again", async () => {
     const h = harness();

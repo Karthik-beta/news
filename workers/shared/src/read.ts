@@ -16,6 +16,7 @@ import {
   redirectKey,
   TAXONOMY_PK,
   versionFromSk,
+  versionSk,
 } from "./keys";
 import type {
   CurationRecord,
@@ -67,6 +68,26 @@ export class Reader {
   async listPageVersions(pageId: string, limit = 20): Promise<number[]> {
     const res = await this.table.query({ pk: pagePk(pageId), sk: { beginsWith: "V#" }, forward: false, limit });
     return res.items.map((i) => versionFromSk(String(i.SK)));
+  }
+
+  /**
+   * Version records above `version` (the live one, or 0), oldest first: publishes that wrote their version record, and
+   * perhaps files and hub entries, but never moved LATEST. Usually none; one query.
+   */
+  async pageVersionsAfter(pageId: string, version: number): Promise<PageRecord[]> {
+    if (version + 1 >= 10 ** 6) return [];
+    const out: PageRecord[] = [];
+    let start: Key | undefined;
+    do {
+      const res = await this.table.query({
+        pk: pagePk(pageId),
+        sk: { between: [versionSk(version + 1), versionSk(10 ** 6 - 1)] },
+        start,
+      });
+      out.push(...(res.items as unknown as PageRecord[]));
+      start = res.next;
+    } while (start);
+    return out;
   }
 
   /** True when the page has at least one stored version (whether or not it has a live LATEST record). */
