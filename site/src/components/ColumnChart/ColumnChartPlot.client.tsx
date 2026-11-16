@@ -64,6 +64,11 @@ export default function ColumnChartPlot({
   const { active, setActive, rootRef, plotRef, onKeyDown, onBlur } = useChartStepper(bands.length);
   const centres = useMemo(() => bands.map((b) => b.left + b.width / 2), [bands]);
   const band = active === null ? null : bands[active];
+  // The first and last labels align to the plot's edges when they could overhang it: narrow columns, long labels.
+  const edge = (i: number, label: string | null): "start" | "end" | null => {
+    if (bands.length < 2 || (bands.length <= 8 && (label?.length ?? 0) <= 5)) return null;
+    return i === 0 ? "start" : i === bands.length - 1 ? "end" : null;
+  };
 
   const fromPointer = (e: PointerEvent<HTMLDivElement>) => {
     const target = (e.target as HTMLElement).closest<HTMLElement>("[data-band]");
@@ -123,7 +128,7 @@ export default function ColumnChartPlot({
                       )}
                       {m.label !== null && m.show !== "never" && m.top !== null && m.height !== null ? (
                         <span
-                          className={`column-chart__value text-tabular column-chart__value--${m.show}${m.negative ? " is-negative" : ""}${m.role === "highlight" ? " is-highlight" : ""}`}
+                          className={`column-chart__value text-tabular column-chart__value--${m.show}${m.negative ? " is-negative" : ""}${m.role === "highlight" ? " is-highlight" : ""}${edge(i, m.label) === "start" ? " is-first" : edge(i, m.label) === "end" ? " is-last" : ""}`}
                           style={m.negative ? { top: `${m.top + m.height}%` } : { bottom: `${100 - m.top}%` }}
                           data-ref={m.ref ?? undefined}
                         >
@@ -149,7 +154,7 @@ export default function ColumnChartPlot({
           </div>
         </div>
       </div>
-      <XLabels labels={xLabels} pinEnds={false} />
+      <XLabels labels={xLabels} pinEnds={bands.length > 8 ? "index" : false} />
       <ChartLiveRegion text={band ? tooltipText(band.label, band.tooltip) : ""} />
     </div>
   );

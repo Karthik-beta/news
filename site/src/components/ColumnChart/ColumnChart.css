@@ -53,6 +53,17 @@
   white-space: nowrap;
   z-index: 2;
 }
+/* Narrow columns or long labels: the first and last labels align to the column's outer edge, so they stay inside
+   the plot rather than overhanging the page. */
+.column-chart__value.is-first {
+  inset-inline-start: 0;
+  translate: 0 0;
+}
+.column-chart__value.is-last {
+  inset-inline-start: auto;
+  inset-inline-end: 0;
+  translate: 0 0;
+}
 .column-chart__value.is-highlight {
   font-weight: var(--font-weight-bold);
   color: var(--chart-highlight);

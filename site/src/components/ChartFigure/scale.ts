@@ -149,23 +149,26 @@ function labelledStops(count: number, maxLabels: number): Set<number> {
   const step = Math.max(1, Math.ceil((count - 1) / Math.max(1, maxLabels - 1)));
   for (let i = 0; i < count; i += step) shown.add(i);
   const last = count - 1;
-  for (const i of [...shown]) if (i !== 0 && i !== last && last - i < step / 2 + 0.5) shown.delete(i);
+  // The last label is pinned to the plot's right edge, so a label less than a full step before it would touch it.
+  for (const i of [...shown]) if (i !== 0 && i !== last && last - i < step) shown.delete(i);
   shown.add(last);
   return shown;
 }
 
 /**
  * X labels for a plot: every label that fits, thinned evenly on phones rather than rotated (design/charts.md,
- * "Axes and scales"). `xs` are the stops' positions, 0-100.
+ * "Axes and scales"). `xs` are the stops' positions, 0-100. `taken` is room the plot gives up, in characters, on
+ * phones and wider (a line chart's end labels).
  */
 export function xLabelPlan(
   labels: readonly string[],
   xs: readonly number[],
+  taken: { phone: number; wide: number } = { phone: 0, wide: 0 },
 ): { x: number; label: string; phone: boolean; wide: boolean }[] {
   const longest = Math.max(1, ...labels.map((l) => l.length));
   const labelsFor = (room: number) => Math.max(2, Math.floor(room / (longest + 2)));
-  const phone = labelledStops(labels.length, labelsFor(X_CAPACITY.phone));
-  const wide = labelledStops(labels.length, labelsFor(X_CAPACITY.wide));
+  const phone = labelledStops(labels.length, labelsFor(X_CAPACITY.phone - taken.phone));
+  const wide = labelledStops(labels.length, labelsFor(X_CAPACITY.wide - taken.wide));
   return labels.map((label, i) => ({ x: xs[i] ?? 0, label, phone: phone.has(i), wide: wide.has(i) }));
 }
 

@@ -10,6 +10,14 @@
     --chart-end-room: calc(var(--line-end-room-wide) + var(--space-4));
   }
 }
+/* End labels that cannot all fit a phone's plot: left out below 600px, where the legend, tooltip and data table
+   still name every series. The end markers stay. */
+@media (max-width: 599px) {
+  .line-chart--wide-labels-only .line-chart__end-label {
+    display: none;
+  }
+}
+
 /* Room above the plot for event labels: one or two rows. */
 .line-chart--events-1 .chart-plot__frame {
   padding-top: calc(var(--space-6) + 1.35em + var(--space-2));

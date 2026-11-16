@@ -36,6 +36,15 @@ const PAGES = [
 const url = (p: string) => `/fixtures/components/${p}/`;
 const STATIC_PAGES = PAGES.filter((p) => /^(KeyFigures?|DataTable|ComparisonTable)\//.test(p));
 
+/** Brings every island on the page into view and waits until it has hydrated, so leaving the page cuts nothing off. */
+async function hydrateAll(page: import("@playwright/test").Page): Promise<void> {
+  const islands = page.locator("[data-island]");
+  for (let i = 0; i < (await islands.count()); i++) {
+    await islands.nth(i).scrollIntoViewIfNeeded();
+    await expect(islands.nth(i).locator("[data-hydrated='true']")).toHaveCount(1);
+  }
+}
+
 /** True when React has hydrated (attached a fiber to) the element. */
 const isReactManaged = (el: Element) => Object.keys(el).some((k) => k.startsWith("__reactFiber$"));
 const rgb = (hex: string) => {
@@ -45,7 +54,9 @@ const rgb = (hex: string) => {
 
 for (const p of PAGES) {
   test(`${p}: no WCAG 2.2 AA violations in light and dark`, { tag: ["@smoke", "@a11y"] }, async ({ page, theme }) => {
+    // Checked as readers get it: every island hydrated (which also means no island load is cut off at the end).
     await gotoPage(page, url(p));
+    await hydrateAll(page);
     await expectAccessible(page);
     await setTheme(page, theme === "light" ? "dark" : "light");
     await expectAccessible(page);
@@ -53,6 +64,7 @@ for (const p of PAGES) {
 
   test(`${p}: reads at this screen size`, { tag: "@smoke" }, async ({ page }) => {
     await gotoPage(page, url(p));
+    await hydrateAll(page);
     await expectNoSidewaysScroll(page);
     await expectNoSmallText(page);
     await expectTargetSize(page);
@@ -130,6 +142,9 @@ test("each plot is named by its data summary, and its data table is reachable by
     for (let i = 0; i < (await islands.count()); i++) {
       const props = JSON.parse((await islands.nth(i).getAttribute("data-props")) ?? "{}");
       await expect(islands.nth(i).getByRole("img")).toHaveAccessibleName(props.summary);
+      // Let each island finish loading before the next page, so no island request is cut off mid-flight.
+      await islands.nth(i).scrollIntoViewIfNeeded();
+      await expect(islands.nth(i).locator("[data-hydrated='true']")).toHaveCount(1);
     }
     const summary = page.locator("figure").first().getByText("Show the data table");
     await summary.focus();
@@ -184,6 +199,7 @@ test("a tap on a mark opens its tooltip and a tap outside closes it", { tag: ["@
     await expect(island.locator(".chart-tooltip .popover__value").first()).toHaveText(first);
     await page.touchscreen.tap(4, 4);
     await expect(island.locator(".chart-tooltip")).toHaveCount(0);
+    await hydrateAll(page);
   }
 });
 
@@ -215,6 +231,7 @@ test("no fall is shown in crimson, in either theme", { tag: "@smoke" }, async ({
     for (const v of await page.locator(".bar-chart__value.is-negative").all()) {
       expect(await v.evaluate((el) => getComputedStyle(el).color)).not.toBe(crimson);
     }
+    await hydrateAll(page);
     await gotoPage(page, url("KeyFigures/default"));
     await setTheme(page, t);
     const ink2 = rgb(tokenValue("--color-ink-2", t));

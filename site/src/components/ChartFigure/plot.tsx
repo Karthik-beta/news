@@ -35,18 +35,23 @@ export function ValueAxis({ ticks }: { ticks: readonly AxisTick[] }) {
   );
 }
 
-/** X labels under the plot. Lines pin labels at the plot's edges inside it; columns centre every label. */
-export function XLabels({ labels, pinEnds }: { labels: readonly XLabel[]; pinEnds: boolean }) {
+/**
+ * X labels under the plot, centred on their stop. Pinned labels stay inside the plot instead: lines pin labels that
+ * sit on its edges ("position"); narrow columns pin the first and last labels ("index").
+ */
+export function XLabels({ labels, pinEnds }: { labels: readonly XLabel[]; pinEnds: "position" | "index" | false }) {
   const lastIndex = labels.length - 1;
   return (
     <div className="chart-plot__x" aria-hidden="true">
-      {labels.map((l) => {
+      {labels.map((l, i) => {
         if (!l.phone && !l.wide) return null;
         const classes = ["chart-plot__x-label"];
         if (!l.phone) classes.push("is-wide-only");
         if (!l.wide) classes.push("is-phone-only");
-        if (pinEnds && l.x <= 0.5 && lastIndex > 0) classes.push("is-first");
-        if (pinEnds && l.x >= 99.5 && lastIndex > 0) classes.push("is-last");
+        const first = pinEnds === "position" ? l.x <= 0.5 : pinEnds === "index" && i === 0;
+        const last = pinEnds === "position" ? l.x >= 99.5 : pinEnds === "index" && i === lastIndex;
+        if (first && lastIndex > 0) classes.push("is-first");
+        if (last && lastIndex > 0) classes.push("is-last");
         return (
           <span key={`${l.label}-${l.x}`} className={classes.join(" ")} style={{ left: `${l.x}%` }}>
             {l.label}

@@ -65,7 +65,12 @@ export interface LineChartPlotProps {
   curve: "linear" | "step";
   events: EventMarker[];
   /** Room for the end labels to the right of the plot, in ch: phones and from 600px up. */
-  endRoom: { phone: string; wide: string };
+  endRoom: {
+    phone: string;
+    wide: string;
+    /** False when the labels cannot all fit a phone's plot: phones then leave them out. */
+    phoneLabels: boolean;
+  };
 }
 
 /** An SVG path in the plot's 0-1000 box, broken at gaps; steps hold the value until the next stop. */
@@ -115,7 +120,7 @@ export default function LineChartPlot({
 
   return (
     <div
-      className={`chart-plot line-chart__plot line-chart--events-${rows}${series.some((s) => s.end) ? " line-chart--end-labels" : ""}`}
+      className={`chart-plot line-chart__plot line-chart--events-${rows}${series.some((s) => s.end) ? " line-chart--end-labels" : ""}${endRoom.phoneLabels ? "" : " line-chart--wide-labels-only"}`}
       ref={rootRef}
       style={style}
     >
@@ -226,7 +231,7 @@ export default function LineChartPlot({
           </div>
         </div>
       </div>
-      <XLabels labels={xLabels} pinEnds={true} />
+      <XLabels labels={xLabels} pinEnds="position" />
       <ChartLiveRegion text={stop ? tooltipText(stop.label, stop.tooltip) : ""} />
     </div>
   );

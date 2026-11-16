@@ -179,9 +179,20 @@ export function linePlot(
     };
   });
 
-  // Nudge end labels apart: two lines each when named (about 15% of a phone plot), one line otherwise.
+  // End labels sit in a column right of the plot. Names wrap at about 11 characters on phones and 16 wider; a line
+  // of label text is about 17.6px, against a plot 240px tall on phones and 288px wider. Labels are nudged apart by
+  // the tallest one's height. When a phone cannot fit them all, phones drop them (the legend above, the tooltip
+  // and the data table still name every series) and give their room back to the plot.
   const ended = geometry.filter((g) => g.end);
-  const gap = multi ? 16 : 8;
+  const lines = (perLine: number) => (g: LineSeriesGeometry) =>
+    (g.end?.name ? Math.ceil(g.end.name.length / perLine) : 0) + 1;
+  const heights = {
+    phone: ended.map((g) => ((lines(11)(g) * 17.6) / 240) * 100),
+    wide: ended.map((g) => ((lines(16)(g) * 17.6) / 288) * 100),
+  };
+  const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
+  const phoneLabels = sum(heights.phone) <= 100;
+  const gap = Math.max(0, ...(phoneLabels ? heights.phone : heights.wide)) + 1;
   const spread = spreadLabels(
     ended.map((g) => g.end?.y ?? 0),
     gap,
@@ -190,15 +201,14 @@ export function linePlot(
     if (g.end) g.end.labelY = spread[k] as number;
   });
 
-  // Room for the end labels, in ch of the label font: names wrap at about 11 characters on phones, 16 wider.
+  // Room for the end labels, in ch of the label font.
   const valueChars = Math.max(0, ...ended.map((g) => g.end?.value.length ?? 0));
   const nameChars = Math.max(0, ...ended.map((g) => g.end?.name?.length ?? 0));
-  const endRoom = ended.length
-    ? {
-        phone: `${Math.max(valueChars, Math.min(nameChars, 11)) + 1}ch`,
-        wide: `${Math.max(valueChars, Math.min(nameChars, 16)) + 1}ch`,
-      }
-    : { phone: "0ch", wide: "0ch" };
+  const room = {
+    phone: ended.length && phoneLabels ? Math.max(valueChars, Math.min(nameChars, 11)) + 1 : 0,
+    wide: ended.length ? Math.max(valueChars, Math.min(nameChars, 16)) + 1 : 0,
+  };
+  const endRoom = { phone: `${room.phone}ch`, wide: `${room.wide}ch`, phoneLabels };
 
   // Event markers: labels stagger onto a second row when they would touch; a third is left as a bare line. A label
   // starts at its line, or ends there past 70% of the width; its width is estimated for the narrowest wide plot
@@ -264,6 +274,7 @@ export function linePlot(
       : xLabelPlan(
           slots.map((s) => s.label),
           xs,
+          room,
         ),
     curve: opts.curve,
     events,
