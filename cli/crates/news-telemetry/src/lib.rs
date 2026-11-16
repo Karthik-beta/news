@@ -30,6 +30,8 @@ pub struct Event {
     pub status: String,
     pub error: String,
     pub error_class: String,
+    /// The Dispatch job's attempt (0 when the call is not about one job attempt).
+    pub attempt: u8,
     pub duration_ms: u32,
     pub preset: String,
     pub step: String,
@@ -58,6 +60,7 @@ impl Event {
             status: String::new(),
             error: String::new(),
             error_class: String::new(),
+            attempt: 0,
             duration_ms: 0,
             preset: String::new(),
             step: String::new(),
@@ -65,6 +68,14 @@ impl Event {
             span_id: String::new(),
             attrs: "{}".into(),
         }
+    }
+
+    /// Record the job's error class and attempt, where the call knows them (`jobs fail`, `jobs
+    /// heartbeat`, …). Attempts above 255 are stored as 255.
+    pub fn with_job(mut self, error_class: Option<&str>, attempt: Option<i16>) -> Self {
+        self.error_class = error_class.unwrap_or_default().to_owned();
+        self.attempt = attempt.map_or(0, |a| u8::try_from(a.max(0)).unwrap_or(u8::MAX));
+        self
     }
 
     /// Fill in the outcome: `status` is `ok` or the error code.
@@ -273,6 +284,19 @@ mod tests {
         assert_eq!(v["duration_ms"], 12);
         assert_eq!(v["attrs"], r#"{"exit":0}"#);
         assert!(v["ts"].as_str().unwrap().len() == 23, "{}", v["ts"]);
+    }
+
+    #[test]
+    fn job_fields_are_recorded_and_clamped() {
+        let e = Event::cli_call("jobs.fail", env(&[])).with_job(Some("transient"), Some(2));
+        let v: Value = serde_json::from_str(&e.to_json_line()).unwrap();
+        assert_eq!(
+            (v["error_class"].as_str(), v["attempt"].as_u64()),
+            (Some("transient"), Some(2))
+        );
+        let e = Event::cli_call("x", env(&[])).with_job(None, Some(1000));
+        assert_eq!((e.error_class.as_str(), e.attempt), ("", 255));
+        assert_eq!(Event::cli_call("x", env(&[])).attempt, 0);
     }
 
     #[test]

@@ -151,8 +151,7 @@ pub fn check_output(args: &[&str], env: &serde_json::Value) {
         .collect();
     assert!(
         errors.is_empty(),
-        "{name}: data breaks $defs.output: {errors:?}
-{env}"
+        "{name}: data breaks $defs.output: {errors:?}\n{env}"
     );
 }
 

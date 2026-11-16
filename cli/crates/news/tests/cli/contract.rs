@@ -265,6 +265,56 @@ fn every_call_writes_one_event_with_run_and_job_ids() {
     assert!(!body.contains("ch-pw-not-in-body"));
 }
 
+/// The one event a call wrote to the fake ClickHouse.
+fn event_of(args: &[&str]) -> Value {
+    let (url, server) = fake_clickhouse();
+    let (env, code, _) = call_with(news().args(args).env("NEWS_CH_HTTP", &url));
+    check(&env, code);
+    let request = server.join().unwrap();
+    let body = request.split("\r\n\r\n").nth(1).unwrap().to_owned();
+    assert_eq!(body.lines().count(), 1, "one event per call: {body}");
+    serde_json::from_str(body.trim()).unwrap()
+}
+
+#[test]
+fn job_events_carry_the_error_class_and_attempt() {
+    // No database: the call fails as precondition, and the event still records what the job reported.
+    let ev = event_of(&[
+        "jobs",
+        "fail",
+        "7",
+        "--class",
+        "rate_limited",
+        "--message",
+        "429",
+        "--worker",
+        "w",
+        "--attempt",
+        "2",
+    ]);
+    assert_eq!(ev["event"], "jobs.fail");
+    assert_eq!(ev["error_class"], "rate_limited");
+    assert_eq!(ev["attempt"], 2);
+    let ev = event_of(&["jobs", "heartbeat", "7", "--worker", "w", "--attempt", "3"]);
+    assert_eq!(
+        (ev["error_class"].as_str(), ev["attempt"].as_i64()),
+        (Some(""), Some(3))
+    );
+    let ev = event_of(&["version"]);
+    assert_eq!(
+        (ev["error_class"].as_str(), ev["attempt"].as_i64()),
+        (Some(""), Some(0))
+    );
+}
+
+#[test]
+fn an_argument_error_still_writes_an_event() {
+    let ev = event_of(&["jobs", "claim", "--pool", "net"]);
+    assert_eq!(ev["stage"], "cli");
+    assert_eq!(ev["status"], "usage");
+    assert!(ev["error"].as_str().unwrap().contains("--worker"), "{ev}");
+}
+
 #[test]
 fn an_unreachable_clickhouse_never_fails_the_call() {
     let (env, code, stderr) = call_with(

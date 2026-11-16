@@ -59,7 +59,35 @@ fn print_line(line: &str) {
     let _ = out.flush();
 }
 
-fn emit(command: &str, env: &Envelope, started: Instant, ids: (String, String)) {
+/// What a call says about one Dispatch job attempt, for the event's `error_class` and `attempt`.
+#[derive(Debug, Default, Clone, PartialEq)]
+struct JobContext {
+    error_class: Option<String>,
+    attempt: Option<i16>,
+}
+
+fn job_context(command: &cli::Command) -> JobContext {
+    use cli::{Command, JobsCmd};
+    match command {
+        Command::Jobs(JobsCmd::Fail { class, holder, .. }) => JobContext {
+            error_class: Some(class.clone()),
+            attempt: Some(holder.attempt),
+        },
+        Command::Jobs(JobsCmd::Heartbeat { holder, .. } | JobsCmd::Complete { holder, .. }) => {
+            JobContext {
+                error_class: None,
+                attempt: Some(holder.attempt),
+            }
+        }
+        Command::Jobs(JobsCmd::Retry { class, .. }) => JobContext {
+            error_class: class.clone(),
+            attempt: None,
+        },
+        _ => JobContext::default(),
+    }
+}
+
+fn emit(command: &str, env: &Envelope, started: Instant, ids: (String, String), job: &JobContext) {
     let Some(ch) = ClickHouse::from_env() else {
         return;
     };
@@ -79,12 +107,9 @@ fn emit(command: &str, env: &Envelope, started: Instant, ids: (String, String)) 
             json!({"exit": error.exit_code()}),
         ),
     };
-    let mut ev = Event::cli_call(command, |n| std::env::var(n).ok()).finish(
-        &status,
-        &error,
-        started.elapsed(),
-        &attrs,
-    );
+    let mut ev = Event::cli_call(command, |n| std::env::var(n).ok())
+        .with_job(job.error_class.as_deref(), job.attempt)
+        .finish(&status, &error, started.elapsed(), &attrs);
     (ev.trace_id, ev.span_id) = ids;
     if let Err(e) = ch.insert(&[ev]) {
         tracing::debug!(error = %e, "telemetry event not written");
@@ -108,7 +133,8 @@ fn main() -> ExitCode {
             eprint!("{}", e.render());
             let env = usage_envelope(&e);
             print_line(&env.to_line());
-            emit("usage", &env, started, (String::new(), String::new()));
+            let none = (String::new(), String::new());
+            emit("usage", &env, started, none, &JobContext::default());
             return exit(env.exit_code());
         }
     };
@@ -118,9 +144,12 @@ fn main() -> ExitCode {
         Err(e) => {
             let env = usage_envelope(&e);
             print_line(&env.to_line());
+            let none = (String::new(), String::new());
+            emit(&path, &env, started, none, &JobContext::default());
             return exit(env.exit_code());
         }
     };
+    let job = job_context(&cli.command);
 
     let guard = news_telemetry::init_tracing();
     let span = tracing::info_span!("news", command = %path);
@@ -142,7 +171,7 @@ fn main() -> ExitCode {
     let ids = news_telemetry::current_ids(&span);
     drop(span);
     print_line(&env.to_line());
-    emit(&path, &env, started, ids);
+    emit(&path, &env, started, ids, &job);
     drop(guard);
     exit(env.exit_code())
 }
