@@ -152,7 +152,9 @@ async fn run_one(db: PgPool, job: Job, resolve: Resolver, worker: String) -> Out
         );
         return finish_failed(&db, &job, &worker, &f).await;
     };
-    let mut handle = tokio::spawn(handler(job.input()));
+    // The handler is called inside the task, so a panic before it returns its future is caught too.
+    let input = job.input();
+    let mut handle = tokio::spawn(async move { handler(input).await });
     let mut beat = tokio::time::interval(lease / 3);
     beat.tick().await; // the first tick is immediate
     let joined = loop {

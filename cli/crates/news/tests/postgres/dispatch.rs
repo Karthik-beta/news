@@ -1144,3 +1144,34 @@ async fn a_lease_is_not_reused_after_a_snooze_under_the_same_worker() {
         .await
         .unwrap();
 }
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn a_handler_that_panics_before_returning_its_future_is_a_bug_failure() {
+    use news_core::job::{Handler, JobFuture, JobInput};
+    fn early(_: JobInput) -> JobFuture {
+        panic!("handler exploded before its future")
+    }
+    fn resolve(_: &str) -> Option<Handler> {
+        Some(early)
+    }
+    let f = Fixture::migrated().await;
+    let id = enqueue(&f, "test.early", "cpu").await;
+    let mut opts = news_dispatch::worker::WorkOptions::new(vec!["cpu".into()], "t");
+    opts.once = true;
+    let report = news_dispatch::worker::run(f.pool.clone(), opts, resolve, std::future::pending())
+        .await
+        .unwrap();
+    assert_eq!((report.failed, report.lost), (1, 0), "{report:?}");
+    let job = state_of(&f, id).await;
+    assert_eq!(
+        (job.state.as_str(), job.error_class.as_deref()),
+        ("discarded", Some("bug"))
+    );
+    assert!(
+        job.errors[0]["message"]
+            .as_str()
+            .unwrap()
+            .contains("panicked")
+    );
+}
