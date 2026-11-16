@@ -167,7 +167,7 @@ describe("request validation", () => {
       },
     });
     await expectError(await h.call("PUT", "/v1/home/curation", { raw: stream }), 413, "payload_too_large");
-    const page = await h.call("PUT", "/v1/pages/abc", { raw: "x".repeat(5 * 1024 * 1024 + 1) });
+    const page = await h.call("PUT", "/v1/pages/abc", { raw: "x".repeat(1024 * 1024 + 1) });
     await expectError(page, 413, "payload_too_large");
     expect(h.writeCount()).toBe(0);
   });

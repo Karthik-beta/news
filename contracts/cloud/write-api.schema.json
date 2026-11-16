@@ -18,7 +18,7 @@
           "propertyNames": {
             "pattern": "^(?:index\\.html|index\\.md|data\\.json|sources\\.json|meta\\.json|page\\.oui|charts/[a-z0-9][a-z0-9-]{0,63}\\.csv)$"
           },
-          "additionalProperties": { "type": "string", "maxLength": 2097152 }
+          "additionalProperties": { "type": "string" }
         }
       }
     },

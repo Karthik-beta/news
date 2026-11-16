@@ -63,7 +63,9 @@ const ROUTES: Route[] = [
     methods: {
       PUT: write({
         operation: "put_page",
-        maxBody: 5 * MiB,
+        // Measured: a typical bundle (100–300 KB) checks in 2–4 ms of CPU, a 1 MiB one in about 8 ms (JSON.parse,
+        // SHA-256 of every file), inside the free plan's 10 ms. Bigger bundles belong in fewer, smaller files.
+        maxBody: 1 * MiB,
         lockPage: ([id]) => id as string,
         check: ([id], b) => checkBundle(id as string, b),
         prepare: (d, [id], b) => preparePut(d, id as string, b),
