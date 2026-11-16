@@ -8,11 +8,9 @@ updated: 2026-11-16
 
 News is run by Karthik.
 
-TODO(Karthik): give the legal name of the person or entity that operates the site, and the country whose law applies. The documents name Karthik only, and no legal entity or jurisdiction.
+<!-- TODO(Karthik): give the legal name of the person or entity that operates the site, and the country whose law applies. The documents name Karthik only, and no legal entity or jurisdiction. -->
 
 ## Licence
-
-Text and charts are CC BY 4.0. Data keeps its original source licence, shown on each page.
 
 - **Original text, charts and page designs** are licensed under CC BY 4.0. You may reuse them with credit.
 - **Data** keeps the licence of its source. The sources panel on each page shows the licence and the credit each source requires. Source licences differ, for example public domain, CC BY or custom terms, so check each page.
@@ -20,7 +18,7 @@ Text and charts are CC BY 4.0. Data keeps its original source licence, shown on 
 - **Images** are not stored by News. They load from their sources, and the caption of each image gives its credit and licence.
 - **News outlets' text and images** are never copied. Outlets are linked as context only, and a quotation from one is limited to a short sentence with attribution.
 
-TODO(Karthik): give the link to the CC BY 4.0 licence text if you want one here, and the attribution wording you prefer for reuse.
+<!-- TODO(Karthik): give the link to the CC BY 4.0 licence text if you want one here, and the attribution wording you prefer for reuse. -->
 
 ## Attribution
 
@@ -34,7 +32,7 @@ Every source is credited following its licence. The credit is generated from the
 
 News does not publish predictions or recommendations. A published forecast appears only when it names whose forecast it is.
 
-TODO(Karthik): decide whether to add terms of use, a limitation of liability or other legal wording. The documents give none, and it should be written or checked by someone qualified.
+<!-- TODO(Karthik): decide whether to add terms of use, a limitation of liability or other legal wording. The documents give none, and it should be written or checked by someone qualified. -->
 
 ## Named companies and people
 
@@ -44,7 +42,7 @@ Companies and people are described factually, and every claim is attributed to a
 
 News has a contact address for corrections and takedown requests. See [contact](/contact).
 
-TODO(Karthik): state what a takedown request should include and how it is handled.
+<!-- TODO(Karthik): state what a takedown request should include and how it is handled. -->
 
 ## Privacy
 

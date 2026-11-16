@@ -8,7 +8,7 @@ updated: 2026-11-16
 
 This glossary explains the terms and labels that News uses on its pages. Pages link to a term instead of repeating its definition.
 
-TODO(Karthik): the design says the glossary also explains financial and economic metrics, but no list of metrics or definitions exists yet. Decide which metrics to define, who writes the definitions and which source each one cites, then add them here. The entries below cover only News's own terms and units.
+<!-- TODO(Karthik): the design says the glossary also explains financial and economic metrics, but no list of metrics or definitions exists yet. Decide which metrics to define, who writes the definitions and which source each one cites, then add them here. The entries below cover only News's own terms and units. -->
 
 ## A
 

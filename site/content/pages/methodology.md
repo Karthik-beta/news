@@ -32,16 +32,19 @@ Claude writes references such as "the revenue figure" and does not write the num
 Code enforces this in several ways.
 
 - Each figure on a page must match the value saved from the source. A page that does not match is not published.
-- The prose Claude writes may not contain digits or written-out amounts (for example "three per cent" or "doubled") unless they are references that code fills in.
+- The prose Claude writes may not contain digits or written-out amounts (for example "three per cent" or "doubled") unless they are references that code fills in. Names that contain digits, such as G20 or COVID-19, are allowed.
 - A word such as "rose" or "fell" must agree with the sign of the figure it describes.
 - A quotation must be an exact passage of its source text.
 - Source links must work. Image links and video embeds are checked as well.
 
 Each figure records where it came from: the source URL, the document, the page number or the XBRL tag, and the date the data was retrieved. Hover over or tap a figure to see it. The sources panel on each page lists every source with its type, licence and required credit.
 
-The raw source files behind the figures are kept for a limited time, so a figure can be traced back to the file it was read from.
+The raw source files behind the figures are kept for a set period. For every figure, News keeps for good the source address, a fingerprint of the file it was read from, and the exact place in that file where the figure sits.
 
-TODO(Karthik): say how long raw source files are kept. The design settles on a limited period but marks the exact number of days as pending (Technical Design, `NEWS_RAW_RETAIN_DAYS_DATA` and `NEWS_RAW_RETAIN_DAYS_DOCS`). Render the numbers from config; do not type them here.
+<!-- TODO(Karthik): say how long raw source files are kept. The design settles on a set period but marks the exact number of days as pending (Technical Design, `NEWS_RAW_RETAIN_DAYS_DATA` and `NEWS_RAW_RETAIN_DAYS_DOCS`). Render the numbers from config; do not type them here. -->
+<!-- TODO(Karthik): confirm that the fingerprints are kept for good (Bureau design, decision D7, "hashes for ever") and that this should be stated publicly. -->
+
+
 
 ## Figures are never converted
 
@@ -69,7 +72,7 @@ Code works out a change only when the inputs can be compared like for like. They
 4. **Unclear terms mean a link and a summary.** Where a source's terms on redistribution are unclear, News links to it and summarises it. It does not republish the data as files.
 5. **Primary and secondary sources are labelled differently** in the sources panel.
 
-Every source is public and free. No paid data or paid service is used.
+Every source is public and free. News pays for no data, and it runs on free hosting tiers.
 
 ### Images and video
 
@@ -97,7 +100,7 @@ The home page is curated, not just a list of the newest pages. A new curation is
 
 ## Search engines and the sitemap
 
-Every page is published and open to people and AI tools. Only some pages are offered to search engines. The others are marked `noindex` and stay out of the sitemap until they are promoted.
+Every page is published and open to people and AI tools. Only some pages are offered to search engines. The others carry a `noindex` tag, which asks search engines not to list the page, and they stay out of the sitemap until they are promoted. Anyone with the address can still open them.
 
 ## Corrections
 

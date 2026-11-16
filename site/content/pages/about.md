@@ -12,9 +12,10 @@ Reports such as quarterly results, IMF outlooks and central-bank decisions arriv
 
 ## Who runs it
 
-News is a personal project run by one person, Karthik. It is free to read. It has no accounts, no ads and no paywall, and it uses no paid data or paid services.
+News is a personal project run by one person, Karthik. It is free to read. It has no accounts, no ads and no paywall. It pays for no data, and it runs on free hosting tiers.
 
-TODO(Karthik): add a short, factual line about yourself and a link to your main site at karthik.nz. The documents say the author's real identity on a personal domain is part of the site's trust, but they do not give any biographical text.
+<!-- TODO(Karthik): add a short, factual line about yourself and a link to your main site at karthik.nz. The documents say the author's real identity on a personal domain is part of the site's trust, but they do not give any biographical text. -->
+
 
 ## How the pages are made
 
