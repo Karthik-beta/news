@@ -12,7 +12,8 @@ licence = "custom"
 attribution = "Source: Federal Reserve Bank of St. Louis, FRED, with data from the series' original source."
 redistribution = false
 image_policy = "none"
-rate_per_sec = 1.0
+# api.stlouisfed.org/robots.txt asks for "Crawl-delay: 2" (recorded 16 Nov 2026): one request every 2 s.
+rate_per_sec = 0.5
 # 120 requests per minute (unverified: official pages give no figure) [21].
 documented_rate_per_sec = 2.0
 documented_limit = "Free key; 120 req/min (unverified: official pages give no figure) [21]"

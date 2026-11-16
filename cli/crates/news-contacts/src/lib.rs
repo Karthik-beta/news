@@ -376,6 +376,32 @@ mod tests {
         assert_eq!(bls.robots_exempt, vec!["https://api.bls.gov/publicAPI/"]);
     }
 
+    #[test]
+    fn fred_keeps_to_its_robots_crawl_delay() {
+        // api.stlouisfed.org/robots.txt (recorded) asks for `Crawl-delay: 2`: at most 0.5 req/s.
+        let robots = std::fs::read_to_string(format!(
+            "{}/../news-connectors/tests/fixtures/fred/api-robots.txt",
+            env!("CARGO_MANIFEST_DIR")
+        ))
+        .unwrap();
+        let delay: f64 = robots
+            .lines()
+            .find_map(|l| l.strip_prefix("Crawl-delay:"))
+            .unwrap()
+            .trim()
+            .parse()
+            .unwrap();
+        let fred = repo_sources()
+            .into_iter()
+            .find(|s| s.source_id == "fred")
+            .unwrap();
+        assert!(
+            fred.rate_per_sec <= 1.0 / delay,
+            "fred rate_per_sec {} is above 1/Crawl-delay ({delay} s)",
+            fred.rate_per_sec
+        );
+    }
+
     fn good() -> Source {
         repo_sources()
             .into_iter()
