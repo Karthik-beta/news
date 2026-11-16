@@ -108,6 +108,7 @@ fn policy(id: &str, robots: bool, sec: bool) -> SourcePolicy {
         max_concurrency: 1,
         daily_quota: None,
         robots_respect: robots,
+        robots_exempt: vec![],
         requires_contact_email: sec,
     }
 }
@@ -230,7 +231,10 @@ async fn golden_discover_fetch_parse() {
         "bls",
         "public-domain",
         bls.clone(),
-        policy("bls", false, false),
+        SourcePolicy {
+            robots_exempt: vec!["https://api.bls.gov/publicAPI/".into()],
+            ..policy("bls", true, false)
+        },
         Some(r#"{"CUUR0000SA0":"2026-M09"}"#),
     )
     .await;
@@ -245,7 +249,7 @@ async fn golden_discover_fetch_parse() {
             35
         )]
     );
-    // robots_respect = false for the BLS API host: robots.txt is never requested.
+    // robots.txt is not applied to the BLS API's own prefix (Contacts robots_exempt).
     assert!(!bls.urls().iter().any(|u| u.ends_with("/robots.txt")));
     assert!(
         bls.urls()

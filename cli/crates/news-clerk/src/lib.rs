@@ -28,7 +28,8 @@ pub const KINDS: &[&str] = &["doc.parse", "doc.parse_docling"];
 /// TODO(#10, #29): `doc.parse` needs the service context (database pool, Morgue root). The service
 /// will load the item's snapshots from the Morgue, call the connector's `parse`, then
 /// [`candidates::prepare`] and [`ledger::store`]; a `ParseError` maps to its class (`invalid_data` or
-/// `upstream_changed` → dead list, `NotYet` → retry). `doc.parse_docling` is #12 (Docling).
+/// `upstream_changed` → dead list, `NotYet` → retry, a source's refusal → snooze for its
+/// `retry_after`). `doc.parse_docling` is #12 (Docling).
 pub fn handle(input: JobInput) -> JobFuture {
     Box::pin(async move {
         Err(JobFailure::new(

@@ -174,7 +174,8 @@ pub enum ParseErrorKind {
     Value,
     /// The snapshot the parser needs is not among those given.
     MissingSnapshot,
-    /// The source reported an error in a 200 response (BLS `REQUEST_NOT_PROCESSED`).
+    /// The source declined the request in a 200 response (BLS `REQUEST_NOT_PROCESSED`: daily
+    /// threshold, overload): `rate_limited`, snoozed for [`ParseError::retry_after`].
     Upstream,
     /// The source has not caught up yet (companyfacts minutes behind a new filing): retry later.
     NotYet,
@@ -195,10 +196,19 @@ impl ParseError {
 
     pub fn class(&self) -> ErrorClass {
         match self.kind {
-            ParseErrorKind::Shape | ParseErrorKind::Upstream => ErrorClass::UpstreamChanged,
+            ParseErrorKind::Shape => ErrorClass::UpstreamChanged,
+            ParseErrorKind::Upstream => ErrorClass::RateLimited,
             ParseErrorKind::Value => ErrorClass::InvalidData,
             ParseErrorKind::MissingSnapshot => ErrorClass::Bug,
             ParseErrorKind::NotYet => ErrorClass::Transient,
+        }
+    }
+
+    /// How long to snooze a `rate_limited` parse failure (a BLS refusal: an hour).
+    pub fn retry_after(&self) -> Option<std::time::Duration> {
+        match self.kind {
+            ParseErrorKind::Upstream => Some(std::time::Duration::from_secs(3600)),
+            _ => None,
         }
     }
 }

@@ -143,6 +143,8 @@ pub struct SourcePolicy {
     pub max_concurrency: u32,
     pub daily_quota: Option<u32>,
     pub robots_respect: bool,
+    /// URL prefixes (`https://host/path/`) not checked against robots.txt (Contacts `robots_exempt`).
+    pub robots_exempt: Vec<String>,
     pub requires_contact_email: bool,
 }
 
@@ -468,7 +470,11 @@ impl Runner {
             .ok_or_else(|| FetchError::new(ErrorClass::Bug, "URL has no host"))?
             .to_owned();
         let ua = self.user_agent(policy)?;
-        if policy.robots_respect && !self.robots_allow(policy, &req.url).await? {
+        let exempt = policy
+            .robots_exempt
+            .iter()
+            .any(|prefix| req.url.starts_with(prefix.as_str()));
+        if policy.robots_respect && !exempt && !self.robots_allow(policy, &req.url).await? {
             return Err(FetchError::new(
                 ErrorClass::LicenceBlocked,
                 format!("robots.txt disallows {}", path_of(&req.url)),

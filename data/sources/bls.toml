@@ -20,8 +20,10 @@ documented_daily_quota = 500
 auth_env = "BLS_API_KEY"
 # api.bls.gov/robots.txt is "User-agent: * / Disallow: /" (recorded 16 Nov 2026), which would refuse
 # the documented API itself. The API exists for programmatic use under its own limits, so robots.txt is
-# not applied to this host. Open question for Karthik (see the #9 PR).
-robots_respect = false
+# not applied to the API prefix below; every other BLS host and path still obeys robots.txt.
+# POLICY DECISION PENDING: Karthik must approve this exemption before BLS runs unattended (#9 PR).
+robots_respect = true
+robots_exempt = ["https://api.bls.gov/publicAPI/"]
 requires_contact_email = false
 regions = ["us"]
 categories = ["economy"]

@@ -21,7 +21,7 @@ pub fn url_hash(url: &str) -> Vec<u8> {
 pub async fn policy(pool: &PgPool, source_id: &str) -> Result<Option<SourcePolicy>, WireError> {
     let row = sqlx::query(
         "select source_id, rate_per_sec::float8 as rate, max_concurrency, daily_quota, robots_respect,
-                requires_contact_email
+                robots_exempt, requires_contact_email
            from sources where source_id = $1 and enabled",
     )
     .bind(source_id)
@@ -40,6 +40,7 @@ pub async fn policy(pool: &PgPool, source_id: &str) -> Result<Option<SourcePolic
             .get::<Option<i32>, _>("daily_quota")
             .and_then(|q| u32::try_from(q).ok()),
         robots_respect: r.get("robots_respect"),
+        robots_exempt: r.get("robots_exempt"),
         requires_contact_email: r.get("requires_contact_email"),
     }))
 }

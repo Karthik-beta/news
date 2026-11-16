@@ -58,7 +58,13 @@ impl From<WireError> for JobFailure {
     fn from(e: WireError) -> Self {
         match e {
             WireError::Fetch(f) => f.into(),
-            WireError::Parse(p) => JobFailure::new(p.class(), p.to_string()),
+            WireError::Parse(p) => {
+                let f = JobFailure::new(p.class(), p.to_string());
+                match p.retry_after() {
+                    Some(d) => f.with_retry_after(d),
+                    None => f,
+                }
+            }
             WireError::Morgue(m) => JobFailure::new(ErrorClass::Transient, m),
             WireError::Db(m) => JobFailure::new(ErrorClass::Transient, m),
         }

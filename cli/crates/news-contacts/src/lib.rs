@@ -64,6 +64,11 @@ pub struct Source {
     pub auth_env: Option<String>,
     #[serde(default = "yes")]
     pub robots_respect: bool,
+    /// URL prefixes (`https://host/path/`) where robots.txt is not applied although
+    /// `robots_respect` is on: a documented API that robots.txt would otherwise refuse. Each one is
+    /// a policy decision for Karthik to approve.
+    #[serde(default)]
+    pub robots_exempt: Vec<String>,
     /// SEC: the Runner adds `NEWS_CONTACT_EMAIL` to the User-Agent.
     #[serde(default)]
     pub requires_contact_email: bool,
@@ -185,6 +190,21 @@ pub fn lint(sources: &[Source]) -> Vec<LintIssue> {
                 "auth_env must be an env var NAME, never a key".into(),
             );
         }
+        for prefix in &s.robots_exempt {
+            // `https://host/…/`: a whole host and a path ending in `/`, so a prefix cannot spill over
+            // into another host (`api.bls.gov.example`) or a sibling path (`/publicAPIx`).
+            let ok = prefix
+                .strip_prefix("https://")
+                .and_then(|rest| rest.split_once('/'))
+                .is_some_and(|(host, _)| !host.is_empty())
+                && prefix.ends_with('/');
+            if !ok {
+                issue(
+                    "robots_exempt",
+                    format!("{prefix:?} must look like https://host/path/"),
+                );
+            }
+        }
         if s.max_concurrency < 1 {
             issue("concurrency", "max_concurrency must be at least 1".into());
         }
@@ -268,8 +288,8 @@ pub async fn sync(pool: &sqlx::PgPool, sources: &[Source]) -> Result<usize, Cont
             "insert into sources (source_id, name, publisher, connector, base_url, source_tier, licence,
                attribution, redistribution, image_policy, auth_env, rate_per_sec, max_concurrency,
                daily_quota, robots_respect, regions, categories, calendar_kind, enabled, notes,
-               requires_contact_email)
-             values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::float8::numeric(6,3),$13,$14,$15,$16,$17,$18,$19,$20,$21)
+               requires_contact_email, robots_exempt)
+             values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::float8::numeric(6,3),$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
              on conflict (source_id) do update set
                name = excluded.name, publisher = excluded.publisher, connector = excluded.connector,
                base_url = excluded.base_url, source_tier = excluded.source_tier, licence = excluded.licence,
@@ -279,7 +299,8 @@ pub async fn sync(pool: &sqlx::PgPool, sources: &[Source]) -> Result<usize, Cont
                daily_quota = excluded.daily_quota, robots_respect = excluded.robots_respect,
                regions = excluded.regions, categories = excluded.categories,
                calendar_kind = excluded.calendar_kind, notes = excluded.notes,
-               requires_contact_email = excluded.requires_contact_email",
+               requires_contact_email = excluded.requires_contact_email,
+               robots_exempt = excluded.robots_exempt",
         )
         .bind(&s.source_id)
         .bind(&s.name)
@@ -302,6 +323,7 @@ pub async fn sync(pool: &sqlx::PgPool, sources: &[Source]) -> Result<usize, Cont
         .bind(s.enabled)
         .bind(s.notes.as_deref())
         .bind(s.requires_contact_email)
+        .bind(&s.robots_exempt)
         .execute(&mut *tx)
         .await?;
     }
@@ -349,6 +371,9 @@ mod tests {
         assert_eq!(fred.auth_env.as_deref(), Some("FRED_API_KEY"));
         let bls = sources.iter().find(|s| s.source_id == "bls").unwrap();
         assert_eq!(bls.daily_quota, Some(400));
+        // robots.txt applies to every BLS host except the documented API prefix.
+        assert!(bls.robots_respect);
+        assert_eq!(bls.robots_exempt, vec!["https://api.bls.gov/publicAPI/"]);
     }
 
     fn good() -> Source {
@@ -389,6 +414,16 @@ mod tests {
         s.daily_quota = Some(600);
         s.documented_daily_quota = Some(500);
         assert_eq!(rules(s), vec!["quota"]);
+        for bad in [
+            "api.bls.gov",
+            "https://api.bls.gov",
+            "http://api.bls.gov/publicAPI/",
+            "https:///x/",
+        ] {
+            let mut s = good();
+            s.robots_exempt = vec![bad.into()];
+            assert_eq!(rules(s), vec!["robots_exempt"], "{bad}");
+        }
         // A disabled source may lack a licence.
         let mut s = good();
         s.enabled = false;

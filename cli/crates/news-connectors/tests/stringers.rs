@@ -248,6 +248,12 @@ fn bls_failures_are_typed() {
         bad(r#"{"status":"REQUEST_NOT_PROCESSED","message":["daily threshold"],"Results":{}}"#);
     assert_eq!(refused.kind, ParseErrorKind::Upstream);
     assert!(refused.message.contains("daily threshold"));
+    // BLS declined the request (threshold, overload): snooze, never the dead list.
+    assert_eq!(refused.class(), ErrorClass::RateLimited);
+    assert_eq!(
+        refused.retry_after(),
+        Some(std::time::Duration::from_secs(3600))
+    );
     let odd = bad(
         r#"{"status":"REQUEST_SUCCEEDED","Results":{"series":[{"seriesID":"CUUR0000SA0","data":[{"year":"2026","period":"X01","periodName":"?","value":"1.0","footnotes":[{}]}]}]}}"#,
     );

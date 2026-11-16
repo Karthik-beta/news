@@ -25,6 +25,7 @@ fn policy(id: &str) -> SourcePolicy {
         max_concurrency: 1,
         daily_quota: None,
         robots_respect: true,
+        robots_exempt: vec![],
         requires_contact_email: false,
     }
 }
@@ -496,4 +497,60 @@ async fn a_403_from_a_contact_email_source_snoozes_and_slows_down() {
     fetch(&r, &sec, None).await.unwrap();
     // Penalised to 1 req/s: each of the two waits a full second.
     assert_eq!((clock.now() - before).num_milliseconds(), 2000);
+}
+
+#[tokio::test]
+async fn a_robots_exemption_covers_only_its_prefix() {
+    // BLS: robots.txt is "Disallow: /" everywhere; only the documented API prefix is exempt.
+    let disallow = std::fs::read(format!(
+        "{}/../news-connectors/tests/fixtures/bls/api-robots.txt",
+        env!("CARGO_MANIFEST_DIR")
+    ))
+    .unwrap();
+    let fake = Arc::new(FakeTransport::new());
+    for host in ["https://api.bls.gov", "https://data.bls.gov"] {
+        fake.route(
+            &format!("{host}/robots.txt"),
+            vec![Reply::ok("text/plain", disallow.clone())],
+        );
+        fake.route(host, vec![Reply::ok("application/json", "{}")]);
+    }
+    let clock = Arc::new(VirtualClock::new(t0()));
+    let r = runner(&fake, &clock, None);
+    let mut bls = policy("bls");
+    bls.robots_exempt = vec!["https://api.bls.gov/publicAPI/".into()];
+    let get = |url: &'static str| {
+        let req = Request::json(url);
+        let (r, bls) = (&r, &bls);
+        async move { r.fetch(bls, &req, None).await }
+    };
+    assert!(
+        get("https://api.bls.gov/publicAPI/v2/timeseries/data/CUUR0000SA0")
+            .await
+            .is_ok()
+    );
+    assert!(!fake.urls().iter().any(|u| u.ends_with("/robots.txt")));
+    for blocked in [
+        "https://api.bls.gov/publicAPIx/v2",
+        "https://api.bls.gov/other/x.json",
+        "https://data.bls.gov/timeseries/CUUR0000SA0",
+    ] {
+        assert_eq!(
+            get(blocked).await.unwrap_err().class,
+            ErrorClass::LicenceBlocked,
+            "{blocked}"
+        );
+    }
+}
+
+#[test]
+fn a_bls_refusal_snoozes_the_job() {
+    let refused = news_connectors::ParseError::new(
+        news_connectors::ParseErrorKind::Upstream,
+        "$.status",
+        "REQUEST_NOT_PROCESSED: daily threshold",
+    );
+    let f: JobFailure = news_wire::pipeline::WireError::Parse(refused).into();
+    assert_eq!(f.class.policy(), Policy::Snooze);
+    assert_eq!(f.retry_after, Some(Duration::from_secs(3600)));
 }
