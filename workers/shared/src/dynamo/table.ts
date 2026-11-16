@@ -85,6 +85,27 @@ export class DynamoError extends Error {
   }
 }
 
+function toPlain(value: unknown, path: string): Plain {
+  if (value === null || typeof value === "string" || typeof value === "boolean") return value;
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) throw new TypeError(`${path}: ${value} cannot be stored`);
+    return value;
+  }
+  if (Array.isArray(value)) return value.map((v, i) => toPlain(v, `${path}/${i}`));
+  if (typeof value === "object" && Object.getPrototypeOf(value) === Object.prototype) return toDoc(value, path);
+  throw new TypeError(`${path}: a ${typeof value} is not a JSON value`);
+}
+
+/**
+ * A typed record (PageRecord, HubEntry, …) as a Doc, checked value by value instead of cast: undefined fields are left
+ * out (as DynamoDB would), and anything that is not plain JSON (a Date, a function, NaN) is refused.
+ */
+export function toDoc(record: object, path = ""): Doc {
+  const doc: Doc = {};
+  for (const [k, v] of Object.entries(record)) if (v !== undefined) doc[k] = toPlain(v, `${path}/${k}`);
+  return doc;
+}
+
 export const keyOf = (item: Doc): Key => {
   if (typeof item.PK !== "string" || typeof item.SK !== "string") throw new Error("item has no string PK and SK");
   return { PK: item.PK, SK: item.SK };

@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { secretsEqual, sha256Hex } from "./crypto";
 import { FakeTable } from "./dynamo/fake";
-import type { Doc } from "./dynamo/table";
+import { toDoc } from "./dynamo/table";
 import { BodyTooLargeError, isJsonContentType, readBodyCapped } from "./http";
 import { categoryLineage, hubsForPage, versionFromSk, versionSk } from "./keys";
 import { CloudflarePurger, PurgeError } from "./purge";
@@ -207,8 +207,8 @@ describe("Reader", () => {
   it("reads pages, hubs newest first with cursors, and the newest curation version", async () => {
     const t = new FakeTable();
     const r = new Reader(t);
-    // A PageRecord is an interface of nested interfaces, which TypeScript will not widen to the index-signature Doc.
-    t.seed(makePageRecord({ id: "a" }) as unknown as Doc);
+    // A PageRecord is an interface, which TypeScript will not widen to the index-signature Doc: convert, do not cast.
+    t.seed(toDoc(makePageRecord({ id: "a" })));
     for (const [i, day] of ["01", "02", "03"].entries())
       t.seed({ PK: "HUB#latest", SK: `2026-11-${day}T00:00:00Z#p${i}`, page_id: `p${i}` });
     t.seed(

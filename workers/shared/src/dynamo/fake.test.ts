@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { compile, eq, evaluate, le, notExists, or } from "./conditions";
 import { tableContract } from "./contract";
 import { FakeTable } from "./fake";
-import { itemSize, ThrottledError } from "./table";
+import { itemSize, ThrottledError, toDoc } from "./table";
 
 const shared = new FakeTable();
 tableContract("FakeTable", () => shared);
@@ -57,6 +57,26 @@ describe("conditions", () => {
     expect(evaluate(eq("v", 1), { PK: "a", SK: "b", v: "1" })).toBe(false);
     expect(evaluate(le("v", 1), { PK: "a", SK: "b", v: 1 })).toBe(true);
     expect(evaluate(le("v", 1), undefined)).toBe(false);
+  });
+});
+
+describe("toDoc", () => {
+  it("converts a typed record value by value, leaving out undefined fields", () => {
+    expect(toDoc({ PK: "a", SK: "b", n: 1, list: [{ x: null }], gone: undefined })).toEqual({
+      PK: "a",
+      SK: "b",
+      n: 1,
+      list: [{ x: null }],
+    });
+  });
+
+  it.each([
+    ["a Date", { d: new Date(0) }],
+    ["a function", { f: () => 1 }],
+    ["NaN", { n: Number.NaN }],
+    ["a nested Map", { m: [new Map()] }],
+  ])("refuses %s", (_label, value) => {
+    expect(() => toDoc(value)).toThrow(TypeError);
   });
 });
 
