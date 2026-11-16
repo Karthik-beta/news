@@ -1,0 +1,217 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/hotline/commands/run.show.schema.json",
+  "title": "Hotline run.show",
+  "description": "One run: its steps, progress, budget, gates with their summaries and previews, and the Wrap once it has ended. Input is the request's args; output is the reply envelope's data.",
+  "x-news-tier": "R",
+  "x-hotline-from": ["board", "terminal"],
+  "x-news-status": "#10",
+  "x-news-cli": "news run status <run>",
+  "x-news-errors": ["not_found", "upstream_unavailable"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "run": {
+          "$ref": "../common.schema.json#/$defs/runRef"
+        }
+      },
+      "required": ["run"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "run": {
+          "$ref": "../common.schema.json#/$defs/runSummary"
+        },
+        "args": {
+          "$ref": "../common.schema.json#/$defs/presetArgs"
+        },
+        "settings_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "budget": {
+          "type": "object"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "seq": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "kind": {
+                "$ref": "../common.schema.json#/$defs/stepKind"
+              },
+              "status": {
+                "$ref": "../common.schema.json#/$defs/stepStatus"
+              },
+              "attempt": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "started_at": {
+                "anyOf": [
+                  {
+                    "$ref": "../common.schema.json#/$defs/timestamp"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "finished_at": {
+                "anyOf": [
+                  {
+                    "$ref": "../common.schema.json#/$defs/timestamp"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "progress": {
+                "anyOf": [
+                  {
+                    "$ref": "../common.schema.json#/$defs/progress"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "summary": {
+                "anyOf": [
+                  {
+                    "$ref": "../common.schema.json#/$defs/summary"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "seq",
+              "id",
+              "title",
+              "kind",
+              "status",
+              "attempt",
+              "started_at",
+              "finished_at",
+              "progress",
+              "summary"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "gates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "gate": {
+                "$ref": "../common.schema.json#/$defs/gateName"
+              },
+              "round": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "step": {
+                "type": "string"
+              },
+              "opened_at": {
+                "$ref": "../common.schema.json#/$defs/timestamp"
+              },
+              "answered_at": {
+                "anyOf": [
+                  {
+                    "$ref": "../common.schema.json#/$defs/timestamp"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "subject_sha": {
+                "$ref": "../common.schema.json#/$defs/sha256"
+              },
+              "summary": {
+                "$ref": "../common.schema.json#/$defs/summary"
+              },
+              "preview": {
+                "anyOf": [
+                  {
+                    "type": "object"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "decision": {
+                "anyOf": [
+                  {
+                    "$ref": "../common.schema.json#/$defs/decision"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "note": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "gate",
+              "round",
+              "step",
+              "opened_at",
+              "answered_at",
+              "subject_sha",
+              "summary",
+              "preview",
+              "decision",
+              "note"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "wrap": {
+          "anyOf": [
+            {
+              "$ref": "../common.schema.json#/$defs/wrap"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "text": {
+          "$ref": "../common.schema.json#/$defs/text"
+        }
+      },
+      "required": ["run", "args", "settings_version", "budget", "steps", "gates", "wrap", "text"],
+      "additionalProperties": false
+    }
+  }
+}

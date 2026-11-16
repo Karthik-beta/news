@@ -1,0 +1,437 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/hotline/request.schema.json",
+  "title": "Hotline request",
+  "description": "One request frame from a client (ADR 0007, ADR 0008 §8.3). On the wire: a little-endian u32 length, then this JSON, at most 1 MiB.",
+  "type": "object",
+  "properties": {
+    "v": {
+      "const": 1,
+      "description": "Protocol version"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.:-]{1,64}$",
+      "description": "Chosen by the client; echoed in the reply"
+    },
+    "cmd": {
+      "enum": [
+        "service.ping",
+        "status",
+        "run.show",
+        "run.list",
+        "run.presets",
+        "run.start",
+        "run.start_after_pause",
+        "gate.approve",
+        "gate.changes",
+        "gate.reject",
+        "run.pause",
+        "run.resume",
+        "run.cancel",
+        "lineup.list",
+        "lineup.cancel",
+        "standing.get",
+        "standing.history",
+        "standing.set",
+        "docker.status",
+        "docker.start",
+        "docker.stop",
+        "service.log",
+        "service.update",
+        "subscribe"
+      ]
+    },
+    "args": {
+      "type": "object"
+    }
+  },
+  "required": ["v", "id", "cmd", "args"],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "cmd": {
+            "const": "service.ping"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "args": {
+            "$ref": "commands/service.ping.schema.json#/$defs/input"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "cmd": {
+            "const": "status"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "args": {
+            "$ref": "commands/status.schema.json#/$defs/input"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "cmd": {
+            "const": "run.show"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "args": {
+            "$ref": "commands/run.show.schema.json#/$defs/input"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "cmd": {
+            "const": "run.list"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "args": {
+            "$ref": "commands/run.list.schema.json#/$defs/input"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "cmd": {
+            "const": "run.presets"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "args": {
+            "$ref": "commands/run.presets.schema.json#/$defs/input"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "cmd": {
+            "const": "run.start"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "args": {
+            "$ref": "commands/run.start.schema.json#/$defs/input"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "cmd": {
+            "const": "run.start_after_pause"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "args": {
+            "$ref": "commands/run.start_after_pause.schema.json#/$defs/input"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "cmd": {
+            "const": "gate.approve"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "args": {
+            "$ref": "commands/gate.approve.schema.json#/$defs/input"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "cmd": {
+            "const": "gate.changes"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "args": {
+            "$ref": "commands/gate.changes.schema.json#/$defs/input"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "cmd": {
+            "const": "gate.reject"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "args": {
+            "$ref": "commands/gate.reject.schema.json#/$defs/input"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "cmd": {
+            "const": "run.pause"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "args": {
+            "$ref": "commands/run.pause.schema.json#/$defs/input"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "cmd": {
+            "const": "run.resume"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "args": {
+            "$ref": "commands/run.resume.schema.json#/$defs/input"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "cmd": {
+            "const": "run.cancel"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "args": {
+            "$ref": "commands/run.cancel.schema.json#/$defs/input"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "cmd": {
+            "const": "lineup.list"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "args": {
+            "$ref": "commands/lineup.list.schema.json#/$defs/input"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "cmd": {
+            "const": "lineup.cancel"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "args": {
+            "$ref": "commands/lineup.cancel.schema.json#/$defs/input"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "cmd": {
+            "const": "standing.get"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "args": {
+            "$ref": "commands/standing.get.schema.json#/$defs/input"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "cmd": {
+            "const": "standing.history"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "args": {
+            "$ref": "commands/standing.history.schema.json#/$defs/input"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "cmd": {
+            "const": "standing.set"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "args": {
+            "$ref": "commands/standing.set.schema.json#/$defs/input"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "cmd": {
+            "const": "docker.status"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "args": {
+            "$ref": "commands/docker.status.schema.json#/$defs/input"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "cmd": {
+            "const": "docker.start"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "args": {
+            "$ref": "commands/docker.start.schema.json#/$defs/input"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "cmd": {
+            "const": "docker.stop"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "args": {
+            "$ref": "commands/docker.stop.schema.json#/$defs/input"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "cmd": {
+            "const": "service.log"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "args": {
+            "$ref": "commands/service.log.schema.json#/$defs/input"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "cmd": {
+            "const": "service.update"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "args": {
+            "$ref": "commands/service.update.schema.json#/$defs/input"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "cmd": {
+            "const": "subscribe"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "args": {
+            "$ref": "commands/subscribe.schema.json#/$defs/input"
+          }
+        }
+      }
+    }
+  ]
+}
