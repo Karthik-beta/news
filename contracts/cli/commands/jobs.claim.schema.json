@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://news.karthik.nz/contracts/cli/commands/jobs.claim.schema.json",
   "title": "news jobs claim",
-  "description": "Claim ready jobs from a pool; --limit sets how many (default 1). Input is the command's arguments as an object; output is the envelope's data.",
+  "description": "Claim ready jobs from a pool; --limit sets how many (default 1). --cursor and --fields are refused: the output lists every job claimed. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "W",
   "x-news-status": "built",
   "x-news-errors": ["usage", "not_found", "precondition"],
@@ -88,10 +88,6 @@
           "type": ["string", "null"],
           "format": "date-time",
           "description": "Set when the pool is paused; nothing was claimed"
-        },
-        "next_cursor": {
-          "type": "string",
-          "description": "Present when truncated: pass to --cursor"
         }
       },
       "required": ["items", "pool", "paused_until"],

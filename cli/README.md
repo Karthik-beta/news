@@ -15,7 +15,7 @@ One Rust binary that gives agents, Bun code and Karthik every operation on the l
   | `not_found` | 3 | | `gated` | 7 |
   | `conflict`, `precondition`, `licence_blocked`, `budget_exceeded` | 4 | | `internal` | 10 |
 
-- **Size.** Lists go under `data.items` in a deterministic order. `--limit N` (default 20, max 500), `--cursor` (pass back `data.next_cursor`) and `--fields a,b` work on every command; `truncated` is `true` when a list was cut. `news jobs claim` uses `--limit` as the number of jobs to claim (default 1).
+- **Size.** Lists go under `data.items` in a deterministic order. `--limit N` (default 20, max 500), `--cursor` (pass back `data.next_cursor`) and `--fields a,b` work on every command; `truncated` is `true` when a list was cut. `news jobs claim` uses `--limit` as the number of jobs to claim (default 1) and refuses `--cursor` and `--fields`, so a caller always sees every lease it took.
 - **Text for Karthik** is rendered by code into `data.text` or `error.text`; the `/bureau` session prints it verbatim.
 - **Telemetry.** Each call writes one row to ClickHouse `news.events` (`stage = cli`, `event` = the command path such as `jobs.claim`) with `run_id` and `job_id` from `NEWS_RUN_ID` / `NEWS_JOB_ID`, and exports its span over OTLP to `NEWS_OTEL_HTTP`; the event carries the `trace_id`. Telemetry never fails a call; `NEWS_TELEMETRY=off` turns it off.
 - **Tiers** (Bureau §6.3): R, W, G, H, recorded per command in its contract (`x-news-tier`). H-tier commands refuse to run in a Claude Code tool shell (`CLAUDECODE` set) with `gated`; this is a guardrail, the boundary is the deny rules, start tickets and approvals (§5.5).

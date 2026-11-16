@@ -25,7 +25,16 @@ pub async fn run(cmd: JobsCmd, shape: &Shape) -> NewsResult<Reply> {
         JobsCmd::Dead { class } => {
             class.as_deref().map(parse_class).transpose()?;
         }
-        JobsCmd::Claim { pool, .. } => check_pool(Some(pool))?,
+        JobsCmd::Claim { pool, .. } => {
+            check_pool(Some(pool))?;
+            // --limit is how many to claim. Paging or trimming a claim would hide leases from the caller.
+            if shape.cursor.is_some() || shape.fields.is_some() {
+                return Err(NewsError::usage(
+                    "jobs claim takes no --cursor or --fields: it returns every job it claimed",
+                )
+                .with_hint("use --limit to claim fewer"));
+            }
+        }
         JobsCmd::Fail { class, .. } => {
             parse_class(class)?;
         }

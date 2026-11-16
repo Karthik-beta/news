@@ -351,6 +351,17 @@ fn empty_string_argument_is_rejected() {
 }
 
 #[test]
+fn jobs_claim_refuses_cursor_and_fields() {
+    // A claim takes jobs; paging or trimming its result would lose leases the caller never sees.
+    // Checked before the database is opened (DATABASE_URL is unset here).
+    for extra in [["--cursor", "c1"], ["--fields", "job_id"]] {
+        let mut args = vec!["jobs", "claim", "--pool", "net", "--worker", "w"];
+        args.extend(extra);
+        assert_usage(&args, "jobs claim");
+    }
+}
+
+#[test]
 fn missing_required_arguments_are_usage_errors() {
     assert_usage(&["fetch"], "required");
     assert_usage(&["jobs", "claim", "--pool", "net"], "--worker");
