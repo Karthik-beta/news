@@ -55,7 +55,10 @@ reviews:
         Numbers must never be converted between currencies or units. Flag unwraps on external data.
     - path: "workers/**"
       instructions: |
-        Cloudflare Workers. Public endpoints must be read-only. The write API must check its secret key and validate input schemas.
+        Cloudflare Workers. Public endpoints must be read-only, with one documented exception: the public report intake
+        (POST /v1/reports, ADR 0006), which stores reader reports in D1 under per-IP and per-location rate limits, a
+        global daily cap, a honeypot and an Origin check. Every other write API route must check its secret key; all
+        must validate input schemas.
         Watch free-tier limits: no heavy CPU work per request, cache aggressively, never call AI services.
     - path: "design/**/*.md"
       instructions: "Design documentation. Check for contradictions with design/tokens/tokens.json and other design documents. Ignore prose style."

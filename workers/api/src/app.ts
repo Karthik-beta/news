@@ -161,7 +161,8 @@ const ROUTES: Route[] = [
 
 /**
  * Clients that ran into the failed-attempt limit, per limiter binding and isolate, with the time their block ends.
- * They are refused before any key comparison, so once limited even a right guess gets nothing until the block ends.
+ * This isolate refuses them before any key comparison until the block ends. Other isolates (and locations) have not
+ * seen the block: there the key is still compared and failures count against that limiter.
  */
 const blockedBy = new WeakMap<RateLimit, Map<string, number>>();
 const BLOCK_MS = 60_000;
