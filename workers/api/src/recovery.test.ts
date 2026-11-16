@@ -41,7 +41,9 @@ describe("withdrawal is resumable", () => {
     expect([first.status, await errorCode(first)]).toEqual([502, "purge_failed"]);
     const retry = await h.call("POST", "/v1/pages/test-page/withdraw", { body: { reason: "wrong figure" }, key: "withdraw-0001" });
     expect(retry.status).toBe(200);
-    expect(((await retry.json()) as { purged: string[] }).purged).toContain(`${ORIGIN}/2026/11/test-page`);
+    expect(((await retry.json()) as { purged: string[] }).purged).toEqual(
+      expect.arrayContaining([`${ORIGIN}/2026/11/test-page`, `${ORIGIN}/2026/11/test-page/index.html`]),
+    );
   });
 
   it("throttled while deleting hub entries → 503; the retry removes hubs, search row and files", async () => {

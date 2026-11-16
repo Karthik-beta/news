@@ -10,7 +10,7 @@ import { decodeCursor, encodeCursor, Reader } from "./read";
 import { listShards, QueryTooLongError, shardFor, toFtsQuery } from "./search";
 import { makeMeta, makePageRecord } from "./testing/fixtures";
 import { normalizeTimestamp } from "./time";
-import { homeUrls, hubPath, regionViews } from "./urls";
+import { homeUrls, hubPath, pageFileUrls, regionViews } from "./urls";
 
 describe("keys", () => {
   it("pads versions and parses them back", () => {
@@ -64,6 +64,15 @@ describe("urls", () => {
       "/economy/inflation",
       "/entity/company%3Aapple",
       "/region/europe",
+    ]);
+  });
+
+  it("a page's purge list has both aliases and every file, index.html included", () => {
+    expect(pageFileUrls("https://n.test", "/2026/11/p", ["index.html", "data.json"])).toEqual([
+      "https://n.test/2026/11/p",
+      "https://n.test/2026/11/p/",
+      "https://n.test/2026/11/p/index.html",
+      "https://n.test/2026/11/p/data.json",
     ]);
   });
 

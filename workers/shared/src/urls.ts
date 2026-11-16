@@ -39,7 +39,8 @@ export function hubPath(hub: string): string {
 /** The URLs of a page's files on the CDN (R2 served under the page path). */
 export function pageFileUrls(origin: string, path: string, files: string[]): string[] {
   const urls = [`${origin}${path}`, `${origin}${path}/`];
-  for (const f of files) if (f !== "index.html") urls.push(`${origin}${path}/${f}`);
+  // The bare and trailing-slash aliases serve index.html, and index.html can be requested directly too.
+  for (const f of files) urls.push(`${origin}${path}/${f}`);
   return urls;
 }
 
