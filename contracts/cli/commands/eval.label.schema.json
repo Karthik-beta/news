@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/eval.label.schema.json",
+  "title": "news eval label",
+  "description": "Interactive labelling helper. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "H",
+  "x-news-status": "stub until #19",
+  "x-news-errors": ["gated"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "set": {
+          "type": "string"
+        }
+      },
+      "required": ["set"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "labelled": {
+          "type": "integer"
+        }
+      },
+      "required": ["labelled"],
+      "additionalProperties": false
+    }
+  }
+}

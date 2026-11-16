@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/stats.schema.json",
+  "title": "news stats",
+  "description": "Run and coverage summary. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "R",
+  "x-news-status": "stub until #16",
+  "x-news-errors": [],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "Code-rendered text, printed verbatim to Karthik"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      },
+      "required": ["text", "items"],
+      "additionalProperties": false
+    }
+  }
+}

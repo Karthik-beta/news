@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/run.status.schema.json",
+  "title": "news run status",
+  "description": "The status board, or one run. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "R",
+  "x-news-status": "stub until #10",
+  "x-news-errors": ["not_found"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "run": {
+          "type": "string",
+          "description": "Run id or short id (r_…)"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "Code-rendered text, printed verbatim to Karthik"
+        },
+        "run": {
+          "type": "object"
+        },
+        "runs": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      },
+      "required": ["text"],
+      "additionalProperties": false
+    }
+  }
+}
