@@ -3,18 +3,17 @@
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
-fn walk(dir: &Path, out: &mut Vec<PathBuf>) {
-    let Ok(entries) = std::fs::read_dir(dir) else {
-        return;
-    };
-    for e in entries.flatten() {
-        let p = e.path();
+/// Every `.json` file under `dir`. Any read error is returned: a partial catalogue must not build.
+fn walk(dir: &Path, out: &mut Vec<PathBuf>) -> std::io::Result<()> {
+    for e in std::fs::read_dir(dir)? {
+        let p = e?.path();
         if p.is_dir() {
-            walk(&p, out);
+            walk(&p, out)?;
         } else if p.extension().is_some_and(|x| x == "json") {
             out.push(p);
         }
     }
+    Ok(())
 }
 
 fn main() {
@@ -22,7 +21,12 @@ fn main() {
     let root = manifest.join("../../../contracts/cli");
     println!("cargo:rerun-if-changed={}", root.display());
     let mut files = Vec::new();
-    walk(&root, &mut files);
+    if let Err(e) = walk(&root, &mut files) {
+        panic!("cannot read the contracts in {}: {e}", root.display());
+    }
+    if files.is_empty() {
+        panic!("no contract files in {}", root.display());
+    }
     files.sort();
     let mut src = String::from(
         "/// Every contract file: (path relative to contracts/cli, contents).\npub static CONTRACTS: &[(&str, &str)] = &[\n",
