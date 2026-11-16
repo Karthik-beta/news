@@ -16,6 +16,7 @@
       "!**/.astro",
       "!**/dist",
       "!**/cli/target",
+      "!**/cli/crates/*/tests/fixtures",
       "!**/*.md"
     ]
   },
