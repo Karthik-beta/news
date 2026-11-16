@@ -140,6 +140,9 @@ describe("search query building", () => {
     ["US", '"US"'],
     ["inflation in", '"inflation" "in"'],
     ["fed rat", '"fed" "rat"*'],
+    // No normalisation the index does not apply too: indexed text is stored as written (FTS5 unicode61 folds case
+    // and diacritics on both sides), so a full-width word is searched as written.
+    ["ＡＢＣ results", '"ＡＢＣ" "results"*'],
   ])("%j → %j", (input, expected) => {
     expect(toFtsQuery(input)).toBe(expected);
   });

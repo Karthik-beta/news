@@ -121,7 +121,9 @@ export class QueryTooLongError extends RangeError {
  * Returns null when nothing searchable is left; throws QueryTooLongError above MAX_TERMS words.
  */
 export function toFtsQuery(text: string): string | null {
-  const words = text.normalize("NFKC").match(/[\p{L}\p{N}]+/gu) ?? [];
+  // No normalisation here: indexed text is stored as written, so the query is matched as written too (FTS5's
+  // unicode61 tokenizer folds case and diacritics on both sides).
+  const words = text.match(/[\p{L}\p{N}]+/gu) ?? [];
   if (words.length > MAX_TERMS) throw new QueryTooLongError();
   if (words.length === 0) return null;
   const last = words.length - 1;

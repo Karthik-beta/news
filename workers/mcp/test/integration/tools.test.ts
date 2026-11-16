@@ -147,6 +147,19 @@ describe("MCP tools on real local storage", () => {
     ]);
   });
 
+  it("search_pages matches text as it was indexed: a full-width title is found by the same words", async () => {
+    const wide = makePageRecord({
+      id: "it-wide-page",
+      path: "/2026/11/it-wide-page",
+      title: "ＡＢＣ quarterly results",
+      published_at: "2026-11-11T12:00:00Z",
+      updated_at: "2026-11-11T12:00:00Z",
+    });
+    await indexPage(env.SEARCH_2026, wide);
+    const r = await call("search_pages", { query: "ＡＢＣ quarterly" });
+    expect(r.structuredContent.results).toEqual([expect.objectContaining({ page_id: "it-wide-page" })]);
+  });
+
   it("get_page by path, get_entity, list_categories and get_data read DynamoDB and R2", async () => {
     const pageMd = await call("get_page", { path: "/2026/11/it-mcp-page" });
     expect(pageMd.structuredContent).toMatchObject({ page_id: "it-mcp-page", truncated: false });
