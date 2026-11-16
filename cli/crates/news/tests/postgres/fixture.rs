@@ -14,6 +14,10 @@ pub fn url() -> String {
     })
 }
 
+/// Advisory lock key for tests that look at `public`: the one test that briefly creates a table there
+/// holds it exclusively, and `nothing_lands_in_public` holds it shared.
+pub const PUBLIC_LOCK: i64 = 0x6e65_7773_7075_626c;
+
 pub struct Fixture {
     pub schema: String,
     pub cfg: DbConfig,

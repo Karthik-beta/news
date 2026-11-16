@@ -130,13 +130,25 @@ async fn migrations_apply_to_an_empty_schema_and_rerunning_is_a_no_op() {
 #[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
 async fn nothing_lands_in_public() {
     let f = Fixture::migrated().await;
+    // Shared: waits while the fallback test has its decoy `public.jobs`.
+    let mut lock = f.pool.acquire().await.unwrap();
+    sqlx::query("select pg_advisory_lock_shared($1)")
+        .bind(super::fixture::PUBLIC_LOCK)
+        .execute(&mut *lock)
+        .await
+        .unwrap();
     let in_public: i64 = sqlx::query_scalar(
         "select count(*) from information_schema.tables where table_schema = 'public' and table_name = any($1)",
     )
     .bind(TABLES)
-    .fetch_one(&f.pool)
+    .fetch_one(&mut *lock)
     .await
     .unwrap();
+    sqlx::query("select pg_advisory_unlock_shared($1)")
+        .bind(super::fixture::PUBLIC_LOCK)
+        .execute(&mut *lock)
+        .await
+        .unwrap();
     assert_eq!(in_public, 0);
 }
 
