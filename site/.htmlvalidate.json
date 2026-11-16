@@ -17,7 +17,21 @@
     "no-inline-style": [
       "error",
       {
-        "allowedProperties": ["display", "left", "top"]
+        "allowedProperties": [
+          "display",
+          "left",
+          "top",
+          "right",
+          "bottom",
+          "width",
+          "height",
+          "--chart-axis-width",
+          "--bar-zero",
+          "--bar-room-negative",
+          "--bar-room-positive",
+          "--line-end-room-phone",
+          "--line-end-room-wide"
+        ]
       }
     ]
   }

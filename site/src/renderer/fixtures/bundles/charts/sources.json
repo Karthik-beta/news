@@ -67,7 +67,7 @@
       "connector": "fixture",
       "type": "dataset",
       "primary": true,
-      "url": "https://news.karthik.nz/methodology/",
+      "url": "https://example.org/statistics/synthetic-fixtures",
       "licence": {
         "name": "CC BY 4.0",
         "redistribution": true
@@ -81,7 +81,7 @@
       "connector": "fixture",
       "type": "dataset",
       "primary": true,
-      "url": "https://news.karthik.nz/methodology/",
+      "url": "https://example.org/statistics/synthetic-fixtures",
       "licence": {
         "name": "No redistribution",
         "redistribution": false
