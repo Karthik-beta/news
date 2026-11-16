@@ -1,7 +1,7 @@
 // Builds the OpenUI library (createLibrary) and component-index.json from component specs. The list of specs is
 // generated from the folders (registry.generated.ts); nothing here is listed by hand.
 import { createLibrary, type DefinedComponent, defineComponent, type Library } from "@openuidev/react-lang";
-import type { z } from "zod/v4";
+import { z } from "zod/v4";
 import { type AnyComponentSpec, type AnySpec, estimateTokens, INDEX_BUDGET, type RootSpec } from "./contract";
 import { specs as generatedSpecs } from "./registry.generated";
 
@@ -57,19 +57,55 @@ export function newsLibrary(): NewsLibrary {
   return production;
 }
 
+export interface ComponentIndexEntry {
+  name: string;
+  /** The one line for the cached prompt prefix; the only field the token budget counts. */
+  line: string;
+  tokens: number;
+  /** Details for `news component <name>` (contracts/component-index.schema.json); never in the prefix. */
+  description: string;
+  dataShape: string;
+  example: string;
+  /** JSON Schema 2020-12 of the props, from the zod schema. Left out for the root, whose children are the library. */
+  props?: Record<string, unknown>;
+}
+
 export interface ComponentIndex {
   version: 1;
   /** ADR 0001: the whole index fits 4,000 tokens; no entry is over 24. Counted as ceil(UTF-8 bytes / 3). */
   budget: { tokens: number; perEntry: number };
+  /** Tokens of the lines alone, joined by newlines: what `news components` puts in the cached prefix. */
   tokens: number;
-  components: { name: string; line: string; tokens: number }[];
+  components: ComponentIndexEntry[];
 }
 
-/** component-index.json: one line per component, in name order, for `news components` and the cached prefix. */
+/** The props' JSON Schema without the top-level `$schema` key (the index file states the dialect once, in the contract). */
+function propsSchema(spec: AnyComponentSpec): Record<string, unknown> | undefined {
+  if (spec.root === true) return undefined;
+  const { $schema: _dialect, ...schema } = z.toJSONSchema(spec.props as z.ZodObject) as Record<string, unknown>;
+  return schema;
+}
+
+/**
+ * component-index.json: one entry per component, in name order. `line` is what `news components` puts in the
+ * cached prefix (and what the budget counts); description, dataShape, example and props are the details
+ * `news component <name>` returns on demand.
+ */
 export function buildComponentIndex(specs: readonly AnyComponentSpec[]): ComponentIndex {
   const components = [...specs]
     .sort((a, b) => a.name.localeCompare(b.name))
-    .map((s) => ({ name: s.name, line: s.index, tokens: estimateTokens(s.index) }));
+    .map((s) => {
+      const props = propsSchema(s);
+      return {
+        name: s.name,
+        line: s.index,
+        tokens: estimateTokens(s.index),
+        description: s.description,
+        dataShape: s.dataShape,
+        example: s.example,
+        ...(props ? { props } : {}),
+      };
+    });
   return {
     version: 1,
     budget: { tokens: INDEX_BUDGET.total, perEntry: INDEX_BUDGET.perEntry },
