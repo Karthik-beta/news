@@ -1,6 +1,6 @@
 # ADR 0008: Chief in the Bureau service
 
-- Status: proposed (architect, 16 November 2026; open questions at the end are Karthik's)
+- Status: proposed (architect, 16 November 2026; Karthik answered its three open questions the same day)
 - Date: 2026-11-16
 - Issue: #10 (Chief, the service host, the Hotline, Rota and the Lineup); touches #29 (service and Board shell) and #30 (retire start tickets)
 - Builds on: ADR 0002 (CLI core), ADR 0003 (Dispatch), ADR 0007 (Bureau service and Board)
@@ -31,7 +31,7 @@ From `docs/spikes/bureau-service.md` (branch `spike/bureau-service`, head 741305
 | Board in `news.exe` | Go on eframe 0.37 (glow). Linking it adds 9 static GUI DLL imports, **+270 ms on every CLI call** unless delay-loaded; a console-subsystem `news board` started at log-on opens a console window unless the manifest sets `consoleAllocationPolicy` `detached` | #29's build rules (ADR 0007, "Amended after the spike") |
 | Job Object membership reaches every process a call starts; `IsProcessInJob` sees it | Yes, three levels down and through `claude.exe` → Git Bash. `IsProcessInJob(p, NULL)` is useless (every desktop process is in some job): always pass the service's own job | The root marker job (§8.2) |
 | A marked process cannot leave | Not through `CREATE_BREAKAWAY_FROM_JOB`, **but it can through WMI** (`Win32_Process.Create` runs the child outside the job, and its H-tier request was accepted) | Every `claude -p` starts at **Low integrity** inside the job: the kernel then refuses it the pipe, WMI refuses it process creation, and UIPI blocks input to Board (spike item 3). Drafting calls stay tool-less as well |
-| ClickHouse and Docker from the service | Reachable with the allow-listed environment; Docker finds its context through `%USERPROFILE%\.docker` | Docker Desktop runs only while Karthik is signed in, so the service waits for PostgreSQL (§9) |
+| ClickHouse and Docker from the service | Reachable with the allow-listed environment; Docker finds its context through `%USERPROFILE%\.docker` | Docker Desktop runs only while Karthik is signed in, so the service waits for PostgreSQL (§9). Decided (Karthik, 16 Nov 2026): no boot-time Docker engine; scheduled runs that fall while he is signed out wait for sign-in (§7.1) |
 | Pipe security | `D:P(A;;GA;;;<SID>)` read back exactly; other SIDs and Low-integrity clients get error 5 from the kernel; a second `FILE_FLAG_FIRST_PIPE_INSTANCE` server gets error 5 | As specified in §8.2 |
 | `news service run` started from a terminal | `StartServiceCtrlDispatcher` fails with 1063 at once | `news service run` falls back to console mode on 1063 |
 
@@ -254,6 +254,7 @@ One driver task per live run advances it; the service holds a map of drivers, an
 - A schedule is a Standing key `schedules.<id>` (`id` matches `^[a-z0-9-]{1,32}$`) with value `{"preset", "args", "cron", "enabled"}`. `cron` has five fields and is evaluated in `rota.time_zone` (an IANA name; unset means the laptop's zone, read at service start). `standing.set` validates the preset, its arguments and the expression.
 - **Tick** every 30 seconds and at start, with `now` from the `Clock`. For each enabled schedule, the slots due are those after the latest `rota_fires.slot_at` for its key (or after the Standing version that created or last changed the schedule) and up to `now`. Only the **latest** is considered; the older ones are counted in its row (`missed_before`). If the latest is more than a minute old (the laptop slept) and the next slot is under `rota.missed_slot_limit_minutes` away, it is recorded `missed` and not run.
 - **Firing** is one transaction: insert `rota_fires (schedule_key, slot_at)` (the primary key makes it once only), then Chief's start with `origin = 'schedule'`, `schedule_key`, `slot_at`, the current `settings_version` and, for heavy runs, `start_by = slot_at + lineup.queue_late_limit_minutes`. The outcome (`started`, `queued`, `skipped` with reason) is written back and sent as a `schedule` event.
+- **Signed out** (Karthik, 16 Nov 2026). While Karthik is signed out, Docker Desktop and so PostgreSQL are down, and Rota cannot tick. At sign-in the service reaches PostgreSQL, recovers, and Rota's first tick applies the rules above: the latest missed slot fires if it is not dropped for the next slot being close, and a heavy run gets `start_by = slot_at + queue_late_limit`. So a scheduled run that fell while he was signed out runs if sign-in comes within the late limit, and otherwise ends `skipped` with a Wrap that says why. Light runs have no `start_by`; Rota applies the same late limit to them at firing time (a slot older than `lineup.queue_late_limit_minutes` is recorded `skipped`, reason `signed_out`, with a run row and Wrap). There is no boot-time Docker engine.
 - **Time zones.** A local time that does not exist (spring forward) fires at the first instant after the gap; one that occurs twice (fall back) fires once, at the first. Both are tested.
 
 #### 7.2 Quiet hours
@@ -354,9 +355,9 @@ Stop (SCM stop or shutdown, Ctrl-C in console): state `stopping`; H commands get
 
 `Spawner` (in `news-core`, implemented here) takes the program, arguments, an explicit environment (the caller builds the §9.3 allow-list; the service's own environment is never passed), a working folder, `Integrity::Low | Medium`, and the run and job. AI calls are `Low`; their writable folder is a per-run directory labelled Low. The OAuth-refresh risk the spike names is handled in #18: before an AI batch, a Medium-integrity no-op refreshes the login when `.credentials.json` is near expiry.
 
-### 10. Standing (moves from #29 to #10)
+### 10. Standing (in #10, not #29)
 
-`runs.settings_version` is a foreign key, and Rota, the Lineup and the guard read settings, so the table and its read and write paths come with #10. #29 keeps the Board screens, the TD "Configuration" keys, the per-step model keys, sources on or off and secrets.
+Decided (Karthik, 16 Nov 2026): the Standing table and its get, history and set paths (`standing.get|history|set` over the Hotline, `news standing show|history` in the terminal) are built in #10, because `runs.settings_version` is a foreign key and Rota, the Lineup and the guard read settings. #29 keeps the Board settings screen, the TD "Configuration" keys, the per-step model keys, sources on or off and secrets.
 
 - One row per version: the full map of explicitly set keys (`settings`), the `changes` (`[{key, old, new}]`, effective values), `who` (`board`; `seed` for version 1, which the migration inserts empty), `note`, `created_at`. The effective value of a key is its explicit value, else the registry default. A run's `config` snapshots the effective settings at start, with `settings_version`.
 - `standing.set` (`{base_version, changes: [{key, value}], note?}`; `value: null` resets to the default) writes one new version. `base_version` must be the latest (`conflict` otherwise: Board shows what changed). Unknown keys, wrong types and invalid schedules are `validation_failed`. No key is ever a secret.
@@ -395,11 +396,11 @@ Changes to `news-store`'s migration tests: the numbering test accepts the blocks
 
 | Item | From | To | Why |
 | --- | --- | --- | --- |
-| Standing table, `standing.get|history|set`, `news standing show|history`, the Standing version test | #29 | #10 | `runs.settings_version` references it; Rota and the Lineup read it. #29 keeps the Board screens and the TD config, model and source keys |
+| Standing table, `standing.get|history|set`, `news standing show|history`, the Standing version test | #29 | #10 | Decided by Karthik. `runs.settings_version` references it; Rota and the Lineup read it. #29 keeps the Board settings screen and the TD config, model and source keys |
 | `docker.*` and `service.update` handlers | — | #29 | #10 registers them as stubs; contracts are here |
 | Removing `NEWS_PARALLEL` from `news db migrate` | — | #30 (or #10 if #30 has merged) | `pools.ai.max_running` is a Standing key now |
 | `news work` as a library entry point; removing `CLAUDECODE` and the H-tier CLI forms | #30 | must merge before #10 starts | #10 builds on the library worker loop and assumes no H-tier CLI command exists |
-| The crate name `news-board` | analytics pull (`traffic.pull`, on `phase-5/cli/core`) | the egui app (#29) | Proposal: move the `traffic.pull` kind into `news-telemetry` (Ticker owns analytics ingestion) and give `news-board` to the app, which is what Karthik calls Board. Nothing is renamed before #29 |
+| The crate name `news-board` | analytics pull (`traffic.pull`, #5) | the egui app (#29) | Decided by Karthik. #30 moves the `traffic.pull` kind and its stub handler, and `news stats`' stub reference, from `news-board` into `news-telemetry` (Ticker owns analytics ingestion): `news_dispatch::EXTRA_KINDS` owner, the binary's registry binding and the kinds-agree test follow. `news-board` is then free for #29's egui app |
 | Board build rules: delay-load the 9 GUI DLLs (`/DELAYLOAD` + `delayimp.lib` in `crates/news/build.rs`), the `detached` console manifest (or `FreeConsole` at the top of `news board`), an optional `board` cargo feature off in CI | — | #29 | Spike item 5 |
 | `news service install` self-elevation, `SeServiceLogonRight`, password prompt, the log-on fallback | — | #29 | Spike item 1; §9 |
 | Ghost's call path, Low-integrity working folders, the OAuth pre-refresh | — | #18 | #10 provides `Spawner`, the marker and the classifier only |
@@ -411,7 +412,7 @@ Changes to `news-store`'s migration tests: the numbering test accepts the blocks
 - One crate holds every `unsafe` line, so the security review reads one crate for memory safety.
 - Every `claude -p` runs at Low integrity: it cannot reach the Hotline at all, start a process through WMI, or write Karthik's files outside its Low folder. #18 must prove the login survives a token refresh before the first scheduled run.
 - Service log-on with a password is unproven while passwordless sign-in is on; the log-on fallback (§9) keeps #10's design unchanged if it fails.
-- Runs scheduled while Karthik is signed out wait for PostgreSQL and are skipped if they would start past their late limit.
+- Runs scheduled while Karthik is signed out wait for sign-in and run if still within the late limit, otherwise they are skipped and noted (Karthik's choice; no boot-time Docker engine).
 - Board must be restarted after a service update before it can act again.
 - The data model gains `gates`, `rota_fires` and `hotline_refusals`; the design document is updated with the build.
 
@@ -427,9 +428,11 @@ Changes to `news-store`'s migration tests: the numbering test accepts the blocks
 
 ## Open questions for Karthik
 
-1. **Standing in #10.** Move the Standing table and its get, history and set commands from #29 into #10, as §10 and §14 propose?
-2. **Signed out means no runs.** PostgreSQL runs in Docker Desktop, which starts only at sign-in, so schedules that fall while you are signed out wait and may be skipped. Accept that, or should #29 look at starting the Docker engine without a sign-in?
-3. **The `news-board` name.** Move the analytics pull (`traffic.pull`) into `news-telemetry` so the egui app can be `news-board`, or keep it and name the app crate something else?
+All answered on 16 Nov 2026:
+
+1. **Standing in #10.** Yes: the table and `news standing` get, history and set move from #29 into #10; #29 keeps the Board settings screen (§10, §14).
+2. **Signed out.** Scheduled runs that fall while he is signed out wait until sign-in and run if still within the late limit, otherwise they are skipped and noted. No boot-time Docker engine (§7.1).
+3. **The `news-board` name.** `traffic.pull` (and `news stats`' stub reference) move from `news-board` into `news-telemetry` in #30, so the egui app crate is `news-board` (§14).
 
 ## Changes to apply with the build
 
