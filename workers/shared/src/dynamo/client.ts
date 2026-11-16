@@ -8,6 +8,7 @@ import {
   type Doc,
   DynamoError,
   type Key,
+  OutcomeUnknownError,
   type QueryInput,
   type QueryOutput,
   type Table,
@@ -30,6 +31,7 @@ export interface DynamoTableConfig {
 const LOOPBACK = new Set(["127.0.0.1", "localhost", "[::1]"]);
 const REGION = /^[a-z]{2}(?:-[a-z]+)+-[0-9]$/;
 const TABLE = /^[A-Za-z0-9_.-]{3,255}$/;
+const WRITES = new Set(["PutItem", "DeleteItem", "TransactWriteItems"]);
 const THROTTLE_TYPES = new Set([
   "ProvisionedThroughputExceededException",
   "ThrottlingException",
@@ -88,8 +90,17 @@ export class DynamoTable implements Table {
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(this.#timeoutMs),
     });
-    const res = await this.#fetch(request);
-    const text = await res.text();
+    const write = WRITES.has(operation);
+    let res: Response;
+    let text: string;
+    try {
+      res = await this.#fetch(request);
+      text = await res.text();
+    } catch (e) {
+      // Sent, but no answer: a write may have been applied. Reads are simply failed.
+      if (write) throw new OutcomeUnknownError(`${operation}: ${e instanceof Error ? e.name : "no response"}`);
+      throw e;
+    }
     let json: Record<string, unknown> = {};
     try {
       json = text ? (JSON.parse(text) as Record<string, unknown>) : {};
@@ -110,6 +121,8 @@ export class DynamoTable implements Table {
         throw new ThrottledError();
     }
     if (THROTTLE_TYPES.has(type)) throw new ThrottledError();
+    // A 5xx (InternalServerError, ServiceUnavailable) on a write does not say whether it was applied.
+    if (write && res.status >= 500) throw new OutcomeUnknownError(`${operation}: ${type} (HTTP ${res.status})`);
     throw new DynamoError(type, message, res.status);
   }
 

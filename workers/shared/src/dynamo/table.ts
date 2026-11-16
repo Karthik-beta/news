@@ -62,6 +62,17 @@ export class ThrottledError extends Error {
   }
 }
 
+/**
+ * A write whose outcome is unknown: the request was sent but no answer came back (timeout, dropped connection, a 5xx
+ * from DynamoDB). It may or may not have been applied, so the caller must not treat it as "not written".
+ */
+export class OutcomeUnknownError extends Error {
+  constructor(message = "the DynamoDB write may or may not have been applied") {
+    super(message);
+    this.name = "OutcomeUnknownError";
+  }
+}
+
 /** Any other DynamoDB error. `type` is the short exception name, e.g. ValidationException. */
 export class DynamoError extends Error {
   constructor(

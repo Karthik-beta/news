@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { DynamoTable, dynamoTableFromEnv, resolveEndpoint } from "./client";
 import { eq } from "./conditions";
-import { ConditionFailedError, DynamoError, ThrottledError } from "./table";
+import { ConditionFailedError, DynamoError, OutcomeUnknownError, ThrottledError } from "./table";
 
 const config = {
   table: "news",
@@ -103,6 +103,21 @@ describe("DynamoTable", () => {
     expect(err).toBeInstanceOf(DynamoError);
     expect((err as DynamoError).type).toBe("ValidationException");
     expect(String(err)).not.toContain(config.secretAccessKey);
+  });
+
+  it("a write with no answer or a 5xx is OutcomeUnknownError; a read stays an ordinary failure", async () => {
+    const dropped = async () => {
+      throw new DOMException("timed out", "TimeoutError");
+    };
+    const lost = new DynamoTable({ ...config, fetch: dropped });
+    await expect(lost.put({ PK: "a", SK: "b" })).rejects.toBeInstanceOf(OutcomeUnknownError);
+    await expect(lost.transact([{ put: { PK: "a", SK: "b" } }])).rejects.toBeInstanceOf(OutcomeUnknownError);
+    await expect(lost.delete({ PK: "a", SK: "b" })).rejects.toBeInstanceOf(OutcomeUnknownError);
+    const readErr = await lost.get({ PK: "a", SK: "b" }).catch((e: unknown) => e);
+    expect(readErr).not.toBeInstanceOf(OutcomeUnknownError);
+    const failing = new DynamoTable({ ...config, fetch: recording(() => error("InternalServerError", 500)).fetch });
+    await expect(failing.put({ PK: "a", SK: "b" })).rejects.toBeInstanceOf(OutcomeUnknownError);
+    await expect(failing.get({ PK: "a", SK: "b" })).rejects.toBeInstanceOf(DynamoError);
   });
 
   it("retries unprocessed batch keys, then gives up as throttled", async () => {
