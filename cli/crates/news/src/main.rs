@@ -53,10 +53,23 @@ fn usage_envelope(e: &clap::Error) -> Envelope {
     Envelope::err(NewsError::usage(message).with_hint("news --help"))
 }
 
-fn print_line(line: &str) {
-    let mut out = std::io::stdout().lock();
-    let _ = writeln!(out, "{line}");
-    let _ = out.flush();
+/// Write the envelope line to `out` and flush it. Returns the exit code: a result that never reached
+/// stdout (closed or full) is not a success, so a call that succeeded exits `internal` (10) instead.
+fn deliver(out: &mut impl Write, env: &Envelope) -> i32 {
+    match writeln!(out, "{}", env.to_line()).and_then(|()| out.flush()) {
+        Ok(()) => env.exit_code(),
+        Err(e) => {
+            eprintln!("news: cannot write the result to stdout: {e}");
+            match env.exit_code() {
+                0 => news_core::ErrorCode::Internal.exit_code(),
+                code => code,
+            }
+        }
+    }
+}
+
+fn print(env: &Envelope) -> i32 {
+    deliver(&mut std::io::stdout().lock(), env)
 }
 
 /// What a call says about one Dispatch job attempt, for the event's `error_class` and `attempt`.
@@ -132,10 +145,10 @@ fn main() -> ExitCode {
             // clap's full message (with usage) for humans on stderr; the envelope on stdout.
             eprint!("{}", e.render());
             let env = usage_envelope(&e);
-            print_line(&env.to_line());
+            let code = print(&env);
             let none = (String::new(), String::new());
             emit("usage", &env, started, none, &JobContext::default());
-            return exit(env.exit_code());
+            return exit(code);
         }
     };
     let path = command_path(&matches);
@@ -143,10 +156,10 @@ fn main() -> ExitCode {
         Ok(c) => c,
         Err(e) => {
             let env = usage_envelope(&e);
-            print_line(&env.to_line());
+            let code = print(&env);
             let none = (String::new(), String::new());
             emit(&path, &env, started, none, &JobContext::default());
-            return exit(env.exit_code());
+            return exit(code);
         }
     };
     let job = job_context(&cli.command);
@@ -170,10 +183,10 @@ fn main() -> ExitCode {
     };
     let ids = news_telemetry::current_ids(&span);
     drop(span);
-    print_line(&env.to_line());
+    let code = print(&env);
     emit(&path, &env, started, ids, &job);
     drop(guard);
-    exit(env.exit_code())
+    exit(code)
 }
 
 async fn execute(cli: Cli, path: &str) -> Envelope {
@@ -210,6 +223,42 @@ mod tests {
         match Cli::try_parse_from(args) {
             Ok(_) => panic!("{args:?} should not parse"),
             Err(e) => e,
+        }
+    }
+
+    /// A stdout that is closed or full: every write or flush fails.
+    struct Broken {
+        fail_on_flush_only: bool,
+    }
+    impl Write for Broken {
+        fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+            if self.fail_on_flush_only {
+                Ok(buf.len())
+            } else {
+                Err(std::io::ErrorKind::BrokenPipe.into())
+            }
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Err(std::io::ErrorKind::BrokenPipe.into())
+        }
+    }
+
+    #[test]
+    fn a_result_that_cannot_reach_stdout_is_not_a_success() {
+        let ok = Envelope::ok(json!({"claimed": 1}));
+        let mut sink = Vec::new();
+        assert_eq!(deliver(&mut sink, &ok), 0);
+        assert_eq!(sink, format!("{}\n", ok.to_line()).into_bytes());
+        for fail_on_flush_only in [false, true] {
+            let mut out = Broken { fail_on_flush_only };
+            assert_eq!(
+                deliver(&mut out, &ok),
+                10,
+                "flush only: {fail_on_flush_only}"
+            );
+            // A call that already failed keeps its own exit code.
+            let err = Envelope::err(NewsError::usage("bad"));
+            assert_eq!(deliver(&mut out, &err), 2);
         }
     }
 
