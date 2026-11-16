@@ -3,6 +3,7 @@
 - Status: accepted
 - Date: 2026-11-15
 - Issue: #5 (Phase 5, wave 1)
+- Amended by: ADR 0007 (the background worker)
 - Context documents: Bureau Design §5.1–§5.9, §8.14, §9.3; decision D1 (custom Rust queue on PostgreSQL with River-style semantics; apalis-postgres as the fallback) and D8 (optional background worker)
 
 ## Context
@@ -35,3 +36,10 @@ PostgreSQL tests (each in its own schema) cover: 8 concurrent workers × 200 job
 - About 1,000 lines of Rust and SQL that the project owns. If it proves unreliable, D1's fallback is apalis-postgres for the worker loop, keeping these tables.
 - Bun (Ghost) shares the exact rules through `news jobs`, at the cost of one process per call; batches (`--limit`) keep that cheap.
 - Capacity is enforced per pool only. Per-host rate limits are the Runner's job (#9).
+
+## Amended by ADR 0007
+
+- **`news work`, new wording.** **Workers in the service.** The Bureau service hosts the Dispatch workers for every pool (ADR 0007). The `net`, `cpu` and `docling` pools run all the time; `ai`, `render` and `publish` jobs exist only inside a live run. Only Press reads the write-API key, from Windows Credential Manager, inside a step the G-tier rule authorises. `news work` and `infra/windows/news-work.task.xml` are retired; the rescuer and the schedule tick run inside the service every 30 seconds and at start.
+- **Salvage and Karthik, new wording.** `news jobs retry` re-enqueues discarded jobs with fresh attempts; above 50 at once it runs only as Salvage's gated step or as an H-tier action from Board. `news jobs pause|unpause` are H tier, from Board only.
+- **Schedules, added.** Preset schedules are settings and are evaluated by Rota, the service's scheduler (Bureau Design §5.6); this table keeps the code-only recurring jobs.
+- **Tests.** "a live `news work` round with a sentinel `NEWS_WRITE_API_KEY` that never reads it" becomes "a live round of the service's background pools with a sentinel write-API key that is never read".

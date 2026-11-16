@@ -3,6 +3,7 @@
 - Status: accepted
 - Date: 2026-11-15
 - Issue: #5 (Phase 5, wave 1)
+- Amended by: ADR 0007 (item 9; item 2's command tree)
 - Context documents: Technical Design, "Agent toolbox" and "Data model"; Bureau Design §3, §6, §9.2, §11 (D3), §14
 
 ## Context
@@ -37,3 +38,9 @@ Every later laptop PR (connectors, Chief, Ghost, Proof, Press) builds on one Rus
 - *Per-command shaping options*: duplicated, and easy to forget on a new command.
 - *Hand-written schemas in Rust (schemars)*: the contracts would only exist inside the binary; files are reviewable, diffable and usable from Bun.
 - *A schema per subsystem*: cross-subsystem joins (pages ↔ data points ↔ stories) would need qualified names everywhere; one schema per database is simpler for one user.
+
+## Amended by ADR 0007
+
+- **Item 9, new wording.** **Tiers.** H-tier commands are actions only Karthik takes, and only from Board: the Bureau service accepts them over its named pipe (the Hotline) only from the installed `news.exe` running as `news board`, and never from a process it spawned for `claude -p` (ADR 0007). The CLI has no H-tier form; in the terminal it reads status and runs R and W commands. There is no `CLAUDECODE` check. The real boundary stays in Chief (approvals bound to `subject_sha`, the G-tier rule).
+- **Item 2, added.** The `news run intent`, `news run hook-prompt` and `news run ticket` stubs are removed, and `news service run|install|uninstall` and `news board` are added; service updates are a Board action, not a CLI command (ADR 0007).
+- **Item 6, added.** `start_tickets` is dropped and Standing, a versioned settings table, is added in a later migration block (ADR 0007); the `runs` constraints change as in Bureau Design §5.5.
