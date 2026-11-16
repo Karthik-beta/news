@@ -60,7 +60,9 @@
               "const": "queued"
             },
             "position": {
-              "const": 1
+              "type": "integer",
+              "minimum": 1,
+              "description": "Its real place in the Lineup: rank-0 runs first, oldest first (ADR 0008 §5); 1 unless an earlier rank-0 run is queued"
             }
           },
           "required": ["run_id", "short_id", "preset", "status", "position"],

@@ -29,7 +29,8 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 4000,
-          "description": "What to change; required"
+          "pattern": "\\S",
+          "description": "What to change; required, and not only whitespace (approvals check btrim(note))"
         }
       },
       "required": ["run", "gate", "round", "subject_sha", "note"],

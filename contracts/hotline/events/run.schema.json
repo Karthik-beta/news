@@ -103,7 +103,28 @@
         "wrap",
         "text"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "if": {
+        "properties": {
+          "status": {
+            "$ref": "../common.schema.json#/$defs/terminalStatus"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "wrap": {
+            "$ref": "../common.schema.json#/$defs/wrap"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "wrap": {
+            "type": "null"
+          }
+        }
+      }
     }
   }
 }
