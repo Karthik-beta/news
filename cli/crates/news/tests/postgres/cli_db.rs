@@ -170,17 +170,24 @@ async fn a_missing_schema_is_refused_instead_of_falling_back_to_public() {
 #[tokio::test(flavor = "multi_thread")]
 #[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
 async fn a_schema_named_like_a_keyword_migrates() {
-    // `select` passes valid_schema; the statements must quote it. One fixed name, so it is
-    // dropped first in case an earlier run stopped half-way.
+    // `select` passes valid_schema; the statements must quote it. The name is fixed, so the test
+    // refuses to touch a `select` schema it did not create, and drops only the one it created.
     let cfg = news_store::DbConfig::new(super::fixture::url(), "select").unwrap();
     let pool = news_store::connect(&cfg, 2).await.unwrap();
-    let drop = || sqlx::query(r#"drop schema if exists "select" cascade"#);
-    drop().execute(&pool).await.unwrap();
+    assert!(
+        !news_store::schema_exists(&pool, "select").await.unwrap(),
+        "schema \"select\" already exists in the test database; this test creates and drops it,          so it will not touch one it did not create (drop it by hand if an earlier run left it)"
+    );
     let migrated = news_store::migrate(&pool, "select").await;
     let pools: Result<i64, _> = sqlx::query_scalar(r#"select count(*) from "select".pools"#)
         .fetch_one(&pool)
         .await;
-    drop().execute(&pool).await.unwrap();
+    if news_store::schema_exists(&pool, "select").await.unwrap() {
+        sqlx::query(r#"drop schema "select" cascade"#)
+            .execute(&pool)
+            .await
+            .unwrap();
+    }
     assert_eq!(migrated.unwrap().schema, "select");
     assert_eq!(pools.unwrap(), 6);
 }
