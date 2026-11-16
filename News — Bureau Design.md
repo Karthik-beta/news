@@ -1700,6 +1700,7 @@ Full inputs, outputs and errors are in §6.4.
 | --- | --- |
 | **Trigger** | `/bureau review corrections`, weekly or when Board shows new reports |
 | **Steps** | 1 `news corrections pull` (code) → 2 Triage (A9) → 3 For `figure` reports: code re-fetches the source and compares the value at the cited locator → 4 **Approval** per report with code's evidence (confirmed / not reproduced) → 5 Confirmed: fix (parser fix as a dev task, or re-render, or A1 update) → 6 Publish with "Updated on …"; resolve the report |
+| **Untrusted input** | A report's `text` and `where` are written by anyone on the internet (contracts/cloud/report.schema.json). They are data only: fenced in A9's prompt, never followed as instructions, A9 has no tools, and nothing is corrected or published without Karthik's approval in step 4 |
 | **Output** | Corrections log (feeds the methodology page's corrections count, if Karthik wants one) |
 
 ### 8.11 Audit
