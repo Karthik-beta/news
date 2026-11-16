@@ -54,7 +54,10 @@ for (const [cmd, args] of [
 for (const [cmd, why] of [
   ["rust-analyzer", "Rust code intelligence (rust-analyzer-lsp plugin)"],
   ["typescript-language-server", "TypeScript code intelligence (Phase 0 follow-up)"],
-  ["gitleaks", "local secret scanning (CI and CodeRabbit already scan)"],
+  [
+    "gitleaks",
+    "the pre-commit secret scan is skipped (CI and CodeRabbit still scan); install: `scoop install gitleaks` or `brew install gitleaks`, or a release from github.com/gitleaks/gitleaks/releases",
+  ],
   ["tesseract", "scanned PDFs (Phase 5)"],
 ] as const) {
   const v = version(cmd);
