@@ -1,0 +1,92 @@
+{
+  "$schema": "../../../../../../contracts/bundle/sources.schema.json",
+  "version": 1,
+  "sources": {
+    "src_aapl_10k_2024": {
+      "title": "Apple Inc. Form 10-K, fiscal 2024",
+      "short": "Form 10-K, fiscal 2024",
+      "publisher": "Apple Inc.",
+      "connector": "sec-edgar",
+      "type": "filing",
+      "primary": true,
+      "url": "https://www.sec.gov/Archives/edgar/data/320193/000032019324000123/aapl-20240928.htm",
+      "licence": {
+        "name": "Public filing",
+        "redistribution": true
+      },
+      "published_at": "2024-11-01",
+      "retrieved_at": "2024-11-01T14:00:00Z"
+    },
+    "src_aapl_10k_2022": {
+      "title": "Apple Inc. Form 10-K, fiscal 2022",
+      "short": "Form 10-K, fiscal 2022",
+      "publisher": "Apple Inc.",
+      "connector": "sec-edgar",
+      "type": "filing",
+      "primary": true,
+      "url": "https://www.sec.gov/Archives/edgar/data/320193/000032019322000108/aapl-20220924.htm",
+      "licence": {
+        "name": "Public filing",
+        "redistribution": true
+      },
+      "published_at": "2022-10-28",
+      "retrieved_at": "2024-11-01T14:00:00Z"
+    },
+    "src_fed_fomc": {
+      "title": "Federal Reserve Board, FOMC statements, 2022 to 2024",
+      "short": "FOMC statements",
+      "publisher": "Board of Governors of the Federal Reserve System",
+      "connector": "fred",
+      "type": "statement",
+      "primary": true,
+      "url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+      "licence": {
+        "name": "Public domain",
+        "redistribution": true
+      },
+      "retrieved_at": "2025-01-06T09:00:00Z"
+    },
+    "src_bls_cpi": {
+      "title": "Consumer Price Index, all urban consumers, 2024",
+      "short": "Consumer Price Index",
+      "publisher": "U.S. Bureau of Labor Statistics",
+      "connector": "bls",
+      "type": "dataset",
+      "primary": true,
+      "url": "https://www.bls.gov/cpi/",
+      "licence": {
+        "name": "Public domain",
+        "redistribution": true
+      },
+      "retrieved_at": "2025-01-15T14:00:00Z"
+    },
+    "src_fixture_synthetic": {
+      "title": "Synthetic fixture series for component tests",
+      "short": "Synthetic fixture data",
+      "publisher": "News test fixtures",
+      "connector": "fixture",
+      "type": "dataset",
+      "primary": true,
+      "url": "https://news.karthik.nz/methodology/",
+      "licence": {
+        "name": "CC BY 4.0",
+        "redistribution": true
+      },
+      "retrieved_at": "2026-11-16"
+    },
+    "src_fixture_restricted": {
+      "title": "Licensed fixture series",
+      "short": "Licensed fixture data",
+      "publisher": "News test fixtures",
+      "connector": "fixture",
+      "type": "dataset",
+      "primary": true,
+      "url": "https://news.karthik.nz/methodology/",
+      "licence": {
+        "name": "No redistribution",
+        "redistribution": false
+      },
+      "retrieved_at": "2026-11-16"
+    }
+  }
+}

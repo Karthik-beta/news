@@ -1,0 +1,5 @@
+{
+  "flyTitle": "Apple's annual results",
+  "headline": "Services sales grew to {dp_aapl_sales_services_fy2024} in {pd_fy2024}",
+  "summary": "Services net sales rose by {dv_aapl_services_change_fy2024} on {pd_fy2023}; the segment's gross margin reached {dp_aapl_gm_services_fy2024}."
+}

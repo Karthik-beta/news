@@ -59,6 +59,7 @@ Fixture pages are built only for tests: `NEWS_FIXTURES=1` (set by `test:integrat
 |---|---|
 | `/fixtures/renderer/<bundle>/` | A bundle from `src/renderer/fixtures/bundles/` rendered by the real renderer: `apple-fy2024` (real 10-K figures and a chart island), `edge-cases` (unknown reference, null, zero, negative, very large and very small values, a single point, a gap, a licence that forbids downloads), `static` (no islands, 0 KB JS). Each page's `index.md` and `charts/*.csv` and `.json` sit next to it |
 | `/fixtures/primitives/<Name>/` | Every case in `src/components/<Name>/fixtures/cases.tsx` |
+| `/fixtures/components/<Name>/<fixture>/` | `src/components/<Name>/fixtures/<fixture>.oui` rendered by the real renderer with the merged data of every bundle (`apple-fy2024`, `edge-cases`, `charts`); `index.md` and `charts/*.csv` and `.json` sit next to it. The `charts` bundle holds real figures (Apple's 10-K segments and margins, FOMC decisions, US CPI) and synthetic edge series (`sr_fx_*`, cited to a synthetic fixture source) |
 
 The OpenUI spike's pages (ADR 0001) are built only with `OPENUI_SPIKE=1`; see `spikes/openui-ssr/README.md`.
 

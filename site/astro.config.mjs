@@ -22,6 +22,14 @@ function fixturePages() {
             entrypoint: `${dir}/renderer/[bundle]/[...file].ts`,
           });
           injectRoute({ pattern: "/fixtures/primitives/[name]", entrypoint: `${dir}/primitives/[name].astro` });
+          injectRoute({
+            pattern: "/fixtures/components/[name]/[fixture]",
+            entrypoint: `${dir}/components/[name]/[fixture]/index.astro`,
+          });
+          injectRoute({
+            pattern: "/fixtures/components/[name]/[fixture]/[...file]",
+            entrypoint: `${dir}/components/[name]/[fixture]/[...file].ts`,
+          });
         }
         if (process.env.OPENUI_SPIKE === "1") {
           injectRoute({

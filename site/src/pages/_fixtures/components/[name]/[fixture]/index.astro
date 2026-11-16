@@ -1,0 +1,19 @@
+---
+// Component fixture pages: each src/components/<Name>/fixtures/<fixture>.oui rendered by the real renderer with
+// the merged fixture data, hosted in the fixture layout. NEWS_FIXTURES=1 builds only.
+import type { ComponentFixture } from "../../../../../renderer/fixtures/components";
+import { componentFixtureBundle, componentFixturePaths } from "../../../../../renderer/fixtures/components.vite";
+import FixtureLayout from "../../../../../renderer/fixtures/FixtureLayout.astro";
+import { fixtureLibrary } from "../../../../../renderer/fixtures/library";
+import { renderPage } from "../../../../../renderer/render";
+
+export function getStaticPaths() {
+  return componentFixturePaths();
+}
+
+const { fixture } = Astro.props as { fixture: ComponentFixture };
+const result = renderPage(componentFixtureBundle(fixture), { library: fixtureLibrary() });
+---
+<FixtureLayout title={`Fixture: ${fixture.name}, ${fixture.fixture}`} hasIslands={result.hasIslands}>
+  <Fragment set:html={result.article} />
+</FixtureLayout>

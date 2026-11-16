@@ -1,0 +1,4293 @@
+{
+  "$schema": "../../../../../../contracts/bundle/data.schema.json",
+  "version": 1,
+  "points": {
+    "dp_aapl_sales_americas_fy2023": {
+      "label": "Americas net sales",
+      "value": "162560",
+      "value_text": "162560",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "decimals": 0,
+      "period": "pd_fy2023",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "xbrl",
+        "accn": "0000320193-24-000123",
+        "tag": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "context": "FY2023 Americas"
+      }
+    },
+    "dp_aapl_sales_americas_fy2024": {
+      "label": "Americas net sales",
+      "value": "167045",
+      "value_text": "167045",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "decimals": 0,
+      "period": "pd_fy2024",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "xbrl",
+        "accn": "0000320193-24-000123",
+        "tag": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "context": "FY2024 Americas"
+      }
+    },
+    "dp_aapl_sales_europe_fy2023": {
+      "label": "Europe net sales",
+      "value": "94294",
+      "value_text": "94294",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "decimals": 0,
+      "period": "pd_fy2023",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "xbrl",
+        "accn": "0000320193-24-000123",
+        "tag": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "context": "FY2023 Europe"
+      }
+    },
+    "dp_aapl_sales_europe_fy2024": {
+      "label": "Europe net sales",
+      "value": "101328",
+      "value_text": "101328",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "decimals": 0,
+      "period": "pd_fy2024",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "xbrl",
+        "accn": "0000320193-24-000123",
+        "tag": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "context": "FY2024 Europe"
+      }
+    },
+    "dp_aapl_sales_china_fy2023": {
+      "label": "Greater China net sales",
+      "value": "72559",
+      "value_text": "72559",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "decimals": 0,
+      "period": "pd_fy2023",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "xbrl",
+        "accn": "0000320193-24-000123",
+        "tag": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "context": "FY2023 Greater China"
+      }
+    },
+    "dp_aapl_sales_china_fy2024": {
+      "label": "Greater China net sales",
+      "value": "66952",
+      "value_text": "66952",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "decimals": 0,
+      "period": "pd_fy2024",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "xbrl",
+        "accn": "0000320193-24-000123",
+        "tag": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "context": "FY2024 Greater China"
+      }
+    },
+    "dp_aapl_sales_japan_fy2023": {
+      "label": "Japan net sales",
+      "value": "24257",
+      "value_text": "24257",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "decimals": 0,
+      "period": "pd_fy2023",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "xbrl",
+        "accn": "0000320193-24-000123",
+        "tag": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "context": "FY2023 Japan"
+      }
+    },
+    "dp_aapl_sales_japan_fy2024": {
+      "label": "Japan net sales",
+      "value": "25052",
+      "value_text": "25052",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "decimals": 0,
+      "period": "pd_fy2024",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "xbrl",
+        "accn": "0000320193-24-000123",
+        "tag": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "context": "FY2024 Japan"
+      }
+    },
+    "dp_aapl_sales_rapac_fy2023": {
+      "label": "Rest of Asia Pacific net sales",
+      "value": "29615",
+      "value_text": "29615",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "decimals": 0,
+      "period": "pd_fy2023",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "xbrl",
+        "accn": "0000320193-24-000123",
+        "tag": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "context": "FY2023 Rest of Asia Pacific"
+      }
+    },
+    "dp_aapl_sales_rapac_fy2024": {
+      "label": "Rest of Asia Pacific net sales",
+      "value": "30658",
+      "value_text": "30658",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "decimals": 0,
+      "period": "pd_fy2024",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "xbrl",
+        "accn": "0000320193-24-000123",
+        "tag": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "context": "FY2024 Rest of Asia Pacific"
+      }
+    },
+    "dp_aapl_sales_iphone_fy2024": {
+      "label": "iPhone net sales",
+      "value": "201183",
+      "value_text": "201183",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "decimals": 0,
+      "period": "pd_fy2024",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "xbrl",
+        "accn": "0000320193-24-000123",
+        "tag": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "context": "FY2024 iPhone"
+      }
+    },
+    "dp_aapl_sales_mac_fy2024": {
+      "label": "Mac net sales",
+      "value": "29984",
+      "value_text": "29984",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "decimals": 0,
+      "period": "pd_fy2024",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "xbrl",
+        "accn": "0000320193-24-000123",
+        "tag": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "context": "FY2024 Mac"
+      }
+    },
+    "dp_aapl_sales_ipad_fy2024": {
+      "label": "iPad net sales",
+      "value": "26694",
+      "value_text": "26694",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "decimals": 0,
+      "period": "pd_fy2024",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "xbrl",
+        "accn": "0000320193-24-000123",
+        "tag": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "context": "FY2024 iPad"
+      }
+    },
+    "dp_aapl_sales_wearables_fy2024": {
+      "label": "Wearables, Home and Accessories net sales",
+      "value": "37005",
+      "value_text": "37005",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "decimals": 0,
+      "period": "pd_fy2024",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "xbrl",
+        "accn": "0000320193-24-000123",
+        "tag": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "context": "FY2024 Wearables, Home and Accessories"
+      }
+    },
+    "dp_aapl_sales_services_fy2024": {
+      "label": "Services net sales",
+      "value": "96169",
+      "value_text": "96169",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "decimals": 0,
+      "period": "pd_fy2024",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "xbrl",
+        "accn": "0000320193-24-000123",
+        "tag": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "context": "FY2024 Services"
+      }
+    },
+    "dp_aapl_services_fy2020": {
+      "label": "Services net sales",
+      "value": "53768",
+      "value_text": "53768",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "decimals": 0,
+      "period": "pd_fy2020",
+      "source": "src_aapl_10k_2022",
+      "locator": {
+        "kind": "xbrl",
+        "accn": "0000320193-22-000108",
+        "tag": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "context": "FY2020 Services"
+      }
+    },
+    "dp_aapl_services_fy2021": {
+      "label": "Services net sales",
+      "value": "68425",
+      "value_text": "68425",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "decimals": 0,
+      "period": "pd_fy2021",
+      "source": "src_aapl_10k_2022",
+      "locator": {
+        "kind": "xbrl",
+        "accn": "0000320193-22-000108",
+        "tag": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "context": "FY2021 Services"
+      }
+    },
+    "dp_aapl_services_fy2022": {
+      "label": "Services net sales",
+      "value": "78129",
+      "value_text": "78129",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "decimals": 0,
+      "period": "pd_fy2022",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "xbrl",
+        "accn": "0000320193-24-000123",
+        "tag": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "context": "FY2022 Services"
+      }
+    },
+    "dp_aapl_services_fy2023": {
+      "label": "Services net sales",
+      "value": "85200",
+      "value_text": "85200",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "decimals": 0,
+      "period": "pd_fy2023",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "xbrl",
+        "accn": "0000320193-24-000123",
+        "tag": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "context": "FY2023 Services"
+      }
+    },
+    "dp_aapl_gm_products_fy2020": {
+      "label": "Products gross margin percentage",
+      "value": "31.5",
+      "value_text": "31.5",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fy2020",
+      "source": "src_aapl_10k_2022",
+      "locator": {
+        "kind": "pdf",
+        "page": 24,
+        "table": "Gross Margin"
+      }
+    },
+    "dp_aapl_gm_services_fy2020": {
+      "label": "Services gross margin percentage",
+      "value": "66.0",
+      "value_text": "66.0",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fy2020",
+      "source": "src_aapl_10k_2022",
+      "locator": {
+        "kind": "pdf",
+        "page": 24,
+        "table": "Gross Margin"
+      }
+    },
+    "dp_aapl_gm_products_fy2021": {
+      "label": "Products gross margin percentage",
+      "value": "35.3",
+      "value_text": "35.3",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fy2021",
+      "source": "src_aapl_10k_2022",
+      "locator": {
+        "kind": "pdf",
+        "page": 24,
+        "table": "Gross Margin"
+      }
+    },
+    "dp_aapl_gm_services_fy2021": {
+      "label": "Services gross margin percentage",
+      "value": "69.7",
+      "value_text": "69.7",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fy2021",
+      "source": "src_aapl_10k_2022",
+      "locator": {
+        "kind": "pdf",
+        "page": 24,
+        "table": "Gross Margin"
+      }
+    },
+    "dp_aapl_gm_products_fy2022": {
+      "label": "Products gross margin percentage",
+      "value": "36.3",
+      "value_text": "36.3",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fy2022",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "pdf",
+        "page": 23,
+        "table": "Gross Margin"
+      }
+    },
+    "dp_aapl_gm_services_fy2022": {
+      "label": "Services gross margin percentage",
+      "value": "71.7",
+      "value_text": "71.7",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fy2022",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "pdf",
+        "page": 23,
+        "table": "Gross Margin"
+      }
+    },
+    "dp_aapl_gm_products_fy2023": {
+      "label": "Products gross margin percentage",
+      "value": "36.5",
+      "value_text": "36.5",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fy2023",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "pdf",
+        "page": 23,
+        "table": "Gross Margin"
+      }
+    },
+    "dp_aapl_gm_services_fy2023": {
+      "label": "Services gross margin percentage",
+      "value": "70.8",
+      "value_text": "70.8",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fy2023",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "pdf",
+        "page": 23,
+        "table": "Gross Margin"
+      }
+    },
+    "dp_aapl_gm_products_fy2024": {
+      "label": "Products gross margin percentage",
+      "value": "37.2",
+      "value_text": "37.2",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fy2024",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "pdf",
+        "page": 23,
+        "table": "Gross Margin"
+      }
+    },
+    "dp_aapl_gm_services_fy2024": {
+      "label": "Services gross margin percentage",
+      "value": "73.9",
+      "value_text": "73.9",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fy2024",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "pdf",
+        "page": 23,
+        "table": "Gross Margin"
+      }
+    },
+    "dp_fed_upper_20220126": {
+      "label": "Federal funds target range, upper limit",
+      "value": "0.25",
+      "value_text": "0.25",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fomc_20220126",
+      "source": "src_fed_fomc",
+      "locator": {
+        "kind": "json",
+        "series": "DFEDTARU",
+        "date": "2022-01-26"
+      }
+    },
+    "dp_fed_upper_20220316": {
+      "label": "Federal funds target range, upper limit",
+      "value": "0.50",
+      "value_text": "0.50",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fomc_20220316",
+      "source": "src_fed_fomc",
+      "locator": {
+        "kind": "json",
+        "series": "DFEDTARU",
+        "date": "2022-03-16"
+      }
+    },
+    "dp_fed_upper_20220504": {
+      "label": "Federal funds target range, upper limit",
+      "value": "1.00",
+      "value_text": "1.00",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fomc_20220504",
+      "source": "src_fed_fomc",
+      "locator": {
+        "kind": "json",
+        "series": "DFEDTARU",
+        "date": "2022-05-04"
+      }
+    },
+    "dp_fed_upper_20220615": {
+      "label": "Federal funds target range, upper limit",
+      "value": "1.75",
+      "value_text": "1.75",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fomc_20220615",
+      "source": "src_fed_fomc",
+      "locator": {
+        "kind": "json",
+        "series": "DFEDTARU",
+        "date": "2022-06-15"
+      }
+    },
+    "dp_fed_upper_20220727": {
+      "label": "Federal funds target range, upper limit",
+      "value": "2.50",
+      "value_text": "2.50",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fomc_20220727",
+      "source": "src_fed_fomc",
+      "locator": {
+        "kind": "json",
+        "series": "DFEDTARU",
+        "date": "2022-07-27"
+      }
+    },
+    "dp_fed_upper_20220921": {
+      "label": "Federal funds target range, upper limit",
+      "value": "3.25",
+      "value_text": "3.25",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fomc_20220921",
+      "source": "src_fed_fomc",
+      "locator": {
+        "kind": "json",
+        "series": "DFEDTARU",
+        "date": "2022-09-21"
+      }
+    },
+    "dp_fed_upper_20221102": {
+      "label": "Federal funds target range, upper limit",
+      "value": "4.00",
+      "value_text": "4.00",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fomc_20221102",
+      "source": "src_fed_fomc",
+      "locator": {
+        "kind": "json",
+        "series": "DFEDTARU",
+        "date": "2022-11-02"
+      }
+    },
+    "dp_fed_upper_20221214": {
+      "label": "Federal funds target range, upper limit",
+      "value": "4.50",
+      "value_text": "4.50",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fomc_20221214",
+      "source": "src_fed_fomc",
+      "locator": {
+        "kind": "json",
+        "series": "DFEDTARU",
+        "date": "2022-12-14"
+      }
+    },
+    "dp_fed_upper_20230201": {
+      "label": "Federal funds target range, upper limit",
+      "value": "4.75",
+      "value_text": "4.75",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fomc_20230201",
+      "source": "src_fed_fomc",
+      "locator": {
+        "kind": "json",
+        "series": "DFEDTARU",
+        "date": "2023-02-01"
+      }
+    },
+    "dp_fed_upper_20230322": {
+      "label": "Federal funds target range, upper limit",
+      "value": "5.00",
+      "value_text": "5.00",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fomc_20230322",
+      "source": "src_fed_fomc",
+      "locator": {
+        "kind": "json",
+        "series": "DFEDTARU",
+        "date": "2023-03-22"
+      }
+    },
+    "dp_fed_upper_20230503": {
+      "label": "Federal funds target range, upper limit",
+      "value": "5.25",
+      "value_text": "5.25",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fomc_20230503",
+      "source": "src_fed_fomc",
+      "locator": {
+        "kind": "json",
+        "series": "DFEDTARU",
+        "date": "2023-05-03"
+      }
+    },
+    "dp_fed_upper_20230726": {
+      "label": "Federal funds target range, upper limit",
+      "value": "5.50",
+      "value_text": "5.50",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fomc_20230726",
+      "source": "src_fed_fomc",
+      "locator": {
+        "kind": "json",
+        "series": "DFEDTARU",
+        "date": "2023-07-26"
+      }
+    },
+    "dp_fed_upper_20240918": {
+      "label": "Federal funds target range, upper limit",
+      "value": "5.00",
+      "value_text": "5.00",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fomc_20240918",
+      "source": "src_fed_fomc",
+      "locator": {
+        "kind": "json",
+        "series": "DFEDTARU",
+        "date": "2024-09-18"
+      }
+    },
+    "dp_fed_upper_20241107": {
+      "label": "Federal funds target range, upper limit",
+      "value": "4.75",
+      "value_text": "4.75",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fomc_20241107",
+      "source": "src_fed_fomc",
+      "locator": {
+        "kind": "json",
+        "series": "DFEDTARU",
+        "date": "2024-11-07"
+      }
+    },
+    "dp_fed_upper_20241218": {
+      "label": "Federal funds target range, upper limit",
+      "value": "4.50",
+      "value_text": "4.50",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fomc_20241218",
+      "source": "src_fed_fomc",
+      "locator": {
+        "kind": "json",
+        "series": "DFEDTARU",
+        "date": "2024-12-18"
+      }
+    },
+    "dp_us_cpi_2024_01": {
+      "label": "All items, 12-month percent change",
+      "value": "3.1",
+      "value_text": "3.1",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_2024_01",
+      "source": "src_bls_cpi",
+      "locator": {
+        "kind": "json",
+        "series": "CUUR0000SA0",
+        "period": "2024-01"
+      }
+    },
+    "dp_us_cpi_2024_02": {
+      "label": "All items, 12-month percent change",
+      "value": "3.2",
+      "value_text": "3.2",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_2024_02",
+      "source": "src_bls_cpi",
+      "locator": {
+        "kind": "json",
+        "series": "CUUR0000SA0",
+        "period": "2024-02"
+      }
+    },
+    "dp_us_cpi_2024_03": {
+      "label": "All items, 12-month percent change",
+      "value": "3.5",
+      "value_text": "3.5",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_2024_03",
+      "source": "src_bls_cpi",
+      "locator": {
+        "kind": "json",
+        "series": "CUUR0000SA0",
+        "period": "2024-03"
+      }
+    },
+    "dp_us_cpi_2024_04": {
+      "label": "All items, 12-month percent change",
+      "value": "3.4",
+      "value_text": "3.4",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_2024_04",
+      "source": "src_bls_cpi",
+      "locator": {
+        "kind": "json",
+        "series": "CUUR0000SA0",
+        "period": "2024-04"
+      }
+    },
+    "dp_us_cpi_2024_05": {
+      "label": "All items, 12-month percent change",
+      "value": "3.3",
+      "value_text": "3.3",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_2024_05",
+      "source": "src_bls_cpi",
+      "locator": {
+        "kind": "json",
+        "series": "CUUR0000SA0",
+        "period": "2024-05"
+      }
+    },
+    "dp_us_cpi_2024_06": {
+      "label": "All items, 12-month percent change",
+      "value": "3.0",
+      "value_text": "3.0",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_2024_06",
+      "source": "src_bls_cpi",
+      "locator": {
+        "kind": "json",
+        "series": "CUUR0000SA0",
+        "period": "2024-06"
+      }
+    },
+    "dp_us_cpi_2024_07": {
+      "label": "All items, 12-month percent change",
+      "value": "2.9",
+      "value_text": "2.9",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_2024_07",
+      "source": "src_bls_cpi",
+      "locator": {
+        "kind": "json",
+        "series": "CUUR0000SA0",
+        "period": "2024-07"
+      }
+    },
+    "dp_us_cpi_2024_08": {
+      "label": "All items, 12-month percent change",
+      "value": "2.5",
+      "value_text": "2.5",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_2024_08",
+      "source": "src_bls_cpi",
+      "locator": {
+        "kind": "json",
+        "series": "CUUR0000SA0",
+        "period": "2024-08"
+      }
+    },
+    "dp_us_cpi_2024_09": {
+      "label": "All items, 12-month percent change",
+      "value": "2.4",
+      "value_text": "2.4",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_2024_09",
+      "source": "src_bls_cpi",
+      "locator": {
+        "kind": "json",
+        "series": "CUUR0000SA0",
+        "period": "2024-09"
+      }
+    },
+    "dp_us_cpi_2024_10": {
+      "label": "All items, 12-month percent change",
+      "value": "2.6",
+      "value_text": "2.6",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_2024_10",
+      "source": "src_bls_cpi",
+      "locator": {
+        "kind": "json",
+        "series": "CUUR0000SA0",
+        "period": "2024-10"
+      }
+    },
+    "dp_us_cpi_2024_11": {
+      "label": "All items, 12-month percent change",
+      "value": "2.7",
+      "value_text": "2.7",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_2024_11",
+      "source": "src_bls_cpi",
+      "locator": {
+        "kind": "json",
+        "series": "CUUR0000SA0",
+        "period": "2024-11"
+      }
+    },
+    "dp_us_cpi_2024_12": {
+      "label": "All items, 12-month percent change",
+      "value": "2.9",
+      "value_text": "2.9",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_2024_12",
+      "source": "src_bls_cpi",
+      "locator": {
+        "kind": "json",
+        "series": "CUUR0000SA0",
+        "period": "2024-12"
+      }
+    },
+    "dp_fx_zero_2019": {
+      "label": "Change in the index",
+      "value": "0",
+      "value_text": "0",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2019",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_zero_2019"
+      }
+    },
+    "dp_fx_zero_2020": {
+      "label": "Change in the index",
+      "value": "1.2",
+      "value_text": "1.2",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2020",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_zero_2020"
+      }
+    },
+    "dp_fx_zero_2021": {
+      "label": "Change in the index",
+      "value": "0",
+      "value_text": "0",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2021",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_zero_2021"
+      }
+    },
+    "dp_fx_zero_2022": {
+      "label": "Change in the index",
+      "value": "-0.8",
+      "value_text": "-0.8",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2022",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_zero_2022"
+      }
+    },
+    "dp_fx_zero_2023": {
+      "label": "Change in the index",
+      "value": "0",
+      "value_text": "0",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2023",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_zero_2023"
+      }
+    },
+    "dp_fx_zero_2024": {
+      "label": "Change in the index",
+      "value": "0.4",
+      "value_text": "0.4",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_zero_2024"
+      }
+    },
+    "dp_fx_negative_2019": {
+      "label": "Change in output",
+      "value": "-5.7",
+      "value_text": "-5.7",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2019",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_negative_2019"
+      }
+    },
+    "dp_fx_negative_2020": {
+      "label": "Change in output",
+      "value": "-3.2",
+      "value_text": "-3.2",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2020",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_negative_2020"
+      }
+    },
+    "dp_fx_negative_2021": {
+      "label": "Change in output",
+      "value": "-1.1",
+      "value_text": "-1.1",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2021",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_negative_2021"
+      }
+    },
+    "dp_fx_negative_2022": {
+      "label": "Change in output",
+      "value": "-0.4",
+      "value_text": "-0.4",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2022",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_negative_2022"
+      }
+    },
+    "dp_fx_negative_2023": {
+      "label": "Change in output",
+      "value": "-2.6",
+      "value_text": "-2.6",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2023",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_negative_2023"
+      }
+    },
+    "dp_fx_negative_2024": {
+      "label": "Change in output",
+      "value": "-1.8",
+      "value_text": "-1.8",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_negative_2024"
+      }
+    },
+    "dp_fx_mixed_2019": {
+      "label": "Budget balance",
+      "value": "-984.4",
+      "value_text": "-984.4",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "billions",
+      "period": "pd_fx_2019",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_mixed_2019"
+      }
+    },
+    "dp_fx_mixed_2020": {
+      "label": "Budget balance",
+      "value": "-3132.5",
+      "value_text": "-3132.5",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "billions",
+      "period": "pd_fx_2020",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_mixed_2020"
+      }
+    },
+    "dp_fx_mixed_2021": {
+      "label": "Budget balance",
+      "value": "-2775.3",
+      "value_text": "-2775.3",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "billions",
+      "period": "pd_fx_2021",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_mixed_2021"
+      }
+    },
+    "dp_fx_mixed_2022": {
+      "label": "Budget balance",
+      "value": "-1375.9",
+      "value_text": "-1375.9",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "billions",
+      "period": "pd_fx_2022",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_mixed_2022"
+      }
+    },
+    "dp_fx_mixed_2023": {
+      "label": "Budget balance",
+      "value": "1695.2",
+      "value_text": "1695.2",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "billions",
+      "period": "pd_fx_2023",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_mixed_2023"
+      }
+    },
+    "dp_fx_mixed_2024": {
+      "label": "Budget balance",
+      "value": "-1832.8",
+      "value_text": "-1832.8",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "billions",
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_mixed_2024"
+      }
+    },
+    "dp_fx_gaps_2019": {
+      "label": "Growth",
+      "value": "1.5",
+      "value_text": "1.5",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2019",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_gaps_2019"
+      }
+    },
+    "dp_fx_gaps_2021": {
+      "label": "Growth",
+      "value": "2.2",
+      "value_text": "2.2",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2021",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_gaps_2021"
+      }
+    },
+    "dp_fx_gaps_2022": {
+      "label": "Growth",
+      "value": null,
+      "value_text": null,
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2022",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_gaps_2022"
+      }
+    },
+    "dp_fx_gaps_2023": {
+      "label": "Growth",
+      "value": "-0.4",
+      "value_text": "-0.4",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2023",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_gaps_2023"
+      }
+    },
+    "dp_fx_gaps_2024": {
+      "label": "Growth",
+      "value": "0.9",
+      "value_text": "0.9",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_gaps_2024"
+      }
+    },
+    "dp_fx_allnull_2019": {
+      "label": "Not yet published",
+      "value": null,
+      "value_text": null,
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2019",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_allnull_2019"
+      }
+    },
+    "dp_fx_allnull_2020": {
+      "label": "Not yet published",
+      "value": null,
+      "value_text": null,
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2020",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_allnull_2020"
+      }
+    },
+    "dp_fx_allnull_2022": {
+      "label": "Not yet published",
+      "value": null,
+      "value_text": null,
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2022",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_allnull_2022"
+      }
+    },
+    "dp_fx_allnull_2023": {
+      "label": "Not yet published",
+      "value": null,
+      "value_text": null,
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2023",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_allnull_2023"
+      }
+    },
+    "dp_fx_allnull_2024": {
+      "label": "Not yet published",
+      "value": null,
+      "value_text": null,
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_allnull_2024"
+      }
+    },
+    "dp_fx_large_2019": {
+      "label": "A very large amount",
+      "value": "123456789012345678",
+      "value_text": "123456789012345678",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "units",
+      "period": "pd_fx_2019",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_large_2019"
+      }
+    },
+    "dp_fx_large_2020": {
+      "label": "A very large amount",
+      "value": "98765432109876543",
+      "value_text": "98765432109876543",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "units",
+      "period": "pd_fx_2020",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_large_2020"
+      }
+    },
+    "dp_fx_large_2021": {
+      "label": "A very large amount",
+      "value": "150000000000000000",
+      "value_text": "150000000000000000",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "units",
+      "period": "pd_fx_2021",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_large_2021"
+      }
+    },
+    "dp_fx_large_2022": {
+      "label": "A very large amount",
+      "value": "87000000000000000",
+      "value_text": "87000000000000000",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "units",
+      "period": "pd_fx_2022",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_large_2022"
+      }
+    },
+    "dp_fx_large_2023": {
+      "label": "A very large amount",
+      "value": "132500000000000000",
+      "value_text": "132500000000000000",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "units",
+      "period": "pd_fx_2023",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_large_2023"
+      }
+    },
+    "dp_fx_large_2024": {
+      "label": "A very large amount",
+      "value": "141000000000000000",
+      "value_text": "141000000000000000",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "units",
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_large_2024"
+      }
+    },
+    "dp_fx_small_2019": {
+      "label": "A very small concentration",
+      "value": "0.000000012",
+      "value_text": "0.000000012",
+      "unit": "mol/L",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2019",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_small_2019"
+      }
+    },
+    "dp_fx_small_2020": {
+      "label": "A very small concentration",
+      "value": "0.000000015",
+      "value_text": "0.000000015",
+      "unit": "mol/L",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2020",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_small_2020"
+      }
+    },
+    "dp_fx_small_2021": {
+      "label": "A very small concentration",
+      "value": "0.000000009",
+      "value_text": "0.000000009",
+      "unit": "mol/L",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2021",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_small_2021"
+      }
+    },
+    "dp_fx_small_2022": {
+      "label": "A very small concentration",
+      "value": "0.000000011",
+      "value_text": "0.000000011",
+      "unit": "mol/L",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2022",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_small_2022"
+      }
+    },
+    "dp_fx_small_2023": {
+      "label": "A very small concentration",
+      "value": "0.000000018",
+      "value_text": "0.000000018",
+      "unit": "mol/L",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2023",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_small_2023"
+      }
+    },
+    "dp_fx_small_2024": {
+      "label": "A very small concentration",
+      "value": "0.000000014",
+      "value_text": "0.000000014",
+      "unit": "mol/L",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_small_2024"
+      }
+    },
+    "dp_fx_restricted_2019": {
+      "label": "Licensed measure",
+      "value": "9.1",
+      "value_text": "9.1",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2019",
+      "source": "src_fixture_restricted",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_restricted_2019"
+      }
+    },
+    "dp_fx_restricted_2020": {
+      "label": "Licensed measure",
+      "value": "9.8",
+      "value_text": "9.8",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2020",
+      "source": "src_fixture_restricted",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_restricted_2020"
+      }
+    },
+    "dp_fx_restricted_2021": {
+      "label": "Licensed measure",
+      "value": "10.4",
+      "value_text": "10.4",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2021",
+      "source": "src_fixture_restricted",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_restricted_2021"
+      }
+    },
+    "dp_fx_restricted_2022": {
+      "label": "Licensed measure",
+      "value": "10.2",
+      "value_text": "10.2",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2022",
+      "source": "src_fixture_restricted",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_restricted_2022"
+      }
+    },
+    "dp_fx_restricted_2023": {
+      "label": "Licensed measure",
+      "value": "11.8",
+      "value_text": "11.8",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2023",
+      "source": "src_fixture_restricted",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_restricted_2023"
+      }
+    },
+    "dp_fx_restricted_2024": {
+      "label": "Licensed measure",
+      "value": "12.1",
+      "value_text": "12.1",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2024",
+      "source": "src_fixture_restricted",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_restricted_2024"
+      }
+    },
+    "dp_fx_other_2019": {
+      "label": "Comparison measure",
+      "value": "2.0",
+      "value_text": "2.0",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2019",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_other_2019"
+      }
+    },
+    "dp_fx_other_2020": {
+      "label": "Comparison measure",
+      "value": "1.1",
+      "value_text": "1.1",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2020",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_other_2020"
+      }
+    },
+    "dp_fx_other_2021": {
+      "label": "Comparison measure",
+      "value": "4.7",
+      "value_text": "4.7",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2021",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_other_2021"
+      }
+    },
+    "dp_fx_other_2022": {
+      "label": "Comparison measure",
+      "value": "8.0",
+      "value_text": "8.0",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2022",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_other_2022"
+      }
+    },
+    "dp_fx_other_2023": {
+      "label": "Comparison measure",
+      "value": "4.1",
+      "value_text": "4.1",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2023",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_other_2023"
+      }
+    },
+    "dp_fx_other_2024": {
+      "label": "Comparison measure",
+      "value": "2.9",
+      "value_text": "2.9",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_other_2024"
+      }
+    },
+    "dp_fx_third_2019": {
+      "label": "Third measure",
+      "value": "1.4",
+      "value_text": "1.4",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2019",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_third_2019"
+      }
+    },
+    "dp_fx_third_2020": {
+      "label": "Third measure",
+      "value": "0.2",
+      "value_text": "0.2",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2020",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_third_2020"
+      }
+    },
+    "dp_fx_third_2021": {
+      "label": "Third measure",
+      "value": "2.6",
+      "value_text": "2.6",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2021",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_third_2021"
+      }
+    },
+    "dp_fx_third_2022": {
+      "label": "Third measure",
+      "value": "6.1",
+      "value_text": "6.1",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2022",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_third_2022"
+      }
+    },
+    "dp_fx_third_2023": {
+      "label": "Third measure",
+      "value": "5.4",
+      "value_text": "5.4",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2023",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_third_2023"
+      }
+    },
+    "dp_fx_third_2024": {
+      "label": "Third measure",
+      "value": "3.0",
+      "value_text": "3.0",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_third_2024"
+      }
+    },
+    "dp_fx_fourth_2019": {
+      "label": "A fourth measure with a long name",
+      "value": "3.3",
+      "value_text": "3.3",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2019",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_fourth_2019"
+      }
+    },
+    "dp_fx_fourth_2020": {
+      "label": "A fourth measure with a long name",
+      "value": "2.9",
+      "value_text": "2.9",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2020",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_fourth_2020"
+      }
+    },
+    "dp_fx_fourth_2021": {
+      "label": "A fourth measure with a long name",
+      "value": "3.1",
+      "value_text": "3.1",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2021",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_fourth_2021"
+      }
+    },
+    "dp_fx_fourth_2022": {
+      "label": "A fourth measure with a long name",
+      "value": "5.2",
+      "value_text": "5.2",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2022",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_fourth_2022"
+      }
+    },
+    "dp_fx_fourth_2023": {
+      "label": "A fourth measure with a long name",
+      "value": "4.4",
+      "value_text": "4.4",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2023",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_fourth_2023"
+      }
+    },
+    "dp_fx_fourth_2024": {
+      "label": "A fourth measure with a long name",
+      "value": "3.8",
+      "value_text": "3.8",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_fourth_2024"
+      }
+    },
+    "dp_fx_single_2024": {
+      "label": "Turnout",
+      "value": "42.5",
+      "value_text": "42.5",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_single",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_single_2024"
+      }
+    },
+    "dp_fx_long_2020_01": {
+      "label": "Synthetic index",
+      "value": "100.0",
+      "value_text": "100.0",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2020_01",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2020_01"
+      }
+    },
+    "dp_fx_long_2020_02": {
+      "label": "Synthetic index",
+      "value": "101.9",
+      "value_text": "101.9",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2020_02",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2020_02"
+      }
+    },
+    "dp_fx_long_2020_03": {
+      "label": "Synthetic index",
+      "value": "103.8",
+      "value_text": "103.8",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2020_03",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2020_03"
+      }
+    },
+    "dp_fx_long_2020_04": {
+      "label": "Synthetic index",
+      "value": "105.6",
+      "value_text": "105.6",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2020_04",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2020_04"
+      }
+    },
+    "dp_fx_long_2020_05": {
+      "label": "Synthetic index",
+      "value": "107.1",
+      "value_text": "107.1",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2020_05",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2020_05"
+      }
+    },
+    "dp_fx_long_2020_06": {
+      "label": "Synthetic index",
+      "value": "108.5",
+      "value_text": "108.5",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2020_06",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2020_06"
+      }
+    },
+    "dp_fx_long_2020_07": {
+      "label": "Synthetic index",
+      "value": "109.6",
+      "value_text": "109.6",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2020_07",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2020_07"
+      }
+    },
+    "dp_fx_long_2020_08": {
+      "label": "Synthetic index",
+      "value": "110.3",
+      "value_text": "110.3",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2020_08",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2020_08"
+      }
+    },
+    "dp_fx_long_2020_09": {
+      "label": "Synthetic index",
+      "value": "110.8",
+      "value_text": "110.8",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2020_09",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2020_09"
+      }
+    },
+    "dp_fx_long_2020_10": {
+      "label": "Synthetic index",
+      "value": "110.9",
+      "value_text": "110.9",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2020_10",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2020_10"
+      }
+    },
+    "dp_fx_long_2020_11": {
+      "label": "Synthetic index",
+      "value": "110.8",
+      "value_text": "110.8",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2020_11",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2020_11"
+      }
+    },
+    "dp_fx_long_2020_12": {
+      "label": "Synthetic index",
+      "value": "110.3",
+      "value_text": "110.3",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2020_12",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2020_12"
+      }
+    },
+    "dp_fx_long_2021_01": {
+      "label": "Synthetic index",
+      "value": "109.6",
+      "value_text": "109.6",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2021_01",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2021_01"
+      }
+    },
+    "dp_fx_long_2021_02": {
+      "label": "Synthetic index",
+      "value": "108.7",
+      "value_text": "108.7",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2021_02",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2021_02"
+      }
+    },
+    "dp_fx_long_2021_03": {
+      "label": "Synthetic index",
+      "value": "107.6",
+      "value_text": "107.6",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2021_03",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2021_03"
+      }
+    },
+    "dp_fx_long_2021_04": {
+      "label": "Synthetic index",
+      "value": "106.4",
+      "value_text": "106.4",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2021_04",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2021_04"
+      }
+    },
+    "dp_fx_long_2021_05": {
+      "label": "Synthetic index",
+      "value": "105.1",
+      "value_text": "105.1",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2021_05",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2021_05"
+      }
+    },
+    "dp_fx_long_2021_06": {
+      "label": "Synthetic index",
+      "value": "103.9",
+      "value_text": "103.9",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2021_06",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2021_06"
+      }
+    },
+    "dp_fx_long_2021_07": {
+      "label": "Synthetic index",
+      "value": "102.8",
+      "value_text": "102.8",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2021_07",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2021_07"
+      }
+    },
+    "dp_fx_long_2021_08": {
+      "label": "Synthetic index",
+      "value": "101.8",
+      "value_text": "101.8",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2021_08",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2021_08"
+      }
+    },
+    "dp_fx_long_2021_09": {
+      "label": "Synthetic index",
+      "value": "100.9",
+      "value_text": "100.9",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2021_09",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2021_09"
+      }
+    },
+    "dp_fx_long_2021_10": {
+      "label": "Synthetic index",
+      "value": "100.4",
+      "value_text": "100.4",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2021_10",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2021_10"
+      }
+    },
+    "dp_fx_long_2021_11": {
+      "label": "Synthetic index",
+      "value": "100.1",
+      "value_text": "100.1",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2021_11",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2021_11"
+      }
+    },
+    "dp_fx_long_2021_12": {
+      "label": "Synthetic index",
+      "value": "100.1",
+      "value_text": "100.1",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2021_12",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2021_12"
+      }
+    },
+    "dp_fx_long_2022_01": {
+      "label": "Synthetic index",
+      "value": "100.4",
+      "value_text": "100.4",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2022_01",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2022_01"
+      }
+    },
+    "dp_fx_long_2022_02": {
+      "label": "Synthetic index",
+      "value": "101.1",
+      "value_text": "101.1",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2022_02",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2022_02"
+      }
+    },
+    "dp_fx_long_2022_03": {
+      "label": "Synthetic index",
+      "value": "102.0",
+      "value_text": "102.0",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2022_03",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2022_03"
+      }
+    },
+    "dp_fx_long_2022_04": {
+      "label": "Synthetic index",
+      "value": "103.3",
+      "value_text": "103.3",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2022_04",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2022_04"
+      }
+    },
+    "dp_fx_long_2022_05": {
+      "label": "Synthetic index",
+      "value": "104.7",
+      "value_text": "104.7",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2022_05",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2022_05"
+      }
+    },
+    "dp_fx_long_2022_06": {
+      "label": "Synthetic index",
+      "value": "106.4",
+      "value_text": "106.4",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2022_06",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2022_06"
+      }
+    },
+    "dp_fx_long_2022_07": {
+      "label": "Synthetic index",
+      "value": "108.3",
+      "value_text": "108.3",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2022_07",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2022_07"
+      }
+    },
+    "dp_fx_long_2022_08": {
+      "label": "Synthetic index",
+      "value": "110.2",
+      "value_text": "110.2",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2022_08",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2022_08"
+      }
+    },
+    "dp_fx_long_2022_09": {
+      "label": "Synthetic index",
+      "value": "112.1",
+      "value_text": "112.1",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2022_09",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2022_09"
+      }
+    },
+    "dp_fx_long_2022_10": {
+      "label": "Synthetic index",
+      "value": "114.0",
+      "value_text": "114.0",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2022_10",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2022_10"
+      }
+    },
+    "dp_fx_long_2022_11": {
+      "label": "Synthetic index",
+      "value": "115.9",
+      "value_text": "115.9",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2022_11",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2022_11"
+      }
+    },
+    "dp_fx_long_2022_12": {
+      "label": "Synthetic index",
+      "value": "117.5",
+      "value_text": "117.5",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2022_12",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2022_12"
+      }
+    },
+    "dp_fx_long_2023_01": {
+      "label": "Synthetic index",
+      "value": "118.9",
+      "value_text": "118.9",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2023_01",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2023_01"
+      }
+    },
+    "dp_fx_long_2023_02": {
+      "label": "Synthetic index",
+      "value": "120.1",
+      "value_text": "120.1",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2023_02",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2023_02"
+      }
+    },
+    "dp_fx_long_2023_03": {
+      "label": "Synthetic index",
+      "value": "121.0",
+      "value_text": "121.0",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2023_03",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2023_03"
+      }
+    },
+    "dp_fx_long_2023_04": {
+      "label": "Synthetic index",
+      "value": "121.6",
+      "value_text": "121.6",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2023_04",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2023_04"
+      }
+    },
+    "dp_fx_long_2023_05": {
+      "label": "Synthetic index",
+      "value": "121.9",
+      "value_text": "121.9",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2023_05",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2023_05"
+      }
+    },
+    "dp_fx_long_2023_06": {
+      "label": "Synthetic index",
+      "value": "121.9",
+      "value_text": "121.9",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2023_06",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2023_06"
+      }
+    },
+    "dp_fx_long_2023_07": {
+      "label": "Synthetic index",
+      "value": "121.5",
+      "value_text": "121.5",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2023_07",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2023_07"
+      }
+    },
+    "dp_fx_long_2023_08": {
+      "label": "Synthetic index",
+      "value": "120.9",
+      "value_text": "120.9",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2023_08",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2023_08"
+      }
+    },
+    "dp_fx_long_2023_09": {
+      "label": "Synthetic index",
+      "value": "120.1",
+      "value_text": "120.1",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2023_09",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2023_09"
+      }
+    },
+    "dp_fx_long_2023_10": {
+      "label": "Synthetic index",
+      "value": "119.0",
+      "value_text": "119.0",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2023_10",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2023_10"
+      }
+    },
+    "dp_fx_long_2023_11": {
+      "label": "Synthetic index",
+      "value": "117.9",
+      "value_text": "117.9",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2023_11",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2023_11"
+      }
+    },
+    "dp_fx_long_2023_12": {
+      "label": "Synthetic index",
+      "value": "116.6",
+      "value_text": "116.6",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2023_12",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2023_12"
+      }
+    },
+    "dp_fx_long_2024_01": {
+      "label": "Synthetic index",
+      "value": "115.4",
+      "value_text": "115.4",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2024_01",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2024_01"
+      }
+    },
+    "dp_fx_long_2024_02": {
+      "label": "Synthetic index",
+      "value": "114.2",
+      "value_text": "114.2",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2024_02",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2024_02"
+      }
+    },
+    "dp_fx_long_2024_03": {
+      "label": "Synthetic index",
+      "value": "113.1",
+      "value_text": "113.1",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2024_03",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2024_03"
+      }
+    },
+    "dp_fx_long_2024_04": {
+      "label": "Synthetic index",
+      "value": "112.3",
+      "value_text": "112.3",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2024_04",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2024_04"
+      }
+    },
+    "dp_fx_long_2024_05": {
+      "label": "Synthetic index",
+      "value": "111.6",
+      "value_text": "111.6",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2024_05",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2024_05"
+      }
+    },
+    "dp_fx_long_2024_06": {
+      "label": "Synthetic index",
+      "value": "111.2",
+      "value_text": "111.2",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2024_06",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2024_06"
+      }
+    },
+    "dp_fx_long_2024_07": {
+      "label": "Synthetic index",
+      "value": "111.1",
+      "value_text": "111.1",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2024_07",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2024_07"
+      }
+    },
+    "dp_fx_long_2024_08": {
+      "label": "Synthetic index",
+      "value": "111.3",
+      "value_text": "111.3",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2024_08",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2024_08"
+      }
+    },
+    "dp_fx_long_2024_09": {
+      "label": "Synthetic index",
+      "value": "111.8",
+      "value_text": "111.8",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2024_09",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2024_09"
+      }
+    },
+    "dp_fx_long_2024_10": {
+      "label": "Synthetic index",
+      "value": "112.6",
+      "value_text": "112.6",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2024_10",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2024_10"
+      }
+    },
+    "dp_fx_long_2024_11": {
+      "label": "Synthetic index",
+      "value": "113.7",
+      "value_text": "113.7",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2024_11",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2024_11"
+      }
+    },
+    "dp_fx_long_2024_12": {
+      "label": "Synthetic index",
+      "value": "115.1",
+      "value_text": "115.1",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_m_2024_12",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_long_2024_12"
+      }
+    },
+    "dp_fx_bar_zero": {
+      "label": "Zero",
+      "value": "0",
+      "value_text": "0",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_bar_zero"
+      }
+    },
+    "dp_fx_bar_negative": {
+      "label": "Negative",
+      "value": "-5.7",
+      "value_text": "-5.7",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_bar_negative"
+      }
+    },
+    "dp_fx_bar_positive": {
+      "label": "Positive",
+      "value": "3.4",
+      "value_text": "3.4",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_bar_positive"
+      }
+    },
+    "dp_fx_bar_null": {
+      "label": "Not published",
+      "value": null,
+      "value_text": null,
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_bar_null"
+      }
+    },
+    "dp_fx_bar_large": {
+      "label": "Very large",
+      "value": "12.6",
+      "value_text": "12.6",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_bar_large"
+      }
+    },
+    "dp_fx_bar_small": {
+      "label": "Very small",
+      "value": "0.02",
+      "value_text": "0.02",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_bar_small"
+      }
+    },
+    "dp_fx_bar_usd": {
+      "label": "Different unit",
+      "value": "4.2",
+      "value_text": "4.2",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "billions",
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_bar_usd"
+      }
+    },
+    "dp_fx_rank_1": {
+      "label": "Item 1",
+      "value": "14.1",
+      "value_text": "14.1",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_rank_1"
+      }
+    },
+    "dp_fx_rank_2": {
+      "label": "Item 2",
+      "value": "5.2",
+      "value_text": "5.2",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_rank_2"
+      }
+    },
+    "dp_fx_rank_3": {
+      "label": "Item 3",
+      "value": "19.3",
+      "value_text": "19.3",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_rank_3"
+      }
+    },
+    "dp_fx_rank_4": {
+      "label": "Item 4",
+      "value": "10.4",
+      "value_text": "10.4",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_rank_4"
+      }
+    },
+    "dp_fx_rank_5": {
+      "label": "Item 5",
+      "value": "1.5",
+      "value_text": "1.5",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_rank_5"
+      }
+    },
+    "dp_fx_rank_6": {
+      "label": "Item 6",
+      "value": "15.6",
+      "value_text": "15.6",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_rank_6"
+      }
+    },
+    "dp_fx_rank_7": {
+      "label": "Item 7",
+      "value": "6.7",
+      "value_text": "6.7",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_rank_7"
+      }
+    },
+    "dp_fx_rank_8": {
+      "label": "Item 8",
+      "value": "20.8",
+      "value_text": "20.8",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_rank_8"
+      }
+    },
+    "dp_fx_rank_9": {
+      "label": "Item 9",
+      "value": "11.9",
+      "value_text": "11.9",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_rank_9"
+      }
+    },
+    "dp_fx_rank_10": {
+      "label": "Item 10",
+      "value": "3.0",
+      "value_text": "3.0",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_rank_10"
+      }
+    },
+    "dp_fx_rank_11": {
+      "label": "Item 11",
+      "value": "17.1",
+      "value_text": "17.1",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_rank_11"
+      }
+    },
+    "dp_fx_rank_12": {
+      "label": "Item 12",
+      "value": "8.2",
+      "value_text": "8.2",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_rank_12"
+      }
+    },
+    "dp_fx_rank_13": {
+      "label": "Item 13",
+      "value": "22.3",
+      "value_text": "22.3",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_rank_13"
+      }
+    },
+    "dp_fx_rank_14": {
+      "label": "Item 14",
+      "value": "13.4",
+      "value_text": "13.4",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_rank_14"
+      }
+    },
+    "dp_fx_rank_15": {
+      "label": "Item 15",
+      "value": "4.5",
+      "value_text": "4.5",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_rank_15"
+      }
+    },
+    "dp_fx_rank_16": {
+      "label": "Item 16",
+      "value": "18.6",
+      "value_text": "18.6",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_rank_16"
+      }
+    }
+  },
+  "derived": {
+    "dv_aapl_sales_americas_change_fy2024": {
+      "label": "Change in Americas net sales on fiscal 2023",
+      "value": "2.8",
+      "unit": "%",
+      "currency": null,
+      "scale": null,
+      "formula": "pct_change",
+      "inputs": ["dp_aapl_sales_americas_fy2024", "dp_aapl_sales_americas_fy2023"],
+      "rounding": 1
+    },
+    "dv_aapl_sales_europe_change_fy2024": {
+      "label": "Change in Europe net sales on fiscal 2023",
+      "value": "7.5",
+      "unit": "%",
+      "currency": null,
+      "scale": null,
+      "formula": "pct_change",
+      "inputs": ["dp_aapl_sales_europe_fy2024", "dp_aapl_sales_europe_fy2023"],
+      "rounding": 1
+    },
+    "dv_aapl_sales_china_change_fy2024": {
+      "label": "Change in Greater China net sales on fiscal 2023",
+      "value": "-7.7",
+      "unit": "%",
+      "currency": null,
+      "scale": null,
+      "formula": "pct_change",
+      "inputs": ["dp_aapl_sales_china_fy2024", "dp_aapl_sales_china_fy2023"],
+      "rounding": 1
+    },
+    "dv_aapl_sales_japan_change_fy2024": {
+      "label": "Change in Japan net sales on fiscal 2023",
+      "value": "3.3",
+      "unit": "%",
+      "currency": null,
+      "scale": null,
+      "formula": "pct_change",
+      "inputs": ["dp_aapl_sales_japan_fy2024", "dp_aapl_sales_japan_fy2023"],
+      "rounding": 1
+    },
+    "dv_aapl_sales_rapac_change_fy2024": {
+      "label": "Change in Rest of Asia Pacific net sales on fiscal 2023",
+      "value": "3.5",
+      "unit": "%",
+      "currency": null,
+      "scale": null,
+      "formula": "pct_change",
+      "inputs": ["dp_aapl_sales_rapac_fy2024", "dp_aapl_sales_rapac_fy2023"],
+      "rounding": 1
+    },
+    "dv_aapl_services_change_fy2024": {
+      "label": "Change in Services net sales on fiscal 2023",
+      "value": "12.9",
+      "unit": "%",
+      "currency": null,
+      "scale": null,
+      "formula": "pct_change",
+      "inputs": ["dp_aapl_sales_services_fy2024", "dp_aapl_services_fy2023"],
+      "rounding": 1
+    },
+    "dv_aapl_gm_services_change_fy2024": {
+      "label": "Change in Services gross margin percentage on fiscal 2023",
+      "value": "3.1",
+      "unit": "pp",
+      "currency": null,
+      "scale": null,
+      "formula": "pp_change",
+      "inputs": ["dp_aapl_gm_services_fy2024", "dp_aapl_gm_services_fy2023"],
+      "rounding": 1
+    }
+  },
+  "series": {
+    "sr_aapl_services_5y": {
+      "label": "Services net sales",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "points": [
+        {
+          "period": "pd_fy2020",
+          "point": "dp_aapl_services_fy2020"
+        },
+        {
+          "period": "pd_fy2021",
+          "point": "dp_aapl_services_fy2021"
+        },
+        {
+          "period": "pd_fy2022",
+          "point": "dp_aapl_services_fy2022"
+        },
+        {
+          "period": "pd_fy2023",
+          "point": "dp_aapl_services_fy2023"
+        },
+        {
+          "period": "pd_fy2024",
+          "point": "dp_aapl_sales_services_fy2024"
+        }
+      ]
+    },
+    "sr_aapl_gm_products": {
+      "label": "Products",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "points": [
+        {
+          "period": "pd_fy2020",
+          "point": "dp_aapl_gm_products_fy2020"
+        },
+        {
+          "period": "pd_fy2021",
+          "point": "dp_aapl_gm_products_fy2021"
+        },
+        {
+          "period": "pd_fy2022",
+          "point": "dp_aapl_gm_products_fy2022"
+        },
+        {
+          "period": "pd_fy2023",
+          "point": "dp_aapl_gm_products_fy2023"
+        },
+        {
+          "period": "pd_fy2024",
+          "point": "dp_aapl_gm_products_fy2024"
+        }
+      ]
+    },
+    "sr_aapl_gm_services": {
+      "label": "Services",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "points": [
+        {
+          "period": "pd_fy2020",
+          "point": "dp_aapl_gm_services_fy2020"
+        },
+        {
+          "period": "pd_fy2021",
+          "point": "dp_aapl_gm_services_fy2021"
+        },
+        {
+          "period": "pd_fy2022",
+          "point": "dp_aapl_gm_services_fy2022"
+        },
+        {
+          "period": "pd_fy2023",
+          "point": "dp_aapl_gm_services_fy2023"
+        },
+        {
+          "period": "pd_fy2024",
+          "point": "dp_aapl_gm_services_fy2024"
+        }
+      ]
+    },
+    "sr_fed_funds_upper": {
+      "label": "Federal funds rate, upper limit",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "points": [
+        {
+          "period": "pd_fomc_20220126",
+          "point": "dp_fed_upper_20220126"
+        },
+        {
+          "period": "pd_fomc_20220316",
+          "point": "dp_fed_upper_20220316"
+        },
+        {
+          "period": "pd_fomc_20220504",
+          "point": "dp_fed_upper_20220504"
+        },
+        {
+          "period": "pd_fomc_20220615",
+          "point": "dp_fed_upper_20220615"
+        },
+        {
+          "period": "pd_fomc_20220727",
+          "point": "dp_fed_upper_20220727"
+        },
+        {
+          "period": "pd_fomc_20220921",
+          "point": "dp_fed_upper_20220921"
+        },
+        {
+          "period": "pd_fomc_20221102",
+          "point": "dp_fed_upper_20221102"
+        },
+        {
+          "period": "pd_fomc_20221214",
+          "point": "dp_fed_upper_20221214"
+        },
+        {
+          "period": "pd_fomc_20230201",
+          "point": "dp_fed_upper_20230201"
+        },
+        {
+          "period": "pd_fomc_20230322",
+          "point": "dp_fed_upper_20230322"
+        },
+        {
+          "period": "pd_fomc_20230503",
+          "point": "dp_fed_upper_20230503"
+        },
+        {
+          "period": "pd_fomc_20230726",
+          "point": "dp_fed_upper_20230726"
+        },
+        {
+          "period": "pd_fomc_20240918",
+          "point": "dp_fed_upper_20240918"
+        },
+        {
+          "period": "pd_fomc_20241107",
+          "point": "dp_fed_upper_20241107"
+        },
+        {
+          "period": "pd_fomc_20241218",
+          "point": "dp_fed_upper_20241218"
+        }
+      ]
+    },
+    "sr_us_cpi_2024": {
+      "label": "Consumer prices",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "points": [
+        {
+          "period": "pd_2024_01",
+          "point": "dp_us_cpi_2024_01"
+        },
+        {
+          "period": "pd_2024_02",
+          "point": "dp_us_cpi_2024_02"
+        },
+        {
+          "period": "pd_2024_03",
+          "point": "dp_us_cpi_2024_03"
+        },
+        {
+          "period": "pd_2024_04",
+          "point": "dp_us_cpi_2024_04"
+        },
+        {
+          "period": "pd_2024_05",
+          "point": "dp_us_cpi_2024_05"
+        },
+        {
+          "period": "pd_2024_06",
+          "point": "dp_us_cpi_2024_06"
+        },
+        {
+          "period": "pd_2024_07",
+          "point": "dp_us_cpi_2024_07"
+        },
+        {
+          "period": "pd_2024_08",
+          "point": "dp_us_cpi_2024_08"
+        },
+        {
+          "period": "pd_2024_09",
+          "point": "dp_us_cpi_2024_09"
+        },
+        {
+          "period": "pd_2024_10",
+          "point": "dp_us_cpi_2024_10"
+        },
+        {
+          "period": "pd_2024_11",
+          "point": "dp_us_cpi_2024_11"
+        },
+        {
+          "period": "pd_2024_12",
+          "point": "dp_us_cpi_2024_12"
+        }
+      ]
+    },
+    "sr_fx_zero": {
+      "label": "Change in the index",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "points": [
+        {
+          "period": "pd_fx_2019",
+          "point": "dp_fx_zero_2019"
+        },
+        {
+          "period": "pd_fx_2020",
+          "point": "dp_fx_zero_2020"
+        },
+        {
+          "period": "pd_fx_2021",
+          "point": "dp_fx_zero_2021"
+        },
+        {
+          "period": "pd_fx_2022",
+          "point": "dp_fx_zero_2022"
+        },
+        {
+          "period": "pd_fx_2023",
+          "point": "dp_fx_zero_2023"
+        },
+        {
+          "period": "pd_fx_2024",
+          "point": "dp_fx_zero_2024"
+        }
+      ]
+    },
+    "sr_fx_negative": {
+      "label": "Change in output",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "points": [
+        {
+          "period": "pd_fx_2019",
+          "point": "dp_fx_negative_2019"
+        },
+        {
+          "period": "pd_fx_2020",
+          "point": "dp_fx_negative_2020"
+        },
+        {
+          "period": "pd_fx_2021",
+          "point": "dp_fx_negative_2021"
+        },
+        {
+          "period": "pd_fx_2022",
+          "point": "dp_fx_negative_2022"
+        },
+        {
+          "period": "pd_fx_2023",
+          "point": "dp_fx_negative_2023"
+        },
+        {
+          "period": "pd_fx_2024",
+          "point": "dp_fx_negative_2024"
+        }
+      ]
+    },
+    "sr_fx_mixed": {
+      "label": "Budget balance",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "billions",
+      "points": [
+        {
+          "period": "pd_fx_2019",
+          "point": "dp_fx_mixed_2019"
+        },
+        {
+          "period": "pd_fx_2020",
+          "point": "dp_fx_mixed_2020"
+        },
+        {
+          "period": "pd_fx_2021",
+          "point": "dp_fx_mixed_2021"
+        },
+        {
+          "period": "pd_fx_2022",
+          "point": "dp_fx_mixed_2022"
+        },
+        {
+          "period": "pd_fx_2023",
+          "point": "dp_fx_mixed_2023"
+        },
+        {
+          "period": "pd_fx_2024",
+          "point": "dp_fx_mixed_2024"
+        }
+      ]
+    },
+    "sr_fx_gaps": {
+      "label": "Growth",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "points": [
+        {
+          "period": "pd_fx_2019",
+          "point": "dp_fx_gaps_2019"
+        },
+        {
+          "period": "pd_fx_2020",
+          "point": null
+        },
+        {
+          "period": "pd_fx_2021",
+          "point": "dp_fx_gaps_2021"
+        },
+        {
+          "period": "pd_fx_2022",
+          "point": "dp_fx_gaps_2022"
+        },
+        {
+          "period": "pd_fx_2023",
+          "point": "dp_fx_gaps_2023"
+        },
+        {
+          "period": "pd_fx_2024",
+          "point": "dp_fx_gaps_2024"
+        }
+      ]
+    },
+    "sr_fx_allnull": {
+      "label": "Not yet published",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "points": [
+        {
+          "period": "pd_fx_2019",
+          "point": "dp_fx_allnull_2019"
+        },
+        {
+          "period": "pd_fx_2020",
+          "point": "dp_fx_allnull_2020"
+        },
+        {
+          "period": "pd_fx_2021",
+          "point": null
+        },
+        {
+          "period": "pd_fx_2022",
+          "point": "dp_fx_allnull_2022"
+        },
+        {
+          "period": "pd_fx_2023",
+          "point": "dp_fx_allnull_2023"
+        },
+        {
+          "period": "pd_fx_2024",
+          "point": "dp_fx_allnull_2024"
+        }
+      ]
+    },
+    "sr_fx_large": {
+      "label": "A very large amount",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "units",
+      "points": [
+        {
+          "period": "pd_fx_2019",
+          "point": "dp_fx_large_2019"
+        },
+        {
+          "period": "pd_fx_2020",
+          "point": "dp_fx_large_2020"
+        },
+        {
+          "period": "pd_fx_2021",
+          "point": "dp_fx_large_2021"
+        },
+        {
+          "period": "pd_fx_2022",
+          "point": "dp_fx_large_2022"
+        },
+        {
+          "period": "pd_fx_2023",
+          "point": "dp_fx_large_2023"
+        },
+        {
+          "period": "pd_fx_2024",
+          "point": "dp_fx_large_2024"
+        }
+      ]
+    },
+    "sr_fx_small": {
+      "label": "A very small concentration",
+      "unit": "mol/L",
+      "currency": null,
+      "scale": null,
+      "points": [
+        {
+          "period": "pd_fx_2019",
+          "point": "dp_fx_small_2019"
+        },
+        {
+          "period": "pd_fx_2020",
+          "point": "dp_fx_small_2020"
+        },
+        {
+          "period": "pd_fx_2021",
+          "point": "dp_fx_small_2021"
+        },
+        {
+          "period": "pd_fx_2022",
+          "point": "dp_fx_small_2022"
+        },
+        {
+          "period": "pd_fx_2023",
+          "point": "dp_fx_small_2023"
+        },
+        {
+          "period": "pd_fx_2024",
+          "point": "dp_fx_small_2024"
+        }
+      ]
+    },
+    "sr_fx_restricted": {
+      "label": "Licensed measure",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "points": [
+        {
+          "period": "pd_fx_2019",
+          "point": "dp_fx_restricted_2019"
+        },
+        {
+          "period": "pd_fx_2020",
+          "point": "dp_fx_restricted_2020"
+        },
+        {
+          "period": "pd_fx_2021",
+          "point": "dp_fx_restricted_2021"
+        },
+        {
+          "period": "pd_fx_2022",
+          "point": "dp_fx_restricted_2022"
+        },
+        {
+          "period": "pd_fx_2023",
+          "point": "dp_fx_restricted_2023"
+        },
+        {
+          "period": "pd_fx_2024",
+          "point": "dp_fx_restricted_2024"
+        }
+      ]
+    },
+    "sr_fx_other": {
+      "label": "Comparison measure",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "points": [
+        {
+          "period": "pd_fx_2019",
+          "point": "dp_fx_other_2019"
+        },
+        {
+          "period": "pd_fx_2020",
+          "point": "dp_fx_other_2020"
+        },
+        {
+          "period": "pd_fx_2021",
+          "point": "dp_fx_other_2021"
+        },
+        {
+          "period": "pd_fx_2022",
+          "point": "dp_fx_other_2022"
+        },
+        {
+          "period": "pd_fx_2023",
+          "point": "dp_fx_other_2023"
+        },
+        {
+          "period": "pd_fx_2024",
+          "point": "dp_fx_other_2024"
+        }
+      ]
+    },
+    "sr_fx_third": {
+      "label": "Third measure",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "points": [
+        {
+          "period": "pd_fx_2019",
+          "point": "dp_fx_third_2019"
+        },
+        {
+          "period": "pd_fx_2020",
+          "point": "dp_fx_third_2020"
+        },
+        {
+          "period": "pd_fx_2021",
+          "point": "dp_fx_third_2021"
+        },
+        {
+          "period": "pd_fx_2022",
+          "point": "dp_fx_third_2022"
+        },
+        {
+          "period": "pd_fx_2023",
+          "point": "dp_fx_third_2023"
+        },
+        {
+          "period": "pd_fx_2024",
+          "point": "dp_fx_third_2024"
+        }
+      ]
+    },
+    "sr_fx_fourth": {
+      "label": "A fourth measure with a long name",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "points": [
+        {
+          "period": "pd_fx_2019",
+          "point": "dp_fx_fourth_2019"
+        },
+        {
+          "period": "pd_fx_2020",
+          "point": "dp_fx_fourth_2020"
+        },
+        {
+          "period": "pd_fx_2021",
+          "point": "dp_fx_fourth_2021"
+        },
+        {
+          "period": "pd_fx_2022",
+          "point": "dp_fx_fourth_2022"
+        },
+        {
+          "period": "pd_fx_2023",
+          "point": "dp_fx_fourth_2023"
+        },
+        {
+          "period": "pd_fx_2024",
+          "point": "dp_fx_fourth_2024"
+        }
+      ]
+    },
+    "sr_fx_single": {
+      "label": "Turnout",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "points": [
+        {
+          "period": "pd_fx_single",
+          "point": "dp_fx_single_2024"
+        }
+      ]
+    },
+    "sr_fx_long": {
+      "label": "Synthetic index",
+      "unit": "Index 2020=100",
+      "currency": null,
+      "scale": null,
+      "points": [
+        {
+          "period": "pd_fx_m_2020_01",
+          "point": "dp_fx_long_2020_01"
+        },
+        {
+          "period": "pd_fx_m_2020_02",
+          "point": "dp_fx_long_2020_02"
+        },
+        {
+          "period": "pd_fx_m_2020_03",
+          "point": "dp_fx_long_2020_03"
+        },
+        {
+          "period": "pd_fx_m_2020_04",
+          "point": "dp_fx_long_2020_04"
+        },
+        {
+          "period": "pd_fx_m_2020_05",
+          "point": "dp_fx_long_2020_05"
+        },
+        {
+          "period": "pd_fx_m_2020_06",
+          "point": "dp_fx_long_2020_06"
+        },
+        {
+          "period": "pd_fx_m_2020_07",
+          "point": "dp_fx_long_2020_07"
+        },
+        {
+          "period": "pd_fx_m_2020_08",
+          "point": "dp_fx_long_2020_08"
+        },
+        {
+          "period": "pd_fx_m_2020_09",
+          "point": "dp_fx_long_2020_09"
+        },
+        {
+          "period": "pd_fx_m_2020_10",
+          "point": "dp_fx_long_2020_10"
+        },
+        {
+          "period": "pd_fx_m_2020_11",
+          "point": "dp_fx_long_2020_11"
+        },
+        {
+          "period": "pd_fx_m_2020_12",
+          "point": "dp_fx_long_2020_12"
+        },
+        {
+          "period": "pd_fx_m_2021_01",
+          "point": "dp_fx_long_2021_01"
+        },
+        {
+          "period": "pd_fx_m_2021_02",
+          "point": "dp_fx_long_2021_02"
+        },
+        {
+          "period": "pd_fx_m_2021_03",
+          "point": "dp_fx_long_2021_03"
+        },
+        {
+          "period": "pd_fx_m_2021_04",
+          "point": "dp_fx_long_2021_04"
+        },
+        {
+          "period": "pd_fx_m_2021_05",
+          "point": "dp_fx_long_2021_05"
+        },
+        {
+          "period": "pd_fx_m_2021_06",
+          "point": "dp_fx_long_2021_06"
+        },
+        {
+          "period": "pd_fx_m_2021_07",
+          "point": "dp_fx_long_2021_07"
+        },
+        {
+          "period": "pd_fx_m_2021_08",
+          "point": "dp_fx_long_2021_08"
+        },
+        {
+          "period": "pd_fx_m_2021_09",
+          "point": "dp_fx_long_2021_09"
+        },
+        {
+          "period": "pd_fx_m_2021_10",
+          "point": "dp_fx_long_2021_10"
+        },
+        {
+          "period": "pd_fx_m_2021_11",
+          "point": "dp_fx_long_2021_11"
+        },
+        {
+          "period": "pd_fx_m_2021_12",
+          "point": "dp_fx_long_2021_12"
+        },
+        {
+          "period": "pd_fx_m_2022_01",
+          "point": "dp_fx_long_2022_01"
+        },
+        {
+          "period": "pd_fx_m_2022_02",
+          "point": "dp_fx_long_2022_02"
+        },
+        {
+          "period": "pd_fx_m_2022_03",
+          "point": "dp_fx_long_2022_03"
+        },
+        {
+          "period": "pd_fx_m_2022_04",
+          "point": "dp_fx_long_2022_04"
+        },
+        {
+          "period": "pd_fx_m_2022_05",
+          "point": "dp_fx_long_2022_05"
+        },
+        {
+          "period": "pd_fx_m_2022_06",
+          "point": "dp_fx_long_2022_06"
+        },
+        {
+          "period": "pd_fx_m_2022_07",
+          "point": "dp_fx_long_2022_07"
+        },
+        {
+          "period": "pd_fx_m_2022_08",
+          "point": "dp_fx_long_2022_08"
+        },
+        {
+          "period": "pd_fx_m_2022_09",
+          "point": "dp_fx_long_2022_09"
+        },
+        {
+          "period": "pd_fx_m_2022_10",
+          "point": "dp_fx_long_2022_10"
+        },
+        {
+          "period": "pd_fx_m_2022_11",
+          "point": "dp_fx_long_2022_11"
+        },
+        {
+          "period": "pd_fx_m_2022_12",
+          "point": "dp_fx_long_2022_12"
+        },
+        {
+          "period": "pd_fx_m_2023_01",
+          "point": "dp_fx_long_2023_01"
+        },
+        {
+          "period": "pd_fx_m_2023_02",
+          "point": "dp_fx_long_2023_02"
+        },
+        {
+          "period": "pd_fx_m_2023_03",
+          "point": "dp_fx_long_2023_03"
+        },
+        {
+          "period": "pd_fx_m_2023_04",
+          "point": "dp_fx_long_2023_04"
+        },
+        {
+          "period": "pd_fx_m_2023_05",
+          "point": "dp_fx_long_2023_05"
+        },
+        {
+          "period": "pd_fx_m_2023_06",
+          "point": "dp_fx_long_2023_06"
+        },
+        {
+          "period": "pd_fx_m_2023_07",
+          "point": "dp_fx_long_2023_07"
+        },
+        {
+          "period": "pd_fx_m_2023_08",
+          "point": "dp_fx_long_2023_08"
+        },
+        {
+          "period": "pd_fx_m_2023_09",
+          "point": "dp_fx_long_2023_09"
+        },
+        {
+          "period": "pd_fx_m_2023_10",
+          "point": "dp_fx_long_2023_10"
+        },
+        {
+          "period": "pd_fx_m_2023_11",
+          "point": "dp_fx_long_2023_11"
+        },
+        {
+          "period": "pd_fx_m_2023_12",
+          "point": "dp_fx_long_2023_12"
+        },
+        {
+          "period": "pd_fx_m_2024_01",
+          "point": "dp_fx_long_2024_01"
+        },
+        {
+          "period": "pd_fx_m_2024_02",
+          "point": "dp_fx_long_2024_02"
+        },
+        {
+          "period": "pd_fx_m_2024_03",
+          "point": "dp_fx_long_2024_03"
+        },
+        {
+          "period": "pd_fx_m_2024_04",
+          "point": "dp_fx_long_2024_04"
+        },
+        {
+          "period": "pd_fx_m_2024_05",
+          "point": "dp_fx_long_2024_05"
+        },
+        {
+          "period": "pd_fx_m_2024_06",
+          "point": "dp_fx_long_2024_06"
+        },
+        {
+          "period": "pd_fx_m_2024_07",
+          "point": "dp_fx_long_2024_07"
+        },
+        {
+          "period": "pd_fx_m_2024_08",
+          "point": "dp_fx_long_2024_08"
+        },
+        {
+          "period": "pd_fx_m_2024_09",
+          "point": "dp_fx_long_2024_09"
+        },
+        {
+          "period": "pd_fx_m_2024_10",
+          "point": "dp_fx_long_2024_10"
+        },
+        {
+          "period": "pd_fx_m_2024_11",
+          "point": "dp_fx_long_2024_11"
+        },
+        {
+          "period": "pd_fx_m_2024_12",
+          "point": "dp_fx_long_2024_12"
+        }
+      ]
+    },
+    "sr_fx_step_gaps": {
+      "label": "Policy rate",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "points": [
+        {
+          "period": "pd_fomc_20220126",
+          "point": "dp_fed_upper_20220126"
+        },
+        {
+          "period": "pd_fomc_20220316",
+          "point": null
+        },
+        {
+          "period": "pd_fomc_20220504",
+          "point": "dp_fx_bar_null"
+        },
+        {
+          "period": "pd_fomc_20220615",
+          "point": "dp_fed_upper_20220615"
+        }
+      ]
+    }
+  },
+  "periods": {
+    "pd_fy2020": {
+      "label": "fiscal 2020",
+      "fiscal": true
+    },
+    "pd_fy2021": {
+      "label": "fiscal 2021",
+      "fiscal": true
+    },
+    "pd_fy2022": {
+      "label": "fiscal 2022",
+      "fiscal": true
+    },
+    "pd_fy2023": {
+      "label": "fiscal 2023",
+      "fiscal": true
+    },
+    "pd_fy2024": {
+      "label": "fiscal 2024",
+      "fiscal": true
+    },
+    "pd_fomc_20220126": {
+      "label": "26 January 2022",
+      "start": "2022-01-26"
+    },
+    "pd_fomc_20220316": {
+      "label": "16 March 2022",
+      "start": "2022-03-16"
+    },
+    "pd_fomc_20220504": {
+      "label": "4 May 2022",
+      "start": "2022-05-04"
+    },
+    "pd_fomc_20220615": {
+      "label": "15 June 2022",
+      "start": "2022-06-15"
+    },
+    "pd_fomc_20220727": {
+      "label": "27 July 2022",
+      "start": "2022-07-27"
+    },
+    "pd_fomc_20220921": {
+      "label": "21 September 2022",
+      "start": "2022-09-21"
+    },
+    "pd_fomc_20221102": {
+      "label": "2 November 2022",
+      "start": "2022-11-02"
+    },
+    "pd_fomc_20221214": {
+      "label": "14 December 2022",
+      "start": "2022-12-14"
+    },
+    "pd_fomc_20230201": {
+      "label": "1 February 2023",
+      "start": "2023-02-01"
+    },
+    "pd_fomc_20230322": {
+      "label": "22 March 2023",
+      "start": "2023-03-22"
+    },
+    "pd_fomc_20230503": {
+      "label": "3 May 2023",
+      "start": "2023-05-03"
+    },
+    "pd_fomc_20230726": {
+      "label": "26 July 2023",
+      "start": "2023-07-26"
+    },
+    "pd_fomc_20240918": {
+      "label": "18 September 2024",
+      "start": "2024-09-18"
+    },
+    "pd_fomc_20241107": {
+      "label": "7 November 2024",
+      "start": "2024-11-07"
+    },
+    "pd_fomc_20241218": {
+      "label": "18 December 2024",
+      "start": "2024-12-18"
+    },
+    "pd_2024_01": {
+      "label": "Jan 2024",
+      "start": "2024-01-01",
+      "end": "2024-01-31"
+    },
+    "pd_2024_02": {
+      "label": "Feb 2024",
+      "start": "2024-02-01",
+      "end": "2024-02-29"
+    },
+    "pd_2024_03": {
+      "label": "Mar 2024",
+      "start": "2024-03-01",
+      "end": "2024-03-31"
+    },
+    "pd_2024_04": {
+      "label": "Apr 2024",
+      "start": "2024-04-01",
+      "end": "2024-04-30"
+    },
+    "pd_2024_05": {
+      "label": "May 2024",
+      "start": "2024-05-01",
+      "end": "2024-05-31"
+    },
+    "pd_2024_06": {
+      "label": "Jun 2024",
+      "start": "2024-06-01",
+      "end": "2024-06-30"
+    },
+    "pd_2024_07": {
+      "label": "Jul 2024",
+      "start": "2024-07-01",
+      "end": "2024-07-31"
+    },
+    "pd_2024_08": {
+      "label": "Aug 2024",
+      "start": "2024-08-01",
+      "end": "2024-08-31"
+    },
+    "pd_2024_09": {
+      "label": "Sep 2024",
+      "start": "2024-09-01",
+      "end": "2024-09-30"
+    },
+    "pd_2024_10": {
+      "label": "Oct 2024",
+      "start": "2024-10-01",
+      "end": "2024-10-31"
+    },
+    "pd_2024_11": {
+      "label": "Nov 2024",
+      "start": "2024-11-01",
+      "end": "2024-11-30"
+    },
+    "pd_2024_12": {
+      "label": "Dec 2024",
+      "start": "2024-12-01",
+      "end": "2024-12-31"
+    },
+    "pd_fx_2019": {
+      "label": "2019",
+      "start": "2019-01-01",
+      "end": "2019-12-31"
+    },
+    "pd_fx_2020": {
+      "label": "2020",
+      "start": "2020-01-01",
+      "end": "2020-12-31"
+    },
+    "pd_fx_2021": {
+      "label": "2021",
+      "start": "2021-01-01",
+      "end": "2021-12-31"
+    },
+    "pd_fx_2022": {
+      "label": "2022",
+      "start": "2022-01-01",
+      "end": "2022-12-31"
+    },
+    "pd_fx_2023": {
+      "label": "2023",
+      "start": "2023-01-01",
+      "end": "2023-12-31"
+    },
+    "pd_fx_2024": {
+      "label": "2024",
+      "start": "2024-01-01",
+      "end": "2024-12-31"
+    },
+    "pd_fx_single": {
+      "label": "2024",
+      "start": "2024-01-01",
+      "end": "2024-12-31"
+    },
+    "pd_fx_m_2020_01": {
+      "label": "Jan 2020",
+      "start": "2020-01-01"
+    },
+    "pd_fx_m_2020_02": {
+      "label": "Feb 2020",
+      "start": "2020-02-01"
+    },
+    "pd_fx_m_2020_03": {
+      "label": "Mar 2020",
+      "start": "2020-03-01"
+    },
+    "pd_fx_m_2020_04": {
+      "label": "Apr 2020",
+      "start": "2020-04-01"
+    },
+    "pd_fx_m_2020_05": {
+      "label": "May 2020",
+      "start": "2020-05-01"
+    },
+    "pd_fx_m_2020_06": {
+      "label": "Jun 2020",
+      "start": "2020-06-01"
+    },
+    "pd_fx_m_2020_07": {
+      "label": "Jul 2020",
+      "start": "2020-07-01"
+    },
+    "pd_fx_m_2020_08": {
+      "label": "Aug 2020",
+      "start": "2020-08-01"
+    },
+    "pd_fx_m_2020_09": {
+      "label": "Sep 2020",
+      "start": "2020-09-01"
+    },
+    "pd_fx_m_2020_10": {
+      "label": "Oct 2020",
+      "start": "2020-10-01"
+    },
+    "pd_fx_m_2020_11": {
+      "label": "Nov 2020",
+      "start": "2020-11-01"
+    },
+    "pd_fx_m_2020_12": {
+      "label": "Dec 2020",
+      "start": "2020-12-01"
+    },
+    "pd_fx_m_2021_01": {
+      "label": "Jan 2021",
+      "start": "2021-01-01"
+    },
+    "pd_fx_m_2021_02": {
+      "label": "Feb 2021",
+      "start": "2021-02-01"
+    },
+    "pd_fx_m_2021_03": {
+      "label": "Mar 2021",
+      "start": "2021-03-01"
+    },
+    "pd_fx_m_2021_04": {
+      "label": "Apr 2021",
+      "start": "2021-04-01"
+    },
+    "pd_fx_m_2021_05": {
+      "label": "May 2021",
+      "start": "2021-05-01"
+    },
+    "pd_fx_m_2021_06": {
+      "label": "Jun 2021",
+      "start": "2021-06-01"
+    },
+    "pd_fx_m_2021_07": {
+      "label": "Jul 2021",
+      "start": "2021-07-01"
+    },
+    "pd_fx_m_2021_08": {
+      "label": "Aug 2021",
+      "start": "2021-08-01"
+    },
+    "pd_fx_m_2021_09": {
+      "label": "Sep 2021",
+      "start": "2021-09-01"
+    },
+    "pd_fx_m_2021_10": {
+      "label": "Oct 2021",
+      "start": "2021-10-01"
+    },
+    "pd_fx_m_2021_11": {
+      "label": "Nov 2021",
+      "start": "2021-11-01"
+    },
+    "pd_fx_m_2021_12": {
+      "label": "Dec 2021",
+      "start": "2021-12-01"
+    },
+    "pd_fx_m_2022_01": {
+      "label": "Jan 2022",
+      "start": "2022-01-01"
+    },
+    "pd_fx_m_2022_02": {
+      "label": "Feb 2022",
+      "start": "2022-02-01"
+    },
+    "pd_fx_m_2022_03": {
+      "label": "Mar 2022",
+      "start": "2022-03-01"
+    },
+    "pd_fx_m_2022_04": {
+      "label": "Apr 2022",
+      "start": "2022-04-01"
+    },
+    "pd_fx_m_2022_05": {
+      "label": "May 2022",
+      "start": "2022-05-01"
+    },
+    "pd_fx_m_2022_06": {
+      "label": "Jun 2022",
+      "start": "2022-06-01"
+    },
+    "pd_fx_m_2022_07": {
+      "label": "Jul 2022",
+      "start": "2022-07-01"
+    },
+    "pd_fx_m_2022_08": {
+      "label": "Aug 2022",
+      "start": "2022-08-01"
+    },
+    "pd_fx_m_2022_09": {
+      "label": "Sep 2022",
+      "start": "2022-09-01"
+    },
+    "pd_fx_m_2022_10": {
+      "label": "Oct 2022",
+      "start": "2022-10-01"
+    },
+    "pd_fx_m_2022_11": {
+      "label": "Nov 2022",
+      "start": "2022-11-01"
+    },
+    "pd_fx_m_2022_12": {
+      "label": "Dec 2022",
+      "start": "2022-12-01"
+    },
+    "pd_fx_m_2023_01": {
+      "label": "Jan 2023",
+      "start": "2023-01-01"
+    },
+    "pd_fx_m_2023_02": {
+      "label": "Feb 2023",
+      "start": "2023-02-01"
+    },
+    "pd_fx_m_2023_03": {
+      "label": "Mar 2023",
+      "start": "2023-03-01"
+    },
+    "pd_fx_m_2023_04": {
+      "label": "Apr 2023",
+      "start": "2023-04-01"
+    },
+    "pd_fx_m_2023_05": {
+      "label": "May 2023",
+      "start": "2023-05-01"
+    },
+    "pd_fx_m_2023_06": {
+      "label": "Jun 2023",
+      "start": "2023-06-01"
+    },
+    "pd_fx_m_2023_07": {
+      "label": "Jul 2023",
+      "start": "2023-07-01"
+    },
+    "pd_fx_m_2023_08": {
+      "label": "Aug 2023",
+      "start": "2023-08-01"
+    },
+    "pd_fx_m_2023_09": {
+      "label": "Sep 2023",
+      "start": "2023-09-01"
+    },
+    "pd_fx_m_2023_10": {
+      "label": "Oct 2023",
+      "start": "2023-10-01"
+    },
+    "pd_fx_m_2023_11": {
+      "label": "Nov 2023",
+      "start": "2023-11-01"
+    },
+    "pd_fx_m_2023_12": {
+      "label": "Dec 2023",
+      "start": "2023-12-01"
+    },
+    "pd_fx_m_2024_01": {
+      "label": "Jan 2024",
+      "start": "2024-01-01"
+    },
+    "pd_fx_m_2024_02": {
+      "label": "Feb 2024",
+      "start": "2024-02-01"
+    },
+    "pd_fx_m_2024_03": {
+      "label": "Mar 2024",
+      "start": "2024-03-01"
+    },
+    "pd_fx_m_2024_04": {
+      "label": "Apr 2024",
+      "start": "2024-04-01"
+    },
+    "pd_fx_m_2024_05": {
+      "label": "May 2024",
+      "start": "2024-05-01"
+    },
+    "pd_fx_m_2024_06": {
+      "label": "Jun 2024",
+      "start": "2024-06-01"
+    },
+    "pd_fx_m_2024_07": {
+      "label": "Jul 2024",
+      "start": "2024-07-01"
+    },
+    "pd_fx_m_2024_08": {
+      "label": "Aug 2024",
+      "start": "2024-08-01"
+    },
+    "pd_fx_m_2024_09": {
+      "label": "Sep 2024",
+      "start": "2024-09-01"
+    },
+    "pd_fx_m_2024_10": {
+      "label": "Oct 2024",
+      "start": "2024-10-01"
+    },
+    "pd_fx_m_2024_11": {
+      "label": "Nov 2024",
+      "start": "2024-11-01"
+    },
+    "pd_fx_m_2024_12": {
+      "label": "Dec 2024",
+      "start": "2024-12-01"
+    }
+  },
+  "quotes": {},
+  "context": {}
+}
