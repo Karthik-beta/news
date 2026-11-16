@@ -9,8 +9,14 @@ import { tableContract } from "@news/worker-shared/dynamo/contract";
 import type { Doc, Key, QueryInput, Table, TransactOp } from "@news/worker-shared/dynamo/table";
 import { RecordingPurger } from "@news/worker-shared/purge";
 import { readCapped } from "@news/worker-shared/r2";
-import { D1SearchIndex, listShards, searchPages } from "@news/worker-shared/search";
-import { curationPages, makeBundle, makeCuration, makeMeta } from "@news/worker-shared/testing/fixtures";
+import { D1SearchIndex, indexPage, listShards, searchPages } from "@news/worker-shared/search";
+import {
+  curationPages,
+  makeBundle,
+  makeCuration,
+  makeMeta,
+  makePageRecord,
+} from "@news/worker-shared/testing/fixtures";
 import { DEFAULT_REGION_VIEWS, homeUrls } from "@news/worker-shared/urls";
 import { DynamoDbLocal, dynamoConfigFromEnv, uniqueTableName } from "@news/worker-test-support/dynamodb";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -199,6 +205,32 @@ describe("publishing a page end to end", () => {
       text: "é".repeat(100),
     });
     expect(await readCapped(env.PAGES, "cap/none.md", 10)).toBeUndefined();
+  });
+});
+
+describe("the search schema", () => {
+  it("an index-status change rewrites the row, not the full-text index", async () => {
+    const db = env.SEARCH_2025;
+    const page = makePageRecord({
+      id: "trigger-page",
+      title: "Trigger probe page",
+      published_at: "2025-03-01T00:00:00.000Z",
+      updated_at: "2025-03-01T00:00:00.000Z",
+    });
+    await indexPage(db, page);
+    const status = await db
+      .prepare("UPDATE pages SET index_status = ?2 WHERE page_id = ?1")
+      .bind("trigger-page", "index")
+      .run();
+    expect(status.meta.rows_written).toBe(1);
+    expect((await searchPages([{ year: 2025, db }], { query: "trigger probe" })).map((h) => h.page_id)).toEqual([
+      "trigger-page",
+    ]);
+    await indexPage(db, { ...page, title: "Renamed probe page" });
+    expect((await searchPages([{ year: 2025, db }], { query: "renamed" })).map((h) => h.page_id)).toEqual([
+      "trigger-page",
+    ]);
+    expect(await searchPages([{ year: 2025, db }], { query: "trigger" })).toEqual([]);
   });
 });
 

@@ -42,7 +42,8 @@ CREATE TRIGGER pages_ad AFTER DELETE ON pages BEGIN
   VALUES ('delete', old.rowid, old.title, old.summary, old.entities, old.tags, old.categories);
 END;
 
-CREATE TRIGGER pages_au AFTER UPDATE ON pages BEGIN
+-- Only a change to an indexed column rewrites the FTS row: an index_status or date change costs one row write.
+CREATE TRIGGER pages_au AFTER UPDATE OF title, summary, entities, tags, categories ON pages BEGIN
   INSERT INTO pages_fts (pages_fts, rowid, title, summary, entities, tags, categories)
   VALUES ('delete', old.rowid, old.title, old.summary, old.entities, old.tags, old.categories);
   INSERT INTO pages_fts (rowid, title, summary, entities, tags, categories)
