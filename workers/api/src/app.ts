@@ -147,18 +147,51 @@ const ROUTES: Route[] = [
   },
 ];
 
+/**
+ * Clients that ran into the failed-attempt limit, per limiter binding and isolate, with the time their block ends.
+ * They are refused before any key comparison, so once limited even a right guess gets nothing until the block ends.
+ */
+const blockedBy = new WeakMap<RateLimit, Map<string, number>>();
+const BLOCK_MS = 60_000;
+const MAX_BLOCKED = 10_000;
+/** Loggers that already reported a missing write key: production has one logger, so that is once per isolate. */
+const keyMissingLogged = new WeakSet<Deps["log"]>();
+
 async function authenticate(deps: Deps, request: Request): Promise<void> {
+  const limiter = deps.limiters.authFailure;
+  const ip = clientIp(request);
+  const now = deps.now().getTime();
+  const blocked = limiter && blockedBy.get(limiter);
+  const until = blocked?.get(ip);
+  const limitedError = () =>
+    new ApiError("rate_limited", "too many failed attempts", undefined, {
+      "retry-after": String(Math.max(1, Math.ceil(((until ?? now + BLOCK_MS) - now) / 1000))),
+    });
+  if (until !== undefined) {
+    if (until > now) throw limitedError();
+    blocked?.delete(ip);
+  }
+
   const header = request.headers.get("authorization") ?? "";
   const presented = header.startsWith("Bearer ") ? header.slice(7) : "";
   const expected = deps.writeKey ?? "";
-  // Fail closed: with no key (or a weak one) configured, every write is refused.
+  // Fail closed: with no key (or a weak one) configured, every write is refused. Logged once per isolate.
   const configured = expected.length >= 32;
-  if (!configured) deps.log.error("write_key_not_configured");
+  if (!configured && !keyMissingLogged.has(deps.log)) {
+    keyMissingLogged.add(deps.log);
+    deps.log.error("write_key_not_configured");
+  }
   const ok = configured && presented.length > 0 && (await secretsEqual(presented, expected));
   if (ok) return;
-  if (deps.limiters.authFailure) {
-    const { success } = await deps.limiters.authFailure.limit({ key: clientIp(request) });
-    if (!success) throw new ApiError("rate_limited", "too many failed attempts", undefined, { "retry-after": "60" });
+  if (limiter) {
+    const { success } = await limiter.limit({ key: ip });
+    if (!success) {
+      const map = blocked ?? new Map<string, number>();
+      if (map.size >= MAX_BLOCKED) map.clear();
+      map.set(ip, now + BLOCK_MS);
+      blockedBy.set(limiter, map);
+      throw new ApiError("rate_limited", "too many failed attempts", undefined, { "retry-after": "60" });
+    }
   }
   throw new ApiError("unauthorized", "a valid write key is required", undefined, {
     "www-authenticate": 'Bearer realm="news"',

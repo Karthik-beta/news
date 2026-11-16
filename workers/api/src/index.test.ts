@@ -90,7 +90,9 @@ describe("authentication", () => {
         401,
         "unauthorized",
       );
-      expect(h.logs.some((l) => l.event === "write_key_not_configured")).toBe(true);
+      await h.call("PUT", "/v1/home/curation", { auth: "Bearer x", body: {} });
+      // Logged once (per isolate in production), not on every request.
+      expect(h.logs.filter((l) => l.event === "write_key_not_configured")).toHaveLength(1);
     }
   });
 
@@ -107,10 +109,15 @@ describe("authentication", () => {
     const res = await attempt();
     await expectError(res, 429, "rate_limited");
     expect(res.headers.get("retry-after")).toBe("60");
-    // A valid key is never limited.
-    expect(
-      (await h.call("PUT", "/v1/home/curation", { body: {}, headers: { "cf-connecting-ip": "203.0.113.9" } })).status,
-    ).toBe(400);
+    // Once limited, the client is refused before any key comparison, so even a right guess gets nothing for a
+    // minute; other clients are unaffected.
+    const valid = (ip: string) => h.call("PUT", "/v1/home/curation", { body: {}, headers: { "cf-connecting-ip": ip } });
+    const before = authFailure.counts.get("203.0.113.9");
+    await expectError(await valid("203.0.113.9"), 429, "rate_limited");
+    expect(authFailure.counts.get("203.0.113.9")).toBe(before);
+    expect((await valid("203.0.113.10")).status).toBe(400);
+    h.setNow("2026-11-12T10:01:01Z");
+    expect((await valid("203.0.113.9")).status).toBe(400);
   });
 
   it("never logs the key", async () => {
