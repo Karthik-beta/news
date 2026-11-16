@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/work.schema.json",
+  "title": "news work",
+  "description": "Background worker for the code-only pools; never ai, render or publish, never the write-API key. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "W",
+  "x-news-status": "built",
+  "x-news-errors": ["usage", "precondition", "upstream_unavailable"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "pools": {
+          "type": "array",
+          "items": {
+            "enum": ["net", "cpu", "docling"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "worker": {
+          "type": "string"
+        },
+        "once": {
+          "type": "boolean"
+        },
+        "max_seconds": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": ["pools"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "worker": {
+          "type": "string"
+        },
+        "pools": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "report": {
+          "type": "object",
+          "properties": {
+            "claimed": {
+              "type": "integer"
+            },
+            "completed": {
+              "type": "integer"
+            },
+            "failed": {
+              "type": "integer"
+            },
+            "lost": {
+              "type": "integer"
+            },
+            "rescued": {
+              "type": "integer"
+            },
+            "scheduled": {
+              "type": "integer"
+            }
+          },
+          "required": ["claimed", "completed", "failed", "lost", "rescued", "scheduled"],
+          "additionalProperties": false
+        },
+        "write_api_key_reads": {
+          "const": 0
+        }
+      },
+      "required": ["worker", "pools", "report", "write_api_key_reads"],
+      "additionalProperties": false
+    }
+  }
+}

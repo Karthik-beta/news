@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/run.submit.schema.json",
+  "title": "news run submit",
+  "description": "Submit a session step's result. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "W",
+  "x-news-status": "stub until #10",
+  "x-news-errors": ["validation_failed", "precondition"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "run": {
+          "type": "string",
+          "description": "Run id or short id (r_…)"
+        },
+        "file": {
+          "type": "string"
+        }
+      },
+      "required": ["run", "file"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "stored": {
+          "type": "boolean"
+        }
+      },
+      "required": ["stored"],
+      "additionalProperties": false
+    }
+  }
+}

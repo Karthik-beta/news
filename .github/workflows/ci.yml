@@ -177,6 +177,10 @@ jobs:
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           workspaces: cli
+      # The worker-environment test runs `bun scripts/work.ts` (node built-ins only, so no install).
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.3
       # Compose mounts infra/postgres/init into the container so the extensions exist on first start. A service
       # container is created before the checkout, so apply the same SQL here (psql is on the runner image).
       - name: Create the extensions (pgvector, pg_trgm, unaccent)

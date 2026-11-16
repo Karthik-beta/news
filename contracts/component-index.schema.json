@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/component-index.schema.json",
+  "title": "component-index.json",
+  "description": "The page writer's component index, written by the site build (#4: site/src/components/library.ts, buildComponentIndex) to site/dist/component-index.json and read by `news components` and `news component <name>`. One entry per component in name order. `line` is the one-line entry for the cached prompt prefix (ADR 0001: at most 24 tokens each, 4,000 in all, counted as ceil(UTF-8 bytes / 3)). The detail fields are optional: the site build adds them from each component's spec.ts (#4, #7); until then `news component` says they are missing.",
+  "type": "object",
+  "properties": {
+    "version": { "const": 1 },
+    "budget": {
+      "type": "object",
+      "properties": {
+        "tokens": { "type": "integer", "minimum": 1, "description": "Budget for the whole index" },
+        "perEntry": { "type": "integer", "minimum": 1, "description": "Budget for one line" }
+      },
+      "required": ["tokens", "perEntry"],
+      "additionalProperties": false
+    },
+    "tokens": { "type": "integer", "minimum": 0, "description": "Estimated tokens of all lines joined by newlines" },
+    "components": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/component" }
+    }
+  },
+  "required": ["version", "budget", "tokens", "components"],
+  "additionalProperties": false,
+  "$defs": {
+    "component": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Za-z0-9]*$",
+          "description": "PascalCase; the name the page writer calls in OpenUI Lang"
+        },
+        "line": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[^\\n]+$",
+          "description": "The one-line entry, \"Name — purpose — data shape\" (spec.ts `index`)"
+        },
+        "tokens": { "type": "integer", "minimum": 0, "description": "Estimated tokens of `line`" },
+        "description": {
+          "type": "string",
+          "description": "Optional. One sentence (spec.ts `description`)"
+        },
+        "props": {
+          "type": "object",
+          "description": "Optional. JSON Schema 2020-12 of the component's props (from its zod schema)"
+        },
+        "dataShape": {
+          "type": "string",
+          "description": "Optional. Which references each prop takes, in words (spec.ts `dataShape`)"
+        },
+        "example": {
+          "type": "string",
+          "description": "Optional. One realistic call in OpenUI Lang, references only (spec.ts `example`)"
+        }
+      },
+      "required": ["name", "line", "tokens"],
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/ai/a6.entity-pick.v1.schema.json",
+  "title": "A6 entity pick",
+  "description": "Pick an entity from a code-made shortlist, or none (Bureau §7.1 A6; off by default).",
+  "type": "object",
+  "properties": {
+    "choice": {
+      "oneOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "const": "none"
+        }
+      ]
+    }
+  },
+  "required": ["choice"],
+  "additionalProperties": false
+}

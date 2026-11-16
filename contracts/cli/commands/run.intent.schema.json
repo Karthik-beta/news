@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/run.intent.schema.json",
+  "title": "news run intent",
+  "description": "Map what Karthik typed after /bureau to an action. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "R",
+  "x-news-status": "stub until #10",
+  "x-news-errors": ["usage"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "canonical": {
+          "type": "string"
+        }
+      },
+      "required": ["text"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string"
+        },
+        "preset": {
+          "type": ["string", "null"]
+        },
+        "canonical": {
+          "type": ["string", "null"]
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "match": {
+          "enum": ["grammar", "phrase", "model", "none"]
+        },
+        "confirm": {
+          "type": "boolean"
+        },
+        "command": {
+          "type": ["string", "null"]
+        },
+        "reference": {
+          "type": ["string", "null"]
+        },
+        "text": {
+          "type": "string",
+          "description": "Code-rendered text, printed verbatim to Karthik"
+        }
+      },
+      "required": ["action", "preset", "canonical", "args", "match", "confirm", "command", "reference", "text"],
+      "additionalProperties": false
+    }
+  }
+}

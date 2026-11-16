@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/scores.label.schema.json",
+  "title": "news scores label",
+  "description": "Record Huddle's pairwise labels. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "W",
+  "x-news-status": "stub until #15",
+  "x-news-errors": ["validation_failed"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "run": {
+          "type": "string",
+          "description": "Run id or short id (r_…)"
+        },
+        "file": {
+          "type": "string"
+        }
+      },
+      "required": ["run", "file"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "stored": {
+          "type": "integer"
+        }
+      },
+      "required": ["stored"],
+      "additionalProperties": false
+    }
+  }
+}

@@ -2,14 +2,56 @@
 source: crates/news/tests/cli.rs
 expression: "stdout_of(&[\"--help\"])"
 ---
-News agent toolbox
+News agent toolbox. Every command prints one JSON envelope on stdout: {"ok":true,"data":…,"warnings":[],"truncated":false} or {"ok":false,"error":{…}}. Exit codes: 0 ok, 2 usage, 3 not found, 4 conflict or precondition, 5 retryable, 6 validation failed, 7 gated, 10 internal. Schemas: news schema <command>.
 
-Usage: news <COMMAND>
+Usage: news [OPTIONS] <COMMAND>
 
 Commands:
-  version  Print the CLI version as JSON
-  help     Print this message or the help of the given subcommand(s)
+  version      Print the CLI version as JSON
+  db           Database: migrations and status
+  discover     Run source connectors; store new candidates
+  plan         Score, cluster and select stories for a run (the Budget)
+  fetch        Download a story's source files and API data
+  parse        Parse a story's snapshots into data points and text blocks
+  brief        Build the brief for a story
+  components   List the component index, one line per component
+  component    One component's props, data shape and example
+  related      Related pages and entities for a story
+  save         Store a Copy (page draft) for a story
+  render       Render a story's page bundle
+  check        Run the code checks on a story's page
+  publish      Publish a story's page (G tier)
+  update       Load a published page for revision
+  prune        Delete working files for published items
+  stats        Run and coverage summary
+  home         Home page curation (Frontpage)
+  run          Chief: preset runs behind /bureau
+  jobs         Dispatch: the job queue
+  work         Dispatch: the background worker for code-only pools (net, cpu, docling)
+  ai           Ghost: contracts for every AI step
+  sources      Contacts: the source registry
+  calendar     Diary: the release calendar
+  stories      Taster: stories
+  scores       Nose: scores and weights
+  entities     Roster: entities
+  eval         Critic: evaluations
+  review       Huddle: the weekly review
+  corrections  Errata: reader error reports
+  schema       Input and output JSON Schemas of a command
+  help         Print this message or the help of the given subcommand(s)
 
 Options:
-  -h, --help     Print help
-  -V, --version  Print version
+      --limit <N>
+          Return at most N list items (default 20; `jobs claim`: how many to claim, default 1)
+
+      --fields <A,B>
+          Keep only these keys of each item, comma-separated
+
+      --cursor <CURSOR>
+          Continue a truncated list from its next_cursor
+
+  -h, --help
+          Print help (see a summary with '-h')
+
+  -V, --version
+          Print version
