@@ -1,0 +1,24 @@
+[package]
+name = "board-spike"
+description = "Spike: Board as an eframe app (token colours, Windows light/dark, start minimised, tray, toast)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+build = "build.rs"
+
+[dependencies]
+# glow (OpenGL) renderer only: wgpu is several MB larger and Board needs nothing it adds.
+eframe = { version = "=0.37.0", default-features = false, features = ["glow", "default_fonts", "accesskit"] }
+serde_json = "1"
+windows-sys = { version = "=0.61.2", features = ["Win32_Foundation", "Win32_System_Threading", "Win32_System_Console", "Win32_System_SystemInformation"] }
+tray-icon = { version = "=0.26.1", optional = true }
+tauri-winrt-notification = { version = "=0.8.1", optional = true }
+
+[features]
+default = []
+tray = ["dep:tray-icon"]
+toast = ["dep:tauri-winrt-notification"]
+# Embed a manifest with <consoleAllocationPolicy>detached</consoleAllocationPolicy>, so the
+# console-subsystem binary gets no console window when started from Explorer or at log-on.
+detached-console = []

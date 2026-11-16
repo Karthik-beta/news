@@ -1,0 +1,25 @@
+[package]
+name = "bureau-spike"
+description = "Spike: Windows service lifecycle, the Hotline named pipe, the Job Object spawn marker, env and DB probes."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+windows-service = "=0.8.1"
+windows-sys = { version = "=0.61.2", features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_Security_Authorization",
+    "Win32_System_Pipes",
+    "Win32_System_Threading",
+    "Win32_System_JobObjects",
+    "Win32_System_Diagnostics_ToolHelp",
+    "Win32_System_Environment",
+    "Win32_UI_Shell",
+    "Wdk_System_Threading",
+] }
+tokio = { version = "1", features = ["rt-multi-thread", "net", "io-util", "macros", "time", "sync", "signal"] }
+serde_json = "1"
+postgres = "0.19.14"

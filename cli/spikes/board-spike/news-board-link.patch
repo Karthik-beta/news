@@ -1,0 +1,48 @@
+diff --git a/cli/crates/news/Cargo.toml b/cli/crates/news/Cargo.toml
+index 500f241..d6c3ad4 100644
+--- a/cli/crates/news/Cargo.toml
++++ b/cli/crates/news/Cargo.toml
+@@ -31,6 +31,8 @@ news-rewrite = { workspace = true }
+ news-press = { workspace = true }
+ news-critic = { workspace = true }
+ news-board = { workspace = true }
++# SPIKE (not for merge): Board linked in for the size test.
++board-spike = { path = "../../spikes/board-spike" }
+ chrono = { workspace = true }
+ clap = { workspace = true }
+ serde = { workspace = true }
+diff --git a/cli/crates/news/build.rs b/cli/crates/news/build.rs
+index fe7b6a4..6f2ea3d 100644
+--- a/cli/crates/news/build.rs
++++ b/cli/crates/news/build.rs
+@@ -18,6 +18,14 @@ fn walk(dir: &Path, out: &mut Vec<PathBuf>) {
+ }
+ 
+ fn main() {
++    // SPIKE (not for merge): delay-load Board's GUI DLLs so CLI calls do not load them.
++    for dll in [
++        "opengl32.dll", "gdi32.dll", "user32.dll", "dwmapi.dll", "imm32.dll", "uxtheme.dll",
++        "uiautomationcore.dll", "ole32.dll", "oleaut32.dll",
++    ] {
++        println!("cargo:rustc-link-arg-bins=/DELAYLOAD:{dll}");
++    }
++    println!("cargo:rustc-link-arg-bins=delayimp.lib");
+     let manifest = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap_or_default());
+     let root = manifest.join("../../../contracts/cli");
+     println!("cargo:rerun-if-changed={}", root.display());
+diff --git a/cli/crates/news/src/main.rs b/cli/crates/news/src/main.rs
+index c9dd2f8..780d85e 100644
+--- a/cli/crates/news/src/main.rs
++++ b/cli/crates/news/src/main.rs
+@@ -121,6 +121,11 @@ fn exit(code: i32) -> ExitCode {
+ }
+ 
+ fn main() -> ExitCode {
++    // SPIKE (not for merge): `news board` linked in to measure size and start-up.
++    let argv: Vec<String> = std::env::args().collect();
++    if argv.get(1).map(String::as_str) == Some("board") {
++        return exit(board_spike::run(&argv));
++    }
+     let started = Instant::now();
+     let matches = match Cli::command().try_get_matches() {
+         Ok(m) => m,
