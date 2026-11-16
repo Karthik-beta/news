@@ -1,0 +1,1016 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/hotline/common.schema.json",
+  "title": "Hotline shared definitions",
+  "description": "Types shared by the Hotline's command and event contracts (ADR 0008). Every figure here is computed by code from PostgreSQL; every `text` is rendered by code.",
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "shortId": {
+      "type": "string",
+      "pattern": "^r_[a-z0-9]{4,16}$",
+      "description": "A run's short id, as Board and the terminal show it"
+    },
+    "runRef": {
+      "description": "A run id or short id",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/uuid"
+        },
+        {
+          "$ref": "#/$defs/shortId"
+        }
+      ]
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC, RFC 3339"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "Lower-case hex SHA-256"
+    },
+    "text": {
+      "type": "string",
+      "description": "Code-rendered text, shown verbatim; never typed by a model"
+    },
+    "presetId": {
+      "enum": [
+        "edition",
+        "flash",
+        "catchup",
+        "frontpage",
+        "rollcall",
+        "salvage",
+        "followup",
+        "errata",
+        "audit",
+        "huddle",
+        "reprint"
+      ]
+    },
+    "presetArgs": {
+      "type": "object",
+      "description": "A preset's arguments by name, as `run.presets` declares them; checked by Chief (validation_failed)"
+    },
+    "runStatus": {
+      "enum": [
+        "queued",
+        "running",
+        "waiting_approval",
+        "waiting_ai",
+        "pausing",
+        "paused",
+        "succeeded",
+        "failed",
+        "cancelled",
+        "skipped"
+      ]
+    },
+    "terminalStatus": {
+      "enum": ["succeeded", "failed", "cancelled", "skipped"]
+    },
+    "origin": {
+      "enum": ["board", "schedule"]
+    },
+    "pausedReason": {
+      "enum": ["karthik", "usage_limit", "quiet_hours", "quota", "update"]
+    },
+    "stopMode": {
+      "enum": ["drain", "now", "cancel"]
+    },
+    "stepKind": {
+      "enum": ["code", "ai_batch", "draft", "form", "approval"]
+    },
+    "stepStatus": {
+      "enum": ["pending", "running", "done", "skipped", "failed"]
+    },
+    "gateName": {
+      "type": "string",
+      "pattern": "^[a-z]+(:[A-Za-z0-9_.-]{1,64})?$",
+      "description": "A gate, or a per-item gate family and item (`report:81`, `change:3`)"
+    },
+    "decision": {
+      "enum": ["approved", "rejected", "changes"]
+    },
+    "scheduleKey": {
+      "type": "string",
+      "pattern": "^schedules\\.[a-z0-9-]{1,32}$"
+    },
+    "settingKey": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*(\\.[a-z0-9_-]+)+$"
+    },
+    "serviceState": {
+      "enum": ["starting", "waiting_for_database", "recovering", "up", "stopping"]
+    },
+    "topic": {
+      "enum": ["run", "gate", "lineup", "schedule", "usage", "standing", "service", "source", "huddle"]
+    },
+    "hAction": {
+      "enum": [
+        "run.start",
+        "run.start_after_pause",
+        "gate.approve",
+        "gate.changes",
+        "gate.reject",
+        "run.pause",
+        "run.resume",
+        "run.cancel",
+        "lineup.cancel",
+        "standing.set"
+      ],
+      "description": "An H-tier command Board may offer for this item"
+    },
+    "progress": {
+      "type": "object",
+      "properties": {
+        "done": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": ["done", "total"],
+      "additionalProperties": false
+    },
+    "stepPosition": {
+      "type": "object",
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/stepKind"
+        },
+        "status": {
+          "$ref": "#/$defs/stepStatus"
+        }
+      },
+      "required": ["seq", "id", "title", "kind", "status"],
+      "additionalProperties": false
+    },
+    "heavySlot": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "run_id": {
+              "$ref": "#/$defs/uuid"
+            },
+            "short_id": {
+              "$ref": "#/$defs/shortId"
+            },
+            "preset": {
+              "$ref": "#/$defs/presetId"
+            },
+            "status": {
+              "$ref": "#/$defs/runStatus"
+            }
+          },
+          "required": ["run_id", "short_id", "preset", "status"],
+          "additionalProperties": false
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "stopping": {
+      "type": "object",
+      "properties": {
+        "tasks_left": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "oldest_since": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "jobs": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      },
+      "required": ["tasks_left", "oldest_since", "jobs"],
+      "additionalProperties": false,
+      "description": "Worker tasks of a pausing run that have not stopped yet; the run keeps the slot meanwhile"
+    },
+    "runSummary": {
+      "type": "object",
+      "properties": {
+        "run_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "short_id": {
+          "$ref": "#/$defs/shortId"
+        },
+        "preset": {
+          "$ref": "#/$defs/presetId"
+        },
+        "preset_name": {
+          "type": "string"
+        },
+        "heavy": {
+          "type": "boolean"
+        },
+        "origin": {
+          "$ref": "#/$defs/origin"
+        },
+        "schedule_key": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/scheduleKey"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "$ref": "#/$defs/runStatus"
+        },
+        "step": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/stepPosition"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "steps": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "progress": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/progress"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "queued_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "started_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "last_seen_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stalled": {
+          "type": "boolean",
+          "description": "last_seen_at older than chief.stall_minutes"
+        },
+        "paused_reason": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/pausedReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stop_mode": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/stopMode"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "resume_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stopping": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/stopping"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "run_id",
+        "short_id",
+        "preset",
+        "preset_name",
+        "heavy",
+        "origin",
+        "schedule_key",
+        "status",
+        "step",
+        "steps",
+        "progress",
+        "queued_at",
+        "started_at",
+        "last_seen_at",
+        "stalled",
+        "paused_reason",
+        "stop_mode",
+        "resume_at",
+        "stopping"
+      ],
+      "additionalProperties": false
+    },
+    "summary": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "$ref": "#/$defs/text"
+        }
+      },
+      "required": ["text"],
+      "description": "A code-built summary: `text` plus the structured figures it was rendered from"
+    },
+    "gateOpen": {
+      "type": "object",
+      "properties": {
+        "run_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "short_id": {
+          "$ref": "#/$defs/shortId"
+        },
+        "preset": {
+          "$ref": "#/$defs/presetId"
+        },
+        "gate": {
+          "$ref": "#/$defs/gateName"
+        },
+        "round": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "step": {
+          "type": "string",
+          "description": "The approval step's id"
+        },
+        "since": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "subject_sha": {
+          "$ref": "#/$defs/sha256"
+        },
+        "summary": {
+          "$ref": "#/$defs/summary"
+        },
+        "preview": {
+          "anyOf": [
+            {
+              "type": "object",
+              "description": "What Board shows beside the summary: plan table, draft id, diff"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "enum": ["gate.approve", "gate.changes", "gate.reject"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "run_id",
+        "short_id",
+        "preset",
+        "gate",
+        "round",
+        "step",
+        "since",
+        "subject_sha",
+        "summary",
+        "preview",
+        "actions"
+      ],
+      "additionalProperties": false
+    },
+    "lineupEntry": {
+      "type": "object",
+      "properties": {
+        "position": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "run_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "short_id": {
+          "$ref": "#/$defs/shortId"
+        },
+        "preset": {
+          "$ref": "#/$defs/presetId"
+        },
+        "origin": {
+          "$ref": "#/$defs/origin"
+        },
+        "schedule_key": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/scheduleKey"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "queued_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "start_by": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lineup_rank": {
+          "enum": [0, 1]
+        },
+        "rejoined": {
+          "type": "boolean",
+          "description": "Already started once (after a gate, pause or resume); never skipped as late"
+        },
+        "held_by": {
+          "enum": ["slot", "quiet_hours", "quota"]
+        }
+      },
+      "required": [
+        "position",
+        "run_id",
+        "short_id",
+        "preset",
+        "origin",
+        "schedule_key",
+        "queued_at",
+        "start_by",
+        "lineup_rank",
+        "rejoined",
+        "held_by"
+      ],
+      "additionalProperties": false
+    },
+    "wrapStep": {
+      "type": "object",
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "step": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/stepStatus"
+        }
+      },
+      "required": ["seq", "step", "status"],
+      "additionalProperties": false
+    },
+    "wrapApproval": {
+      "type": "object",
+      "properties": {
+        "gate": {
+          "$ref": "#/$defs/gateName"
+        },
+        "round": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "decision": {
+          "$ref": "#/$defs/decision"
+        },
+        "decided_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "origin": {
+          "const": "board"
+        }
+      },
+      "required": ["gate", "round", "decision", "decided_at", "origin"],
+      "additionalProperties": false
+    },
+    "tokens": {
+      "type": "object",
+      "properties": {
+        "input": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "output": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cache_creation": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cache_read": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": ["input", "output", "cache_creation", "cache_read"],
+      "additionalProperties": false
+    },
+    "wrap": {
+      "type": "object",
+      "properties": {
+        "run_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "short_id": {
+          "$ref": "#/$defs/shortId"
+        },
+        "preset": {
+          "$ref": "#/$defs/presetId"
+        },
+        "status": {
+          "$ref": "#/$defs/terminalStatus"
+        },
+        "origin": {
+          "$ref": "#/$defs/origin"
+        },
+        "schedule_key": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/scheduleKey"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "settings_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "queued_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "started_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "finished_at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Why it was skipped, failed or cancelled"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/wrapStep"
+          }
+        },
+        "counts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "description": "Counts the steps report (published, failed, queued_next …), summed by code"
+        },
+        "approvals": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/wrapApproval"
+          }
+        },
+        "tokens": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/tokens"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "unresolved_publishes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "page_id": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              }
+            },
+            "required": ["page_id", "reason"],
+            "additionalProperties": false
+          }
+        },
+        "text": {
+          "$ref": "#/$defs/text"
+        }
+      },
+      "required": [
+        "run_id",
+        "short_id",
+        "preset",
+        "status",
+        "origin",
+        "schedule_key",
+        "settings_version",
+        "queued_at",
+        "started_at",
+        "finished_at",
+        "reason",
+        "steps",
+        "counts",
+        "approvals",
+        "tokens",
+        "unresolved_publishes",
+        "text"
+      ],
+      "additionalProperties": false,
+      "description": "The Wrap: written by one function with the terminal status (ADR 0008 §6.5)"
+    },
+    "standingChange": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/settingKey"
+        },
+        "old": {},
+        "new": {}
+      },
+      "required": ["key", "old", "new"],
+      "additionalProperties": false,
+      "description": "Effective values before and after; `old` is the default when the key was unset"
+    },
+    "logLine": {
+      "type": "object",
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "at": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "level": {
+          "enum": ["info", "warn", "error"]
+        },
+        "target": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "run_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": ["seq", "at", "level", "target", "message", "run_id"],
+      "additionalProperties": false
+    },
+    "usage": {
+      "type": "object",
+      "properties": {
+        "known": {
+          "type": "boolean",
+          "description": "False when ClickHouse could not be read"
+        },
+        "bureau_today": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "bureau_week": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "total_today": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "total_week": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cap_today": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cap_week": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reserve_today": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reserve_week": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "known",
+        "bureau_today",
+        "bureau_week",
+        "total_today",
+        "total_week",
+        "cap_today",
+        "cap_week",
+        "reserve_today",
+        "reserve_week"
+      ],
+      "additionalProperties": false,
+      "description": "Tokens (input + output + cache creation). Day: local calendar day; week: ISO week (ADR 0008 §7.3)"
+    },
+    "argDecl": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "type": {
+          "enum": ["integer", "boolean", "text", "date", "enum", "list"]
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "default": {},
+        "doc": {
+          "type": "string"
+        },
+        "choices": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "min": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "max": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": ["name", "type", "required", "default", "doc", "choices", "min", "max"],
+      "additionalProperties": false
+    },
+    "presetDecl": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/presetId"
+        },
+        "name": {
+          "type": "string"
+        },
+        "heavy": {
+          "type": "boolean"
+        },
+        "writes": {
+          "type": "array",
+          "items": {
+            "enum": ["pages", "home_curation", "source_state", "task_drafts", "jobs", "eval_results", "config"]
+          },
+          "uniqueItems": true
+        },
+        "publishes": {
+          "type": "boolean"
+        },
+        "gates": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Gate names, and per-item families as `report:*`"
+        },
+        "args": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/argDecl"
+          }
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "seq": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "kind": {
+                "$ref": "#/$defs/stepKind"
+              },
+              "gate": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": ["seq", "id", "title", "kind", "gate"],
+            "additionalProperties": false
+          },
+          "minItems": 1
+        },
+        "reference": {
+          "type": "string",
+          "description": "Where the design describes it, e.g. Bureau §8.3"
+        }
+      },
+      "required": ["id", "name", "heavy", "writes", "publishes", "gates", "args", "steps", "reference"],
+      "additionalProperties": false
+    }
+  }
+}

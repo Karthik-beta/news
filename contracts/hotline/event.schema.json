@@ -1,0 +1,189 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/hotline/event.schema.json",
+  "title": "Hotline event",
+  "description": "One event on a subscribed connection. `seq` counts from 1 per service process; a gap or a `lagged` event means Board reads `status` again.",
+  "type": "object",
+  "properties": {
+    "v": {
+      "const": 1
+    },
+    "event": {
+      "enum": ["run", "gate", "lineup", "schedule", "usage", "standing", "service", "source", "huddle", "lagged"]
+    },
+    "seq": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "at": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    },
+    "data": {
+      "type": "object"
+    }
+  },
+  "required": ["v", "event", "seq", "at", "data"],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "event": {
+            "const": "run"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "events/run.schema.json#/$defs/data"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event": {
+            "const": "gate"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "events/gate.schema.json#/$defs/data"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event": {
+            "const": "lineup"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "events/lineup.schema.json#/$defs/data"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event": {
+            "const": "schedule"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "events/schedule.schema.json#/$defs/data"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event": {
+            "const": "usage"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "events/usage.schema.json#/$defs/data"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event": {
+            "const": "standing"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "events/standing.schema.json#/$defs/data"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event": {
+            "const": "service"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "events/service.schema.json#/$defs/data"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event": {
+            "const": "source"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "events/source.schema.json#/$defs/data"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event": {
+            "const": "huddle"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "events/huddle.schema.json#/$defs/data"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event": {
+            "const": "lagged"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "events/lagged.schema.json#/$defs/data"
+          }
+        }
+      }
+    }
+  ]
+}

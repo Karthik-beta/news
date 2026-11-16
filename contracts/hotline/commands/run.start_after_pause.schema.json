@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/hotline/commands/run.start_after_pause.schema.json",
+  "title": "Hotline run.start_after_pause",
+  "description": "Pause the run holding the heavy slot (the one the queue offer named) at its next safe boundary, and queue this start first in the Lineup. If another run holds the slot now, `conflict` with a fresh queue offer. Input is the request's args; output is the reply envelope's data.",
+  "x-news-tier": "H",
+  "x-hotline-from": ["board"],
+  "x-news-status": "#10",
+  "x-news-cli": null,
+  "x-news-errors": ["usage", "validation_failed", "conflict", "precondition", "gated", "upstream_unavailable"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "preset": {
+          "$ref": "../common.schema.json#/$defs/presetId"
+        },
+        "args": {
+          "$ref": "../common.schema.json#/$defs/presetArgs"
+        },
+        "pause_run": {
+          "$ref": "../common.schema.json#/$defs/runRef"
+        }
+      },
+      "required": ["preset", "args", "pause_run"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "paused": {
+          "type": "object",
+          "properties": {
+            "run_id": {
+              "$ref": "../common.schema.json#/$defs/uuid"
+            },
+            "short_id": {
+              "$ref": "../common.schema.json#/$defs/shortId"
+            },
+            "status": {
+              "const": "pausing"
+            }
+          },
+          "required": ["run_id", "short_id", "status"],
+          "additionalProperties": false
+        },
+        "started": {
+          "type": "object",
+          "properties": {
+            "run_id": {
+              "$ref": "../common.schema.json#/$defs/uuid"
+            },
+            "short_id": {
+              "$ref": "../common.schema.json#/$defs/shortId"
+            },
+            "preset": {
+              "$ref": "../common.schema.json#/$defs/presetId"
+            },
+            "status": {
+              "const": "queued"
+            },
+            "position": {
+              "const": 1
+            }
+          },
+          "required": ["run_id", "short_id", "preset", "status", "position"],
+          "additionalProperties": false
+        },
+        "text": {
+          "$ref": "../common.schema.json#/$defs/text"
+        }
+      },
+      "required": ["paused", "started", "text"],
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/hotline/reply.schema.json",
+  "title": "Hotline reply",
+  "description": "The reply to one request: the request's id and the CLI envelope (Bureau §6.2), whose `data` is the command's `$defs/output`. `id` is null only when the request could not be read.",
+  "type": "object",
+  "properties": {
+    "v": {
+      "const": 1
+    },
+    "id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.:-]{1,64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "envelope": {
+      "$ref": "../cli/envelope.schema.json"
+    }
+  },
+  "required": ["v", "id", "envelope"],
+  "additionalProperties": false
+}

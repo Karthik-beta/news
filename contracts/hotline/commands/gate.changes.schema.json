@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/hotline/commands/gate.changes.schema.json",
+  "title": "Hotline gate.changes",
+  "description": "Request changes: the run returns to its drafting step with the note, in a new round. Bound to the subject_sha of what Board displayed: a different hash is gated; a gate that is not open, or another round, is precondition. Input is the request's args; output is the reply envelope's data.",
+  "x-news-tier": "H",
+  "x-hotline-from": ["board"],
+  "x-news-status": "#10",
+  "x-news-cli": null,
+  "x-news-errors": ["usage", "not_found", "precondition", "gated", "upstream_unavailable"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "run": {
+          "$ref": "../common.schema.json#/$defs/runRef"
+        },
+        "gate": {
+          "$ref": "../common.schema.json#/$defs/gateName"
+        },
+        "round": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "subject_sha": {
+          "$ref": "../common.schema.json#/$defs/sha256"
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000,
+          "description": "What to change; required"
+        }
+      },
+      "required": ["run", "gate", "round", "subject_sha", "note"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "decision": {
+          "const": "changes"
+        },
+        "run_id": {
+          "$ref": "../common.schema.json#/$defs/uuid"
+        },
+        "short_id": {
+          "$ref": "../common.schema.json#/$defs/shortId"
+        },
+        "gate": {
+          "$ref": "../common.schema.json#/$defs/gateName"
+        },
+        "round": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "subject_sha": {
+          "$ref": "../common.schema.json#/$defs/sha256"
+        },
+        "run_status": {
+          "$ref": "../common.schema.json#/$defs/runStatus"
+        },
+        "text": {
+          "$ref": "../common.schema.json#/$defs/text"
+        }
+      },
+      "required": ["decision", "run_id", "short_id", "gate", "round", "subject_sha", "run_status", "text"],
+      "additionalProperties": false
+    }
+  }
+}

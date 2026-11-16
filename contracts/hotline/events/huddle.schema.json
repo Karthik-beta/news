@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/hotline/events/huddle.schema.json",
+  "title": "Hotline event huddle",
+  "description": "Huddle's questions are ready for Karthik in Board. Emitted once Huddle (#19) exists. Validates the event's data.",
+  "x-hotline-topic": "huddle",
+  "x-news-status": "#19",
+  "$defs": {
+    "data": {
+      "type": "object",
+      "properties": {
+        "run_id": {
+          "$ref": "../common.schema.json#/$defs/uuid"
+        },
+        "short_id": {
+          "$ref": "../common.schema.json#/$defs/shortId"
+        },
+        "questions": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "text": {
+          "$ref": "../common.schema.json#/$defs/text"
+        }
+      },
+      "required": ["run_id", "short_id", "questions", "text"],
+      "additionalProperties": false
+    }
+  }
+}

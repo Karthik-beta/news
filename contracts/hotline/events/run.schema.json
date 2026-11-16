@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/hotline/events/run.schema.json",
+  "title": "Hotline event run",
+  "description": "A run changed status, step or progress. Terminal statuses carry the Wrap. Validates the event's data.",
+  "x-hotline-topic": "run",
+  "x-news-status": "#10",
+  "$defs": {
+    "data": {
+      "type": "object",
+      "properties": {
+        "run_id": {
+          "$ref": "../common.schema.json#/$defs/uuid"
+        },
+        "short_id": {
+          "$ref": "../common.schema.json#/$defs/shortId"
+        },
+        "preset": {
+          "$ref": "../common.schema.json#/$defs/presetId"
+        },
+        "status": {
+          "$ref": "../common.schema.json#/$defs/runStatus"
+        },
+        "previous": {
+          "anyOf": [
+            {
+              "$ref": "../common.schema.json#/$defs/runStatus"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "step": {
+          "anyOf": [
+            {
+              "$ref": "../common.schema.json#/$defs/stepPosition"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "steps": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "progress": {
+          "anyOf": [
+            {
+              "$ref": "../common.schema.json#/$defs/progress"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "paused_reason": {
+          "anyOf": [
+            {
+              "$ref": "../common.schema.json#/$defs/pausedReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "resume_at": {
+          "anyOf": [
+            {
+              "$ref": "../common.schema.json#/$defs/timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "wrap": {
+          "anyOf": [
+            {
+              "$ref": "../common.schema.json#/$defs/wrap"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "text": {
+          "$ref": "../common.schema.json#/$defs/text"
+        }
+      },
+      "required": [
+        "run_id",
+        "short_id",
+        "preset",
+        "status",
+        "previous",
+        "step",
+        "steps",
+        "progress",
+        "paused_reason",
+        "resume_at",
+        "wrap",
+        "text"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
