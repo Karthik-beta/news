@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://news.karthik.nz/contracts/cloud/dynamodb-items.schema.json",
   "title": "DynamoDB single-table items",
-  "description": "Every item type in the one DynamoDB table (ADR 0004), as plain JSON after decoding. Versions in sort keys are zero-padded to six digits so that they sort numerically. Content records carry `lang`; the idempotency record is bookkeeping and does not.",
+  "description": "Every item type in the one DynamoDB table (ADR 0004), as plain JSON after decoding. Versions in sort keys are zero-padded to six digits so that they sort numerically. Content records carry `lang`; the idempotency record and the page lock are bookkeeping and do not.",
   "$defs": {
     "versionKey": { "type": "string", "pattern": "^V#[0-9]{6}$" },
     "pageRecord": {
@@ -83,7 +83,17 @@
         },
         "written_at": { "$ref": "common.schema.json#/$defs/timestamp" },
         "withdrawn_at": { "$ref": "common.schema.json#/$defs/timestamp" },
-        "withdraw_reason": { "type": "string" }
+        "withdraw_reason": { "type": "string" },
+        "cleanup": {
+          "description": "LATEST only: hubs and R2 files of the version this one replaced that it no longer has. They are removed and purged after the commit; the field stays until that has worked, so a retry or the next version finishes the job.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["hubs", "files"],
+          "properties": {
+            "hubs": { "type": "array", "items": { "$ref": "#/$defs/hubId" } },
+            "files": { "type": "array", "items": { "type": "string" } }
+          }
+        }
       }
     },
     "hubId": {
@@ -195,6 +205,20 @@
         "created_at": { "$ref": "common.schema.json#/$defs/timestamp" }
       }
     },
+    "pageLock": {
+      "description": "PK 'PAGE#<page_id>', SK 'LOCK'. Held by the one write operation running on a page (publish, withdraw, index promotion) from before it reads the page until it is done; a lock older than 2 minutes is stale and may be taken over. Bookkeeping, no `lang`; DynamoDB TTL on `expires_at` removes a forgotten one.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["PK", "SK", "type", "owner", "acquired_at", "expires_at"],
+      "properties": {
+        "PK": { "type": "string", "pattern": "^PAGE#[a-z0-9-]+$" },
+        "SK": { "const": "LOCK" },
+        "type": { "const": "page_lock" },
+        "owner": { "type": "string", "pattern": "^[0-9a-f]{32}$" },
+        "acquired_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+        "expires_at": { "type": "integer" }
+      }
+    },
     "curationRecord": {
       "description": "PK 'HOME#CURATION', SK 'V#<version>' (never changed) or 'LATEST' (a copy of the live version; after a rollback it is an older version). A few KB.",
       "type": "object",
@@ -221,6 +245,10 @@
         "version": { "type": "integer", "minimum": 1 },
         "published_at": { "$ref": "common.schema.json#/$defs/timestamp" },
         "made_live_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+        "request_id": {
+          "description": "SHA-256 of the Idempotency-Key that published this version, so a retry finds its own version instead of publishing another.",
+          "$ref": "common.schema.json#/$defs/sha256"
+        },
         "schema": { "const": "curation.v1" },
         "lang": { "$ref": "common.schema.json#/$defs/lang" },
         "created_at": { "$ref": "common.schema.json#/$defs/timestamp" },

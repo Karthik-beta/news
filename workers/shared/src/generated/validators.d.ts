@@ -33,6 +33,7 @@ export declare const validateEntityItem: Validator;
 export declare const validateTaxonomyItem: Validator;
 export declare const validateRedirectItem: Validator;
 export declare const validatePathClaimItem: Validator;
+export declare const validatePageLockItem: Validator;
 export declare const validateCurationItem: Validator;
 export declare const validateIdempotencyItem: Validator;
 export declare const validateReportItem: Validator;

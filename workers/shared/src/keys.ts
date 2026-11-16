@@ -36,6 +36,8 @@ export const taxonomyNodeKey = (id: string): Key => ({ PK: TAXONOMY_PK, SK: `NOD
 
 export const redirectKey = (path: string): Key => ({ PK: `URL#${path}`, SK: "REDIRECT" });
 export const pathClaimKey = (path: string): Key => ({ PK: `URL#${path}`, SK: "PAGE" });
+/** The page lock: one write operation per page at a time (ADR 0004). */
+export const pageLockKey = (pageId: string): Key => ({ PK: pagePk(pageId), SK: "LOCK" });
 
 export const CURATION_PK = "HOME#CURATION";
 export const curationLatestKey = (): Key => ({ PK: CURATION_PK, SK: LATEST });

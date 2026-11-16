@@ -76,6 +76,8 @@ export interface PageRecord {
   written_at: string;
   withdrawn_at?: string;
   withdraw_reason?: string;
+  /** LATEST only: hubs and files the replaced version had and this one dropped, until they are removed and purged. */
+  cleanup?: { hubs: string[]; files: string[] };
 }
 
 export interface HubEntry {
@@ -141,6 +143,15 @@ export interface PathClaim {
   created_at: string;
 }
 
+export interface PageLock {
+  PK: string;
+  SK: "LOCK";
+  type: "page_lock";
+  owner: string;
+  acquired_at: string;
+  expires_at: number;
+}
+
 export interface CurationSlot {
   page_id: string;
   figure_id?: string;
@@ -173,6 +184,8 @@ export interface CurationRecord extends Curation {
   version: number;
   published_at: string;
   made_live_at?: string;
+  /** SHA-256 of the Idempotency-Key that published this version. */
+  request_id?: string;
   server_checks: { passed: true; run_at: string };
 }
 

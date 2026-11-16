@@ -193,11 +193,13 @@
                 "path_conflict",
                 "unknown_page",
                 "page_withdrawn",
+                "page_busy",
                 "purge_failed",
                 "not_configured",
                 "payload_too_large",
                 "rate_limited",
                 "throttled",
+                "outcome_unknown",
                 "internal"
               ]
             },

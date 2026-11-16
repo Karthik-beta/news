@@ -40,6 +40,7 @@ export const VALIDATORS: Record<string, string> = {
   validateTaxonomyItem: `${BASE}/cloud/dynamodb-items.schema.json#/$defs/taxonomyNode`,
   validateRedirectItem: `${BASE}/cloud/dynamodb-items.schema.json#/$defs/redirect`,
   validatePathClaimItem: `${BASE}/cloud/dynamodb-items.schema.json#/$defs/pathClaim`,
+  validatePageLockItem: `${BASE}/cloud/dynamodb-items.schema.json#/$defs/pageLock`,
   validateCurationItem: `${BASE}/cloud/dynamodb-items.schema.json#/$defs/curationRecord`,
   validateIdempotencyItem: `${BASE}/cloud/dynamodb-items.schema.json#/$defs/idempotencyRecord`,
   validateReportItem: `${BASE}/cloud/dynamodb-items.schema.json#/$defs/reportRecord`,
