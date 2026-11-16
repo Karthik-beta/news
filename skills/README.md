@@ -12,7 +12,8 @@ These skills are for the **production pipeline**: the `claude -p` calls (Sonnet 
 | [page-news-story](page-news-story/SKILL.md) | News stories | Draft, finalised in Phase 4 |
 | [page-science](page-science/SKILL.md) | Science pages | Draft, finalised in Phase 4 |
 | [page-explainer](page-explainer/SKILL.md) | Explainers | Draft, finalised in Phase 4 |
-| news-home-curation | The home page curator in the Frontpage preset (`/bureau curate home`, every 2–3 days); loaded by the `/bureau` session, not by a `claude -p` call | Planned: written in Phase 7 (Development Plan) |
+| news-home-curation | The home page curator in the Frontpage preset (every 2–3 days, on schedule or from Board): a `claude -p` draft call through Ghost, with no tools; Karthik approves the draft in Board | Planned: written in Phase 7 (Development Plan) |
+| A11: Rollcall proposals (name to be chosen) | A `claude -p` draft call in the Rollcall preset; Karthik approves the proposals in Board | Planned: Phase 7 |
 | A3: classify an ambiguous item (name to be chosen) | Haiku batches for free-text items the rules table cannot classify | Planned: Phase 7 |
 | A4: same story? (name to be chosen) | Haiku batches for grey-zone story pairs | Planned: Phase 7 |
 | A5: condense long source text (name to be chosen) | Haiku, when a brief's source text is too long; extractive and digit-free | Planned: Phase 7 |
@@ -24,7 +25,7 @@ Each AI step's contract (input, output schema, validator, fallback, budget) is i
 
 ## How the pipeline uses them
 
-Ghost, the Bun AI runner (Phase 7), builds each page call's prompt prefix from: instructions, `news-brand`, the one page-type skill for the item, the component index and that page type's pre-selected component specs; the brief is the input. Keep the prefix identical across calls so prompt caching stays warm, and keep each skill short: every word is paid for on every page.
+Ghost, the AI runner inside the Bureau service (Rust, Phase 7; ADR 0007), builds each page call's prompt prefix from: instructions, `news-brand`, the one page-type skill for the item, the component index and that page type's pre-selected component specs; the brief is the input. Keep the prefix identical across calls so prompt caching stays warm, and keep each skill short: every word is paid for on every page.
 
 Page calls must not load the project's development plugins and skills, and get no tools at all. Run them with `--tools ""`, an explicit settings file that enables no plugins or hooks, and an empty strict MCP config (`--strict-mcp-config`) (see the Technical Design, "Keeping each claude -p call lean", and the [Bureau design §3.9](../News%20—%20Bureau%20Design.md#39-reporter)).
 

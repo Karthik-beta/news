@@ -19,7 +19,8 @@ The source of truth is `News — Development Plan.md`. This skill is the operati
 | Reviews, security reviews | Opus 5.5 |
 | Skills, prompts, reader-facing prose | Opus 5.5 |
 | Correctness-critical parsing (XBRL, units, currencies, fiscal periods) | Opus 5.5 |
-| Well-specified features: connectors, CLI commands, Workers, templates, scripts, dashboard | Sonnet 5.5 |
+| Bureau service work: Chief, the control pipe and its security, the scheduler and queue, Ghost, install and update | Opus 5.5, with an Opus security review |
+| Well-specified features: connectors, CLI commands, Workers, templates, scripts, Board screens (Opus reviews; a different Opus agent checks token styling) | Sonnet 5.5 |
 | Tests for non-component code | Sonnet 5.5 |
 | Docs drafts | Sonnet 5.5 (Opus reviews anything readers see) |
 

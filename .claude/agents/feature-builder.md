@@ -1,6 +1,6 @@
 ---
 name: feature-builder
-description: Sonnet feature builder for News. Use for well-specified feature work - source connectors, CLI commands, Workers, page templates, scripts, the dashboard. Not for components, architecture, security-critical code or bug hunts.
+description: Sonnet feature builder for News. Use for well-specified feature work - source connectors, CLI commands, Workers, page templates, scripts, Board screens. Not for components, architecture, security-critical code or bug hunts.
 model: sonnet
 effort: high
 ---
