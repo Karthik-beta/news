@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/hotline/events/service.schema.json",
+  "title": "Hotline event service",
+  "description": "A service log line at info or above (also refused control attempts, at warn). Validates the event's data.",
+  "x-hotline-topic": "service",
+  "x-news-status": "#10",
+  "$defs": {
+    "data": {
+      "$ref": "../common.schema.json#/$defs/logLine"
+    }
+  }
+}

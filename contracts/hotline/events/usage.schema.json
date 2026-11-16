@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/hotline/events/usage.schema.json",
+  "title": "Hotline event usage",
+  "description": "A usage limit was reached or reset, or the quota guard's cap or reserve was crossed. Validates the event's data.",
+  "x-hotline-topic": "usage",
+  "x-news-status": "#10",
+  "$defs": {
+    "data": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": ["limit_reached", "limit_reset", "reserve_reached", "reserve_cleared", "cap_reached"]
+        },
+        "resets_at": {
+          "anyOf": [
+            {
+              "$ref": "../common.schema.json#/$defs/timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "runs": {
+          "type": "array",
+          "items": {
+            "$ref": "../common.schema.json#/$defs/shortId"
+          }
+        },
+        "usage": {
+          "$ref": "../common.schema.json#/$defs/usage"
+        },
+        "text": {
+          "$ref": "../common.schema.json#/$defs/text"
+        }
+      },
+      "required": ["kind", "resets_at", "runs", "usage", "text"],
+      "additionalProperties": false
+    }
+  }
+}

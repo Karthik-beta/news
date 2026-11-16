@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/hotline/commands/standing.set.schema.json",
+  "title": "Hotline standing.set",
+  "description": "Change one or more keys in one new Standing version (who: board). `base_version` must be the latest, else conflict. A null value resets the key to its default. Schedules are keys `schedules.<id>` with {preset, args, cron, enabled}. Input is the request's args; output is the reply envelope's data.",
+  "x-news-tier": "H",
+  "x-hotline-from": ["board"],
+  "x-news-status": "#10",
+  "x-news-cli": null,
+  "x-news-errors": ["usage", "validation_failed", "conflict", "gated", "upstream_unavailable"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "base_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "changes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "$ref": "../common.schema.json#/$defs/settingKey"
+              },
+              "value": {}
+            },
+            "required": ["key", "value"],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 200
+        },
+        "note": {
+          "type": "string",
+          "maxLength": 500
+        }
+      },
+      "required": ["base_version", "changes"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "created_at": {
+          "$ref": "../common.schema.json#/$defs/timestamp"
+        },
+        "changes": {
+          "type": "array",
+          "items": {
+            "$ref": "../common.schema.json#/$defs/standingChange"
+          },
+          "minItems": 1
+        },
+        "text": {
+          "$ref": "../common.schema.json#/$defs/text"
+        }
+      },
+      "required": ["version", "created_at", "changes", "text"],
+      "additionalProperties": false
+    },
+    "schedule": {
+      "type": "object",
+      "properties": {
+        "preset": {
+          "$ref": "../common.schema.json#/$defs/presetId"
+        },
+        "args": {
+          "$ref": "../common.schema.json#/$defs/presetArgs"
+        },
+        "cron": {
+          "type": "string",
+          "description": "Five fields, evaluated in rota.time_zone"
+        },
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "required": ["preset", "args", "cron", "enabled"],
+      "additionalProperties": false,
+      "description": "The value of a `schedules.<id>` key"
+    }
+  }
+}
