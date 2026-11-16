@@ -1,0 +1,21 @@
+[package]
+name = "news-connectors"
+description = "Stringers (Bureau Design §3.2): one Connector per source, with pure, versioned parsers from snapshot bytes to Ledger data points. No I/O here: the Runner in news-wire fetches."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+news-core = { workspace = true }
+news-ledger = { workspace = true }
+chrono = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+proptest = { workspace = true }
+
+[lints]
+workspace = true
