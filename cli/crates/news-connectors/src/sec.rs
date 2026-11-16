@@ -20,7 +20,7 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use chrono::{DateTime, NaiveDate, Utc};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_json::value::RawValue;
 
@@ -109,7 +109,17 @@ struct Fact<'a> {
     frame: Option<String>,
 }
 
-fn cursor_map(cursor: Option<&str>) -> BTreeMap<String, String> {
+/// Per-CIK discovery cursor: the latest filing date discovered (the watermark) and the earnings
+/// accessions already discovered on it. Accession numbers are not time-ordered (the prefix is the
+/// filer's or its filing agent's CIK) and filings accepted after 17:30 carry the next day's date, so
+/// each run re-scans from the watermark date inclusive and skips only the accessions it has seen.
+#[derive(Clone, Default, Serialize, Deserialize)]
+struct CikCursor {
+    date: String,
+    seen: BTreeSet<String>,
+}
+
+fn cursor_map(cursor: Option<&str>) -> BTreeMap<String, CikCursor> {
     cursor
         .and_then(|c| serde_json::from_str(c).ok())
         .unwrap_or_default()
@@ -187,20 +197,26 @@ impl Connector for SecEdgar {
                 return Err(shape("$.filings.recent", "column lengths differ"));
             }
             let last = seen.get(&cik).cloned();
-            let mut newest = last.clone();
+            let mut next = last.clone();
             for i in 0..n {
-                let token = format!("{}|{}", r.filing_date[i], r.accession_number[i]);
+                let (filed, accn) = (&r.filing_date[i], &r.accession_number[i]);
                 let is_new = match &last {
-                    Some(c) => token > *c,
-                    None => r.filing_date[i] >= first_run_from,
+                    Some(c) => *filed >= c.date && !c.seen.contains(accn),
+                    None => *filed >= first_run_from,
                 };
                 if !is_new || !is_earnings(&r.form[i], &r.items[i]) {
                     continue;
                 }
-                if newest.as_ref().is_none_or(|c| token > *c) {
-                    newest = Some(token);
+                let c = next.get_or_insert_with(CikCursor::default);
+                if *filed > c.date {
+                    *c = CikCursor {
+                        date: filed.clone(),
+                        seen: BTreeSet::new(),
+                    };
                 }
-                let accn = &r.accession_number[i];
+                if *filed == c.date {
+                    c.seen.insert(accn.clone());
+                }
                 let cik_int = cik.trim_start_matches('0');
                 out.refs.push(ItemRef {
                     source_id: SOURCE_ID.into(),
@@ -220,8 +236,8 @@ impl Connector for SecEdgar {
                     }),
                 });
             }
-            if let Some(t) = newest {
-                seen.insert(cik, t);
+            if let Some(c) = next {
+                seen.insert(cik, c);
             }
         }
         out.refs.sort_by(|a, b| a.key.cmp(&b.key));

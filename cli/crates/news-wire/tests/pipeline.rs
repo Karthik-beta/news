@@ -145,7 +145,7 @@ async fn golden_discover_fetch_parse() {
         "public-domain",
         sec,
         policy("sec-edgar", true, true),
-        Some(r#"{"0000320193":"2026-08-01|0000320193-26-000077"}"#),
+        Some(r#"{"0000320193":{"date":"2026-08-01","seen":["0000320193-26-000077"]}}"#),
     )
     .await;
     assert_eq!(
@@ -166,6 +166,15 @@ async fn golden_discover_fetch_parse() {
                 &["finance", "earnings"],
                 8,
                 16
+            ),
+            // The filing agent's 8-K/A (0001193125-…) on the same day as the 10-K.
+            row(
+                "sec-edgar",
+                None,
+                "earnings",
+                &["finance", "earnings"],
+                0,
+                0
             ),
         ]
     );

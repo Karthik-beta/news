@@ -81,7 +81,7 @@ fn cx() -> Cx {
 const CURSORS: [(&str, &str); 3] = [
     (
         "sec-edgar",
-        r#"{"0000320193":"2026-08-01|0000320193-26-000077"}"#,
+        r#"{"0000320193":{"date":"2026-08-01","seen":["0000320193-26-000077"]}}"#,
     ),
     ("fred", r#"{"CPIAUCSL":"2026-10-15"}"#),
     ("bls", r#"{"CES0000000001":"2026-M09"}"#),
@@ -159,7 +159,7 @@ async fn sources_snapshots_and_the_ledger_end_to_end() {
     let morgue = Morgue::new(&work);
     let first = run_all(&f, &morgue, fixture("bls/CES0000000001.json"), 13).await;
     assert!(first.points_inserted > 50, "{first:?}");
-    assert_eq!(first.candidates_inserted, 4, "{first:?}");
+    assert_eq!(first.candidates_inserted, 5, "{first:?}");
 
     // Every data point has its snapshot, locator and parser.
     assert_eq!(

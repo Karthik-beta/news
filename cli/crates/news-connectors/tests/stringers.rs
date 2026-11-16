@@ -482,7 +482,7 @@ fn sec_discovery_lists_earnings_filings_since_the_cursor() {
     let d = c
         .parse_discovery(
             &cx(),
-            Some(r#"{"0000320193":"2026-08-01|0000320193-26-000077"}"#),
+            Some(r#"{"0000320193":{"date":"2026-08-01","seen":["0000320193-26-000077"]}}"#),
             &s,
         )
         .unwrap();
@@ -491,7 +491,14 @@ fn sec_discovery_lists_earnings_filings_since_the_cursor() {
         .iter()
         .map(|r| (r.key.as_str(), r.meta["form"].as_str().unwrap()))
         .collect();
-    assert_eq!(got, vec![("0000320193-26-000104", "8-K"), (K26, "10-K")]);
+    assert_eq!(
+        got,
+        vec![
+            ("0000320193-26-000104", "8-K"),
+            (K26, "10-K"),
+            ("0001193125-26-245117", "8-K/A")
+        ]
+    );
     assert_eq!(
         d.refs[1].url,
         "https://www.sec.gov/Archives/edgar/data/320193/000032019326000105/aapl-20260926.htm"
@@ -501,7 +508,10 @@ fn sec_discovery_lists_earnings_filings_since_the_cursor() {
         Some(Utc.with_ymd_and_hms(2026, 10, 31, 6, 1, 36).unwrap())
     );
     let next = d.next_cursor.unwrap();
-    assert_eq!(next, r#"{"0000320193":"2026-10-31|0000320193-26-000105"}"#);
+    assert_eq!(
+        next,
+        r#"{"0000320193":{"date":"2026-10-31","seen":["0000320193-26-000105","0001193125-26-245117"]}}"#
+    );
     assert!(
         c.parse_discovery(&cx(), Some(&next), &s)
             .unwrap()
@@ -510,7 +520,59 @@ fn sec_discovery_lists_earnings_filings_since_the_cursor() {
     );
     // First run: the last 30 days only.
     let first = c.parse_discovery(&cx(), None, &s).unwrap();
-    assert_eq!(first.refs.len(), 2);
+    assert_eq!(first.refs.len(), 3);
+}
+
+/// The submissions fixture without the rows of these accessions (as if not yet disseminated).
+fn submissions_without(accns: &[&str]) -> Vec<u8> {
+    let mut v: serde_json::Value =
+        serde_json::from_slice(&fixture("sec/submissions-CIK0000320193.json")).unwrap();
+    let recent = v["filings"]["recent"].as_object_mut().unwrap();
+    let keep: Vec<bool> = recent["accessionNumber"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|a| !accns.contains(&a.as_str().unwrap()))
+        .collect();
+    for col in recent.values_mut() {
+        let arr = col.as_array_mut().unwrap();
+        let mut i = 0;
+        arr.retain(|_| {
+            i += 1;
+            keep[i - 1]
+        });
+    }
+    serde_json::to_vec(&v).unwrap()
+}
+
+#[test]
+fn sec_discovery_keeps_same_day_filings_whatever_their_accession() {
+    // Accession prefixes are the filer's (or its filing agent's) CIK, not a clock: a filing agent's
+    // 8-K/A (0001193125-…) can be seen before Apple's own 10-K of the same filing date, whose
+    // accession sorts lower. The 10-K must still be discovered on the next run.
+    const AGENT: &str = "0001193125-26-245117";
+    let c = connector("sec-edgar").unwrap();
+    let url = "https://data.sec.gov/submissions/CIK0000320193.json";
+    let early = [snap(url, submissions_without(&[K26]), t(2026, 10, 31, 9))];
+    let keys = |d: &news_connectors::Discovery| -> Vec<String> {
+        d.refs.iter().map(|r| r.key.clone()).collect()
+    };
+    let d1 = c.parse_discovery(&cx(), None, &early).unwrap();
+    assert_eq!(keys(&d1), vec!["0000320193-26-000104", AGENT]);
+
+    let full = [snap(
+        url,
+        fixture("sec/submissions-CIK0000320193.json"),
+        t(2026, 11, 16, 8),
+    )];
+    let d2 = c
+        .parse_discovery(&cx(), d1.next_cursor.as_deref(), &full)
+        .unwrap();
+    assert_eq!(keys(&d2), vec![K26]);
+    let d3 = c
+        .parse_discovery(&cx(), d2.next_cursor.as_deref(), &full)
+        .unwrap();
+    assert!(d3.refs.is_empty());
 }
 
 #[test]
