@@ -152,7 +152,10 @@ fn unknown_component_is_not_found_with_suggestions() {
 
 #[test]
 fn an_index_in_another_shape_is_a_validation_error() {
-    let bad = std::env::temp_dir().join(format!("news-bad-index-{}.json", std::process::id()));
+    let bad = std::env::temp_dir().join(format!(
+        "news-other-shape-index-{}.json",
+        std::process::id()
+    ));
     std::fs::write(&bad, r#"{"version": 1, "components": [{"type": "A"}]}"#).unwrap();
     let (env, code, _) = call_with(
         news()
