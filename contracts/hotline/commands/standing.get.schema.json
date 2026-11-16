@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/hotline/commands/standing.get.schema.json",
+  "title": "Hotline standing.get",
+  "description": "The current Standing version: every registered key with its effective value, default and type. Secrets are never Standing keys. Input is the request's args; output is the reply envelope's data.",
+  "x-news-tier": "R",
+  "x-hotline-from": ["board", "terminal"],
+  "x-news-status": "#10",
+  "x-news-cli": "news standing show",
+  "x-news-errors": ["usage", "upstream_unavailable"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "prefix": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_.-]*$",
+          "description": "Only keys starting with this"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "created_at": {
+          "$ref": "../common.schema.json#/$defs/timestamp"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "$ref": "../common.schema.json#/$defs/settingKey"
+              },
+              "value": {},
+              "default": {},
+              "is_set": {
+                "type": "boolean",
+                "description": "Set explicitly in this version (else the default applies)"
+              },
+              "type": {
+                "enum": ["integer", "boolean", "text", "time_of_day", "time_zone", "enum", "tokens", "schedule"]
+              },
+              "doc": {
+                "type": "string"
+              },
+              "choices": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "min": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "max": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": ["key", "value", "default", "is_set", "type", "doc", "choices", "min", "max"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["version", "created_at", "items"],
+      "additionalProperties": false
+    }
+  }
+}

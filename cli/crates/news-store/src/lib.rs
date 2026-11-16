@@ -192,10 +192,7 @@ pub async fn migrate(pool: &PgPool, schema: &str) -> Result<MigrateReport, NewsE
     .await
     .map_err(map_err)?;
     let before = applied_versions(pool).await?;
-    MIGRATOR.run(pool).await.map_err(|e| match e {
-        sqlx::migrate::MigrateError::Execute(inner) => map_err(inner),
-        other => NewsError::internal(format!("migration failed: {other}")),
-    })?;
+    MIGRATOR.run(pool).await.map_err(map_migrate_err)?;
     let current = applied_versions(pool).await?;
     let applied = current
         .iter()
@@ -207,6 +204,16 @@ pub async fn migrate(pool: &PgPool, schema: &str) -> Result<MigrateReport, NewsE
         applied,
         current,
     })
+}
+
+/// Map a migration error: a database error, between migrations or inside one, keeps its stable code
+/// (a lost connection is retryable); anything else is `internal`.
+fn map_migrate_err(e: sqlx::migrate::MigrateError) -> NewsError {
+    use sqlx::migrate::MigrateError;
+    match e {
+        MigrateError::Execute(inner) | MigrateError::ExecuteMigration(inner, _) => map_err(inner),
+        other => NewsError::internal(format!("migration failed: {other}")),
+    }
 }
 
 /// Versions recorded in `_sqlx_migrations` in the current schema, ascending. Empty before the first run.
@@ -290,6 +297,24 @@ mod tests {
             .unwrap();
         assert_eq!(cfg.schema, DEFAULT_SCHEMA);
         assert_eq!(cfg.host_port(), "h:1");
+    }
+
+    #[test]
+    fn migration_execution_errors_keep_their_database_code() {
+        use sqlx::migrate::MigrateError;
+        // sqlx 0.9 wraps a failing migration script in ExecuteMigration; a lost connection there is
+        // retryable, like one between migrations.
+        for e in [
+            MigrateError::ExecuteMigration(sqlx::Error::PoolTimedOut, 4),
+            MigrateError::Execute(sqlx::Error::PoolTimedOut),
+        ] {
+            let mapped = map_migrate_err(e);
+            assert_eq!(mapped.code, ErrorCode::UpstreamUnavailable, "{mapped:?}");
+        }
+        assert_eq!(
+            map_migrate_err(MigrateError::VersionMissing(3)).code,
+            ErrorCode::Internal
+        );
     }
 
     #[test]

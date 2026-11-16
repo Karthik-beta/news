@@ -8,6 +8,7 @@ use serde_json::Value;
 use std::future::Future;
 use std::pin::Pin;
 use std::str::FromStr;
+use std::sync::Arc;
 use std::time::Duration;
 use uuid::Uuid;
 
@@ -110,6 +111,68 @@ pub struct JobInput {
     pub run_id: Option<Uuid>,
     pub item_ref: Option<String>,
     pub args: Value,
+    /// The claim this run holds. Call [`JobLease::ensure_lease`] before every external side effect.
+    #[serde(skip)]
+    pub lease: JobLease,
+}
+
+/// Checks that a claim still holds its lease. Implemented by Dispatch (one indexed select); this
+/// crate does no I/O.
+pub trait LeaseCheck: Send + Sync {
+    fn ensure(&self) -> Pin<Box<dyn Future<Output = Result<(), JobFailure>> + Send + '_>>;
+}
+
+/// The lease a handler runs under: the job and the claim's `lease_id`, plus the check behind
+/// [`ensure_lease`](Self::ensure_lease).
+///
+/// Queue state is exactly-once per lease, but a handler whose lease was lost keeps running until the
+/// worker notices and cancels it, while the job may already run under a new lease elsewhere. So a
+/// handler's side effects must be idempotent (keyed as in Bureau Design §5.8) and each external write
+/// must be preceded by `ensure_lease().await?`. The check is not an atomic fence: a write that passed
+/// it can still land after the lease is lost, so where an older write could overwrite a newer one the
+/// write must be conditional at its destination (insert-if-absent, or a version compare). ADR 0003.
+#[derive(Clone, Default)]
+pub struct JobLease {
+    pub job_id: i64,
+    pub lease_id: Option<Uuid>,
+    check: Option<Arc<dyn LeaseCheck>>,
+}
+
+impl JobLease {
+    pub fn new(job_id: i64, lease_id: Option<Uuid>, check: Arc<dyn LeaseCheck>) -> Self {
+        Self {
+            job_id,
+            lease_id,
+            check: Some(check),
+        }
+    }
+
+    /// `Ok` while this claim still holds the job; a `transient` failure once it does not, and a `bug`
+    /// failure for input that no Dispatch worker handed out.
+    pub async fn ensure_lease(&self) -> Result<(), JobFailure> {
+        match &self.check {
+            Some(c) => c.ensure().await,
+            None => Err(JobFailure::new(
+                ErrorClass::Bug,
+                format!("job {} has no lease to check", self.job_id),
+            )),
+        }
+    }
+}
+
+impl std::fmt::Debug for JobLease {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("JobLease")
+            .field("job_id", &self.job_id)
+            .field("lease_id", &self.lease_id)
+            .finish_non_exhaustive()
+    }
+}
+
+impl PartialEq for JobLease {
+    fn eq(&self, other: &Self) -> bool {
+        (self.job_id, self.lease_id) == (other.job_id, other.lease_id)
+    }
 }
 
 /// Why a job failed, and when to try again for classes that wait.

@@ -1,0 +1,176 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/hotline/commands/run.start.schema.json",
+  "title": "Hotline run.start",
+  "description": "Start a preset (origin board). With the heavy slot busy and `if_busy` absent or `offer`, the reply is `conflict` with `details` as `$defs.queue_offer` and code-rendered `error.text`; Board then sends `run.start` with `if_busy: queue`, or `run.start_after_pause`. A preset that is already live or queued is `conflict` with `details` as `$defs.preset_live`. Quiet hours (don't start) and the quota guard are `precondition` with text. Input is the request's args; output is the reply envelope's data.",
+  "x-news-tier": "H",
+  "x-hotline-from": ["board"],
+  "x-news-status": "#10",
+  "x-news-cli": null,
+  "x-news-errors": ["usage", "validation_failed", "conflict", "precondition", "gated", "upstream_unavailable"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "preset": {
+          "$ref": "../common.schema.json#/$defs/presetId"
+        },
+        "args": {
+          "$ref": "../common.schema.json#/$defs/presetArgs"
+        },
+        "if_busy": {
+          "enum": ["offer", "queue"],
+          "default": "offer"
+        }
+      },
+      "required": ["preset", "args"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "run_id": {
+          "$ref": "../common.schema.json#/$defs/uuid"
+        },
+        "short_id": {
+          "$ref": "../common.schema.json#/$defs/shortId"
+        },
+        "preset": {
+          "$ref": "../common.schema.json#/$defs/presetId"
+        },
+        "status": {
+          "enum": ["running", "queued"]
+        },
+        "position": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "seq": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "kind": {
+                "$ref": "../common.schema.json#/$defs/stepKind"
+              }
+            },
+            "required": ["seq", "id", "title", "kind"],
+            "additionalProperties": false
+          }
+        },
+        "text": {
+          "$ref": "../common.schema.json#/$defs/text"
+        }
+      },
+      "required": ["run_id", "short_id", "preset", "status", "position", "steps", "text"],
+      "additionalProperties": false
+    },
+    "queue_offer": {
+      "type": "object",
+      "properties": {
+        "reason": {
+          "const": "queue_offer"
+        },
+        "requested": {
+          "$ref": "../common.schema.json#/$defs/presetId"
+        },
+        "blocking": {
+          "type": "object",
+          "properties": {
+            "run_id": {
+              "$ref": "../common.schema.json#/$defs/uuid"
+            },
+            "short_id": {
+              "$ref": "../common.schema.json#/$defs/shortId"
+            },
+            "preset": {
+              "$ref": "../common.schema.json#/$defs/presetId"
+            },
+            "status": {
+              "enum": ["running", "waiting_ai", "pausing"]
+            },
+            "step": {
+              "anyOf": [
+                {
+                  "$ref": "../common.schema.json#/$defs/stepPosition"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "step_no": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "steps": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "progress": {
+              "anyOf": [
+                {
+                  "$ref": "../common.schema.json#/$defs/progress"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "started_at": {
+              "$ref": "../common.schema.json#/$defs/timestamp"
+            }
+          },
+          "required": ["run_id", "short_id", "preset", "status", "step", "step_no", "steps", "progress", "started_at"],
+          "additionalProperties": false
+        },
+        "offers": {
+          "type": "array",
+          "items": {
+            "enum": ["queue", "pause_running"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": ["reason", "requested", "blocking", "offers"],
+      "additionalProperties": false
+    },
+    "preset_live": {
+      "type": "object",
+      "properties": {
+        "reason": {
+          "const": "preset_live"
+        },
+        "run_id": {
+          "$ref": "../common.schema.json#/$defs/uuid"
+        },
+        "short_id": {
+          "$ref": "../common.schema.json#/$defs/shortId"
+        },
+        "status": {
+          "$ref": "../common.schema.json#/$defs/runStatus"
+        }
+      },
+      "required": ["reason", "run_id", "short_id", "status"],
+      "additionalProperties": false
+    }
+  }
+}

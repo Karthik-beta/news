@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/hotline/events/gate.schema.json",
+  "title": "Hotline event gate",
+  "description": "A gate opened (Board raises a toast) or was answered. Validates the event's data.",
+  "x-hotline-topic": "gate",
+  "x-news-status": "#10",
+  "$defs": {
+    "data": {
+      "type": "object",
+      "properties": {
+        "run_id": {
+          "$ref": "../common.schema.json#/$defs/uuid"
+        },
+        "short_id": {
+          "$ref": "../common.schema.json#/$defs/shortId"
+        },
+        "preset": {
+          "$ref": "../common.schema.json#/$defs/presetId"
+        },
+        "gate": {
+          "$ref": "../common.schema.json#/$defs/gateName"
+        },
+        "round": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "state": {
+          "enum": ["open", "answered"]
+        },
+        "subject_sha": {
+          "$ref": "../common.schema.json#/$defs/sha256"
+        },
+        "decision": {
+          "anyOf": [
+            {
+              "$ref": "../common.schema.json#/$defs/decision"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "text": {
+          "$ref": "../common.schema.json#/$defs/text"
+        }
+      },
+      "required": ["run_id", "short_id", "preset", "gate", "round", "state", "subject_sha", "decision", "text"],
+      "additionalProperties": false
+    }
+  }
+}
