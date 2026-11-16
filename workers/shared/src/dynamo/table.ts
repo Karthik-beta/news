@@ -92,7 +92,8 @@ function toPlain(value: unknown, path: string): Plain {
     return value;
   }
   if (Array.isArray(value)) return value.map((v, i) => toPlain(v, `${path}/${i}`));
-  if (typeof value === "object" && Object.getPrototypeOf(value) === Object.prototype) return toDoc(value, path);
+  const proto = typeof value === "object" ? Object.getPrototypeOf(value) : undefined;
+  if (proto === Object.prototype || proto === null) return toDoc(value as object, path);
   throw new TypeError(`${path}: a ${typeof value} is not a JSON value`);
 }
 
@@ -102,7 +103,9 @@ function toPlain(value: unknown, path: string): Plain {
  */
 export function toDoc(record: object, path = ""): Doc {
   const doc: Doc = {};
-  for (const [k, v] of Object.entries(record)) if (v !== undefined) doc[k] = toPlain(v, `${path}/${k}`);
+  for (const [k, v] of Object.entries(record))
+    if (v !== undefined)
+      Object.defineProperty(doc, k, { value: toPlain(v, `${path}/${k}`), enumerable: true, writable: true, configurable: true });
   return doc;
 }
 

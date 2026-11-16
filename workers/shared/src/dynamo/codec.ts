@@ -10,6 +10,14 @@ export type AttributeValue =
   | { M: Record<string, AttributeValue> };
 export type Item = Record<string, AttributeValue>;
 
+/**
+ * Sets an own property. Plain assignment of a key named "__proto__" would change the object's prototype instead,
+ * and the field would vanish from the stored item.
+ */
+export function setOwn<T>(target: Record<string, T>, key: string, value: T): void {
+  Object.defineProperty(target, key, { value, enumerable: true, writable: true, configurable: true });
+}
+
 export function toAttribute(value: Plain): AttributeValue {
   if (value === null) return { NULL: true };
   if (typeof value === "string") return { S: value };
@@ -26,7 +34,7 @@ export function toItem(doc: Doc): Item {
   const out: Item = {};
   for (const [k, v] of Object.entries(doc)) {
     // `undefined` never reaches DynamoDB: optional fields are simply left out.
-    if (v !== undefined) out[k] = toAttribute(v);
+    if (v !== undefined) setOwn(out, k, toAttribute(v));
   }
   return out;
 }
@@ -43,6 +51,6 @@ export function fromAttribute(attr: AttributeValue): Plain {
 
 export function fromItem(item: Item): Doc {
   const out: Doc = {};
-  for (const [k, v] of Object.entries(item)) out[k] = fromAttribute(v);
+  for (const [k, v] of Object.entries(item)) setOwn(out, k, fromAttribute(v));
   return out;
 }

@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { compile, eq, evaluate, le, notExists, or } from "./conditions";
 import { tableContract } from "./contract";
 import { FakeTable } from "./fake";
-import { itemSize, ThrottledError, toDoc } from "./table";
+import { fromItem, toItem } from "./codec";
+import { type Doc, itemSize, ThrottledError, toDoc } from "./table";
 
 const shared = new FakeTable();
 tableContract("FakeTable", () => shared);
@@ -77,6 +78,17 @@ describe("toDoc", () => {
     ["a nested Map", { m: [new Map()] }],
   ])("refuses %s", (_label, value) => {
     expect(() => toDoc(value)).toThrow(TypeError);
+  });
+});
+
+describe("a field named __proto__", () => {
+  it("survives the DynamoDB codec and toDoc as an own field", () => {
+    const doc = JSON.parse('{"PK":"a","SK":"b","data":{"__proto__":{"x":1}}}') as Doc;
+    const item = toItem(doc);
+    expect(Object.hasOwn((item.data as { M: object }).M, "__proto__")).toBe(true);
+    const back = fromItem(item);
+    expect(JSON.stringify(back)).toBe(JSON.stringify(doc));
+    expect(JSON.stringify(toDoc(doc))).toBe(JSON.stringify(doc));
   });
 });
 
