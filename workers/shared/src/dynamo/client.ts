@@ -26,6 +26,11 @@ export interface DynamoTableConfig {
   fetch?: (request: Request) => Promise<Response>;
   /** Per-call timeout. Default 8 s, well inside a Worker request. */
   timeoutMs?: number;
+  /**
+   * Strongly consistent reads (default true): the write API reads what it just wrote. Public readers (MCP, the
+   * site) pass false: eventually consistent reads cost half the read units and lag by about a second.
+   */
+  consistentRead?: boolean;
 }
 
 const LOOPBACK = new Set(["127.0.0.1", "localhost", "[::1]"]);
@@ -62,6 +67,7 @@ export function resolveEndpoint(region: string, endpoint?: string): string {
 export class DynamoTable implements Table {
   readonly table: string;
   readonly endpoint: string;
+  readonly consistentRead: boolean;
   readonly #aws: AwsClient;
   readonly #fetch: (request: Request) => Promise<Response>;
   readonly #timeoutMs: number;
@@ -73,6 +79,7 @@ export class DynamoTable implements Table {
     this.endpoint = resolveEndpoint(config.region, config.endpoint);
     this.#fetch = config.fetch ?? ((r) => fetch(r));
     this.#timeoutMs = config.timeoutMs ?? 8000;
+    this.consistentRead = config.consistentRead ?? true;
     // retries: 0 — the caller decides. A throttled publish returns 503 and the laptop retries with its idempotency key.
     this.#aws = new AwsClient({
       accessKeyId: config.accessKeyId,
@@ -142,7 +149,7 @@ export class DynamoTable implements Table {
     const out = await this.#call<{ Item?: Item }>("GetItem", {
       TableName: this.table,
       Key: toItem({ ...key }),
-      ConsistentRead: true,
+      ConsistentRead: this.consistentRead,
     });
     return out.Item ? fromItem(out.Item) : undefined;
   }
@@ -152,7 +159,7 @@ export class DynamoTable implements Table {
     const out: Doc[] = [];
     for (let i = 0; i < unique.length; i += 100) {
       let request: Record<string, unknown> = {
-        [this.table]: { Keys: unique.slice(i, i + 100).map((k) => toItem({ ...k })), ConsistentRead: true },
+        [this.table]: { Keys: unique.slice(i, i + 100).map((k) => toItem({ ...k })), ConsistentRead: this.consistentRead },
       };
       // Unprocessed keys come back when capacity runs short; retry them a few times, then give up as throttled.
       for (let attempt = 0; ; attempt++) {
@@ -165,7 +172,7 @@ export class DynamoTable implements Table {
         if (!rest || rest.Keys.length === 0) break;
         if (attempt >= 3) throw new ThrottledError("DynamoDB left keys unprocessed");
         await new Promise((r) => setTimeout(r, 50 * 2 ** attempt));
-        request = { [this.table]: { ...rest, ConsistentRead: true } };
+        request = { [this.table]: { ...rest, ConsistentRead: this.consistentRead } };
       }
     }
     return out;
@@ -200,7 +207,7 @@ export class DynamoTable implements Table {
       ExpressionAttributeNames: sk ? { "#PK": "PK", "#SK": "SK" } : { "#PK": "PK" },
       ExpressionAttributeValues: values,
       ScanIndexForward: input.forward ?? true,
-      ConsistentRead: true,
+      ConsistentRead: this.consistentRead,
       ...(input.limit ? { Limit: input.limit } : {}),
       ...(input.start ? { ExclusiveStartKey: toItem({ ...input.start }) } : {}),
     });
@@ -227,14 +234,18 @@ export class DynamoTable implements Table {
 }
 
 /** Builds the table from Worker bindings. Throws (without echoing any secret) when a setting is missing. */
-export function dynamoTableFromEnv(env: {
-  NEWS_DYNAMODB_TABLE?: string;
-  NEWS_DYNAMODB_REGION?: string;
-  NEWS_DYNAMODB_ENDPOINT?: string;
-  NEWS_DYNAMODB_ACCESS_KEY_ID?: string;
-  NEWS_DYNAMODB_SECRET_ACCESS_KEY?: string;
-}): DynamoTable {
+export function dynamoTableFromEnv(
+  env: {
+    NEWS_DYNAMODB_TABLE?: string;
+    NEWS_DYNAMODB_REGION?: string;
+    NEWS_DYNAMODB_ENDPOINT?: string;
+    NEWS_DYNAMODB_ACCESS_KEY_ID?: string;
+    NEWS_DYNAMODB_SECRET_ACCESS_KEY?: string;
+  },
+  options: Pick<DynamoTableConfig, "consistentRead"> = {},
+): DynamoTable {
   return new DynamoTable({
+    ...options,
     table: env.NEWS_DYNAMODB_TABLE ?? "",
     region: env.NEWS_DYNAMODB_REGION ?? "",
     endpoint: env.NEWS_DYNAMODB_ENDPOINT,

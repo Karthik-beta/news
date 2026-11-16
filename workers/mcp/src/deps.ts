@@ -56,7 +56,8 @@ export function depsFromEnv(env: Env): Deps {
     reader: () => {
       if (!reader) {
         try {
-          reader = new Reader(dynamoTableFromEnv(env));
+          // Eventually consistent: half the read units of the shared table, and a public reader can lag a second.
+          reader = new Reader(dynamoTableFromEnv(env, { consistentRead: false }));
         } catch (e) {
           log.error("dynamodb_config", { message: e instanceof Error ? e.message : "invalid" });
           throw new UnavailableError("the page database");

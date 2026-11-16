@@ -1,5 +1,6 @@
 // Read layer over the single table: everything the SSR site, the MCP server and the write API read.
-// Strongly consistent reads (the Table implementations ask for them), small pages, no scans.
+// Small pages, no scans. Consistency is the table's: the write API's DynamoTable reads strongly (it reads what it just
+// wrote); public readers (MCP, the site) build theirs with consistentRead: false, which costs half the read units.
 import type { Doc, Key, Table } from "./dynamo/table";
 import {
   CURATION_PK,

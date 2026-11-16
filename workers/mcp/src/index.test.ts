@@ -1,7 +1,9 @@
 // MCP conformance tests against spec revision 2026-07-28 (inside workerd): server/discover, initialize (legacy,
 // stateless), tools/list and tools/call; header and _meta validation; transport rules; read-only tools; size caps.
 import { exports } from "cloudflare:workers";
+import type { DynamoTable } from "@news/worker-shared/dynamo/client";
 import { schemas } from "@news/worker-shared/validate";
+import { depsFromEnv } from "./deps";
 import { describe, expect, it } from "vitest";
 import { ERR, LEGACY_VERSIONS, MODERN_VERSION, SERVER_INFO } from "./server";
 import { callTool, harness, ORIGIN, rpc } from "./testing";
@@ -32,6 +34,16 @@ describe("entry point", () => {
   it("health and 404 outside /mcp", async () => {
     expect((await exports.default.fetch(new Request("http://x/health"))).status).toBe(200);
     expect((await exports.default.fetch(new Request("http://x/sse"))).status).toBe(404);
+  });
+
+  it("reads DynamoDB with eventually consistent reads (the write API keeps strong ones)", () => {
+    const deps = depsFromEnv({
+      NEWS_DYNAMODB_TABLE: "news",
+      NEWS_DYNAMODB_REGION: "us-east-1",
+      NEWS_DYNAMODB_ACCESS_KEY_ID: "AKIDEXAMPLE",
+      NEWS_DYNAMODB_SECRET_ACCESS_KEY: "test-secret-not-real",
+    });
+    expect((deps.reader().table as DynamoTable).consistentRead).toBe(false);
   });
 
   it("tools/list works with no data bindings at all (nothing is read)", async () => {

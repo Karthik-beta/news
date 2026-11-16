@@ -68,6 +68,17 @@ describe("DynamoTable", () => {
     expect(await r.text()).toContain('"ConsistentRead":true');
   });
 
+  it("reads strongly by default and eventually when asked (half the read units, for public readers)", async () => {
+    const { requests, fetch } = recording(() => Response.json({ Items: [], Responses: { news: [] } }));
+    const eventual = new DynamoTable({ ...config, fetch, consistentRead: false });
+    expect(eventual.consistentRead).toBe(false);
+    await eventual.get({ PK: "a", SK: "b" });
+    await eventual.batchGet([{ PK: "a", SK: "b" }]);
+    await eventual.query({ pk: "a" });
+    for (const r of requests) expect(await r.text()).toContain('"ConsistentRead":false');
+    expect(new DynamoTable({ ...config, fetch }).consistentRead).toBe(true);
+  });
+
   it("sends conditions as placeholders and maps a failed condition", async () => {
     let sent: Record<string, unknown> = {};
     const { fetch } = recording((body) => {
