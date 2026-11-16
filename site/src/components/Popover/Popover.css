@@ -28,24 +28,19 @@
 
 /* Sit under the trigger where anchor positioning exists (the trigger is the popover's implicit anchor). The
    options, in order, the first that fits wholly on screen winning (the same in Chromium, Firefox and WebKit):
-   1. under the trigger, then above it, then either one extending the other way from the trigger;
-   2. under or above, anywhere across the screen 16px in from its edges (a trigger mid-line on a phone);
+   1. under the trigger, then above it, starting at the trigger's left edge;
+   2. under, then above, anywhere across the screen 16px in from its edges (a figure at the end of a line);
    3. when it fits neither under nor above (a landscape phone is 390px tall), on the side with more room, its
       height capped to that side; it scrolls inside, so "Open the source" stays reachable by Tab and by touch.
    Option 3 picks the larger side through min-height: the space under the trigger fits that box only when it is at
-   least half the screen less the trigger, which is when it is the larger side. */
+   least half the screen less the trigger, which is when it is the larger side.
+   Chromium tries only the first five fallbacks, so the list stays at five. */
 @supports (position-area: block-end) {
   .popover[popover] {
     inset: auto;
     position-area: block-end span-inline-end;
     position-try-fallbacks:
-      flip-block,
-      flip-inline,
-      flip-block flip-inline,
-      --popover-below-wide,
-      --popover-above-wide,
-      --popover-below-scroll,
-      --popover-above-scroll;
+      flip-block, --popover-below-wide, --popover-above-wide, --popover-below-scroll, --popover-above-scroll;
     margin-block: var(--space-2);
     overflow-y: auto;
   }

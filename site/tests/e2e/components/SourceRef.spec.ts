@@ -197,7 +197,11 @@ test.describe("SourceRef", () => {
       "Net sales were $391.0bn in fiscal 2024.",
     );
     for (const [name, text] of Object.entries(SHOWN)) {
-      await expect(fixtureCase(page, name).getByText(text, { exact: true }), name).toBeVisible();
+      // The popover holds the same text for an as-reported figure; it is in the DOM but not printed.
+      await expect(
+        fixtureCase(page, name).getByText(text, { exact: true }).filter({ visible: true }),
+        name,
+      ).toHaveCount(1);
     }
     await expect(page.locator("[popover]").first()).toBeHidden();
   });
