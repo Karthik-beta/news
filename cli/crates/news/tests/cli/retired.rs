@@ -8,10 +8,12 @@ use serde_json::Value;
 
 /// (argv, the word clap does not recognise).
 const RETIRED: &[(&str, &str)] = &[
-    // The ticket and hook commands.
+    // The ticket and hook commands, and the two Chief steps the service now does itself.
     ("run intent run daily", "intent"),
     ("run hook-prompt", "hook-prompt"),
     ("run ticket edition", "ticket"),
+    ("run next r_7f3c", "next"),
+    ("run submit r_7f3c out.json", "submit"),
     // The H-tier forms of Bureau Design §6.4.
     ("run start edition", "start"),
     ("run approve r_7f3c plan", "approve"),

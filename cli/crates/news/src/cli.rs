@@ -158,12 +158,8 @@ pub enum HomeCmd {
 pub enum RunCmd {
     /// The preset catalogue
     Presets,
-    /// Advance a run to its next stop
-    Next { run: String },
     /// The status board, or one run
     Status { run: Option<String> },
-    /// Submit a session step's result
-    Submit { run: String, file: String },
     /// Recent runs
     List {
         #[arg(long)]
