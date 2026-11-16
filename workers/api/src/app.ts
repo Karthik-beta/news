@@ -10,7 +10,7 @@ import { PurgeError } from "@news/worker-shared/purge";
 import { executeRedirects, executeTaxonomy, prepareRedirects, prepareTaxonomy } from "./catalog";
 import { type Deps, NotConfiguredError } from "./deps";
 import { ApiError } from "./errors";
-import { executeCuration, executeRollback, prepareCuration, prepareRollback } from "./home";
+import { executeCuration, executeRollback, prepareCuration, prepareRollback, recoverCuration } from "./home";
 import { claim, complete, lookup, readKey, release, requestHash } from "./idempotency";
 import { Fence, type HeldLock, lockPage, unlockPage } from "./lock";
 import {
@@ -34,6 +34,8 @@ const PAGE_ID = "([a-z0-9](?:[a-z0-9-]{0,118}[a-z0-9])?)";
 export interface OpContext {
   /** SHA-256 of the Idempotency-Key: a retry of this request carries the same one. */
   requestId: string;
+  /** SHA-256 of method, path and body: the same key with another body is another request. */
+  requestHash: string;
   /** Deadline, storage timeouts and the lock check for the commit (lock.ts). */
   fence: Fence;
 }
@@ -41,6 +43,11 @@ export interface OpContext {
 interface WriteRoute<P, C = unknown> {
   operation: string;
   maxBody: number;
+  /**
+   * Finds what this request (same key and body) already committed, before any check: the result skips check and
+   * prepare and goes straight to execute, which finishes the work. Read-only.
+   */
+  recover?: (deps: Deps, seen: { keyHash: string; requestHash: string }) => Promise<P | undefined>;
   /** Checks the body without reading or writing anything; runs before any lock is taken. Default: the body as is. */
   check?: (params: string[], body: unknown) => Promise<C>;
   /** For page operations: the page whose lock is held from before `prepare` reads it until the operation is done. */
@@ -107,6 +114,7 @@ const ROUTES: Route[] = [
       PUT: write({
         operation: "home_curation",
         maxBody: 64 * 1024,
+        recover: recoverCuration,
         prepare: (d, _p, b) => prepareCuration(d, b),
         execute: executeCuration,
       }),
@@ -231,7 +239,8 @@ async function handleWrite<P, C>(
   const seen = await lookup(table, key, await requestHash(request.method, url.pathname, text), deps.now());
   if (seen.kind === "replay") return seen.response;
 
-  const checked = route.check ? await route.check(params, body) : (body as C);
+  const recovered = route.recover ? await route.recover(deps, seen) : undefined;
+  const checked = recovered !== undefined ? undefined : route.check ? await route.check(params, body) : (body as C);
   // A page operation holds the page lock from before it reads the page, so nothing else changes the page under it.
   const pageLock: HeldLock | undefined = route.lockPage
     ? await lockPage(table, route.lockPage(params), deps.now())
@@ -240,12 +249,13 @@ async function handleWrite<P, C>(
   // only once that write has certainly landed or failed. Every operation detects work it already committed.
   let keepLocks = false;
   try {
-    const prepared = await route.prepare(deps, params, checked);
+    const prepared = recovered ?? (await route.prepare(deps, params, checked as C));
     const idem = await claim(table, seen, route.operation, deps.now());
     let result: OpResult;
     try {
       result = await route.execute(deps, prepared, {
         requestId: seen.keyHash,
+        requestHash: seen.requestHash,
         fence: new Fence(pageLock, deps.now, deps.storageTimeoutMs),
       });
     } catch (e) {

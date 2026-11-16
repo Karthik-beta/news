@@ -43,6 +43,7 @@ export const VALIDATORS: Record<string, string> = {
   validatePageLockItem: `${BASE}/cloud/dynamodb-items.schema.json#/$defs/pageLock`,
   validateCurationItem: `${BASE}/cloud/dynamodb-items.schema.json#/$defs/curationRecord`,
   validateIdempotencyItem: `${BASE}/cloud/dynamodb-items.schema.json#/$defs/idempotencyRecord`,
+  validateOperationResultItem: `${BASE}/cloud/dynamodb-items.schema.json#/$defs/operationResult`,
   validateSearchPagesInput: `${BASE}/cloud/mcp-tools.schema.json#/$defs/searchPagesInput`,
   validateSearchPagesOutput: `${BASE}/cloud/mcp-tools.schema.json#/$defs/searchPagesOutput`,
   validateGetPageInput: `${BASE}/cloud/mcp-tools.schema.json#/$defs/getPageInput`,

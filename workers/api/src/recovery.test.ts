@@ -371,6 +371,36 @@ describe("home curation retries never publish a second version", () => {
     expect(await retry.json()).toMatchObject({ version: 1 });
     expect(curationKeys(h)).toEqual(["LATEST", "V#000001"]);
   });
+
+  it("five other curations published before the retry: it still only purges, and LATEST stays where it is", async () => {
+    const h = harness();
+    h.table.seed(...(curationPages() as never[]));
+    h.purger.failNext = true;
+    expect((await h.call("PUT", "/v1/home/curation", { body: makeCuration(), key: "curation-0004" })).status).toBe(502);
+    for (let i = 0; i < 5; i++)
+      expect(
+        (await h.call("PUT", "/v1/home/curation", { body: makeCuration(), key: `curation-other-${i}` })).status,
+      ).toBe(200);
+    const retry = await h.call("PUT", "/v1/home/curation", { body: makeCuration(), key: "curation-0004" });
+    expect(retry.status).toBe(200);
+    expect(await retry.json()).toMatchObject({ version: 1, live_version: 1 });
+    expect(curationKeys(h)).toHaveLength(7); // LATEST and V#1–V#6
+    expect(h.table.dump().find((i) => i.PK === "HOME#CURATION" && i.SK === "LATEST")).toMatchObject({ version: 6 });
+  });
+
+  it("a curated page withdrawn after the commit: the retry still only purges (no new validation)", async () => {
+    const h = harness();
+    const pages = curationPages();
+    h.table.seed(...(pages as never[]));
+    h.purger.failNext = true;
+    expect((await h.call("PUT", "/v1/home/curation", { body: makeCuration(), key: "curation-0005" })).status).toBe(502);
+    h.table.seed({ ...(pages[0] as unknown as Record<string, never>), status: "withdrawn" as never });
+    const retry = await h.call("PUT", "/v1/home/curation", { body: makeCuration(), key: "curation-0005" });
+    expect(retry.status).toBe(200);
+    expect(await retry.json()).toMatchObject({ version: 1, live_version: 1 });
+    expect(curationKeys(h)).toEqual(["LATEST", "V#000001"]);
+    expectItemsValid(h.table.dump());
+  });
 });
 
 describe("one page, one writer at a time", () => {

@@ -155,12 +155,6 @@ export class Reader {
     return this.table.get(curationVersionKey(version)).then(as<CurationRecord>);
   }
 
-  /** The newest curation versions (highest first). */
-  async recentCurationVersions(limit = 5): Promise<CurationRecord[]> {
-    const res = await this.table.query({ pk: CURATION_PK, sk: { beginsWith: "V#" }, forward: false, limit });
-    return res.items as unknown as CurationRecord[];
-  }
-
   /** The highest curation version ever written (not necessarily the live one after a rollback), or 0. */
   async newestCurationVersion(): Promise<number> {
     const res = await this.table.query({ pk: CURATION_PK, sk: { beginsWith: "V#" }, forward: false, limit: 1 });

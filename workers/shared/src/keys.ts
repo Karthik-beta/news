@@ -44,6 +44,8 @@ export const curationLatestKey = (): Key => ({ PK: CURATION_PK, SK: LATEST });
 export const curationVersionKey = (version: number): Key => ({ PK: CURATION_PK, SK: versionSk(version) });
 
 export const idempotencyKey = (keyHash: string): Key => ({ PK: `IDEM#${keyHash}`, SK: "META" });
+/** What the request with this key committed, written in its commit transaction (ADR 0005). */
+export const operationResultKey = (keyHash: string): Key => ({ PK: `IDEM#${keyHash}`, SK: "RESULT" });
 
 /** Hub IDs: 'latest', 'cat/<slug>', 'ent/<entity id>', 'region/<region>'. */
 export const HUB_LATEST = "latest";

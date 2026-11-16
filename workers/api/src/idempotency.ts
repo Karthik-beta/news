@@ -17,7 +17,7 @@ import { ApiError } from "./errors";
 
 export const IDEMPOTENCY_HEADER = "idempotency-key";
 const KEY = /^[A-Za-z0-9:._-]{8,255}$/;
-const TTL_SECONDS = 7 * 24 * 3600;
+export const TTL_SECONDS = 7 * 24 * 3600;
 const STALE_MS = 2 * 60 * 1000;
 
 export function readKey(request: Request): string {

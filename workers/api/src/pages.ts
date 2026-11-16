@@ -370,6 +370,7 @@ function affectedUrls(deps: Deps, page: Pick<PageRecord, "path" | "hubs" | "file
 /** The context of a direct call (tests): no page lock, so only the storage timeouts apply. */
 const unlocked = (deps: Deps): OpContext => ({
   requestId: "",
+  requestHash: "",
   fence: new Fence(undefined, deps.now, deps.storageTimeoutMs),
 });
 

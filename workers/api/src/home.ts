@@ -4,14 +4,15 @@
 import { checkCuration, type PageLookup, slotsOf } from "@news/worker-shared/curation";
 import { eq, notExists } from "@news/worker-shared/dynamo/conditions";
 import { ConditionFailedError } from "@news/worker-shared/dynamo/table";
-import { curationLatestKey, curationVersionKey } from "@news/worker-shared/keys";
+import { curationLatestKey, curationVersionKey, operationResultKey } from "@news/worker-shared/keys";
 import { Reader } from "@news/worker-shared/read";
-import type { Curation, CurationRecord } from "@news/worker-shared/records";
+import type { Curation, CurationRecord, OperationResult } from "@news/worker-shared/records";
 import { homeUrls } from "@news/worker-shared/urls";
 import { check, schemas } from "@news/worker-shared/validate";
 import type { OpContext } from "./app";
 import type { Deps } from "./deps";
 import { ApiError } from "./errors";
+import { TTL_SECONDS } from "./idempotency";
 import type { OpResult } from "./pages";
 
 /** Looks up every curated page: live record, or missing, or versions without a live record ("unpublished"). */
@@ -27,7 +28,22 @@ export async function lookupPages(reader: Reader, ids: string[]): Promise<Map<st
 }
 
 export interface PreparedCuration {
-  curation: Curation;
+  curation?: Curation;
+  /** The version this request already committed (found by its key): only the purge is left to do. */
+  committed?: number;
+}
+
+/**
+ * Before any validation: the version this request (same key, same body) already committed, if any. The publish
+ * transaction records it under the key (IDEM#<key hash> / RESULT), so a retry after a failed purge, a lost response
+ * or a crash only purges again, however many curations were published since and whatever changed in the pages.
+ */
+export async function recoverCuration(
+  deps: Deps,
+  seen: { keyHash: string; requestHash: string },
+): Promise<PreparedCuration | undefined> {
+  const done = (await deps.table().get(operationResultKey(seen.keyHash))) as unknown as OperationResult | undefined;
+  return done && done.request_hash === seen.requestHash ? { committed: done.version } : undefined;
 }
 
 export async function prepareCuration(deps: Deps, body: unknown): Promise<PreparedCuration> {
@@ -44,23 +60,23 @@ export async function prepareCuration(deps: Deps, body: unknown): Promise<Prepar
 }
 
 /**
- * Writes the next version and makes it live in one transaction, then purges. A retry of the same request (same
- * Idempotency-Key, after a failed purge, a lost response or a crash) finds the version it already wrote, by its
- * request_id, and only purges again: one curation never becomes two versions.
+ * Writes the next version, makes it live and records it under the request's key, in one transaction, then purges.
+ * A retry of the same request finds that record first (recoverCuration) and only purges again, answering as the
+ * first attempt did: one curation never becomes two versions.
  */
 export async function executeCuration(deps: Deps, p: PreparedCuration, ctx: OpContext): Promise<OpResult> {
+  if (p.committed !== undefined) {
+    const purged = await deps.purger.purge(homeUrls(deps.siteOrigin, deps.regions));
+    return { status: 200, body: { version: p.committed, live_version: p.committed, purged } };
+  }
   const table = deps.table();
   const reader = new Reader(table);
-  const now = deps.now().toISOString();
-  const [recent, live] = await Promise.all([reader.recentCurationVersions(), reader.getLiveCuration()]);
-  const done = recent.find((r) => r.request_id === ctx.requestId);
-  if (done) {
-    const purged = await deps.purger.purge(homeUrls(deps.siteOrigin, deps.regions));
-    return { status: 200, body: { version: done.version, live_version: live?.version ?? done.version, purged } };
-  }
-  const version = (recent[0]?.version ?? 0) + 1;
+  const at = deps.now();
+  const now = at.toISOString();
+  const [newest, live] = await Promise.all([reader.newestCurationVersion(), reader.getLiveCuration()]);
+  const version = newest + 1;
   const record: CurationRecord = {
-    ...p.curation,
+    ...(p.curation as Curation),
     ...curationVersionKey(version),
     PK: "HOME#CURATION",
     type: "curation",
@@ -68,6 +84,16 @@ export async function executeCuration(deps: Deps, p: PreparedCuration, ctx: OpCo
     published_at: now,
     server_checks: { passed: true, run_at: now },
     request_id: ctx.requestId,
+  };
+  const result: OperationResult = {
+    ...operationResultKey(ctx.requestId),
+    SK: "RESULT",
+    type: "operation_result",
+    operation: "home_curation",
+    request_hash: ctx.requestHash,
+    version,
+    created_at: now,
+    expires_at: Math.floor(at.getTime() / 1000) + TTL_SECONDS,
   };
   try {
     // Both or neither: a new immutable version, and LATEST moved to it (only if nobody moved it meanwhile).
@@ -77,6 +103,7 @@ export async function executeCuration(deps: Deps, p: PreparedCuration, ctx: OpCo
         put: { ...record, ...curationLatestKey(), PK: "HOME#CURATION", made_live_at: now } as never,
         cond: live ? eq("version", live.version) : notExists(),
       },
+      { put: result as never },
     ]);
   } catch (e) {
     if (e instanceof ConditionFailedError)

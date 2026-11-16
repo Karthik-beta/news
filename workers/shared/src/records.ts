@@ -202,4 +202,16 @@ export interface IdempotencyRecord {
   expires_at: number;
 }
 
+/** IDEM#<key hash> / RESULT: what a committed operation produced, written with its commit (ADR 0005). */
+export interface OperationResult {
+  PK: string;
+  SK: "RESULT";
+  type: "operation_result";
+  operation: "home_curation";
+  request_hash: string;
+  version: number;
+  created_at: string;
+  expires_at: number;
+}
+
 export type ReportKind = "figure" | "wording" | "link" | "image" | "other";
