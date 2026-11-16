@@ -146,6 +146,13 @@ pub async fn enqueue(pool: &PgPool, job: &NewJob) -> Result<Enqueued, NewsError>
 /// [`enqueue`] on a given connection or transaction.
 pub async fn enqueue_on(conn: &mut PgConnection, job: &NewJob) -> Result<Enqueued, NewsError> {
     let pool_name = match (&job.pool, kinds::spec(&job.kind)) {
+        // A registered kind runs only in its own pool: a publish job in `net` would reach `news work`.
+        (Some(p), Some(spec)) if p != spec.pool => {
+            return Err(NewsError::usage(format!(
+                "job kind {:?} runs in pool {:?}, not {p:?}",
+                job.kind, spec.pool
+            )));
+        }
         (Some(p), _) => p.clone(),
         (None, Some(spec)) => spec.pool.to_owned(),
         (None, None) => {

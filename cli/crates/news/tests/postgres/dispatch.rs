@@ -833,6 +833,103 @@ async fn the_old_holder_of_a_rescued_and_reclaimed_job_cannot_finish_it() {
 
 #[tokio::test(flavor = "multi_thread")]
 #[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn a_registered_kind_only_runs_in_its_own_pool() {
+    let f = Fixture::migrated().await;
+    let err = queue::enqueue(&f.pool, &NewJob::new("page.publish").pool("net"))
+        .await
+        .unwrap_err();
+    assert_eq!(err.code, news_core::ErrorCode::Usage, "{err:?}");
+    assert!(err.message.contains("publish"), "{}", err.message);
+    // A row that got into the wrong pool anyway (raw SQL) is refused by the worker, never run.
+    let id: i64 = sqlx::query_scalar(
+        "insert into jobs (kind, pool) values ('page.publish', 'net') returning job_id",
+    )
+    .fetch_one(&f.pool)
+    .await
+    .unwrap();
+    static RAN: AtomicBool = AtomicBool::new(false);
+    fn publish(_: news_core::job::JobInput) -> news_core::job::JobFuture {
+        RAN.store(true, Ordering::SeqCst);
+        Box::pin(async move { Ok(json!({})) })
+    }
+    fn resolve(_: &str) -> Option<news_core::job::Handler> {
+        Some(publish)
+    }
+    let mut opts = news_dispatch::worker::WorkOptions::new(vec!["net".into()], "t");
+    opts.once = true;
+    let report = news_dispatch::worker::run(f.pool.clone(), opts, resolve, std::future::pending())
+        .await
+        .unwrap();
+    assert_eq!((report.claimed, report.failed), (1, 1), "{report:?}");
+    assert!(!RAN.load(Ordering::SeqCst), "the handler must not run");
+    let job = state_of(&f, id).await;
+    assert_eq!(
+        (job.state.as_str(), job.error_class.as_deref()),
+        ("discarded", Some("bug"))
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn a_bad_cron_row_is_disabled_and_the_other_schedules_still_fire() {
+    let f = Fixture::migrated().await;
+    sqlx::query(
+        "insert into schedules (schedule_id, kind, pool, cron, next_at, enabled)
+         values ('broken', 'doc.fetch', 'net', 'not a cron', now() - interval '1 minute', true)",
+    )
+    .execute(&f.pool)
+    .await
+    .unwrap();
+    sqlx::query(
+        "update schedules set enabled = true, next_at = now() - interval '1 minute' where schedule_id = 'calendar.sync'",
+    )
+    .execute(&f.pool)
+    .await
+    .unwrap();
+    let fired = schedule::tick(&f.pool).await.unwrap().unwrap();
+    assert_eq!(
+        fired
+            .iter()
+            .map(|x| x.schedule_id.as_str())
+            .collect::<Vec<_>>(),
+        ["calendar.sync"]
+    );
+    assert_eq!(
+        f.scalar_str("select enabled::text from schedules where schedule_id = 'broken'")
+            .await,
+        "false"
+    );
+    assert!(
+        f.scalar_str("select note from schedules where schedule_id = 'broken'")
+            .await
+            .starts_with("disabled: invalid cron")
+    );
+    // Writes are checked: a bad cron or the wrong pool never reaches the table.
+    let bad = schedule::NewSchedule::new("x", "doc.fetch", "nonsense");
+    assert_eq!(
+        schedule::upsert(&f.pool, &bad).await.unwrap_err().code,
+        news_core::ErrorCode::ValidationFailed
+    );
+    let wrong_pool = schedule::NewSchedule::new("y", "doc.fetch", "0 * * * *").pool("cpu");
+    assert_eq!(
+        schedule::upsert(&f.pool, &wrong_pool)
+            .await
+            .unwrap_err()
+            .code,
+        news_core::ErrorCode::Usage
+    );
+    let ok = schedule::NewSchedule::new("z", "doc.fetch", "0 * * * *");
+    let next = schedule::upsert(&f.pool, &ok).await.unwrap();
+    assert!(next > chrono::Utc::now());
+    assert_eq!(
+        f.scalar_str("select pool from schedules where schedule_id = 'z'")
+            .await,
+        "net"
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
 async fn a_heartbeat_marks_the_jobs_run_as_seen() {
     let f = Fixture::migrated().await;
     let run_id = uuid::Uuid::new_v4();

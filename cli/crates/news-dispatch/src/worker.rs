@@ -133,6 +133,18 @@ async fn maintenance(db: &PgPool, report: &mut WorkReport) {
 async fn run_one(db: PgPool, job: Job, resolve: Resolver, worker: String) -> Outcome {
     let spec = kinds::spec(&job.kind);
     let lease = Duration::from_secs(u64::from(spec.map_or(120, |s| s.lease_secs)));
+    // A registered kind runs only in its own pool. Enqueue enforces it; a row that got into another
+    // pool anyway (raw SQL) is failed, never run, so a publish handler can never run in `news work`.
+    if let Some(s) = spec.filter(|s| s.pool != job.pool) {
+        let f = JobFailure::new(
+            ErrorClass::Bug,
+            format!(
+                "job kind {:?} runs only in pool {:?}, not {:?}; refused",
+                job.kind, s.pool, job.pool
+            ),
+        );
+        return finish_failed(&db, &job, &worker, &f).await;
+    }
     let Some(handler) = resolve(&job.kind) else {
         let f = JobFailure::new(
             ErrorClass::Bug,

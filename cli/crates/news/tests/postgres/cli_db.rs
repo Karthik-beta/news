@@ -57,7 +57,7 @@ async fn jobs_list_is_deterministic_paged_and_filterable() {
     let f = Fixture::migrated().await;
     for i in 0..25 {
         let pool = if i % 2 == 0 { "net" } else { "cpu" };
-        queue::enqueue(&f.pool, &NewJob::new("doc.fetch").pool(pool))
+        queue::enqueue(&f.pool, &NewJob::new("test.fetch").pool(pool))
             .await
             .unwrap();
     }
