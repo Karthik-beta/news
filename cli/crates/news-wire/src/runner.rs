@@ -248,6 +248,9 @@ fn path_of(url: &str) -> &str {
         .unwrap_or("/")
 }
 
+/// Per host: until when the entry holds, and the rules or the reason robots.txt was unavailable.
+type RobotsEntry = (DateTime<Utc>, Result<Robots, FetchError>);
+
 pub struct Runner {
     transport: Arc<dyn Transport>,
     clock: Arc<dyn Clock>,
@@ -255,8 +258,7 @@ pub struct Runner {
     /// Per source: its token bucket and its `max_concurrency` slots.
     buckets: Mutex<HashMap<String, TokenBucket>>,
     slots: Mutex<HashMap<String, Arc<Semaphore>>>,
-    /// Per host: until when the entry holds, and the rules or the reason robots.txt was unavailable.
-    robots: Mutex<HashMap<String, (DateTime<Utc>, Result<Robots, FetchError>)>>,
+    robots: Mutex<HashMap<String, RobotsEntry>>,
     quota: Mutex<HashMap<(String, NaiveDate), u32>>,
     net: Semaphore,
 }
