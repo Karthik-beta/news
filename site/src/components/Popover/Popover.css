@@ -26,8 +26,14 @@
   display: none;
 }
 
-/* Sit under the trigger where anchor positioning exists (the trigger is the popover's implicit anchor),
-   flipping above or to the other side near the edges. */
+/* Sit under the trigger where anchor positioning exists (the trigger is the popover's implicit anchor). The
+   options, in order, the first that fits wholly on screen winning (the same in Chromium, Firefox and WebKit):
+   1. under the trigger, then above it, then either one extending the other way from the trigger;
+   2. under or above, anywhere across the screen 16px in from its edges (a trigger mid-line on a phone);
+   3. when it fits neither under nor above (a landscape phone is 390px tall), on the side with more room, its
+      height capped to that side; it scrolls inside, so "Open the source" stays reachable by Tab and by touch.
+   Option 3 picks the larger side through min-height: the space under the trigger fits that box only when it is at
+   least half the screen less the trigger, which is when it is the larger side. */
 @supports (position-area: block-end) {
   .popover[popover] {
     inset: auto;
@@ -35,9 +41,34 @@
     position-try-fallbacks:
       flip-block,
       flip-inline,
-      flip-block flip-inline;
+      flip-block flip-inline,
+      --popover-below-wide,
+      --popover-above-wide,
+      --popover-below-scroll,
+      --popover-above-scroll;
     margin-block: var(--space-2);
+    overflow-y: auto;
   }
+}
+
+@position-try --popover-below-wide {
+  position-area: block-end span-all;
+  margin-inline: var(--space-5);
+}
+@position-try --popover-above-wide {
+  position-area: block-start span-all;
+  margin-inline: var(--space-5);
+}
+@position-try --popover-below-scroll {
+  position-area: block-end span-all;
+  margin-inline: var(--space-5);
+  max-height: calc(100% - 2 * var(--space-2));
+  min-height: calc((100dvh - anchor-size(height)) / 2 - 2 * var(--space-2));
+}
+@position-try --popover-above-scroll {
+  position-area: block-start span-all;
+  margin-inline: var(--space-5);
+  max-height: calc(100% - 2 * var(--space-2));
 }
 
 .popover-trigger {
