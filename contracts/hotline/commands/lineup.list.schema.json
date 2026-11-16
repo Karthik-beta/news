@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/hotline/commands/lineup.list.schema.json",
+  "title": "Hotline lineup.list",
+  "description": "The heavy runs waiting for the slot, in the order they will start, and the run holding it. Input is the request's args; output is the reply envelope's data.",
+  "x-news-tier": "R",
+  "x-hotline-from": ["board", "terminal"],
+  "x-news-status": "#10",
+  "x-news-cli": "news run lineup",
+  "x-news-errors": ["upstream_unavailable"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "heavy_slot": {
+          "$ref": "../common.schema.json#/$defs/heavySlot"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "../common.schema.json#/$defs/lineupEntry"
+          }
+        },
+        "text": {
+          "$ref": "../common.schema.json#/$defs/text"
+        }
+      },
+      "required": ["heavy_slot", "items", "text"],
+      "additionalProperties": false
+    }
+  }
+}

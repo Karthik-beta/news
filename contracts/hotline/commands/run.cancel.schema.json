@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/hotline/commands/run.cancel.schema.json",
+  "title": "Hotline run.cancel",
+  "description": "Cancel a run. A queued, waiting or paused run ends at once with its Wrap; a running one stops (cancel mode) and its Wrap follows in a `run` event. Input is the request's args; output is the reply envelope's data.",
+  "x-news-tier": "H",
+  "x-hotline-from": ["board"],
+  "x-news-status": "#10",
+  "x-news-cli": null,
+  "x-news-errors": ["usage", "not_found", "precondition", "gated", "upstream_unavailable"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "run": {
+          "$ref": "../common.schema.json#/$defs/runRef"
+        }
+      },
+      "required": ["run"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "run_id": {
+          "$ref": "../common.schema.json#/$defs/uuid"
+        },
+        "short_id": {
+          "$ref": "../common.schema.json#/$defs/shortId"
+        },
+        "status": {
+          "enum": ["pausing", "cancelled"]
+        },
+        "wrap": {
+          "anyOf": [
+            {
+              "$ref": "../common.schema.json#/$defs/wrap"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "text": {
+          "$ref": "../common.schema.json#/$defs/text"
+        }
+      },
+      "required": ["run_id", "short_id", "status", "wrap", "text"],
+      "additionalProperties": false
+    }
+  }
+}

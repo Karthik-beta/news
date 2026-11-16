@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/hotline/commands/run.pause.schema.json",
+  "title": "Hotline run.pause",
+  "description": "Pause a running run at its next safe boundary (drain). On a stalled run, or a draining one that has stalled, it stops at once (now): its processes are terminated and its worker tasks cancelled before the slot is freed (ADR 0008 §4). Input is the request's args; output is the reply envelope's data.",
+  "x-news-tier": "H",
+  "x-hotline-from": ["board"],
+  "x-news-status": "#10",
+  "x-news-cli": null,
+  "x-news-errors": ["usage", "not_found", "precondition", "gated", "upstream_unavailable"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "run": {
+          "$ref": "../common.schema.json#/$defs/runRef"
+        }
+      },
+      "required": ["run"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "run_id": {
+          "$ref": "../common.schema.json#/$defs/uuid"
+        },
+        "short_id": {
+          "$ref": "../common.schema.json#/$defs/shortId"
+        },
+        "status": {
+          "enum": ["pausing", "paused"]
+        },
+        "stop_mode": {
+          "enum": ["drain", "now"]
+        },
+        "stalled": {
+          "type": "boolean"
+        },
+        "text": {
+          "$ref": "../common.schema.json#/$defs/text"
+        }
+      },
+      "required": ["run_id", "short_id", "status", "stop_mode", "stalled", "text"],
+      "additionalProperties": false
+    }
+  }
+}

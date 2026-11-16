@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/hotline/events/lagged.schema.json",
+  "title": "Hotline event lagged",
+  "description": "Sent instead of the events a slow subscriber missed; Board then reads `status` again. Validates the event's data.",
+  "x-hotline-topic": "lagged",
+  "x-news-status": "#10",
+  "$defs": {
+    "data": {
+      "type": "object",
+      "properties": {
+        "missed": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": ["missed"],
+      "additionalProperties": false
+    }
+  }
+}

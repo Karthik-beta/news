@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/hotline/events/schedule.schema.json",
+  "title": "Hotline event schedule",
+  "description": "Rota considered a schedule slot: started, queued, skipped or missed. Validates the event's data.",
+  "x-hotline-topic": "schedule",
+  "x-news-status": "#10",
+  "$defs": {
+    "data": {
+      "type": "object",
+      "properties": {
+        "schedule_key": {
+          "$ref": "../common.schema.json#/$defs/scheduleKey"
+        },
+        "preset": {
+          "$ref": "../common.schema.json#/$defs/presetId"
+        },
+        "slot_at": {
+          "$ref": "../common.schema.json#/$defs/timestamp"
+        },
+        "outcome": {
+          "enum": ["started", "queued", "skipped", "missed"]
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "missed_before": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "run_id": {
+          "anyOf": [
+            {
+              "$ref": "../common.schema.json#/$defs/uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "short_id": {
+          "anyOf": [
+            {
+              "$ref": "../common.schema.json#/$defs/shortId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "text": {
+          "$ref": "../common.schema.json#/$defs/text"
+        }
+      },
+      "required": [
+        "schedule_key",
+        "preset",
+        "slot_at",
+        "outcome",
+        "reason",
+        "missed_before",
+        "run_id",
+        "short_id",
+        "text"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
