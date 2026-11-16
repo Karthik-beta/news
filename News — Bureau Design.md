@@ -4,7 +4,7 @@ Nov 14, 2026 · @Karthik · Draft for review · Updated 16 Nov 2026: Bureau runs
 
 **Bureau** is the part of News that runs on Karthik's laptop: where the reporting happens, away from head office, while the cloud side only serves readers. This document designs all of Bureau: ingestion, normalisation, story detection, scoring and ranking, content generation, checking, orchestration, and the preset workflows Karthik runs from Board, the desktop app of the Bureau service. It builds on the [PRD](News%20—%20Product%20Requirements%20Document.md), the [Technical Design](News%20—%20Technical%20Design.md) (TD) and the [Development Plan](News%20—%20Development%20Plan.md). Where it departs from them, the change is listed in [Changes to existing documents](#14-changes-to-existing-documents) and has been applied to those documents.
 
-**Names.** Every part of Bureau has an approved one-word newsroom name (Wire, Stringers, Morgue, Diary, Clerk, Ledger, Roster, Taster, Nose, Desk, Fixer, Reporter, Proof, Press, Chief, Dispatch, Ghost …). The full reference table is in [§15 Names](#15-names). Commands are verb-based: the `news` CLI (`news run start`, `news jobs retry`), which Board and Karthik's terminal use over the control pipe. Existing names (`news` CLI commands, `news-home-curation`, the `page-*` and `news-brand` skills, PostgreSQL tables named in the TD) stay as they are; the TD's `curate-home` workflow becomes Frontpage, which runs on Karthik's schedule or from Board.
+**Names.** Every part of Bureau has an approved one-word newsroom name (Wire, Stringers, Morgue, Diary, Clerk, Ledger, Roster, Taster, Nose, Desk, Fixer, Reporter, Proof, Press, Chief, Dispatch, Ghost …). The full reference table is in [§15 Names](#15-names). Commands are verb-based: the `news` CLI (`news run status`, `news jobs retry`) and the actions Board sends over the Hotline. Existing names (`news` CLI commands, `news-home-curation`, the `page-*` and `news-brand` skills, PostgreSQL tables named in the TD) stay as they are; the TD's `curate-home` workflow becomes Frontpage, which runs on Karthik's schedule or from Board.
 
 **Research.** External facts were checked on 14 Nov 2026 against primary documentation and are cited by number; the list is in [References](#16-references). Anything not confirmed in a primary source, or that is my estimate, is marked *(speculative)* or *(unverified)*.
 
@@ -62,10 +62,10 @@ Turn a stream of public, primary-source releases (filings, statistics, central-b
 | P5 | **Structured identity before similarity** | Most items on this site have a natural key (company + fiscal period, series + reference period, central bank + meeting date, report + edition, DOI or arXiv ID). Story identity comes from those keys; embeddings are used only for the unstructured remainder. |
 | P6 | **Agents get purpose-built tools** | Compact JSON briefs in, compact JSON out, stable error codes, least privilege, every tool testable without AI. |
 | P7 | **Resumable by default** | All state lives in PostgreSQL; every step is idempotent and keyed; a crash, a usage-limit stop or a closed laptop lid resumes where it stopped. |
-| P8 | **Karthik's Start or schedule is the approval** | Background jobs (calendar sync, release-time fetching, source probes) run without Karthik. A run that calls a model starts only from Karthik: a Start in Board or his terminal, or a schedule he set in Board, which counts as his approval to start. Gated presets still stop and wait in Board. AI usage is on his plan, so the quota guard keeps Bureau inside a cap and a reserve (§7.4) (PRD "Content production"; ADR 0007). |
+| P8 | **Karthik's Start or schedule is the approval** | Background jobs (calendar sync, release-time fetching, source probes) run without Karthik. A run that calls a model starts only from Karthik: a Start in Board, or a schedule he set in Board, which counts as his approval to start. Gated presets still stop and wait in Board. AI usage is on his plan, so the quota guard keeps Bureau inside a cap and a reserve (§7.4) (PRD "Content production"; ADR 0007). |
 | P9 | **Light on a 4-core laptop** | Small fixed worker pools, one heavy run at a time, network-bound work overlapped with AI waits, no extra servers beyond the PostgreSQL, ClickHouse and OTel containers, the Bureau service and the warm render server. Quiet hours keep heavy runs off the laptop when Karthik wants it (§5.6). |
 | P10 | **Everything measured** | Every step emits events and spans to ClickHouse, joined by `run_id` and `job_id`, including each `claude -p` call. |
-| P11 | **One control surface** | Karthik starts and controls every preset and run from Board; his terminal (the `news` CLI over the same pipe) is the fallback. Chief is the only way a preset runs, control commands arrive only over the control pipe and never from a process the service spawned for `claude -p`, and nothing bypasses Chief's gates (§5.5, §8.1, §9.3). A few H-tier maintenance commands stay terminal-only for now: `news stories merge\|split`, `news entities alias`. |
+| P11 | **One control surface** | Karthik starts and controls every preset and run from Board, and every H-tier action is accepted only from Board (§6.3). His terminal (the `news` CLI over the Hotline) reads status and runs the low-risk tiers only. Chief is the only way a preset runs, actions arrive only over the Hotline and never from a process the service spawned for `claude -p`, and nothing bypasses Chief's gates (§5.5, §8.1, §9.3). |
 
 ---
 
@@ -118,13 +118,13 @@ Turn a stream of public, primary-source releases (filings, statistics, central-b
 
 ```
  Karthik ──Board (news board, egui)──┐   status board, gates, run detail, settings and schedules, Docker health
-         ──terminal (news …)─────────┤   the fallback for every control command
+         ──terminal (news …)─────────┤   status and low-risk commands only; no H-tier action
                                      ▼
-          control pipe: Karthik's user only, local only; control commands refused
+          Hotline: Karthik's user only, local only; control commands refused
           from any process the service spawned for claude -p (§9.3, ADR 0007)
                                      ▼
           Bureau service (news service run, a Windows service logged on as Karthik)
-            Chief       runs and steps, gates, the heavy-slot queue, the Wrap
+            Chief       runs and steps, gates, the Lineup, the Wrap
             scheduler   preset schedules (Karthik's settings), missed slots, quiet hours, quota guard (§5.6, §7.4)
             Dispatch    workers for every pool: net, cpu, docling (always on); render, ai, publish (inside runs)
             Ghost       one claude -p per AI job, in the service's job object, env allow-list, usage-limit pause
@@ -135,7 +135,7 @@ Turn a stream of public, primary-source releases (filings, statistics, central-b
           PostgreSQL (runs, run_steps, jobs, approvals, settings …) = single source of truth
 ```
 
-Board holds no state of its own. It shows what the service reports and sends Karthik's actions over the pipe. Runs carry on with Board closed; Board raises Windows toasts for the things that need him (§8.1).
+Board holds no state of its own. It shows what the service reports and sends Karthik's actions over the Hotline. Runs carry on with Board closed; Board raises Windows toasts for the things that need him (§8.1).
 
 ### 2.3 Life of one item (US CPI, October release)
 
@@ -198,7 +198,7 @@ create table sources (
 
 | Source | Limit or rule | Default in Contacts |
 | --- | --- | --- |
-| SEC EDGAR | Max 10 requests/s; declared User-Agent with organisation and contact e-mail [18] | 4 req/s; UA contact from `NEWS_CONTACT_EMAIL` (local `.env`, never committed) |
+| SEC EDGAR | Max 10 requests/s; declared User-Agent with organisation and contact e-mail [18] | 4 req/s; UA contact from the `NEWS_CONTACT_EMAIL` setting in Standing (never committed) |
 | FRED | Free key; 120 req/min *(unverified: official pages give no figure)* [21] | 1 req/s |
 | BLS API v2 | Free key; 500 queries/day, 50 series/query; 50 requests per 10 s [22] | 0.5 req/s, daily quota 400 |
 | BEA | Free key; 100 req/min *(from the user guide via a search snippet)* [23] | 0.5 req/s |
@@ -212,7 +212,7 @@ create table sources (
 
 **AI use.** None. Contacts rows are written by developers (Sonnet docs writer, Opus review), never by a runtime model.
 
-**Tools.** `news sources list|show|health|probe` (agents); `enable|disable` (Karthik from Board or his terminal, or Rollcall's step after its `actions` approval).
+**Tools.** `news sources list|show|health|probe` (agents); `enable|disable` (Karthik from Board, or Rollcall's step after its `actions` approval).
 
 **Failure modes.** Missing licence → the Stringer refuses to emit candidates (`licence_missing`). Free key absent → source `amber`, skipped, reported by the Rollcall workflow.
 
@@ -249,7 +249,7 @@ pub struct ItemRef { pub source_id: String, pub url: String, pub event_key_hint:
 | Rate limits | Token bucket per host from Contacts; global network pool of 6 | Source terms (table above) |
 | `Retry-After` | Honour seconds or HTTP-date on 429/503; the job is *snoozed* (not counted as a failed attempt) | RFC 9110 [39]; River's snooze [5] |
 | robots.txt | Cached ≤ 24 h; 4xx on robots.txt = allowed, 5xx = disallow all; case-insensitive UA match falling back to `*` | RFC 9309 [40] |
-| User-Agent | `News/<version> (+https://news.karthik.nz/data-access)`, plus the contact e-mail from `.env` only for sources that require one (SEC) | SEC fair access [18] |
+| User-Agent | `News/<version> (+https://news.karthik.nz/data-access)`, plus the contact e-mail (`NEWS_CONTACT_EMAIL`, from Standing) only for sources that require one (SEC) | SEC fair access [18] |
 | Compression and size | `Accept-Encoding: gzip, br`; stream to disk, hash while streaming; content-type allow-list and max size per source (default 50 MB, PDFs 200 MB) | Low CPU, safety |
 | Timeouts | Connect 10 s, total 120 s (bulk files 30 min) | |
 
@@ -637,7 +637,7 @@ claude -p \
 #            OTEL_RESOURCE_ATTRIBUTES=news.run_id=<run>,news.job_id=<job>,news.step=A1
 ```
 
-**The spawn marker.** The service starts every `claude -p` in a Windows Job Object it owns, created without breakaway rights, so the call and every process it starts stay in that job. The control pipe refuses start, approve, cancel, settings and every other control command from any process in such a job (§9.3, ADR 0007). The `NEWS_SPAWNED_BY` variable is a label for logs only; the check never relies on it.
+**The spawn marker.** The service starts every `claude -p` in a Windows Job Object it owns, created without breakaway rights, so the call and every process it starts stay in that job. The Hotline refuses start, approve, cancel, settings and every other control command from any process in such a job (§9.3, ADR 0007). The `NEWS_SPAWNED_BY` variable is a label for logs only; the check never relies on it.
 
 Why each flag [62][63][68]: `--tools ""` disables all built-in tools (`--allowedTools` only pre-approves, it does not restrict); `--strict-mcp-config` with an empty config stops project MCP servers loading, and without it `-p` also runs project hooks and `.mcp.json` servers with no trust prompt; `--json-schema` makes the harness validate the result and re-prompt, returning `structured_output`, or the subtype `error_max_structured_output_retries`; `--max-budget-usd` is a client-side estimate that can overshoot, used as a runaway guard, not a bill; if `ANTHROPIC_API_KEY` is set, `-p` uses it instead of the subscription, so Ghost removes it; `--bare` must **not** be used, because it never reads subscription credentials. The settings file and `--setting-sources` keep project hooks and plugins out of page calls *(the exact combination is confirmed in the Phase 7 lean-call spike; unverified)*.
 
@@ -899,8 +899,8 @@ The run stops at the target of 4, with every limit satisfied: Economy 2 of 4 (th
 - Survive crashes, sleep and usage-limit stops; resume without repeating finished work.
 - Hold multi-step preset runs with approval stops that may wait hours.
 - Start runs on Karthik's schedules, unattended, and queue heavy runs for the one heavy slot.
-- Run every job in Rust inside the Bureau service, calling the warm Bun render server for rendering.
-- Add no server beyond the Bureau service and the render server; PostgreSQL 17 is already there.
+- Run every job in Rust inside the Bureau service, calling Plate, the warm Bun render server for rendering.
+- Add no server beyond the Bureau service and Plate; PostgreSQL 17 is already there.
 
 ### 5.2 Options compared
 
@@ -1024,10 +1024,10 @@ Chief runs inside the Bureau service (ADR 0007). It advances every live run itse
 
 ```sql
 create table runs (
-  run_id uuid primary key, short_id text unique not null,   -- 'r_7f3c', shown in Board and typed in the terminal
+  run_id uuid primary key, short_id text unique not null,   -- 'r_7f3c', shown in Board and the terminal
   preset text not null, args jsonb not null,
   heavy boolean not null,   -- from the preset declaration (§8.1)
-  origin text not null check (origin in ('board','schedule','terminal')),
+  origin text not null check (origin in ('board','schedule')),
   schedule_key text,        -- the schedule setting that started it, when origin = 'schedule'
   settings_version int not null,                 -- the settings version the run started with (§5.6)
   status text not null,     -- 'queued' | 'running' | 'waiting_approval' | 'waiting_ai' | 'paused'
@@ -1057,38 +1057,38 @@ create table approvals (
   decision text not null,   -- 'approved' | 'rejected' | 'changes'
   note text, decided_at timestamptz not null,
   subject_sha bytea not null,   -- hash of exactly what was shown at the stop (plan, curation draft, diff)
-  origin text not null check (origin in ('board','terminal')),   -- received over the control pipe (§9.3)
+  origin text not null check (origin = 'board'),   -- received over the Hotline from Board only (§9.3)
   consumed_at timestamptz,      -- set when the step this approval covers is done; then it authorises nothing
   primary key (run_id, gate, round)
 );
 ```
 
-The first design's `start_tickets` table is dropped: a run can start only through the control pipe or from a schedule, so there is nothing to ticket.
+The first design's `start_tickets` table is dropped: a run can start only through the Hotline or from a schedule, so there is nothing to ticket.
 
 Each preset is declared in Rust as an ordered list of steps, together with its arguments, heavy flag and gates (§8.1). Chief advances a run step by step:
 
 1. **Code steps** enqueue the step's jobs, which the service's workers drain within the pool limits; Chief records the step output and moves on.
 2. **AI batch steps** enqueue `ai` jobs. Ghost, in the same service, claims them, calls `claude -p`, stores outputs through `news ai accept` and heartbeats `runs.last_seen_at`. There is no time slice: the batch runs until it is done, paused or cancelled.
 3. **Draft steps** are an AI batch of one: Frontpage's curator (A8) and Rollcall's proposals (A11) run as `claude -p` through Ghost and write a draft, validated against the step's schema. Board shows the draft at the approval stop that follows.
-4. **Form steps** wait for Karthik to fill a form in Board, with no AI: Huddle's pairwise questions (§8.12). The answers arrive over the pipe (`huddle.answer`) and are stored with `news scores label`.
-5. **Approval steps** set the run to `waiting_approval`, store the summary and `subject_sha`, and send a `gate` event, so Board raises a toast. Only an approval received over the control pipe from Board or Karthik's terminal (`origin` `board` or `terminal`) records the decision, bound to `subject_sha`. The step behind the gate runs only under the G-tier rule below, so the gate is enforced by code, and an approval cannot be reused for a changed draft or a later step.
+4. **Form steps** wait for Karthik to fill a form in Board, with no AI: Huddle's pairwise questions (§8.12). The answers arrive over the Hotline from Board (`huddle.answer`) and are stored with `news scores label`.
+5. **Approval steps** set the run to `waiting_approval`, store the summary and `subject_sha`, and send a `gate` event, so Board raises a toast. Only an approval received over the Hotline from Board (`origin` `board`) records the decision, bound to `subject_sha`. The step behind the gate runs only under the G-tier rule below, so the gate is enforced by code, and an approval cannot be reused for a changed draft or a later step.
 6. At the end Chief writes the Wrap.
 
 Every step is idempotent: after a crash or a service restart, Chief finishes the current step and carries on. A heavy run moving from `waiting_approval` or `paused` back to `running` needs the heavy slot; if another heavy run holds it, the run joins the queue (below) with its gate marked approved.
 
-**The heavy-slot queue** (supersedes D16; ADR 0007). A heavy run that cannot get the slot is not refused:
+**The Lineup** (supersedes D16; ADR 0007). A heavy run that cannot get the slot is not refused:
 
 - A **scheduled** heavy run is inserted as `queued` with `start_by` = its scheduled time plus the late limit (setting `queue_late_limit`, starting at 2 hours). If the slot is still busy at `start_by`, the run ends as `skipped` with a Wrap that says why, and Board notes it.
 - A **manual** Start while the slot is busy returns `queue_offer`. Board offers "Queue it" (the run is inserted as `queued` with no `start_by`, and waits until it starts or Karthik cancels it) or "Pause the running one and start this" (the running heavy run stops at its next step boundary as `paused`, reason `karthik`, and the new run takes the slot; the paused run stays on the board with Resume).
 - A gated run whose gate is approved while the slot is busy, and a Resume while the slot is busy, join the queue the same way.
-- When the slot frees, the oldest queued run whose `start_by` has not passed starts. Board lists the queue and can cancel entries (`queue.cancel`). Quiet hours and the quota guard also hold queued runs (§5.6, §7.4).
+- When the slot frees, the oldest queued run whose `start_by` has not passed starts. Board lists the Lineup and can cancel entries (`lineup.cancel`). Quiet hours and the quota guard also hold queued runs (§5.6, §7.4).
 - A second run of a preset that is already live or queued is not queued: Board shows the live run with Resume or Cancel, and a schedule that fires for it is skipped and noted.
 
 **G-tier authorisation** (one rule for every G-tier command: `news publish`, `news home publish`, `news eval promote`, `news corrections resolve --action update`, and `news scores adopt`, `news sources enable|disable` and `news jobs retry` above 50 when they run as a step). Chief runs the command only when all three hold, read from PostgreSQL and never from environment variables such as `NEWS_RUN_ID`:
 
 1. The run is in status `running`, and the command belongs to its current `running` step.
 2. The item it acts on belongs to what was started or approved: the run's Budget (its planned items) for an ungated step; for a gated step, the plan, draft or diff whose hash is the approval's `subject_sha` (a plan hash covers its story ids).
-3. The step is authorised either by an approval row for the gate that covers it (`decision = 'approved'`, matching `subject_sha`, `origin` in `board` or `terminal`, `consumed_at` null), or, for a step the preset declares ungated, by the run's start: a Start from Board or the terminal, or a schedule Karthik set, which counts as his approval of the plan the run makes (P8).
+3. The step is authorised either by an approval row for the gate that covers it (`decision = 'approved'`, matching `subject_sha`, `origin` `board`, `consumed_at` null), or, for a step the preset declares ungated, by the run's start: a Start from Board, or a schedule Karthik set in Board, which counts as his approval of the plan the run makes (P8).
 
 An approval covers one step: every item that step publishes is checked against it, each outbox row is inserted in the same transaction as its check, and `consumed_at` is set in the transaction that marks the step done. Called any other way, a G-tier command returns `gated` (exit 7). The presets table in §8.1 lists which authorisation covers each preset's G-tier step.
 
@@ -1098,14 +1098,14 @@ The Bureau service is always on, so all scheduling happens inside it (ADR 0007).
 
 | What | Mechanism |
 | --- | --- |
-| Preset runs (AI) | Started from Board or the terminal, or by a **preset schedule** Karthik set in Board, which counts as his approval to start (P8). A schedule names the preset, its arguments (for Edition, `review_plan` on or off) and its times. Schedules are settings (versioned, §8.1); each run records the schedule and the settings version that started it. Default schedule times are Karthik's to set later. |
+| Preset runs (AI) | Started from Board, or by a **preset schedule** Karthik set in Board, which counts as his approval to start (P8). A schedule names the preset, its arguments (for Edition, `review_plan` on or off) and its times. Schedules are settings (versioned, §8.1); each run records the schedule and the settings version that started it. Default schedule times are Karthik's to set later. |
 | Background code jobs | The service's Dispatch workers run pools `net`, `cpu` and `docling` all the time. `ai`, `render` and `publish` jobs exist only inside a live run, and only Press reads the write-API key, inside an authorised step (§9.3). |
 | Recurring code jobs | `schedules` table (`kind`, cron expression in UTC, `next_at`), evaluated every minute by the service under an advisory lock: `calendar.sync` 06:00 UTC daily, source discovery every 30–120 min per source, `work.prune` daily. Index promotion is not scheduled: it runs only as Edition step 11. |
 | Calendar-driven jobs | Pre-warm and capture jobs created by `calendar.sync` with `run_after` set (§3.3). |
 | Missed preset schedules | Laptop asleep or off at a scheduled time: on wake, one run for the latest missed slot only, and none if the next slot is less than the missed-slot limit away (setting `missed_slot_limit`, starting at 2 hours). Older missed slots are noted, not run. |
 | Missed code jobs | Each recurring job keeps only its latest due run (no catch-up storms). |
 | Heavy slot busy | Scheduled heavy runs queue for the slot (§5.5). |
-| Quiet hours | Hours Karthik sets in Board. During them heavy runs do not start, or run at a reduced parallelism, as he sets it; runs due in quiet hours wait until they end. Background fetching continues. The times and the mode are his settings, set later. |
+| Quiet hours | Hours Karthik sets in Board, with one of two modes he chooses. **Don't start:** a heavy run due in quiet hours does not start; it waits in the Lineup until they end, and if that is later than its `start_by` (the late limit, §5.5) it is skipped and noted. **Reduced parallelism:** a heavy run due in quiet hours starts on time, with the `ai` pool at the reduced size he sets, and the late limit applies as usual. A heavy run already going when quiet hours begin carries on under the same mode's pool size. Light runs and background fetching are not affected. The times, the mode and the reduced size are his settings, set later. |
 | Quota guard | No new run starts when the Bureau token cap or the reserve would be crossed (§7.4); a scheduled run held by it is skipped and noted. |
 | Weekly presets | Rollcall runs on its schedule and waits at its `actions` gate in Board. Huddle's Debrief and questions are prepared on its schedule, and a toast reminds Karthik to answer them in Board (§8.7, §8.12). |
 
@@ -1159,12 +1159,12 @@ Replay modes: **re-validate** (run today's validators on stored AI outputs; no t
 | --- | --- | --- |
 | Context cost | Zero until called; help text on demand | Tool search now defers MCP tool definitions, loading names only [67], so cost is smaller than it was |
 | Least privilege | Claude Code permission rules per command pattern, e.g. `Bash(news brief *)` [66] | Per tool name (`mcp__server__tool`) [66] |
-| Use from code | Same binary as the Bureau service and Board; used by tests and Karthik's terminal | Needs an MCP client |
+| Use from code | Same binary as the Bureau service and Board; used by tests, and by Karthik's terminal for status and debugging | Needs an MCP client |
 | Testable without AI | Yes: golden JSON tests per command | Yes, but needs a harness |
 | Page calls | Not needed at all (Reporter has no tools) | Not needed |
 | Fits TD | Yes (TD "Agent toolbox") | New component |
 
-**Recommendation (D3): CLI first, for everything.** Each command can print its input and output JSON Schemas (`news schema <command>`), so a thin read-only MCP adapter (`news mcp`, stdio) can be generated later if it would help, without a second implementation. Page-writing and drafting calls use no tools at all; if a drafting step turns out to need one, it gets only the read-only commands it needs. Claude Code permission rules match command text, so a permission rule is a guardrail, not a security boundary [66]; the enforcement is in code (the control pipe and the spawn marker, the G-tier rule and approvals bound to `subject_sha`, §5.5, §9.3) and in the secrets split (§9.3).
+**Recommendation (D3): CLI first, for everything.** Each command can print its input and output JSON Schemas (`news schema <command>`), so a thin read-only MCP adapter (`news mcp`, stdio) can be generated later if it would help, without a second implementation. Page-writing and drafting calls use no tools at all; if a drafting step turns out to need one, it gets only the read-only commands it needs. Claude Code permission rules match command text, so a permission rule is a guardrail, not a security boundary [66]; the enforcement is in code (the Hotline and the spawn marker, the G-tier rule and approvals bound to `subject_sha`, §5.5, §9.3) and in the secrets split (§9.3).
 
 ### 6.2 Conventions for every command
 
@@ -1176,7 +1176,7 @@ Replay modes: **re-validate** (run today's validators on stored AI outputs; no t
   ```
 
   `error.details` (optional) carries structured context, for example the run that blocks a start (§8.1).
-- **Code-rendered text.** Any command whose result is shown to Karthik (the status board, run details, approval stops, queue offers, the Wrap) also returns `text`, in `data` or `error`, rendered by code. Board and the terminal show it verbatim, so no count, time or figure on Karthik's screen is ever typed by a model. The control pipe carries the same envelope (ADR 0007).
+- **Code-rendered text.** Any command whose result is shown to Karthik (the status board, run details, approval stops, queue offers, the Wrap) also returns `text`, in `data` or `error`, rendered by code. Board and the terminal show it verbatim, so no count, time or figure on Karthik's screen is ever typed by a model. The Hotline carries the same envelope (ADR 0007).
 - **Exit codes:** 0 ok · 2 usage · 3 not found · 4 conflict or precondition failed · 5 retryable (network, lock, busy) · 6 validation failed · 7 gated (approval required) · 10 internal bug.
 - **Error codes** (stable): `usage`, `not_found`, `conflict`, `precondition`, `gated`, `validation_failed`, `rate_limited`, `upstream_unavailable`, `licence_blocked`, `budget_exceeded`, `internal`.
 - **Size discipline.** Default output ≤ ~2k tokens; `--limit`, `--fields`, `--cursor` for more; `"truncated": true` when cut. Long text never returned inline unless asked for.
@@ -1187,10 +1187,10 @@ Replay modes: **re-validate** (run today's validators on stored AI outputs; no t
 
 | Tier | Meaning | Who |
 | --- | --- | --- |
-| R | Read-only | Board; Karthik's terminal; any `claude -p` call given tools |
+| R | Read-only | Board; Karthik's terminal (in-process, or over the Hotline for status); any `claude -p` call given tools |
 | W | Writes run-scoped state (drafts, AI outputs, job outcomes) | Chief and Ghost inside the service |
-| G | Gated: runs only as the current step of a live run, authorised by that step's approval or, for a step the preset declares ungated, by the run's start from Board, the terminal or Karthik's schedule (§5.5) | Chief inside a run step; never called directly by agents |
-| H | Human only: control commands | Karthik, from Board or his terminal, over the control pipe; refused for any process the service spawned for `claude -p` (§9.3, ADR 0007) |
+| G | Gated: runs only as the current step of a live run, authorised by that step's approval or, for a step the preset declares ungated, by the run's start from Board or Karthik's schedule (§5.5) | Chief inside a run step; never called directly by agents |
+| H | Human only: starts, gate answers, pauses, resumes, cancels, Lineup and Standing changes, and the maintenance actions below | Karthik, **from Board only**, over the Hotline. Not from his terminal, a script or a development Claude Code session, and never from a process the service spawned for `claude -p` (§9.3, ADR 0007). The CLI has no H-tier form: each H entry in §6.4 is a Board action, and the matching command runs only as Chief's G-tier step where one is listed |
 
 ### 6.4 Catalogue
 
@@ -1215,21 +1215,21 @@ Existing TD commands keep their names; each new command group is a tool family n
 | `news home candidates` | — | ≤ 40 candidates (§4.5) | — | R |
 | `news home save <file>` / `check <draft>` / `preview <draft>` | curation JSON | `{draft_id}` / `{pass, failures}` / `{url}` | `validation_failed` | W |
 | `news home publish <draft>` | — | `{version}` | `gated` unless authorised by the `publish` approval (§5.5) | G |
-| `news home rollback <v>` | — | `{version}` | `not_found` | H (Board or the terminal) |
+| `news home rollback <v>` | — | `{version}` | `not_found` | H (Board only) |
 | `news home show` | — | live curation and age | — | R |
 
-**Chief tools** (`news run …`, Chief). Control commands (H) are sent over the control pipe to the service, which runs them; read commands (R) run in the calling process.
+**Chief tools** (`news run …`, Chief). H-tier actions are Board actions sent over the Hotline; the rows marked H below describe what Board's action does and have no CLI form. Read commands (R) run in the calling process, or over the Hotline for status.
 
 | Command | Input | Output | Errors | Tier |
 | --- | --- | --- | --- | --- |
 | `news run presets` | — | the preset catalogue from the Rust declarations: id, name, arguments, heavy, writes, publishes, gates | — | R |
-| `news run start <preset> [--arg k=v] [--pause-running]` | preset id, args | `{run_id, short_id, steps:[…], status}`; `runs.origin` is `board` or `terminal`. When the heavy slot is busy: `queue_offer` with code-rendered `text`, and with `--queue` or `--pause-running` the run is queued or the running heavy run is paused first (§5.5) | `conflict` (reason `preset_live`: this preset already has a live or queued run), `precondition` (preflight, quiet hours, quota guard), `gated` (sent from a spawned process) | H |
+| Start (Board: `run.start`, `run.start_after_pause`) | preset id, args | `{run_id, short_id, steps:[…], status}`; `runs.origin` is `board`. When the heavy slot is busy: `queue_offer` with code-rendered `text`; Board then queues the run or pauses the running heavy run first (§5.5). No CLI form | `conflict` (reason `preset_live`: this preset already has a live or queued run), `precondition` (preflight, quiet hours, quota guard), `gated` (sent from a spawned process) | H |
 | `news run status [<run>]` | — | no run: the status board (§8.1); with a run: step table, counts, budget used, open gate with its summary, Wrap if finished | `not_found` | R |
-| `news run approve <run> <gate> [--note]` / `changes <run> <gate> --note` / `reject <run> <gate> [--note]` | the `subject_sha` shown, added by Board or read back by the CLI before it asks Karthik to confirm | `{decision, round, subject_sha}` | `precondition` (gate not waiting), `gated` (hash differs, or sent from a spawned process) | H |
-| `news run resume <run>` | — | `{status}`; queues the run when the heavy slot is busy | `precondition` (not paused or waiting) | H |
-| `news run pause <run>` | — | `{pausing, after_step}`; the run stops at the next step boundary and frees the heavy slot. On a stalled run (`last_seen_at` more than 15 minutes old) it takes effect at once: leases are released, status becomes `paused` and the slot is freed (finished keys make this safe, §5.8) | `precondition` (not running) | H |
-| `news run cancel <run>` | — | `{cancelled, wrap}` | | H |
-| `news run queue [cancel <run>]` | — | the heavy-slot queue in order, with `start_by`; or the cancelled entry | `not_found` | R / H for cancel |
+| Approve / Request changes / Reject (Board: `gate.approve\|changes\|reject`) | run, gate, round, the `subject_sha` Board showed; a note for changes | `{decision, round, subject_sha}` | `precondition` (gate not waiting), `gated` (hash differs, or not sent by Board) | H |
+| Resume (Board: `run.resume`) | run | `{status}`; joins the Lineup when the heavy slot is busy | `precondition` (not paused or waiting) | H |
+| Pause (Board: `run.pause`) | run | `{pausing, after_step}`; the run stops at the next step boundary and frees the heavy slot. On a stalled run (`last_seen_at` more than 15 minutes old) it takes effect at once, in this order: Chief terminates the run's AI Job Object (ending any `claude -p` still going), revokes every `running` lease of the run by moving those jobs to `retryable` with a new attempt and no holder, and only then sets the run `paused` and frees the slot. A worker that was only slow, not dead, then finds it no longer holds its job: its heartbeat, completion or failure is rejected (`conflict`, the holder check of ADR 0003), so its result is never recorded and no two workers finish the same step. Finished keys make the re-run safe (§5.8) | `precondition` (not running) | H |
+| Cancel (Board: `run.cancel`) | run | `{cancelled, wrap}` | | H |
+| `news run lineup` | — | the Lineup in order, with `start_by` (cancelling an entry is a Board action, `lineup.cancel`) | — | R |
 | `news run list [--active]` | — | recent runs | | R |
 
 The first design's `news run intent`, `next`, `submit`, `hook-prompt` and `ticket` are retired (ADR 0007): Chief advances runs inside the service, and drafts arrive through `news ai accept`.
@@ -1239,10 +1239,10 @@ The first design's `news run intent`, `next`, `submit`, `hook-prompt` and `ticke
 | Command | Does | Tier |
 | --- | --- | --- |
 | `news service run` | The Bureau service itself; Windows starts it. In a terminal it runs in the foreground, for development and tests | — |
-| `news service install` / `uninstall` | Registers or removes the Windows service under Karthik's account; Windows asks for his password | H (Karthik in a terminal) |
-| `news service update` | Waits for a safe point, swaps the binary, restarts; live runs resume | H |
+| `news service install` / `uninstall` | Registers or removes the Windows service under Karthik's account; Windows asks for his password. Run by Karthik in his own terminal, because they come before the service exists; Windows administration, not a Hotline action | Karthik only |
+| Update (Board: `service.update`) | Waits for a safe point, swaps the binary, restarts; live runs resume | H |
 | `news board [--open <kind>:<id>]` | Opens Board, optionally on one run, gate or source (used by toasts) | — |
-| `news settings show [<key>]` / `history [<key>]` / `set <key> <value> …` (command name to be confirmed with Karthik) | Settings and schedules from the versioned settings table (§8.1); `set` writes one new version | R / R / H |
+| `news standing show [<key>]` / `history [<key>]` | Settings and schedules from Standing, the versioned settings table (§8.1). Changing them is a Board action (`standing.set`), which writes one new version | R |
 
 **Dispatch tools** (`news jobs …`, the queue)
 
@@ -1252,7 +1252,7 @@ The first design's `news run intent`, `next`, `submit`, `hook-prompt` and `ticke
 | `news jobs dead [--class c]` | discarded jobs grouped by `error_class` and message fingerprint | R |
 | `news jobs claim --pool ai --limit n --worker w` | jobs with args and input file paths | W (Ghost only) |
 | `news jobs heartbeat <job>` / `complete <job> --result f` / `fail <job> --class c --message m` | `{ok}` | W (Ghost only) |
-| `news jobs retry <job \| --class c>` | `{requeued}` | W in Salvage up to 50 at once; above 50, G as Salvage's step after its `requeue` approval; H from Board or the terminal |
+| `news jobs retry <job \| --class c>` | `{requeued}` | W in Salvage up to 50 at once; above 50, G as Salvage's step after its `requeue` approval; H from Board only |
 | `news jobs pause <pool> --until t` / `unpause <pool>` | `{paused_until}` | H |
 
 **Ghost tools** (`news ai …`, contracts for every AI step)
@@ -1264,13 +1264,13 @@ The first design's `news run intent`, `next`, `submit`, `hook-prompt` and `ticke
 | `news ai schema <step>` | — | JSON Schema of the step's output | R |
 | `news ai fallback <job>` | — | applies the step's code fallback | W |
 
-**Contacts tools** (`news sources …`): `list`, `show <source>`, `health [--since 7d]` (green/amber/red with reasons, 304 ratio, error classes, last success, quota), `probe <source>` (one live discovery call with no writes; R), `enable|disable <source>` (G as Rollcall's step after its `actions` approval; H from Board or the terminal).
+**Contacts tools** (`news sources …`): `list`, `show <source>`, `health [--since 7d]` (green/amber/red with reasons, 304 ratio, error classes, last success, quota), `probe <source>` (one live discovery call with no writes; R), `enable|disable <source>` (G as Rollcall's step after its `actions` approval; H from Board only).
 
 **Diary tools** (`news calendar …`): `upcoming [--days 7] [--region r]` (R), `sync` (W, code step), `late` (R).
 
 **Taster tools** (`news stories …`): `show <story>`, `members <story>`, `similar --text t | --cand c` (R); `merge <a> <b>`, `split <story> <cands…>` (H).
 
-**Nose tools** (`news scores …`): `explain <story>` (the Pitch; R), `weights` (current config; R), `propose --from-labels` (fits new weights, prints a diff; W), `label --run <run> <file>` (records Karthik's pairwise answers from Huddle's Board form; H, over the pipe), `adopt <version>` (G as Huddle's step after its `change:<n>` approval; H from Board or the terminal).
+**Nose tools** (`news scores …`): `explain <story>` (the Pitch; R), `weights` (current config; R), `propose --from-labels` (fits new weights, prints a diff; W), `label --run <run> <file>` (records Karthik's pairwise answers from Huddle's Board form; H, from Board over the Hotline), `adopt <version>` (G as Huddle's step after its `change:<n>` approval; H from Board only).
 
 **Roster tools** (`news entities …`): `resolve <text> [--kind k]` (R), `show <entity>` (R), `unresolved` (R), `alias add|merge` (H).
 
@@ -1348,7 +1348,7 @@ Models: `NEWS_MODEL_MAIN` = Sonnet 5.5, `NEWS_MODEL_LIGHT` = Haiku 5.5, `NEWS_MO
 Bureau shares Karthik's Claude plan with his development work, and scheduled runs start without him, so the service keeps Bureau inside limits he sets (ADR 0007):
 
 - **Bureau token cap.** A daily and a weekly cap on Bureau's own tokens, counted from `ai_calls`. A run that would start over the cap does not start; a running run stops claiming new AI jobs at the cap, finishes its code work and says so in its Wrap, as `NEWS_AI_RUN_TOKENS` does per run.
-- **Reserve.** Near the plan limit, no new run starts, so Karthik keeps quota for development. The plan limit is not published, so "near" is the reserve Karthik sets. Total usage comes from Claude Code's own OpenTelemetry metrics (`claude_code.token.usage` [69]) for every session that exports to the collector, plus Bureau's `ai_calls`.
+- **Reserve.** Near the plan limit, no new run starts, so Karthik keeps quota for development. The plan limit is not published, so "near" is the reserve Karthik sets. Total usage comes from one source only: Claude Code's own OpenTelemetry metrics (`claude_code.token.usage` [69]) for every session that exports to the collector. Bureau's `claude -p` calls export there too (Ghost tags them with `news.run_id`), so they are already in the total; `ai_calls` is used for Bureau's own share and the cap, and is never added to the total. A session that does not export is not seen.
 - **Usage limit reached anyway.** The run pauses, Board raises a toast, and the run resumes on its own when the limit resets (§5.9).
 - **In Board.** Settings & schedules holds the caps and the reserve; the status board shows Bureau usage against the total for the day and the week.
 
@@ -1364,9 +1364,9 @@ The cap and reserve values are Karthik's settings, set later in Board; this docu
 
 **Decision.** [ADR 0007](docs/adr/0007-bureau-service-and-board.md) (D17–D21 in §11). In short:
 
-- **The Bureau service** (`news service run`) is a Windows service that logs on as Karthik's account, because `claude -p` uses his Claude login and Docker runs under his user. It hosts Chief, the scheduler, the Dispatch workers for every pool and Ghost (Rust). It calls the warm Bun render server on 127.0.0.1. Runs continue with Board closed.
+- **The Bureau service** (`news service run`) is a Windows service that logs on as Karthik's account, because `claude -p` uses his Claude login and Docker runs under his user. It hosts Chief, Rota, the Dispatch workers for every pool and Ghost (Rust). It calls Plate, the warm Bun render server on 127.0.0.1. Runs continue with Board closed.
 - **Board** (`news board`) is a pure-Rust egui/eframe desktop app in the same `news.exe`. It talks only to the service. It opens minimised at log-on. If the service is down it shows an offline banner, a "Start service" button and the last error. It follows the Windows light or dark setting, with a manual override, and its themes are generated from `design/tokens/tokens.json` (the `news-design-system` skill applies).
-- **Control** goes only over a named pipe locked to Karthik's user and to local clients. Board and Karthik's terminal (the `news` CLI) are its only senders; any process the service spawned for `claude -p` is refused (§9.3).
+- **Control** goes only over a named pipe locked to Karthik's user and to local clients. Only Board may send H-tier actions; Karthik's terminal (the `news` CLI) may read status and use the low-risk tiers; any process the service spawned for `claude -p` is refused (§9.3).
 - **Laptop only.** Nothing is exposed to the network and there is no remote access.
 
 #### Board's screens, in build order
@@ -1375,7 +1375,7 @@ Control comes first; later screens land in Board as their features are built.
 
 | Step | Screen | Shows and does |
 | --- | --- | --- |
-| 1 | **Runs & approvals** | The status board (below): running, waiting, queued, due, problems, next. Start a preset (a form with its arguments), pause, resume, cancel; answer gates (Approve, Request changes with a note, Reject) with the plan, draft or preview in view; run detail and the Wrap; the heavy-slot queue |
+| 1 | **Runs & approvals** | The status board (below): running, waiting, queued, due, problems, next. Start a preset (a form with its arguments), pause, resume, cancel; answer gates (Approve, Request changes with a note, Reject) with the plan, draft or preview in view; run detail and the Wrap; the Lineup |
 | 1 | **Settings & schedules** | Preset schedules; targets (`NEWS_TARGET_PAGES` and the other settings in TD "Configuration"); parallelism; budgets; the Bureau token cap and reserve (§7.4); quiet hours (§5.6); models per step; sources on and off. Every change is a new settings version with who, when, and old and new value. Secrets are entered here and stored in Windows Credential Manager |
 | 1 | **Docker health** | Health of the News containers (PostgreSQL, the OTel collector) with Start and Stop; the shared ClickHouse is health-checked only, never stopped |
 | 2 | **Service log and AI calls** | A live service log, and one record per `claude -p` call: step, model, tokens, time, result, error, with its brief and output viewable (from `ai_calls`, §9.2) |
@@ -1383,11 +1383,11 @@ Control comes first; later screens land in Board as their features are built.
 | 4 | **Analytics** | The panels of §9.2 and TD "Telemetry", read from ClickHouse and drawn with simple egui_plot charts styled by the tokens |
 | 5 | **Whole project** | Published-content actions: withdraw or correct a page, roll back the home curation, Errata reports. Cloud free-tier usage and alarms (Cloudflare Workers, R2, D1; DynamoDB). Deploy buttons that trigger the existing GitHub Actions deploy workflow for `main`, with its run history (no local wrangler deploys). Development status: PRs, CI and issues, read-only |
 
-Step 5 reads cloud and GitHub data with read-only tokens Karthik creates (Cloudflare analytics, AWS read-only for DynamoDB and CloudWatch metrics, a GitHub fine-grained token that can read PRs, issues and checks and run the deploy workflow); he enters them in Board, which stores them in Credential Manager.
+Step 5 reads cloud and GitHub data with tokens Karthik creates (Cloudflare analytics, read-only; AWS read-only for DynamoDB and CloudWatch metrics; a GitHub fine-grained token for this repository with read access to pull requests, issues and checks, and Actions read and write, which GitHub requires to dispatch a workflow. Karthik approved Board running the deploy workflow. Actions write also allows other Actions operations, such as re-running or cancelling runs; Board itself only dispatches the deploy workflow on `main`); he enters them in Board, which stores them in Credential Manager.
 
 #### Presets
 
-Declared in Rust; `news run presets` prints this table as JSON, and Board builds its Start forms and schedule forms from it. Any preset can be started from Board or the terminal, or put on a schedule.
+Declared in Rust; `news run presets` prints this table as JSON, and Board builds its Start forms and schedule forms from it. Any preset can be started from Board or put on a schedule.
 
 | Preset (id) | Arguments | Heavy | Writes or publishes | Approval gates | G-tier step authorised by (§5.5) | § |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -1413,7 +1413,7 @@ The top of Runs & approvals. `news run status` builds it from PostgreSQL with no
 
 | Section | Shows | Read from |
 | --- | --- | --- |
-| Running | Each live run: preset, id, step *n* of *m*, progress inside the step, start time, origin (Board, schedule or terminal); `stalled` if `last_seen_at` is more than 15 minutes old | `runs`, `run_steps`, `jobs` |
+| Running | Each live run: preset, id, step *n* of *m*, progress inside the step, start time, origin (Board or schedule); `stalled` if `last_seen_at` is more than 15 minutes old | `runs`, `run_steps`, `jobs` |
 | Waiting for you | Open gates with their one-line summary and the Approve, Request changes and Reject actions; Huddle questions to answer; paused runs and why (usage limit and its reset time, quiet hours, quota, paused by Karthik) | `runs`, `run_steps`, `approvals` |
 | Queued | Heavy runs waiting for the slot, in order, with `start_by` for scheduled ones | `runs` |
 | Due | The next preset schedules; Diary releases today (expected, captured or late) and captured stories not yet on a page; Frontpage: age of the live curation, due from day 2 (the 2–3-day cadence) and stale at `NEWS_HOME_STALE_DAYS` (TD, default 4); Huddle and Rollcall: due 7 days after the last one | settings, `calendar_events`, `stories`, `scores`, Press's record of the last published curation, `runs` |
@@ -1444,7 +1444,7 @@ RUNNING
 WAITING FOR YOU
   Catchup r_51d2      gate plan, open since Wed 21:05
                       340 items in 7 chunks, estimated 4.1M input tokens, about 6 h
-                      news run status r_51d2   news run approve r_51d2 plan   news run reject r_51d2 plan
+                      answer in Board: Approve · Request changes · Reject   (news run status r_51d2 to read it)
 
 QUEUED
   Nothing queued.
@@ -1507,17 +1507,17 @@ NEXT
 
 #### Control actions
 
-Every action is a control command over the pipe (ADR 0007 lists the protocol); the terminal has the same commands.
+Every action is an H-tier command over the Hotline, accepted only from Board (ADR 0007 lists the protocol). The terminal can read the same status but has none of these actions.
 
-| In Board | Does | Pipe command | Terminal |
-| --- | --- | --- | --- |
-| Start (a preset's form) | Starts a run with arguments; if the heavy slot is busy, offers "Queue it" or "Pause the running one and start this" (below) | `run.start`, `run.start_after_pause` | `news run start <preset> [--arg k=v] [--queue \| --pause-running]` |
-| Approve / Request changes / Reject | Answers the open gate, bound to the `subject_sha` of what Board showed. Request changes needs a note and sends the run back to its drafting step (Frontpage, Rollcall, Huddle); Reject skips the gated work and continues with the next step (for per-item gates, the next item), and the run ends with its Wrap as usual | `gate.approve`, `gate.changes`, `gate.reject` | `news run approve\|changes\|reject <run> <gate>` |
-| Pause | Stops after the current step (after the current chunk in Catchup; Ghost stops claiming and lets in-flight calls finish); the run becomes `paused` and frees the heavy slot. On a stalled run it takes effect at once (§6.4) | `run.pause` | `news run pause <run>` |
-| Resume | Continues a paused, stalled or waiting run from its last finished step; queues it if the heavy slot is busy | `run.resume` | `news run resume <run>` |
-| Cancel | Stops now; finished pages stay published, queued jobs are cancelled, the Wrap is written | `run.cancel` | `news run cancel <run>` |
-| Cancel queued | Removes a run from the heavy-slot queue (it ends with a Wrap that says so) | `queue.cancel` | `news run queue cancel <run>` |
-| Save settings | Writes one new settings version, schedules included | `settings.set` | `news settings set …` (name to be confirmed) |
+| In Board | Does | Hotline command |
+| --- | --- | --- |
+| Start (a preset's form) | Starts a run with arguments; if the heavy slot is busy, offers "Queue it" or "Pause the running one and start this" (below) | `run.start`, `run.start_after_pause` |
+| Approve / Request changes / Reject | Answers the open gate, bound to the `subject_sha` of what Board showed. Request changes needs a note and sends the run back to its drafting step (Frontpage, Rollcall, Huddle); Reject skips the gated work and continues with the next step (for per-item gates, the next item), and the run ends with its Wrap as usual | `gate.approve`, `gate.changes`, `gate.reject` |
+| Pause | Stops after the current step (after the current chunk in Catchup; Ghost stops claiming and lets in-flight calls finish); the run becomes `paused` and frees the heavy slot. On a stalled run it takes effect at once (§6.4) | `run.pause` |
+| Resume | Continues a paused, stalled or waiting run from its last finished step; queues it if the heavy slot is busy | `run.resume` |
+| Cancel | Stops now; finished pages stay published, queued jobs are cancelled, the Wrap is written | `run.cancel` |
+| Cancel queued | Removes a run from the Lineup (it ends with a Wrap that says so) | `lineup.cancel` |
+| Save Standing | Writes one new settings version, schedules included | `standing.set` |
 
 #### Starting a heavy run while the slot is busy
 
@@ -1549,12 +1549,12 @@ A scheduled heavy run gets no offer: it queues, and is skipped and noted if it w
 
 | Guarantee | How code enforces it |
 | --- | --- |
-| **One way in** | A run starts only from `run.start` over the control pipe (Board or Karthik's terminal) or from a preset schedule, which is a setting changed only over the same pipe. The service refuses control commands from any process in its AI job objects (§9.3). Chief refuses preset ids it does not declare. A CI test (`bureau-single-entry`) fails if anything other than Chief's own sources and tests inserts into `runs`. The background pools run code jobs only and can never start a preset. |
+| **One way in** | A run starts only from `run.start` over the Hotline, sent by Board, or from a preset schedule, which is a setting changed only over the same pipe. The service refuses control commands from any process in its AI job objects (§9.3). Chief refuses preset ids it does not declare. A CI test (`bureau-single-entry`) fails if anything other than Chief's own sources and tests inserts into `runs`. The background pools run code jobs only and can never start a preset. |
 | **Nothing bypasses gates** | Every G-tier command (`news publish`, `news home publish`, `news eval promote`, `news corrections resolve --action update`, and the gated uses of `news scores adopt`, `news sources enable\|disable` and `news jobs retry`) runs only under the G-tier rule (§5.5): as the current step of a live run, for an item in what was started or approved, authorised by the step's approval with a matching `subject_sha` or, for an ungated step, by the run's start. Anything else returns `gated` (exit 7). |
 | **One heavy run at a time** | The partial unique index `runs_one_heavy` (§5.5) admits one heavy run in `running` or `waiting_ai`. Another heavy run queues for the slot instead of being refused (D20): scheduled ones up to the late limit, manual ones until started or cancelled, or Karthik pauses the running one. A run waiting at a gate or paused does not hold the slot. |
 | **Every run resumable** | All state is in PostgreSQL (§5.5, §5.8). The service continues live runs after a crash, a restart, an update or a closed lid, and resumes usage-limit pauses on its own at the reset time. |
 | **Every run ends in a Wrap** | Success, failure, cancel and a skipped queued run all go through one function that writes `runs.summary` (the Wrap) and the terminal status in one transaction, and a check constraint rejects a terminal status without a summary (§5.5). Pause is not an end. |
-| **Approvals come only from Karthik** | Gate answers are control commands: accepted only over the pipe, from Karthik's user, from a process outside the service's AI job objects, and only for the `subject_sha` of what is waiting. Each approval records its origin (`board` or `terminal`) and is listed in the Wrap. This protects against a model acting on its own or on injected text; it is not a boundary against other software running as Karthik's user (ADR 0007, residual risks). |
+| **Approvals come only from Karthik** | Gate answers are H-tier actions: accepted only over the Hotline, only from Board (the installed `news.exe` running as `news board`), from Karthik's user, from a process outside the service's AI job objects, and only for the `subject_sha` of what is waiting. Gate answers are accepted only from Board. Each approval records its origin (`board`) and is listed in the Wrap. This protects against a model acting on its own or on injected text; it is not a boundary against other software running as Karthik's user (ADR 0007, residual risks). |
 
 #### Notifications
 
@@ -1562,13 +1562,13 @@ Board raises native Windows toasts (a service cannot show them) for: a gate wait
 
 #### Settings, secrets, install and update
 
-- **Settings** live in a versioned PostgreSQL table: every change records who (`board` or `terminal`), when, and old and new value. Each run snapshots the settings version it started with (`runs.settings_version`). Schedules, targets, parallelism, budgets, the token cap and reserve, quiet hours, models per step and sources on or off are all settings.
-- **Secrets** (the write-API key, the read-only Cloudflare, AWS and GitHub tokens) live in Windows Credential Manager under Karthik's account. Board writes them; the service reads them when a step needs one. Nothing secret crosses the pipe or sits in PostgreSQL. `.env` keeps only bootstrap values.
+- **Settings** live in a versioned PostgreSQL table: every change records who (always `board`), when, and old and new value. Each run snapshots the settings version it started with (`runs.settings_version`). Schedules, targets, parallelism, budgets, the token cap and reserve, quiet hours, models per step and sources on or off are all settings.
+- **Secrets** (the write-API key, the read-only Cloudflare and AWS tokens, and the GitHub token) live in Windows Credential Manager under Karthik's account. Board writes them; the service reads them when a step needs one. Nothing secret crosses the pipe or sits in PostgreSQL. `.env` keeps only bootstrap values.
 - **Install and update.** `news service install` registers the service under Karthik's account (Windows asks for his password); `uninstall` removes it. `news service update` waits for a safe point, swaps the binary, restarts the service, and runs resume from PostgreSQL.
 
 ### 8.2 How every preset works
 
-**Entry.** Every preset starts from Board, from Karthik's terminal or from one of his schedules (§8.1). Presets are declarations in Chief (code), not skills or commands, so every preset is testable without AI.
+**Entry.** Every preset starts from Board or from one of Karthik's schedules (§8.1). Presets are declarations in Chief (code), not skills or commands, so every preset is testable without AI.
 
 A scheduled Edition, as the service runs it:
 
@@ -1602,13 +1602,13 @@ A scheduled Edition, as the service runs it:
 | 1 | Preflight | Code | Pass or blockers |
 | 2 | Discover all due sources; capture any calendar events now due | Code | New candidates |
 | 3 | Normalise, resolve entities, detect stories | Code (+ A3, A4 batches if needed) | Stories |
-| 4 | Score, select, tier (Budget) | Code | Plan: counts by bucket and tier, top 10 with Pitches |
+| 4 | Score, select, tier (Budget); plan the revisions due now: value-only re-renders as `revise` items and direction flips as `update` items, up to the `bulk` threshold of 100 pages | Code | Plan: counts by bucket and tier, top 10 with Pitches, revisions |
 | 5 | *Optional approval* of the plan (only with `review_plan` on) | Approval | — |
 | 6 | Fetch, parse, brief for planned stories | Code (+ A5 for long texts) | Briefs |
 | 7 | Write pages | AI batch (A1) | Copies |
 | 8 | Render, check; repair failures once | Code + AI batch (A2) | Ready pages |
 | 9 | Sample spot check | AI batch (A7) | Flags |
-| 10 | Publish via outbox; run Followup's code steps for revisions due (find, classify, value-only re-render, check, publish) for at most 100 pages, the `bulk` threshold; the rest is deferred, the Wrap says so and the status board suggests Followup. Direction flips are planned in step 4 as `update` items and written in step 7 | Code | URLs |
+| 10 | Publish via outbox; run Followup's code steps (value-only re-render, check, publish) for the `revise` items planned in step 4, so every revision published is in the Budget the start or the `plan` approval covers (§5.5). Revisions beyond the 100-page `bulk` threshold, or found after step 4, are deferred: the Wrap says so and the status board suggests Followup. Direction flips were planned in step 4 as `update` items and written in step 7 | Code | URLs |
 | 11 | Index promotion; prune working files | Code | — |
 | 12 | Summary | Code | Wrap |
 
@@ -1644,7 +1644,7 @@ A scheduled Edition, as the service runs it:
 | **Approval** | Step 5: Approve, Request changes (back to step 2 with Karthik's note), or Reject. A scheduled Frontpage waits here like any other |
 | **Failure** | Check failures after two rounds → stop and show the errors in Board; the live curation stays |
 | **Resume** | Draft and check results are stored; the run returns to the approval stop |
-| **Rollback** | Board's published-content actions, or `news home rollback <version>` in the terminal (H) |
+| **Rollback** | Board's published-content actions (H, Board only) |
 
 ### 8.7 Rollcall
 
@@ -1669,7 +1669,7 @@ A scheduled Edition, as the service runs it:
 
 | | |
 | --- | --- |
-| **Trigger** | Edition step 10 runs its code steps (1, 2, 3 and 5) for up to 100 pages, and direction flips enter Edition's plan as `update` items written in its step 7; standalone, Start in Board after a big revision day (e.g. annual GDP benchmark) or when an Edition deferred revisions |
+| **Trigger** | Edition plans the revisions due at its step 4 (up to 100 pages) and runs Followup's code steps for them in its step 10, and direction flips enter Edition's plan as `update` items written in its step 7; standalone, Start in Board after a big revision day (e.g. annual GDP benchmark) or when an Edition deferred revisions |
 | **Steps** | 1 Find superseded data points referenced by pages (code) → 2 Classify (value-only, direction flip, restatement) → 3 Re-render value-only pages (code) → 4 AI update for direction flips (A1 update mode) → 5 Check, publish with "Updated on …" |
 | **Approval** | Only if more than 100 pages would change at once (`bulk`); otherwise the run's start authorises publishing |
 
@@ -1694,7 +1694,7 @@ A scheduled Edition, as the service runs it:
 | | |
 | --- | --- |
 | **Trigger** | Weekly on Karthik's schedule (or Start in Board). The service prepares the Debrief and the questions, and a toast reminds Karthik to answer them in Board |
-| **Steps** | 1 `news review weekly` (code: coverage vs targets, pages by tier/type/region, failures by class, tokens per page, cache-read ratio, index budget use, curation age, unresolved entities) → 2 Ranking calibration: a **form** in Board (no AI) asks Karthik about 30 pairwise questions chosen by code, plus the Search Console status he reads and the 5 pages he read (D15); the answers arrive over the pipe and are stored with `news scores label --run <run>` → 3 `news scores propose --from-labels` (code fit, §4.7) → 4 Board shows the Debrief and the proposed changes (weights, coverage targets, `NEWS_INDEX_PER_DAY` step, `SAMPLE_RATE`) → 5 **Approval** per change → 6 Apply approved changes (`news scores adopt` and new settings versions, as G-tier steps) |
+| **Steps** | 1 `news review weekly` (code: coverage vs targets, pages by tier/type/region, failures by class, tokens per page, cache-read ratio, index budget use, curation age, unresolved entities) → 2 Ranking calibration: a **form** in Board (no AI) asks Karthik about 30 pairwise questions chosen by code, plus the Search Console status he reads and the 5 pages he read (D15); the answers arrive over the Hotline from Board and are stored with `news scores label --run <run>` → 3 `news scores propose --from-labels` (code fit, §4.7) → 4 Board shows the Debrief and the proposed changes (weights, coverage targets, `NEWS_INDEX_PER_DAY` step, `SAMPLE_RATE`) → 5 **Approval** per change → 6 Apply approved changes (`news scores adopt` and new settings versions, as G-tier steps) |
 | **Output** | Debrief; versioned config changes |
 
 ### 8.13 Reprint
@@ -1810,8 +1810,9 @@ Daily materialised views roll these up for Board.
 
 - Control commands (start, gate answers, pause, resume, cancel, queue and settings changes) reach the service only over a named pipe whose DACL grants Karthik's SID alone, created as the first instance of its name and rejecting remote clients. The service checks each client's token; Board and the CLI check that the server is the installed service.
 - Every `claude -p` runs in a Job Object the service owns, without breakaway, so it and everything it starts carry the spawn marker; the pipe refuses control commands from any process in such a job and logs the attempt for Board's Problems.
-- Approvals are bound to `subject_sha` and record their origin (`board` or `terminal`); schedules are settings, changed only over the same pipe.
-- Residual risks: other software running as Karthik can open the pipe; a Claude Code development session is not in a marked job, so the pipe cannot tell its agent from Karthik's terminal (an open question for Karthik in ADR 0007).
+- H-tier actions (starts, gate answers, pauses, resumes, cancels, Lineup and Standing changes, maintenance actions) are accepted only from Board: the service checks that the client is the installed `news.exe` running as `news board`. Karthik's terminal reads status and runs the low-risk tiers only. There is no `CLAUDECODE` guard.
+- Approvals are bound to `subject_sha` and record their origin (`board`); schedules are settings, changed only from Board.
+- Residual risks: other software running as Karthik can open the Hotline and read status, and to act it would have to drive Board itself or replace the installed `news.exe`. A Claude Code development session can read status and run R and W commands, but no H-tier action (ADR 0007).
 
 **The service as Karthik.** The service logs on as Karthik's account, so it has his rights: it is a convenience boundary for his own laptop, not a sandbox. His password is entered only by him, at `news service install`.
 
@@ -1820,9 +1821,9 @@ Daily materialised views roll these up for Board.
 - `claude -p` children get an allow-listed environment (`PATH`, profile and app-data folders, OTel variables, `NEWS_RUN_ID`, `NEWS_JOB_ID`, `NEWS_SPAWNED_BY`); never `ANTHROPIC_API_KEY`, AWS or Cloudflare keys or the write-API key.
 - Secrets live in Windows Credential Manager under Karthik's account, written through Board; `.env` keeps only bootstrap values (how to reach PostgreSQL, ClickHouse and the OTel collector). Agents never see either.
 - Only Press (`news publish`, `news home publish`) reads the write-API key, and only inside a run step the G-tier rule authorises (§5.5); the background pools never read it.
-- The read-only cloud and GitHub tokens behind Board's whole-project screen can read usage and run the deploy workflow, nothing else (§8.1).
+- The Cloudflare and AWS tokens behind Board's whole-project screen are read-only. The GitHub token has read access to pull requests, issues and checks, and Actions read and write, which GitHub requires to dispatch a workflow. Karthik approved Board running the deploy workflow. Actions write also allows other Actions operations, such as re-running or cancelling runs; Board itself only dispatches the deploy workflow on `main` (§8.1).
 
-**Least privilege.** Tiers R/W/G/H (§6.3); control only over the pipe, refused for spawned processes; the G-tier rule and approvals checked in code (§5.5).
+**Least privilege.** Tiers R/W/G/H (§6.3); H-tier actions only from Board over the Hotline, refused for spawned processes; the G-tier rule and approvals checked in code (§5.5).
 
 **Downloaded files.** Treated as untrusted: parsed by memory-safe Rust with size limits and no `unwrap` on external data; Docling runs in a container with `--network none` and a read-only mount *(proposed)*; nothing downloaded is executed or opened by Claude.
 
@@ -1866,8 +1867,8 @@ Mapped onto the Development Plan. Agent choices follow its rules (Opus for judge
 | 4 | Embedding spike: bge-small vs nomic vs EmbeddingGemma vs MiniLM on the i5-8250U (docs/s, memory, G3 precision) | Opus spike | Numbers and choice in an ADR |
 | 4 | Golden-set labelling: G2, G3, G7 (Karthik with Opus); event weights, prominence lists, coverage targets as seed data | Opus + Karthik | Sets in `pipeline/eval/` |
 | 5 Rust CLI | 1 Core crates, migrations, JSON envelope, error codes, telemetry, Dispatch (claim, leases, rescuer, retry classes) | Opus feature builder (one agent) | Golden CLI and concurrency tests |
-| 5 | 2 **Right after wave 1, before the connectors.** Chief in the Bureau service: runs and steps, approvals, the G-tier rule, the heavy-slot queue, the scheduler (preset schedules, missed slots, quiet hours, quota guard), Dispatch workers hosted in the service, the control pipe and the spawn marker; the `claude -p`-from-service spike (login under the service account, usage-limit error shape, job-object inheritance, ClickHouse reachability) | Opus; Opus security review | Pipe and marker tests; crash and queue tests; spike findings in ADR 0008 |
-| 5 | 3 **Then:** the Windows service (`news service install\|uninstall\|update`), the settings table and Credential Manager, and the Board shell: Runs & approvals, Settings & schedules, Docker health (screens step 1), toasts; remove `dashboard/` | Opus for the service parts; Sonnet for Board; Opus review; a different Opus agent checks token styling | Karthik starts, approves and cancels a fixture run from Board |
+| 5 | 2 **Right after wave 1, before the connectors.** Chief in the Bureau service: runs and steps, approvals, the G-tier rule, the Lineup, Rota (preset schedules, missed slots, quiet hours, quota guard), Dispatch workers hosted in the service, the Hotline and the spawn marker; the `claude -p`-from-service spike (login under the service account, usage-limit error shape, job-object inheritance, ClickHouse reachability) | Opus; Opus security review | Pipe and marker tests; crash and queue tests; spike findings in ADR 0008 |
+| 5 | 3 **Then:** the Windows service (`news service install\|uninstall\|update`), Standing and Credential Manager, and the Board shell: Runs & approvals, Settings & schedules, Docker health (screens step 1), toasts; remove `dashboard/` | Opus for the service parts; Sonnet for Board; Opus review; a different Opus agent checks token styling | Karthik starts, approves and cancels a fixture run from Board |
 | 5 | 4 Runner + Morgue + `fetch_state` | Sonnet; Opus review | Fake-server tests |
 | 5 | 5 Contacts rows and Stringers in parallel: SEC EDGAR, FRED, BLS, ECB, arXiv, central-bank statements, then IMF, World Bank, Eurostat, ONS, StatCan | Sonnet ×3; Opus review for XBRL/units/periods | Fixture tests |
 | 5 | 6 Clerk and Ledger (data points, derived points with guards) | Opus | Property tests |
@@ -1909,11 +1910,11 @@ Settled on 15 November 2026: Karthik chose D2 himself and adopted the recommenda
 | D11 | Model for the preset session | Sonnet or Opus | **Superseded by D17**: there is no session. The drafting steps' models are per-step settings, starting at Sonnet 5.5 |
 | D12 | Optional AI steps A6 (entity shortlist) and A10 (alt text) | On or off at launch | **Off**; switch on if the unresolved queue or missing alt text proves it necessary |
 | D13 | Plan review stop in Edition | On or off by default | **Off**; `review_plan=yes` when wanted |
-| D14 | SEC contact e-mail in the User-Agent | Personal address or a dedicated one | **A dedicated address** in `.env` (SEC requires a contact [18]) |
+| D14 | SEC contact e-mail in the User-Agent | Personal address or a dedicated one | **A dedicated address**, kept in Standing as `NEWS_CONTACT_EMAIL` (in `.env` before ADR 0007; SEC requires a contact [18]) |
 | D15 | Human reading sample | None, or 5 random pages a week | **5 a week** in the Huddle workflow; it calibrates A7 |
 | D16 | A second heavy run while one is running | (a) refuse with the blocking run and the next commands; (b) queue it | **Superseded by D20**. It was (a), because nothing would have driven a queued run |
-| D17 | Host and control surface | (a) a Windows service logged on as Karthik, hosting Chief, the scheduler, the Dispatch workers and Ghost (Rust), with Board, an egui desktop app, in one `news.exe`; (b) keep `/bureau` and add a service; (c) a Bun web dashboard; (d) a webview app | **(a)**, Karthik's choice (ADR 0007, §8.1). One control surface, Rust only, runs continue with Board closed. The renderer stays a warm Bun server |
-| D18 | How control commands reach Chief | (a) a named pipe locked to Karthik's user and local clients, refused for processes the service spawned for `claude -p` (Job Object marker); (b) start tickets and a prompt hook; (c) an HTTP API on 127.0.0.1 | **(a)**, Karthik's choice (ADR 0007, §9.3). Replaces start tickets, the prompt hook and the agent deny-list |
+| D17 | Host and control surface | (a) a Windows service logged on as Karthik, hosting Chief, Rota, the Dispatch workers and Ghost (Rust), with Board, an egui desktop app, in one `news.exe`; (b) keep `/bureau` and add a service; (c) a Bun web dashboard; (d) a webview app | **(a)**, Karthik's choice (ADR 0007, §8.1). One control surface, Rust only, runs continue with Board closed. The renderer stays a warm Bun server |
+| D18 | How control commands reach Chief | (a) a named pipe (the Hotline) locked to Karthik's user and local clients, H-tier actions accepted only from Board, refused for processes the service spawned for `claude -p` (Job Object marker); (b) start tickets and a prompt hook; (c) an HTTP API on 127.0.0.1 | **(a)**, Karthik's choice (ADR 0007, §9.3). Replaces start tickets, the prompt hook and the agent deny-list. On 16 Nov 2026 Karthik added: H-tier actions only from Board; the terminal reads status and runs low-risk tiers; no `CLAUDECODE` guard |
 | D19 | Scheduled AI runs | (a) allowed: a schedule Karthik sets counts as his approval to start; scheduled Editions publish pages that pass Proof; gated presets still wait in Board; (b) only runs Karthik starts | **(a)**, Karthik's choice (P8 as rewritten, §5.6). Missed slots run once for the latest only; usage limits pause and resume on their own; quiet hours and the quota guard apply (§7.4) |
 | D20 | A heavy run while another holds the slot | (a) queue it: scheduled runs wait up to the late limit, a manual Start offers "Queue it" or "Pause the running one and start this"; (b) refuse (D16) | **(a)**, Karthik's choice (§5.5, §8.1) |
 | D21 | Settings and secrets | (a) a versioned PostgreSQL settings table, a settings snapshot per run, secrets in Windows Credential Manager, `.env` for bootstrap only; (b) environment variables and `.env` | **(a)**, Karthik's choice (§8.1) |
@@ -1936,7 +1937,7 @@ Settled on 15 November 2026: Karthik chose D2 himself and adopted the recommenda
 | Numeric lint too strict | Good Copies rejected | Allow-list maintained from G1 failures; repair round |
 | Engine bugs (custom code) | Stuck or duplicated jobs | Unique keys, crash tests, idempotent steps; apalis fallback |
 | Disk growth from snapshots | Disk pressure | Retention policy; Board panel |
-| A development Claude Code session sends control commands through the CLI | A run started or a gate answered without Karthik | Open question for Karthik (ADR 0007): keep an environment guardrail in the CLI or not; approvals stay bound to `subject_sha` and are listed in the Wrap |
+| A development Claude Code session acts through the CLI | A run started or a gate answered without Karthik | H-tier actions are accepted only from Board (Karthik, 16 Nov 2026); the CLI reads status and runs low-risk tiers only; approvals stay bound to `subject_sha` and are listed in the Wrap |
 
 ---
 
@@ -1953,11 +1954,11 @@ Settled on 15 November 2026: Karthik chose D2 himself and adopted the recommenda
 | Lease | A time-limited claim on a job; expires if the worker dies |
 | Snooze | Postpone a job without counting a failed attempt |
 | Gate | An approval stop whose decision is recorded and checked by code |
-| Control pipe | The named pipe through which Board and Karthik's terminal send control commands to the Bureau service (§8.1, §9.3) |
+| Hotline | The named pipe between Board and the Bureau service; H-tier actions only from Board, status for the terminal (§8.1, §9.3) |
 | Spawn marker | Membership of a Job Object the service owns; every `claude -p` and everything it starts carries it, and the pipe refuses their control commands (§3.9) |
 | Heavy-slot queue | Heavy runs waiting for the one heavy slot (§5.5) |
 | Heavy run | A run of a preset that writes or re-renders pages in bulk; only one runs at a time, others queue (§5.5) |
-| Preset | A workflow declared in Chief and started from Board, the terminal or a schedule (§8) |
+| Preset | A workflow declared in Chief and started from Board or a schedule (§8) |
 
 ---
 
@@ -2014,10 +2015,10 @@ Karthik replaced the `/bureau` entry point with the Bureau service and Board ([A
 | Document | Section | Change |
 | --- | --- | --- |
 | This design | §1 | P8 rewritten (a Start or a schedule Karthik set is the approval to start); P9 and P11 for the service and Board; scope |
-| This design | §2.2, §2.3 | Who drives what: Board and the terminal over the control pipe to the service; the CPI example runs on a schedule |
+| This design | §2.2, §2.3 | Who drives what: Board over the Hotline to the service (the terminal reads status only); the CPI example runs on a schedule |
 | This design | §3.9 | Ghost is Rust in the service; the spawn marker (Job Object) on every `claude -p` |
-| This design | §5.1–§5.9 | `runs.origin` is `board`, `schedule` or `terminal`; `start_tickets` dropped; approvals' origin `board` or `terminal`; draft and form steps replace session steps; the heavy-slot queue; the service hosts the workers and the scheduler (preset schedules, missed slots, quiet hours, quota guard); usage limits resume on their own; service update |
-| This design | §6 | H tier is Board or the terminal over the pipe; `news run intent`, `next`, `submit`, `hook-prompt` and `ticket` retired; `news service`, `news board` and settings commands added |
+| This design | §5.1–§5.9 | `runs.origin` is `board` or `schedule`; `start_tickets` dropped; approvals' origin `board`; draft and form steps replace session steps; the Lineup; the service hosts the workers and Rota (preset schedules, missed slots, quiet hours, quota guard); usage limits resume on their own; service update |
+| This design | §6 | H tier is Board only, over the Hotline; `news run intent`, `next`, `submit`, `hook-prompt` and `ticket` retired; `news service`, `news board` and settings commands added |
 | This design | §7 | No interactive session; A8 and A11 are `claude -p` drafts; Huddle has no AI; §7.4 quota guard |
 | This design | §8 | §8.1 replaced by "Board and the Bureau service" (screens in build order, presets with arguments, status board, control actions, queue offer, guarantees, notifications, settings); §8.2 drafts and forms instead of session steps, the deny-list rationale removed; §8.3–§8.13 triggers are schedules and Board |
 | This design | §9–§15 | Security of the control path and the service account; Board's Analytics screen; build order with the service step after wave 1; D17–D21; risks; glossary; names |
@@ -2028,13 +2029,14 @@ Karthik replaced the `/bureau` entry point with the Bureau service and Board ([A
 | `design/layout.md` | Home page | Frontpage on schedule or from Board |
 | `skills/README.md` | `news-home-curation` row; Ghost | A `claude -p` call; Ghost in the service |
 | `.claude/` skills and agents | `news-subagent-workflow`, `news-design-system`, `news-source-connector`, `feature-builder` | "dashboard" → Board; Salvage started from Board |
+| All of the above | Names and H tier | Rota, Hotline, Plate, Lineup and Standing (`news standing`); H-tier actions accepted only from Board, the terminal reads status and runs low-risk tiers (Karthik, 16 Nov 2026) |
 | ADRs 0002, 0003, 0005 (other branches) | See ADR 0007, "Amendments to apply on other branches" | `CLAUDECODE` guard → pipe and marker; `news work` → the service; Frontpage wording |
 
 ---
 
 ## 15. Names
 
-The approved names (Karthik, final). **Bureau** is the whole laptop system, and it runs as the Bureau service; **Board** is its desktop app, where Karthik starts and controls every workflow (§8.1). Tool families take their owner's name. Names that were already in use stay as they are: the TD's `news` CLI commands, the `news-home-curation`, `news-brand` and `page-*` skills, the TD's PostgreSQL tables and the TD term "brief". Table names in the SQL sketches, the pipe name and settings keys are implementation detail, not product names.
+The approved names (Karthik, final). **Bureau** is the whole laptop system, and it runs as the Bureau service; **Board** is its desktop app, where Karthik starts and controls every workflow (§8.1). Tool families take their owner's name. Names that were already in use stay as they are: the TD's `news` CLI commands, the `news-home-curation`, `news-brand` and `page-*` skills, the TD's PostgreSQL tables and the TD term "brief". Table names in the SQL sketches, the pipe's path and settings keys are implementation detail, not product names.
 
 **System**
 
@@ -2091,20 +2093,21 @@ The approved names (Karthik, final). **Bureau** is the whole laptop system, and 
 | --- | --- | --- | --- | --- |
 | Press | Publisher: outbox, paced publishing, index budget | Subsystem | `news publish`, `news home publish` | §3.12 |
 | Dispatch | Job queue and the service's workers: jobs, pools, leases, retries, recurring code jobs | Subsystem | `news jobs` | §5.3, §5.4, §5.6 |
-| Chief | Preset engine inside the Bureau service: runs, steps, gates, the heavy-slot queue, the status board, the Wrap | Subsystem | `news run` | §5.5, §8.1, §8.2 |
+| Chief | Preset engine inside the Bureau service: runs, steps, gates, the Lineup, the status board, the Wrap | Subsystem | `news run` | §5.5, §8.1, §8.2 |
 | Ticker | Telemetry: events, spans and AI call records into ClickHouse | Subsystem | — | §3.13, §9.2 |
 | Critic | Evaluation harness: golden sets, judges, comparisons | Subsystem | `news eval` | §9.1 |
 
-**Not yet named** (new parts from ADR 0007; a name is to be chosen with Karthik, and until then they are called by what they do)
+**Bureau service parts** (named by Karthik on 16 Nov 2026, ADR 0007)
 
-| Part | What it is | Where described |
-| --- | --- | --- |
-| The scheduler | Preset schedules, missed slots, quiet hours and the quota guard, inside the service (name to be chosen with Karthik) | §5.6, §7.4 |
-| The control pipe | The named pipe Board and the terminal use to send control commands (name to be chosen with Karthik) | §8.1, §9.3 |
-| The heavy-slot queue | Heavy runs waiting for the slot, in Chief (name to be chosen with Karthik) | §5.5 |
-| The render server | The warm local Bun + React/OpenUI server the service calls (name to be chosen with Karthik) | §2.2, §5.7 |
-| The settings store | The versioned PostgreSQL settings table (name to be chosen with Karthik) | §8.1 |
-| The spawn marker | The Job Object every `claude -p` runs in (name to be chosen with Karthik) | §3.9, §9.3 |
+| Name | What it is | Kind | Command or CLI group | Where described |
+| --- | --- | --- | --- | --- |
+| Rota | The scheduler inside the service: preset schedules, missed slots, quiet hours and the quota guard | Component | — (schedules live in Standing) | §5.6, §7.4 |
+| Hotline | The named pipe between Board and the service; H-tier actions only from Board, status for the terminal | Component | — | §8.1, §9.3 |
+| Lineup | Heavy runs waiting for the heavy slot, in Chief | Component | `news run lineup` | §5.5 |
+| Plate | The warm local Bun + React/OpenUI render server the service calls on 127.0.0.1 | Component | — | §2.2, §5.7 |
+| Standing | The versioned PostgreSQL settings store, schedules included | Data store | `news standing` | §8.1 |
+
+**Not yet named:** the spawn marker, the Job Object every `claude -p` runs in (§3.9, §9.3); a name is to be chosen with Karthik.
 
 **Reports**
 
@@ -2114,7 +2117,7 @@ The approved names (Karthik, final). **Bureau** is the whole laptop system, and 
 | Sitrep | Source health report, the output of Rollcall | Report | Board; the Rollcall preset | §8.7 |
 | Debrief | Weekly review report, the output of Huddle | Report | Board; `news review weekly` | §8.12 |
 
-**Workflows** (presets; started from Board, the terminal or a schedule; heavy ones hold the heavy slot one at a time, §8.1)
+**Workflows** (presets; started from Board or a schedule; heavy ones hold the heavy slot one at a time, §8.1)
 
 | Name | What it is | Kind | Command or CLI group | Where described |
 | --- | --- | --- | --- | --- |
@@ -2134,7 +2137,7 @@ The approved names (Karthik, final). **Bureau** is the whole laptop system, and 
 
 | Name | What it is | Kind | Command or CLI group | Where described |
 | --- | --- | --- | --- | --- |
-| Chief tools | presets, start, status, approve, changes, reject, resume, pause, cancel, queue, list | Tool family | `news run` | §5.5, §6.4, §8.1 |
+| Chief tools | presets, status, lineup, list (start, gate answers, pause, resume and cancel are Board actions) | Tool family | `news run` | §5.5, §6.4, §8.1 |
 | Dispatch tools | list, dead, claim, heartbeat, complete, fail, retry, pause, unpause | Tool family | `news jobs` | §5.4, §6.4 |
 | Ghost tools | input, accept, schema, fallback | Tool family | `news ai` | §3.9, §6.4 |
 | Contacts tools | list, show, health, probe, enable, disable | Tool family | `news sources` | §3.1, §6.4, §8.7 |
@@ -2152,7 +2155,7 @@ The approved names (Karthik, final). **Bureau** is the whole laptop system, and 
 | --- | --- | --- | --- | --- |
 | `curate-home` | The TD's name for the home curation workflow | Retired name | Frontpage | §8.6, §14 |
 | `/bureau` | The first design's Claude Code entry point (one user-invoked skill) | Retired name | Board and the Bureau service | §8.1, ADR 0007 |
-| Start tickets, the prompt hook (`news run hook-prompt`, `news run ticket`, `news run intent`) | How the first design let a run start only from what Karthik typed | Retired mechanism | The control pipe and the spawn marker | §5.5, §9.3, ADR 0007 |
+| Start tickets, the prompt hook (`news run hook-prompt`, `news run ticket`, `news run intent`) | How the first design let a run start only from what Karthik typed | Retired mechanism | The Hotline and the spawn marker | §5.5, §9.3, ADR 0007 |
 | `news work` | The first design's background worker, started by Task Scheduler | Retired command | The Dispatch workers inside the service | §5.6, ADR 0007 |
 
 ---

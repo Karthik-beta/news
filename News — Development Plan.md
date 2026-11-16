@@ -13,7 +13,7 @@ Read with the [PRD](News%20—%20Product%20Requirements%20Document.md), the [Tec
 - **Sonnet 5.5** does well-specified feature work at volume: source connectors, CLI commands, Workers, page templates, scripts, Board's screens.
 - Every change lands through a pull request on GitHub, reviewed by an Opus review agent and by CodeRabbit (light profile), with CI green before merge.
 - Phase 2 (design) is complete. The next phases are Foundations and the OpenUI rendering spike, then the component library.
-- Karthik runs Bureau from **Board**, a desktop app in the `news` binary, backed by the always-on **Bureau service** (Chief behind it; [ADR 0007](docs/adr/0007-bureau-service-and-board.md)). Runs start from Board, his terminal or schedules he sets in Board; the main run is the Edition. The home page is **dynamic and agent-curated** every 2–3 days by the Frontpage preset, on schedule or from Board, and Karthik approves each curation in Board. The curation is server-side data; it never rebuilds the site. Building Bureau, Board and the workflows is part of this plan (Phases 4–9, in the order of [Bureau design §10](News%20—%20Bureau%20Design.md#10-build-order); the service and the Board shell come right after the first wave of PRs and before the connectors; for curation see [Home page curation](#home-page-curation-across-the-phases)).
+- Karthik runs Bureau from **Board**, a desktop app in the `news` binary, backed by the always-on **Bureau service** (Chief behind it; [ADR 0007](docs/adr/0007-bureau-service-and-board.md)). Runs start from Board or schedules he sets in Board; high-tier actions (starts, approvals, cancels, settings) are accepted only from Board, and the terminal reads status; the main run is the Edition. The home page is **dynamic and agent-curated** every 2–3 days by the Frontpage preset, on schedule or from Board, and Karthik approves each curation in Board. The curation is server-side data; it never rebuilds the site. Building Bureau, Board and the workflows is part of this plan (Phases 4–9, in the order of [Bureau design §10](News%20—%20Bureau%20Design.md#10-build-order); the service and the Board shell come right after the first wave of PRs and before the connectors; for curation see [Home page curation](#home-page-curation-across-the-phases)).
 
 ## Constraints that shape the plan
 
@@ -41,8 +41,8 @@ news/
 │  ├─ src/pages/              static and SSR templates
 │  └─ tests/                  unit, a11y, visual, SSR tests
 ├─ cli/                       Rust `news` binary (Cargo workspace: core, connectors, commands, the Bureau service with
-│                             Chief, the scheduler, Dispatch workers and Ghost, and Board, the egui desktop app)
-├─ contracts/                 JSON Schemas: cli/ (commands, AI step outputs), control/ (the control pipe, ADR 0007)
+│                             Chief, Rota, Dispatch workers and Ghost, and Board, the egui desktop app)
+├─ contracts/                 JSON Schemas: cli/ (commands, AI step outputs), control/ (the Hotline, ADR 0007)
 ├─ workers/                   Cloudflare Workers: api, search, mcp (site SSR lives in site/)
 ├─ pipeline/                  `claude -p` call settings, prompt prefixes and golden sets in eval/ (Ghost itself is Rust, in cli/)
 ├─ skills/                    runtime skills for the page writers: news-brand, page-type skills, news-home-curation, AI-step skills
@@ -51,7 +51,7 @@ news/
 └─ .github/workflows/         CI
 ```
 
-Every Bureau workflow (preset) is declared in Chief, in the Rust code, and started from Board, Karthik's terminal or one of his schedules; there are no per-workflow commands, skills or workflow files (Bureau design, decision D17). The `dashboard/` skeleton from Phase 0 is removed by the Board shell PR.
+Every Bureau workflow (preset) is declared in Chief, in the Rust code, and started from Board or one of Karthik's schedules; there are no per-workflow commands, skills or workflow files (Bureau design, decision D17). The `dashboard/` skeleton from Phase 0 is removed by the Board shell PR.
 
 ## The sub-agent team
 
@@ -73,7 +73,7 @@ Every Bureau workflow (preset) is declared in Chief, in the Rust code, and start
 
 This matches the existing pstack model configuration: features and refactoring on Sonnet; bug fixes, judgement, prose and the hardest tasks on Opus.
 
-**The Bureau service and Board** (ADR 0007). Service work (Chief, the control pipe and its security, the scheduler and queue, Ghost in Rust, install and update) is built by Opus and gets an Opus security review. Board's screens are built by Sonnet and reviewed by Opus, and a different Opus agent checks that they use the design tokens correctly.
+**The Bureau service and Board** (ADR 0007). Service work (Chief, the Hotline and its security, Rota and queue, Ghost in Rust, install and update) is built by Opus and gets an Opus security review. Board's screens are built by Sonnet and reviewed by Opus, and a different Opus agent checks that they use the design tokens correctly.
 
 ### Agent definitions
 
@@ -318,8 +318,8 @@ Can start in parallel with late Phase 3 (no shared files).
 |---|---|---|---|
 | — | Cargo workspace architecture: `core` (models, data points, Ledger), `store` (PostgreSQL, sqlx migrations), `telemetry` (ClickHouse events), `connectors`, `commands` | Opus architect | ADR |
 | 1 | Core crates and the command framework: migrations, the JSON envelope and exit codes, error codes, idempotency, event logging; Dispatch (job claim, leases and the rescuer, retry classes and snooze) | Opus feature builder (one agent; everything depends on it) | Golden CLI tests; concurrency and crash tests |
-| 2 | **Chief and the Bureau service:** runs and steps, approvals bound to `subject_sha`, the G-tier rule, the heavy-slot queue; the scheduler (preset schedules, missed slots, quiet hours, quota guard); the Dispatch workers hosted in the service; the control pipe and the spawn marker; `news` control commands over the pipe. First, the `claude -p`-from-service spike: Karthik's login under the service account, the usage-limit error shape and reset time, Job Object inheritance, ClickHouse and Docker reachability | Opus (correctness-critical); Opus security review | Pipe, marker, queue and crash tests; spike findings in an ADR |
-| 3 | **The Windows service and the Board shell:** `news service install\|uninstall\|update`; the settings table and Credential Manager; `news board` with Runs & approvals, Settings & schedules and Docker health (screens step 1), the offline banner, themes from the tokens, toasts; remove `dashboard/` | Opus for the service parts; Sonnet for Board; Opus review; a different Opus agent checks the token styling | Karthik installs the service, then starts, approves and cancels a fixture run from Board |
+| 2 | **Chief and the Bureau service:** runs and steps, approvals bound to `subject_sha`, the G-tier rule, the Lineup; Rota (preset schedules, missed slots, quiet hours, quota guard); the Dispatch workers hosted in the service; the Hotline and the spawn marker; H-tier actions accepted only from Board; `news run status|lineup` and `news standing show|history` over the Hotline for the terminal. First, the `claude -p`-from-service spike: Karthik's login under the service account, the usage-limit error shape and reset time, Job Object inheritance, ClickHouse and Docker reachability | Opus (correctness-critical); Opus security review | Pipe, marker, queue and crash tests; spike findings in an ADR |
+| 3 | **The Windows service and the Board shell:** `news service install\|uninstall\|update`; Standing and Credential Manager; `news board` with Runs & approvals, Settings & schedules and Docker health (screens step 1), the offline banner, themes from the tokens, toasts; remove `dashboard/` | Opus for the service parts; Sonnet for Board; Opus review; a different Opus agent checks the token styling | Karthik installs the service, then starts, approves and cancels a fixture run from Board |
 | 4 | Runner (polite HTTP: conditional GET, rate limits, `Retry-After`, robots.txt) and Morgue, with `fetch_state` | Sonnet feature builder; Opus review | Fake-server tests |
 | 5 | Contacts rows and Stringers in parallel: SEC EDGAR, FRED, BLS, ECB, arXiv, central-bank statements (Fed, ECB, RBI, BoE, RBA, BoJ), then IMF, World Bank, Eurostat, ONS, StatCan | Sonnet feature builders, one Stringer per task, up to 3 in parallel; Opus review for XBRL, units and periods | Fixture tests |
 | 6 | Clerk and Ledger: data points with vintages and locators, derived points with guards; XBRL and unit, currency and fiscal-period parsing | Opus (correctness-critical) | Property tests |
@@ -330,7 +330,7 @@ Can start in parallel with late Phase 3 (no shared files).
 | 11 | Fixer (`news brief`) | Opus | Size and fencing tests |
 | 12 | Proof: `news check` C1–C14 (render, references, values, numeric-literal lint, direction words, quotes, labels, licence, required fields, links, banned words, size, axe-core, duplicates) and the Ghost tools' validators (`news ai accept`) | Opus | Contract tests |
 | 13 | Press: publish outbox with idempotency keys and the index budget (dry-run) | Sonnet feature builder; Opus security review | Idempotency tests |
-| — | Remaining toolbox commands: components, component, related, save, render (calls the warm Bun render server), update, prune, stats | Sonnet feature builders (up to 3 in parallel, grouped so no two touch the same files) | Golden CLI tests |
+| — | Remaining toolbox commands: components, component, related, save, render (calls Plate, the warm Bun render server), update, prune, stats | Sonnet feature builders (up to 3 in parallel, grouped so no two touch the same files) | Golden CLI tests |
 | — | PDF tables via Docling, scanned PDFs via Tesseract | Sonnet feature builder; Opus review | Fixture tests |
 | — | `news home` commands: candidates, save, check, preview, publish, rollback, show; the `home_curations` PostgreSQL table | Sonnet feature builder; Opus review of the check rules | Fixture tests |
 | — | Tests for commands and Stringers (recorded fixtures, no live network in CI) | Sonnet test writer; Opus reviewer | CI |
@@ -363,7 +363,7 @@ Can start in parallel with late Phase 3 (no shared files).
 | Runtime skills and prefixes: Reporter (A1 and A2 prompts) and the cached prefix with pre-selected component specs (measure cache hits); skills for A3, A4, A5, A7 (sample check and failure re-queue), A9 and Rollcall's proposals (A11) | Opus (judgement and prose) | G1, G2, G6 pass |
 | Critic: `news eval`, golden sets G1–G7 from `pipeline/eval/`, A12 judges checked against Karthik's labels | Opus (judgement); Sonnet for glue | Audit started from Board produces the G1 and G6 reports |
 | `news-home-curation` skill: how to pick the lead, side stories and sections; breadth and freshness; using only the pages' own text; choosing figures and charts | Opus (judgement and prose) | Curator evaluation (below) |
-| Preset step bodies for Edition, Flash, Frontpage (candidates → curator draft (`claude -p`) → save → check, up to two fix rounds → local preview → **approval in Board** → publish; rollback from Board or the terminal), Salvage and Audit ([Bureau design §8](News%20—%20Bureau%20Design.md#8-board-the-bureau-service-and-the-preset-workflows)) | Opus (orchestration); Sonnet for glue | Karthik runs each of the five once from Board |
+| Preset step bodies for Edition, Flash, Frontpage (candidates → curator draft (`claude -p`) → save → check, up to two fix rounds → local preview → **approval in Board** → publish; rollback from Board), Salvage and Audit ([Bureau design §8](News%20—%20Bureau%20Design.md#8-board-the-bureau-service-and-the-preset-workflows)) | Opus (orchestration); Sonnet for glue | Karthik runs each of the five once from Board |
 | Board screens step 2: the live service log and one record per `claude -p` call (step, model, tokens, time, result, error; brief and output viewable) | Sonnet feature builder; Opus review; a different Opus agent checks token styling | Records of a real run shown |
 | Curator evaluation (golden set G5): fixture candidate sets (busy week, quiet week, one region dominating, a withdrawn lead) with expected properties; check pass rate and breadth measured | Opus | G5 report |
 | First full run of 10 pages, then 100, started from Board; then a scheduled Edition; then the first real home curation | Karthik, from Board | 100 pages pass checks |
@@ -410,7 +410,7 @@ The home page is dynamic and curated by an agent every 2–3 days, when the Fron
 | 8 | Board: live curation and its age | Sonnet feature builder |
 | 9 | Board: home curation rollback; launch with a curated home page | Sonnet feature builder; Karthik |
 
-**Done means:** Frontpage runs on its schedule (or Karthik presses Start); it gathers candidates, drafts, checks, previews and waits; Board raises a toast; after Karthik approves in Board, the home page changes within a minute, with no build or deploy, and a rollback from Board (or `news home rollback <version>` in the terminal) restores the previous version.
+**Done means:** Frontpage runs on its schedule (or Karthik presses Start); it gathers candidates, drafts, checks, previews and waits; Board raises a toast; after Karthik approves in Board, the home page changes within a minute, with no build or deploy, and a rollback from Board restores the previous version.
 
 ## Risks in the development process
 
@@ -424,9 +424,9 @@ The home page is dynamic and curated by an agent every 2–3 days, when the Fron
 | Flaky screenshot tests | Fixed fonts (self-hosted), fixed viewport and device scale, animations off, fixed dates in fixtures |
 | Secrets leak | Agents never handle credentials; gitleaks in pre-commit, CI and CodeRabbit |
 | Hidden costs from free tiers | Budget alarms; usage tracked in Board; no paid services added without Karthik's approval |
-| `claude -p` cannot use Karthik's login from a Windows service | Nothing AI runs from the service | The service spike is the first thing in Phase 5 step 2, before anything is built on it; if it fails, Karthik decides the fallback (ADR 0007) |
-| The service step delays the connectors | Phase 5 slips | Only steps 2 and 3 sit between the first wave and #9; component work (#7, #8) carries on in parallel |
-| Board drifts from the design system | Inconsistent look | Themes generated from `tokens.json`; a different Opus agent checks the token styling of every Board screen |
+| `claude -p` cannot use Karthik's login from a Windows service: nothing AI runs from the service | The service spike is the first thing in Phase 5 step 2, before anything is built on it; if it fails, Karthik decides the fallback (ADR 0007) |
+| The service step delays the connectors: Phase 5 slips | Only steps 2 and 3 sit between the first wave and #9; component work (#7, #8) carries on in parallel |
+| Board drifts from the design system: inconsistent look | Themes generated from `tokens.json`; a different Opus agent checks the token styling of every Board screen |
 | Curation quietly needs a rebuild after all (for example the home template caches slot data at build time) | Phase 6 exit test publishes a curation and checks the deployed Worker version is unchanged; slots store page IDs only |
 | Curator picks narrowly (one region or category) | Code checks for breadth; fixture evaluations in Phase 7; Karthik approves every curation |
 
@@ -447,7 +447,7 @@ The home page is dynamic and curated by an agent every 2–3 days, when the Fron
 - [ ] Phase 4: embedding spike; golden sets G2, G3, G7 labelled
 - [ ] Phase 4: home curation ADR
 - [ ] Phase 5: core crates and Dispatch
-- [ ] Phase 5: the `claude -p`-from-service spike; Chief in the Bureau service, the control pipe and spawn marker, the scheduler and the heavy-slot queue
+- [ ] Phase 5: the `claude -p`-from-service spike; Chief in the Bureau service, the Hotline and spawn marker, Rota and the Lineup
 - [ ] Phase 5: the Windows service install and update, settings and Credential Manager, and the Board shell (Runs & approvals, Settings & schedules, Docker health); `dashboard/` removed
 - [ ] Phase 5: Runner, Morgue, Contacts rows and the first Stringers; Clerk and Ledger; Diary; Roster's resolver
 - [ ] Phase 5: Taster, Nose and Desk, Fixer, Proof, Press (dry-run)
@@ -466,8 +466,8 @@ The home page is dynamic and curated by an agent every 2–3 days, when the Fron
 
 - Public or private repository: settled, the repo is public. Actions minutes on standard runners are free, so CI minutes are no longer a limit.
 - Whether routine PRs may auto-merge when CI and both reviews are green, or Karthik merges everything.
-- Whether the CLI should refuse control commands inside a Claude Code development session (ADR 0007, open question).
+- Development sessions and the CLI: settled (Karthik, 16 Nov 2026). H-tier actions are accepted only from Board; the CLI reads status and runs the low-risk tiers; no `CLAUDECODE` guard.
 - Settings Karthik sets later in Board: the Bureau token cap and reserve, quiet hours, and the default schedule times.
-- Names for the new parts without one yet (the scheduler, the control pipe, the heavy-slot queue, the render server, the settings store), and the `news settings` command name: to be chosen with Karthik.
+- Names: settled (Karthik, 16 Nov 2026): Rota (scheduler), Hotline (control pipe), Plate (warm render server), Lineup (heavy runs waiting), Standing (settings store, `news standing`). The spawn marker has no name yet.
 
-**Only Karthik can do** (for the service and Board): type his Windows password at `news service install`; create the read-only tokens for Board (Cloudflare analytics and usage; AWS IAM read-only for DynamoDB and CloudWatch metrics; a GitHub fine-grained token that reads PRs, issues and checks and runs the deploy workflow) and enter them in Board, which stores them in Credential Manager; approve any paid service (none is planned).
+**Only Karthik can do** (for the service and Board): type his Windows password at `news service install`; create the read-only tokens for Board (Cloudflare analytics and usage; AWS IAM read-only for DynamoDB and CloudWatch metrics; a GitHub fine-grained token for this repository with read access to pull requests, issues and checks, and **Actions: read and write**, which Board needs to dispatch the deploy workflow on `main`; Karthik approved Board running that workflow) and enter them in Board, which stores them in Credential Manager; approve any paid service (none is planned).
