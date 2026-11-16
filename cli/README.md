@@ -61,7 +61,7 @@ Subsystem crates depend only on `news-core`; `news` wires them together. A new h
 
 ## Dispatch in short
 
-Jobs live in `jobs`, pools in `pools` (seeded per §5.7; `ai` follows `NEWS_PARALLEL` on `news db migrate`), recurring jobs in `schedules` (UTC cron, seeded disabled). Ghost uses `news jobs claim|heartbeat|complete|fail`; Karthik uses `news jobs pause|unpause` and `retry` above 50 jobs. `news work --pools net,cpu,docling` is the optional background worker (`bun run work`; `infra/windows/news-work.task.xml` starts it at log-on); it refuses `ai`, `render` and `publish` (exit 2) and forbids itself the write-API key. Details: ADR 0003.
+Jobs live in `jobs`, pools in `pools` (seeded per §5.7; `ai` follows `NEWS_PARALLEL` on `news db migrate`), recurring jobs in `schedules` (UTC cron, seeded disabled). Ghost uses `news jobs claim|heartbeat|complete|fail`; Karthik uses `news jobs pause|unpause` and `retry` above 50 jobs. `news work --pools net,cpu,docling` is the optional background worker (`bun run work`; `infra/windows/news-work.task.xml` starts it at log-on); it refuses `ai`, `render` and `publish` (exit 2) and forbids itself the write-API key. `bun run work` (`scripts/work.ts`) starts the debug binary `bun run setup` builds with an allow-listed environment only: `DATABASE_URL`, `NEWS_DB_SCHEMA`, `NEWS_CH_*`, `NEWS_OTEL_HTTP`, `NEWS_LOG`, `NEWS_TELEMETRY`, plus what the OS needs to start a process. Details: ADR 0003.
 
 ## Component index
 

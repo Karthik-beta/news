@@ -671,6 +671,49 @@ async fn news_work_never_reads_the_write_api_key() {
             .await,
         3
     );
+
+    // `bun run work` (scripts/work.ts) starts the worker with an allow-listed environment: secrets
+    // exported in its shell (or set in .env) are not in the worker's process at all.
+    for (kind, pool) in [("doc.fetch", "net"), ("doc.parse", "cpu")] {
+        enqueue(&f, kind, pool).await;
+    }
+    let repo = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
+    let aws = "sentinel-aws-secret-51c0";
+    let out = std::process::Command::new("bun")
+        .args(["--no-env-file", "scripts/work.ts", "--once"])
+        .current_dir(&repo)
+        .env("NEWS_WORK_BIN", env!("CARGO_BIN_EXE_news"))
+        .env("DATABASE_URL", super::fixture::url())
+        .env("NEWS_DB_SCHEMA", &f.schema)
+        .env("NEWS_TELEMETRY", "off")
+        .env("NEWS_WRITE_API_KEY", sentinel)
+        .env("AWS_SECRET_ACCESS_KEY", aws)
+        .output()
+        .expect("bun runs scripts/work.ts");
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert_eq!(out.status.code(), Some(0), "{stdout}\n{stderr}");
+    let env: serde_json::Value = serde_json::from_str(stdout.trim()).unwrap();
+    assert_eq!(env["data"]["report"]["claimed"], 2, "{env}");
+    assert_eq!(env["data"]["write_api_key_reads"], 0);
+    let names = stderr
+        .lines()
+        .find_map(|l| l.strip_prefix("news work environment: "))
+        .unwrap_or_else(|| panic!("no environment line: {stderr}"));
+    assert!(names.contains("DATABASE_URL"), "{names}");
+    for absent in [
+        "NEWS_WRITE_API_KEY",
+        "AWS_SECRET_ACCESS_KEY",
+        "NEWS_WORK_BIN",
+    ] {
+        assert!(
+            !names.contains(absent),
+            "{absent} reached news work: {names}"
+        );
+    }
+    for s in [sentinel, aws] {
+        assert!(!stdout.contains(s) && !stderr.contains(s));
+    }
 }
 
 #[tokio::test(flavor = "multi_thread")]

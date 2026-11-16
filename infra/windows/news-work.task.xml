@@ -7,9 +7,11 @@
   Before importing, replace the two placeholders:
     __REPO__  the repository folder, for example C:\Users\Karthik\Desktop\Personal Projects\news
     __BUN__   bun.exe, for example C:\Users\Karthik\.bun\bin\bun.exe
-  Build the CLI once (`cargo build --release` in cli\), then, in a terminal (Karthik only):
+  Build the CLI once (`bun run setup`, which runs `cargo build` in cli\), then, in a terminal (Karthik only):
     schtasks /Create /TN "News\Dispatch worker" /XML infra\windows\news-work.task.xml
-  `bun run work` loads .env (DATABASE_URL, telemetry) and runs cli\target\release\news.exe work.
+  `bun run work` (scripts/work.ts) starts cli\target\debug\news.exe work with an allow-listed environment:
+  DATABASE_URL, NEWS_DB_SCHEMA, NEWS_CH_*, NEWS_OTEL_HTTP, NEWS_LOG, NEWS_TELEMETRY and what Windows needs to
+  start a process. No other .env value (write-API, AWS or Cloudflare keys) reaches the worker.
   Remove with: schtasks /Delete /TN "News\Dispatch worker" /F
 -->
 <Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
