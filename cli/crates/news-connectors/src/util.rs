@@ -43,25 +43,16 @@ pub fn value_err(locator: impl Into<String>, e: impl std::fmt::Display) -> Parse
 
 /// The one snapshot whose URL contains `needle`.
 pub fn find<'a>(snaps: &'a [Snapshot], needle: &str) -> Result<&'a Snapshot, ParseError> {
-    snaps.iter().find(|s| s.url.contains(needle)).ok_or_else(|| {
-        ParseError::new(
-            ParseErrorKind::MissingSnapshot,
-            needle,
-            "no snapshot for this request",
-        )
-    })
-}
-
-/// `"a b"` with `%20`-style escaping for the few characters our query values can hold.
-pub fn q(s: &str) -> String {
-    s.bytes()
-        .map(|b| match b {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
-                char::from(b).to_string()
-            }
-            _ => format!("%{b:02X}"),
+    snaps
+        .iter()
+        .find(|s| s.url.contains(needle))
+        .ok_or_else(|| {
+            ParseError::new(
+                ParseErrorKind::MissingSnapshot,
+                needle,
+                "no snapshot for this request",
+            )
         })
-        .collect()
 }
 
 #[cfg(test)]
@@ -72,7 +63,10 @@ mod tests {
     #[test]
     fn month_bounds_handle_december_and_leap_years() {
         let (s, e) = month_bounds(2024, 2).unwrap();
-        assert_eq!((s.to_string(), e.to_string()), ("2024-02-01".into(), "2024-02-29".into()));
+        assert_eq!(
+            (s.to_string(), e.to_string()),
+            ("2024-02-01".into(), "2024-02-29".into())
+        );
         let (_, e) = month_bounds(2026, 12).unwrap();
         assert_eq!(e.to_string(), "2026-12-31");
         assert!(month_bounds(2026, 13).is_none());

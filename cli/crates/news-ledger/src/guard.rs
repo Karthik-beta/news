@@ -125,18 +125,18 @@ pub fn derive(
             if class == UnitClass::Percent {
                 return Err(Refusal::WrongUnitKind("pct_change", a.unit.clone()));
             }
-            let d = va.sub(vb).ok_or(Refusal::Arithmetic)?;
+            let d = va.checked_sub(vb).ok_or(Refusal::Arithmetic)?;
             (d.ratio_pct(vb, rounding), "Percent".to_owned())
         }
         Formula::PpChange => {
             if class != UnitClass::Percent {
                 return Err(Refusal::WrongUnitKind("pp_change", a.unit.clone()));
             }
-            let d = va.sub(vb).ok_or(Refusal::Arithmetic)?;
+            let d = va.checked_sub(vb).ok_or(Refusal::Arithmetic)?;
             (d.round(rounding), "Percentage points".to_owned())
         }
         Formula::Diff => {
-            let d = va.sub(vb).ok_or(Refusal::Arithmetic)?;
+            let d = va.checked_sub(vb).ok_or(Refusal::Arithmetic)?;
             (d.round(rounding), a.unit.clone())
         }
         Formula::Share => (va.ratio_pct(vb, rounding), "Percent".to_owned()),
@@ -260,6 +260,7 @@ mod tests {
             fiscal_period: None,
             seasonal_adj: Some("NSA".into()),
             vintage: Utc.with_ymd_and_hms(2026, 11, 13, 13, 30, 0).unwrap(),
+            snapshot_sha: [0; 32],
             locator: json!({}),
             parser: "test@1".into(),
         }
@@ -316,7 +317,9 @@ mod tests {
         a.unit = "Percent".into();
         b.unit = "Percent".into();
         assert_eq!(
-            derive(Formula::PpChange, &a, &b, Comparison::Sequential, 1).unwrap().value,
+            derive(Formula::PpChange, &a, &b, Comparison::Sequential, 1)
+                .unwrap()
+                .value,
             "0.1"
         );
         assert!(derive(Formula::PctChange, &a, &b, Comparison::Sequential, 1).is_err());

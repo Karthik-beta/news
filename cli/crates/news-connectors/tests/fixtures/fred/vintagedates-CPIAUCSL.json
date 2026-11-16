@@ -1,0 +1,13 @@
+{
+ "realtime_start": "2026-10-15",
+ "realtime_end": "9999-12-31",
+ "order_by": "vintage_date",
+ "sort_order": "asc",
+ "count": 2,
+ "offset": 0,
+ "limit": 10000,
+ "vintage_dates": [
+  "2026-10-15",
+  "2026-11-13"
+ ]
+}

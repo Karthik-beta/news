@@ -29,6 +29,10 @@ __pycache__/
 *.sqlite
 *.sqlite3
 data/
+# ...except Contacts source rows (data/sources/<id>.toml), which are reviewed like code.
+!/data/
+/data/*
+!/data/sources/
 
 # Claude Code local files
 .claude/settings.local.json

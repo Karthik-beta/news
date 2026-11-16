@@ -1,0 +1,27 @@
+# Contacts row for SEC EDGAR (Bureau Design §3.1). Loaded by `news sources sync`; the Contacts lint
+# checks it in CI. Never put a key or an e-mail address in this file.
+source_id = "sec-edgar"
+name = "SEC EDGAR"
+publisher = "U.S. Securities and Exchange Commission"
+connector = "sec-edgar"
+base_url = "https://data.sec.gov/"
+source_tier = 1
+# Works of the U.S. federal government are not subject to copyright (17 U.S.C. §105); SEC's
+# "Accessing EDGAR Data" page sets fair-access rules, not licence terms.
+licence = "public-domain"
+attribution = "Source: U.S. Securities and Exchange Commission, EDGAR filings and XBRL financial data."
+redistribution = true
+image_policy = "none"
+rate_per_sec = 4.0
+# SEC fair access: at most 10 requests per second per user, with a declared User-Agent.
+documented_rate_per_sec = 10.0
+documented_limit = "Max 10 requests/s; declared User-Agent with organisation and contact e-mail (SEC, Accessing EDGAR Data) [18]"
+max_concurrency = 1
+robots_respect = true
+# The Runner adds NEWS_CONTACT_EMAIL to the User-Agent for this source only.
+requires_contact_email = true
+regions = ["us"]
+categories = ["finance", "earnings"]
+calendar_kind = "derived"
+enabled = true
+notes = "Discovery: submissions JSON per tracked CIK. Earnings = 10-Q, 10-K, or 8-K with Item 2.02 (code only)."

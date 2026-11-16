@@ -1,0 +1,27 @@
+# Contacts row for FRED / ALFRED (Bureau Design §3.1).
+source_id = "fred"
+name = "FRED and ALFRED"
+publisher = "Federal Reserve Bank of St. Louis"
+connector = "fred"
+base_url = "https://api.stlouisfed.org/fred/"
+# Official aggregator: FRED republishes series whose owners (BLS, BEA, …) remain the primary source.
+source_tier = 2
+# FRED API terms of use; some series are copyrighted by their owners. Redistribution terms are not
+# clear per series, so pages link and summarise and no data files are republished (PRD rule 4).
+licence = "custom"
+attribution = "Source: Federal Reserve Bank of St. Louis, FRED, with data from the series' original source."
+redistribution = false
+image_policy = "none"
+rate_per_sec = 1.0
+# 120 requests per minute (unverified: official pages give no figure) [21].
+documented_rate_per_sec = 2.0
+documented_limit = "Free key; 120 req/min (unverified: official pages give no figure) [21]"
+max_concurrency = 1
+auth_env = "FRED_API_KEY"
+robots_respect = true
+requires_contact_email = false
+regions = ["us"]
+categories = ["economy"]
+calendar_kind = "api"
+enabled = true
+notes = "Discovery: series/vintagedates per tracked series; release/dates for the calendar. Vintages from realtime_start."

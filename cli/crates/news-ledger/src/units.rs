@@ -4,8 +4,9 @@
 
 /// ISO 4217 codes the renderer can format. Any other three-letter unit is unknown, not money.
 pub const CURRENCIES: &[&str] = &[
-    "AUD", "BRL", "CAD", "CHF", "CNY", "DKK", "EUR", "GBP", "HKD", "IDR", "ILS", "INR", "JPY", "KRW",
-    "MXN", "NOK", "NZD", "PLN", "RUB", "SAR", "SEK", "SGD", "THB", "TRY", "TWD", "USD", "ZAR",
+    "AUD", "BRL", "CAD", "CHF", "CNY", "DKK", "EUR", "GBP", "HKD", "IDR", "ILS", "INR", "JPY",
+    "KRW", "MXN", "NOK", "NZD", "PLN", "RUB", "SAR", "SEK", "SGD", "THB", "TRY", "TWD", "USD",
+    "ZAR",
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -38,7 +39,12 @@ const COUNTS: &[&str] = &[
     "Number",
     "All employees, thousands",
 ];
-const PERCENTS: &[&str] = &["Percent", "Percent Change", "Percent Change from Year Ago", "percent"];
+const PERCENTS: &[&str] = &[
+    "Percent",
+    "Percent Change",
+    "Percent Change from Year Ago",
+    "percent",
+];
 
 /// Classify a verbatim unit. `None` = unknown: store it verbatim and flag `needs_human`.
 pub fn classify(unit: &str) -> Option<UnitInfo> {
@@ -88,8 +94,14 @@ mod tests {
         let usd = classify("USD").map(|u| (u.class, u.currency));
         assert_eq!(usd, Some((UnitClass::Money, Some("USD".to_owned()))));
         let eps = classify("USD/shares").map(|u| (u.class, u.currency));
-        assert_eq!(eps, Some((UnitClass::MoneyPerShare, Some("USD".to_owned()))));
-        assert_eq!(classify("Index 1982-1984=100").map(|u| u.class), Some(UnitClass::Index));
+        assert_eq!(
+            eps,
+            Some((UnitClass::MoneyPerShare, Some("USD".to_owned())))
+        );
+        assert_eq!(
+            classify("Index 1982-1984=100").map(|u| u.class),
+            Some(UnitClass::Index)
+        );
     }
 
     #[test]

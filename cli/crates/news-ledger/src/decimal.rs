@@ -42,7 +42,19 @@ pub struct ExpStyle {
 pub fn is_missing_marker(text: &str) -> bool {
     matches!(
         text.trim(),
-        "" | "." | "-" | "–" | "—" | "(NA)" | "NA" | "N/A" | "n/a" | "(X)" | "(D)" | "(S)" | "nan" | "NaN"
+        "" | "."
+            | "-"
+            | "–"
+            | "—"
+            | "(NA)"
+            | "NA"
+            | "N/A"
+            | "n/a"
+            | "(X)"
+            | "(D)"
+            | "(S)"
+            | "nan"
+            | "NaN"
     )
 }
 
@@ -233,7 +245,9 @@ impl Dec {
         let (int, frac) = mantissa.split_once('.').unwrap_or((mantissa, ""));
         let mut m: i128 = 0;
         for b in int.bytes().chain(frac.bytes()) {
-            m = m.checked_mul(10)?.checked_add(i128::from(b.checked_sub(b'0')?))?;
+            m = m
+                .checked_mul(10)?
+                .checked_add(i128::from(b.checked_sub(b'0')?))?;
         }
         let mut scale = i64::try_from(frac.len()).ok()? - i64::from(exp);
         while scale < 0 {
@@ -259,7 +273,7 @@ impl Dec {
     }
 
     /// `a - b`, exactly.
-    pub fn sub(self, other: Dec) -> Option<Dec> {
+    pub fn checked_sub(self, other: Dec) -> Option<Dec> {
         let s = self.scale.max(other.scale);
         let (a, b) = (self.rescale(s)?, other.rescale(s)?);
         Some(Dec {
@@ -276,7 +290,9 @@ impl Dec {
         }
         let s = self.scale.max(den.scale);
         let (a, b) = (self.rescale(s)?, den.rescale(s)?);
-        let num = a.m.checked_mul(100)?.checked_mul(10i128.checked_pow(places)?)?;
+        let num =
+            a.m.checked_mul(100)?
+                .checked_mul(10i128.checked_pow(places)?)?;
         Some(Dec {
             m: div_round(num, b.m)?,
             scale: places,
@@ -338,8 +354,20 @@ mod tests {
     #[test]
     fn real_published_forms_round_trip() {
         for t in [
-            "337.511", "-0.3", "1,234.5", "159293", "394328000000", "0.25", ".5", "5.", "+2.1",
-            "\u{2212}0.4", "1.5E-3", "2e+05", "007", "-1,000,000",
+            "337.511",
+            "-0.3",
+            "1,234.5",
+            "159293",
+            "394328000000",
+            "0.25",
+            ".5",
+            "5.",
+            "+2.1",
+            "\u{2212}0.4",
+            "1.5E-3",
+            "2e+05",
+            "007",
+            "-1,000,000",
         ] {
             let (n, s) = parse(t).unwrap();
             assert_eq!(s.format(&n), t, "{t} via {n}");
@@ -351,7 +379,18 @@ mod tests {
 
     #[test]
     fn junk_and_markers_are_refused() {
-        for t in ["", ".", "-", "1,23", "12,3456", "1.2.3", "abc", "1e", "1,234,56.0", "--1"] {
+        for t in [
+            "",
+            ".",
+            "-",
+            "1,23",
+            "12,3456",
+            "1.2.3",
+            "abc",
+            "1e",
+            "1,234,56.0",
+            "--1",
+        ] {
             assert!(parse(t).is_err(), "{t}");
         }
         assert!(is_missing_marker("."));
@@ -364,10 +403,24 @@ mod tests {
         let a = Dec::from_numeric("337.511").unwrap();
         let b = Dec::from_numeric("324.800").unwrap();
         // (337.511 - 324.8) / 324.8 * 100 = 3.9134...
-        assert_eq!(a.sub(b).unwrap().ratio_pct(b, 1).unwrap().to_numeric(), "3.9");
+        assert_eq!(
+            a.checked_sub(b)
+                .unwrap()
+                .ratio_pct(b, 1)
+                .unwrap()
+                .to_numeric(),
+            "3.9"
+        );
         assert_eq!(Dec::from_numeric("1.5E-3").unwrap().to_numeric(), "0.0015");
         assert_eq!(Dec::from_numeric("2E5").unwrap().to_numeric(), "200000");
-        assert_eq!(Dec::from_numeric("-0.25").unwrap().round(1).unwrap().to_numeric(), "-0.3");
+        assert_eq!(
+            Dec::from_numeric("-0.25")
+                .unwrap()
+                .round(1)
+                .unwrap()
+                .to_numeric(),
+            "-0.3"
+        );
         assert!(a.ratio_pct(Dec::from_numeric("0").unwrap(), 1).is_none());
     }
 

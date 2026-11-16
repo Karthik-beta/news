@@ -90,6 +90,7 @@ struct Response {
 
 #[derive(Deserialize)]
 struct Results {
+    #[serde(default)]
     series: Vec<Series>,
 }
 
@@ -134,10 +135,7 @@ fn read(snap: &Snapshot) -> Result<Vec<Series>, ParseError> {
 }
 
 /// `(start, end, period_type)` for a BLS period code in a year.
-fn period_bounds(
-    year: i32,
-    code: &str,
-) -> Option<(chrono::NaiveDate, chrono::NaiveDate)> {
+fn period_bounds(year: i32, code: &str) -> Option<(chrono::NaiveDate, chrono::NaiveDate)> {
     let n: u32 = code.get(1..)?.parse().ok()?;
     match code.as_bytes().first()? {
         b'M' if (1..=12).contains(&n) => month_bounds(year, n),
@@ -154,7 +152,10 @@ fn period_bounds(
 /// `2026-10` for a monthly period, `2026-Q3` for a quarter, `2026` otherwise: the event key's
 /// reference period.
 fn reference_period(year: &str, code: &str) -> String {
-    match (code.as_bytes().first(), code.get(1..).and_then(|n| n.parse::<u32>().ok())) {
+    match (
+        code.as_bytes().first(),
+        code.get(1..).and_then(|n| n.parse::<u32>().ok()),
+    ) {
         (Some(b'M'), Some(n @ 1..=12)) => format!("{year}-{n:02}"),
         (Some(b'Q'), Some(n @ 1..=4)) => format!("{year}-Q{n}"),
         _ => year.to_owned(),
@@ -186,7 +187,9 @@ impl Connector for Bls {
     fn discovery_requests(&self, cx: &Cx, _cursor: Option<&str>) -> Vec<Request> {
         cx.bls_series
             .iter()
-            .map(|id| Request::json(format!("{BASE}{id}")).with_secret("registrationkey", "BLS_API_KEY"))
+            .map(|id| {
+                Request::json(format!("{BASE}{id}")).with_secret("registrationkey", "BLS_API_KEY")
+            })
             .collect()
     }
 
@@ -219,7 +222,11 @@ impl Connector for Bls {
                     key: s.series_id.clone(),
                     url: format!("https://data.bls.gov/timeseries/{}", s.series_id),
                     event_key_hint: meta.and_then(|m| {
-                        eventkey::macro_release("us", m.family, &reference_period(&row.year, &row.period))
+                        eventkey::macro_release(
+                            "us",
+                            m.family,
+                            &reference_period(&row.year, &row.period),
+                        )
                     }),
                     published_at: None,
                     title: Some(format!(
@@ -241,7 +248,10 @@ impl Connector for Bls {
     }
 
     fn fetch_requests(&self, item: &ItemRef) -> Vec<Request> {
-        vec![Request::json(format!("{BASE}{}", item.key)).with_secret("registrationkey", "BLS_API_KEY")]
+        vec![
+            Request::json(format!("{BASE}{}", item.key))
+                .with_secret("registrationkey", "BLS_API_KEY"),
+        ]
     }
 
     fn parse(&self, item: &ItemRef, snaps: &[Snapshot]) -> Result<Parsed, ParseError> {
@@ -252,7 +262,10 @@ impl Connector for Bls {
             let series_key = format!("bls:{}", s.series_id);
             let Some(meta) = series(&s.series_id) else {
                 out.needs_human.push(NeedsHuman {
-                    reason: format!("BLS series {} is not in the series catalogue: unit unknown", s.series_id),
+                    reason: format!(
+                        "BLS series {} is not in the series catalogue: unit unknown",
+                        s.series_id
+                    ),
                     series_key,
                     locator: json!({"kind": "json", "path": format!("$.Results.series[{si}]")}),
                 });
@@ -310,6 +323,7 @@ impl Connector for Bls {
                     fiscal_period: None,
                     seasonal_adj: Some(meta.seasonal_adj.into()),
                     vintage: snap.fetched_at,
+                    snapshot_sha: snap.sha256,
                     locator,
                     parser: self.parser(),
                 }

@@ -4,8 +4,11 @@
 /// `earnings:0000320193:2026Q4`. `fp` is the company's own fiscal period as filed (`Q1`…`Q4`, `FY`).
 pub fn earnings(cik: &str, fiscal_year: i16, fiscal_period: &str) -> Option<String> {
     let cik = cik10(cik)?;
-    matches!(fiscal_period, "Q1" | "Q2" | "Q3" | "Q4" | "FY" | "H1" | "H2")
-        .then(|| format!("earnings:{cik}:{fiscal_year}{fiscal_period}"))
+    matches!(
+        fiscal_period,
+        "Q1" | "Q2" | "Q3" | "Q4" | "FY" | "H1" | "H2"
+    )
+    .then(|| format!("earnings:{cik}:{fiscal_year}{fiscal_period}"))
 }
 
 /// `macro:<country>.<series_family>:<reference_period>`, e.g. `macro:us.cpi:2026-10`.
@@ -22,7 +25,8 @@ pub fn macro_release(country: &str, family: &str, reference_period: &str) -> Opt
 /// `YYYY`, `YYYY-MM`, `YYYY-Qn` or `YYYY-MM-DD`.
 fn valid_period(p: &str) -> bool {
     let b = p.as_bytes();
-    let digits = |r: std::ops::Range<usize>| b.get(r).is_some_and(|s| s.iter().all(u8::is_ascii_digit));
+    let digits =
+        |r: std::ops::Range<usize>| b.get(r).is_some_and(|s| s.iter().all(u8::is_ascii_digit));
     match b.len() {
         4 => digits(0..4),
         7 if b[4] == b'-' && b[5] == b'Q' => digits(0..4) && (b'1'..=b'4').contains(&b[6]),
@@ -43,7 +47,10 @@ pub fn cik10(cik: &str) -> Option<String> {
 pub fn is_valid(key: &str) -> bool {
     let parts: Vec<&str> = key.splitn(3, ':').collect();
     parts.len() == 3
-        && matches!(parts[0], "earnings" | "macro" | "policy" | "report" | "paper")
+        && matches!(
+            parts[0],
+            "earnings" | "macro" | "policy" | "report" | "paper"
+        )
         && parts.iter().all(|p| !p.is_empty())
 }
 

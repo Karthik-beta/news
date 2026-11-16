@@ -181,7 +181,11 @@ pub enum ParseErrorKind {
 }
 
 impl ParseError {
-    pub fn new(kind: ParseErrorKind, locator: impl Into<String>, message: impl Into<String>) -> Self {
+    pub fn new(
+        kind: ParseErrorKind,
+        locator: impl Into<String>,
+        message: impl Into<String>,
+    ) -> Self {
         Self {
             kind,
             locator: locator.into(),

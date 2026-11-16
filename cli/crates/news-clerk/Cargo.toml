@@ -1,6 +1,6 @@
 [package]
 name = "news-clerk"
-description = "Clerk and Ledger: parsing snapshots into data points, text blocks and candidates. Skeleton with handler stubs; built in #9."
+description = "Clerk and Ledger (Bureau Design §3.4): rule-based classification, candidates, and storing data points with vintages and provenance."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,6 +8,12 @@ publish.workspace = true
 
 [dependencies]
 news-core = { workspace = true }
+news-connectors = { workspace = true }
+news-contacts = { workspace = true }
+news-ledger = { workspace = true }
+chrono = { workspace = true }
+serde = { workspace = true }
+sqlx = { workspace = true }
 
 [lints]
 workspace = true

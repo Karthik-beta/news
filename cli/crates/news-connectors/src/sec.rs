@@ -133,7 +133,9 @@ fn fp_class(fp: &str) -> Option<&'static str> {
 }
 
 fn parse_accepted(s: &str) -> Option<DateTime<Utc>> {
-    DateTime::parse_from_rfc3339(s).ok().map(|d| d.with_timezone(&Utc))
+    DateTime::parse_from_rfc3339(s)
+        .ok()
+        .map(|d| d.with_timezone(&Utc))
 }
 
 impl Connector for SecEdgar {
@@ -236,7 +238,9 @@ impl Connector for SecEdgar {
             r.max_bytes = 20 * 1024 * 1024;
             return vec![r];
         }
-        vec![Request::json(format!("{DATA}api/xbrl/companyfacts/CIK{cik}.json"))]
+        vec![Request::json(format!(
+            "{DATA}api/xbrl/companyfacts/CIK{cik}.json"
+        ))]
     }
 
     fn parse(&self, item: &ItemRef, snaps: &[Snapshot]) -> Result<Parsed, ParseError> {
@@ -323,15 +327,16 @@ impl Connector for SecEdgar {
             }
             for (j, f) in facts.iter().enumerate() {
                 let path = format!("$.facts['{tax}']['{name}'].units['{unit}'][{j}]");
-                let end = date(&f.end).ok_or_else(|| value_err(format!("{path}.end"), "not a date"))?;
+                let end =
+                    date(&f.end).ok_or_else(|| value_err(format!("{path}.end"), "not a date"))?;
                 let start = match &f.start {
-                    Some(s) => {
-                        Some(date(s).ok_or_else(|| value_err(format!("{path}.start"), "not a date"))?)
-                    }
+                    Some(s) => Some(
+                        date(s).ok_or_else(|| value_err(format!("{path}.start"), "not a date"))?,
+                    ),
                     None => None,
                 };
-                let filed =
-                    date(&f.filed).ok_or_else(|| value_err(format!("{path}.filed"), "not a date"))?;
+                let filed = date(&f.filed)
+                    .ok_or_else(|| value_err(format!("{path}.filed"), "not a date"))?;
                 let (period_type, period_label) = match start {
                     Some(s) => (PeriodType::Duration, format!("{s}/{end}")),
                     None => (PeriodType::Instant, end.to_string()),
@@ -360,7 +365,10 @@ impl Connector for SecEdgar {
                     locator["frame"] = json!(frame);
                 }
                 let point = Draft {
-                    context: vec![("accn".into(), f.accn.clone()), ("unit".into(), (*unit).to_owned())],
+                    context: vec![
+                        ("accn".into(), f.accn.clone()),
+                        ("unit".into(), (*unit).to_owned()),
+                    ],
                     series_key: series_key.clone(),
                     entity: entity.clone(),
                     concept: format!("{tax}:{name}"),
@@ -378,6 +386,7 @@ impl Connector for SecEdgar {
                     fiscal_period,
                     seasonal_adj: None,
                     vintage: day_vintage(filed),
+                    snapshot_sha: snap.sha256,
                     locator,
                     parser: self.parser(),
                 }
@@ -397,7 +406,8 @@ impl Connector for SecEdgar {
                 out.points.push(point);
             }
         }
-        out.points.sort_by(|a, b| a.vintage.cmp(&b.vintage).then(a.dp_id.cmp(&b.dp_id)));
+        out.points
+            .sort_by(|a, b| a.vintage.cmp(&b.vintage).then(a.dp_id.cmp(&b.dp_id)));
         out.candidates.push(CandidateDraft {
             event_key: filing_fy
                 .as_ref()

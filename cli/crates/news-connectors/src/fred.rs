@@ -159,10 +159,7 @@ impl Connector for Fred {
             .fred_series
             .iter()
             .map(|id| {
-                let since = seen
-                    .get(id)
-                    .and_then(|d| date(d))
-                    .unwrap_or(default_since);
+                let since = seen.get(id).and_then(|d| date(d)).unwrap_or(default_since);
                 Request::json(format!(
                     "{BASE}series/vintagedates?series_id={id}&realtime_start={since}&file_type=json"
                 ))
@@ -195,21 +192,15 @@ impl Connector for Fred {
         let mut seen = cursor_map(cursor);
         let mut out = Discovery::default();
         for id in &cx.fred_series {
-            let Some(snap) = snaps
-                .iter()
-                .find(|s| s.url.contains("series/vintagedates") && s.url.contains(&format!("series_id={id}&")))
-            else {
+            let Some(snap) = snaps.iter().find(|s| {
+                s.url.contains("series/vintagedates") && s.url.contains(&format!("series_id={id}&"))
+            }) else {
                 continue; // 304 or not requested: nothing new
             };
             let v: VintageDates =
                 serde_json::from_slice(&snap.bytes).map_err(|e| shape("$.vintage_dates", e))?;
             let last = seen.get(id).cloned().unwrap_or_default();
-            let newest = v
-                .vintage_dates
-                .iter()
-                .filter(|d| **d > last)
-                .max()
-                .cloned();
+            let newest = v.vintage_dates.iter().filter(|d| **d > last).max().cloned();
             if let Some(vintage) = newest {
                 out.refs.push(ItemRef {
                     source_id: SOURCE_ID.into(),
@@ -228,16 +219,14 @@ impl Connector for Fred {
             let r: ReleaseDates =
                 serde_json::from_slice(&snap.bytes).map_err(|e| shape("$.release_dates", e))?;
             for (i, rd) in r.release_dates.iter().enumerate() {
-                let day = date(&rd.date).ok_or_else(|| {
-                    value_err(format!("$.release_dates[{i}].date"), "not a date")
-                })?;
+                let day = date(&rd.date)
+                    .ok_or_else(|| value_err(format!("$.release_dates[{i}].date"), "not a date"))?;
                 if day < cx.today {
                     continue;
                 }
-                for s in SERIES
-                    .iter()
-                    .filter(|s| s.release_id == rd.release_id && cx.fred_series.iter().any(|t| t == s.id))
-                {
+                for s in SERIES.iter().filter(|s| {
+                    s.release_id == rd.release_id && cx.fred_series.iter().any(|t| t == s.id)
+                }) {
                     let Some(reference) = day.checked_sub_months(Months::new(s.release_lag_months))
                     else {
                         continue;
@@ -308,7 +297,11 @@ impl Connector for Fred {
                 locator: json!({"kind": "json", "path": "$.seriess[0].units", "series": id}),
             });
         }
-        let vintage = item.meta.get("vintage").and_then(|v| v.as_str()).unwrap_or("");
+        let vintage = item
+            .meta
+            .get("vintage")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
         let mut latest: Option<NaiveDate> = None;
         let mut item_points = Vec::new();
         for (i, o) in obs.observations.iter().enumerate() {
@@ -353,6 +346,7 @@ impl Connector for Fred {
                 fiscal_period: None,
                 seasonal_adj: Some(info.seasonal_adjustment_short.clone()),
                 vintage: day_vintage(rs),
+                snapshot_sha: obs_snap.sha256,
                 locator,
                 parser: self.parser(),
             }

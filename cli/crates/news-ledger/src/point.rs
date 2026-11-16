@@ -54,6 +54,8 @@ pub struct DataPoint {
     pub vintage: DateTime<Utc>,
     /// Set by the Ledger store from earlier vintages; parsers leave it `None`.
     pub supersedes: Option<String>,
+    /// SHA-256 of the Morgue snapshot the value was read from (`data_points.snapshot_sha`).
+    pub snapshot_sha: [u8; 32],
     pub locator: Value,
     pub parser: String,
 }
@@ -88,6 +90,7 @@ pub struct Draft {
     pub fiscal_period: Option<String>,
     pub seasonal_adj: Option<String>,
     pub vintage: DateTime<Utc>,
+    pub snapshot_sha: [u8; 32],
     pub locator: Value,
     pub parser: String,
 }
@@ -132,6 +135,7 @@ impl Draft {
             seasonal_adj: self.seasonal_adj,
             vintage: self.vintage,
             supersedes: None,
+            snapshot_sha: self.snapshot_sha,
             locator: self.locator,
             parser: self.parser,
         })
@@ -208,19 +212,53 @@ mod tests {
     #[test]
     fn dp_id_is_stable_and_shaped_for_the_table_check() {
         let v = Utc.with_ymd_and_hms(2026, 11, 13, 0, 0, 0).unwrap();
-        let a = dp_id("fred:CPIAUCSL", "", "duration|2026-10-01|2026-10-31|2026-10-01", v);
-        let b = dp_id("fred:CPIAUCSL", "", "duration|2026-10-01|2026-10-31|2026-10-01", v);
+        let a = dp_id(
+            "fred:CPIAUCSL",
+            "",
+            "duration|2026-10-01|2026-10-31|2026-10-01",
+            v,
+        );
+        let b = dp_id(
+            "fred:CPIAUCSL",
+            "",
+            "duration|2026-10-01|2026-10-31|2026-10-01",
+            v,
+        );
         assert_eq!(a, b);
         assert_eq!(a.len(), 19);
-        assert!(a.starts_with("dp_") && a[3..].bytes().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit()));
+        assert!(
+            a.starts_with("dp_")
+                && a[3..]
+                    .bytes()
+                    .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit())
+        );
         // A different vintage or context is a different point.
-        assert_ne!(a, dp_id("fred:CPIAUCSL", "", "duration|2026-10-01|2026-10-31|2026-10-01", v + chrono::Duration::days(1)));
-        assert_ne!(a, dp_id("fred:CPIAUCSL", "accn=1", "duration|2026-10-01|2026-10-31|2026-10-01", v));
+        assert_ne!(
+            a,
+            dp_id(
+                "fred:CPIAUCSL",
+                "",
+                "duration|2026-10-01|2026-10-31|2026-10-01",
+                v + chrono::Duration::days(1)
+            )
+        );
+        assert_ne!(
+            a,
+            dp_id(
+                "fred:CPIAUCSL",
+                "accn=1",
+                "duration|2026-10-01|2026-10-31|2026-10-01",
+                v
+            )
+        );
     }
 
     #[test]
     fn context_key_is_sorted() {
-        let k = context_key(&[("unit".into(), "USD".into()), ("accn".into(), "0001".into())]);
+        let k = context_key(&[
+            ("unit".into(), "USD".into()),
+            ("accn".into(), "0001".into()),
+        ]);
         assert_eq!(k, "accn=0001;unit=USD");
         assert_eq!(context_key(&[]), "");
     }
