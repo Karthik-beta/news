@@ -230,13 +230,16 @@ async fn run_one(db: PgPool, job: Job, resolve: Resolver, worker: String) -> Out
             }
             _ = beat.tick() => {
                 // A heartbeat that cannot finish within lease/3 counts as lost, so the handler never
-                // outlives its lease waiting on a stuck database call.
-                let beat_result = tokio::time::timeout(
-                    lease / 3,
-                    queue::heartbeat(&db, job.job_id, job.lease(&worker), lease),
-                )
-                .await;
-                if !matches!(beat_result, Ok(Ok(_))) {
+                // outlives its lease waiting on a stuck database call. A lease loss reported while
+                // the heartbeat is in flight cancels the handler at once, without waiting for it.
+                let renewed = tokio::select! {
+                    r = tokio::time::timeout(
+                        lease / 3,
+                        queue::heartbeat(&db, job.job_id, job.lease(&worker), lease),
+                    ) => matches!(r, Ok(Ok(_))),
+                    () = wake.notified() => false,
+                };
+                if !renewed {
                     tracing::warn!(job_id = job.job_id, "lease lost; handler cancelled");
                     lost.store(true, Ordering::SeqCst);
                     handle.abort();

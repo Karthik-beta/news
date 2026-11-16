@@ -128,8 +128,9 @@ pub trait LeaseCheck: Send + Sync {
 /// Queue state is exactly-once per lease, but a handler whose lease was lost keeps running until the
 /// worker notices and cancels it, while the job may already run under a new lease elsewhere. So a
 /// handler's side effects must be idempotent (keyed as in Bureau Design §5.8) and each external write
-/// must be preceded by `ensure_lease().await?`: a stale holder then stops before writing, and an
-/// overlap can at worst repeat an idempotent write already in flight.
+/// must be preceded by `ensure_lease().await?`. The check is not an atomic fence: a write that passed
+/// it can still land after the lease is lost, so where an older write could overwrite a newer one the
+/// write must be conditional at its destination (insert-if-absent, or a version compare). ADR 0003.
 #[derive(Clone, Default)]
 pub struct JobLease {
     pub job_id: i64,
