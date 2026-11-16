@@ -297,6 +297,9 @@ export function pageRecord(
     ...fields,
     page_id: id,
     published_at: publishedAt,
+    // After the first publication index_status belongs to POST /v1/pages/{id}/index: a new version keeps the live
+    // value, so republishing never silently undoes a promotion (or a demotion).
+    index_status: previous?.index_status ?? meta.index_status,
     status: "published",
     bundle_sha256: manifest.bundle_sha256,
     files: manifest.files.map((f) => f.path).sort(),

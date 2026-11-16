@@ -283,6 +283,17 @@ describe("POST /v1/pages/{id}/index", () => {
     expect(h.search.rows.get("test-page")?.index_status).toBe("index");
   });
 
+  it("a new version keeps the promoted index status, whatever its meta.json says", async () => {
+    const h = harness();
+    await put(h, await makeBundle());
+    expect((await h.call("POST", "/v1/pages/test-page/index", { body: { index_status: "index" } })).status).toBe(200);
+    expect((await put(h, await makeBundle(makeMeta({ version: 2, index_status: "noindex" })))).status).toBe(200);
+    const live = h.table.dump().find((i) => i.PK === "PAGE#test-page" && i.SK === "LATEST");
+    expect(live).toMatchObject({ version: 2, index_status: "index" });
+    expect(h.table.dump().filter((i) => i.type === "hub_entry").every((i) => i.index_status === "index")).toBe(true);
+    expect(h.search.rows.get("test-page")?.index_status).toBe("index");
+  });
+
   it("refuses a withdrawn page", async () => {
     const h = harness();
     await put(h, await makeBundle());

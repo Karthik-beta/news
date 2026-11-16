@@ -46,7 +46,7 @@ One table, string keys `PK` and `SK`, no secondary index. Item shapes are in the
 
 **Search (D1).** One D1 database per publication year, bound as `SEARCH_<YYYY>` (each free database holds 500 MB). The schema is `workers/shared/migrations/search/0001_pages.sql`: a `pages` table and an external-content FTS5 table over title, summary, entities, tags and categories (with parents), kept in sync by triggers (the update trigger fires only when an indexed column changes, so an index-status change is one row write). Queries become quoted words only, so no FTS5 syntax from a reader reaches the database. Shards are searched newest first until the limit is met. A page lives in the shard of its first publication year; the API refuses a page whose year has no shard bound, before writing anything.
 
-**Index status.** `index_status` is stored on the page record, its hub entries and its search row. `POST /v1/pages/{id}/index` changes all three and purges the page's URLs. The robots meta and sitemap entry must follow `index_status` at serving time (an open item for the site and sitemap work, #14).
+**Index status.** `index_status` is stored on the page record, its hub entries and its search row. `POST /v1/pages/{id}/index` changes all three and purges the page's URLs. `meta.json`'s `index_status` applies only to a page's first publication; a new version keeps the live value, so a republish never undoes a promotion (Edition step 11 owns the status after that). The robots meta and sitemap entry must follow `index_status` at serving time (an open item for the site and sitemap work, #14).
 
 ## Consequences
 
