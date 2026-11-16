@@ -166,3 +166,21 @@ async fn a_missing_schema_is_refused_instead_of_falling_back_to_public() {
     let (env, code, _, _) = f.call(&["jobs", "list"]);
     assert_eq!(code, 0, "{env}");
 }
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn a_schema_named_like_a_keyword_migrates() {
+    // `select` passes valid_schema; the statements must quote it. One fixed name, so it is
+    // dropped first in case an earlier run stopped half-way.
+    let cfg = news_store::DbConfig::new(super::fixture::url(), "select").unwrap();
+    let pool = news_store::connect(&cfg, 2).await.unwrap();
+    let drop = || sqlx::query(r#"drop schema if exists "select" cascade"#);
+    drop().execute(&pool).await.unwrap();
+    let migrated = news_store::migrate(&pool, "select").await;
+    let pools: Result<i64, _> = sqlx::query_scalar(r#"select count(*) from "select".pools"#)
+        .fetch_one(&pool)
+        .await;
+    drop().execute(&pool).await.unwrap();
+    assert_eq!(migrated.unwrap().schema, "select");
+    assert_eq!(pools.unwrap(), 6);
+}

@@ -149,9 +149,9 @@ pub async fn migrate(pool: &PgPool, schema: &str) -> Result<MigrateReport, NewsE
     if !valid_schema(schema) {
         return Err(NewsError::usage("invalid schema name"));
     }
-    // The schema name is checked by valid_schema above.
+    // valid_schema above keeps `"` out of the name; quoting lets a keyword such as `select` through.
     sqlx::query(sqlx::AssertSqlSafe(format!(
-        "create schema if not exists {schema}"
+        "create schema if not exists \"{schema}\""
     )))
     .execute(pool)
     .await
