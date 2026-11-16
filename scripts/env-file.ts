@@ -42,7 +42,7 @@ export const CHILD_ENV_KEYS = [
   "NEWS_PG_PASSWORD",
   "NEWS_CH_PASSWORD",
   "DATABASE_URL",
-  // The migration must target the schema `bun run work` and the other scripts will use.
+  // The migration must target the schema the other scripts will use.
   "NEWS_DB_SCHEMA",
   "NEWS_DYNAMODB_PORT",
   "NEWS_DYNAMODB_ENDPOINT",
