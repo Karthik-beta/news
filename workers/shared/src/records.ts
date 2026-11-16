@@ -207,9 +207,15 @@ export interface OperationResult {
   PK: string;
   SK: "RESULT";
   type: "operation_result";
-  operation: "home_curation";
+  operation: "home_curation" | "home_rollback" | "withdraw";
   request_hash: string;
+  /** home_curation: the version published; home_rollback: the newest version; withdraw: the page version withdrawn. */
   version: number;
+  /** home_rollback: the version made live. */
+  live_version?: number;
+  /** withdraw: the page and its index status when it was withdrawn. */
+  page_id?: string;
+  index_status?: IndexStatus;
   created_at: string;
   expires_at: number;
 }

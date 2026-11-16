@@ -155,7 +155,9 @@ describe("MCP tools on real local storage", () => {
       published_at: "2026-11-11T12:00:00Z",
       updated_at: "2026-11-11T12:00:00Z",
     });
+    // Indexed and committed, as the write API leaves it (search lists only pages with a published LATEST).
     await indexPage(env.SEARCH_2026, wide);
+    await table.put(wide as never);
     const r = await call("search_pages", { query: "ＡＢＣ quarterly" });
     expect(r.structuredContent.results).toEqual([expect.objectContaining({ page_id: "it-wide-page" })]);
   });

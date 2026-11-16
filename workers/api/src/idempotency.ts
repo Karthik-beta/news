@@ -11,8 +11,8 @@ import { sha256Hex } from "@news/worker-shared/crypto";
 import { and, eq, notExists } from "@news/worker-shared/dynamo/conditions";
 import { ConditionFailedError, type Table } from "@news/worker-shared/dynamo/table";
 import { SECURITY_HEADERS } from "@news/worker-shared/http";
-import { idempotencyKey } from "@news/worker-shared/keys";
-import type { IdempotencyRecord } from "@news/worker-shared/records";
+import { idempotencyKey, operationResultKey } from "@news/worker-shared/keys";
+import type { IdempotencyRecord, OperationResult } from "@news/worker-shared/records";
 import { ApiError } from "./errors";
 
 export const IDEMPOTENCY_HEADER = "idempotency-key";
@@ -141,4 +141,38 @@ export async function release(table: Table, c: Claim): Promise<void> {
   await table
     .delete(idempotencyKey(c.keyHash), and(eq("state", "pending"), eq("created_at", c.createdAt)))
     .catch(() => {});
+}
+
+type Recorded = Pick<OperationResult, "version" | "live_version" | "page_id" | "index_status">;
+
+/**
+ * What this request (same key, same body) already committed, if anything: the result its commit transaction recorded
+ * (resultItem). A retry that finds one only finishes the work instead of acting again. Read-only.
+ */
+export async function committedResult(
+  table: Table,
+  seen: { keyHash: string; requestHash: string },
+  operation: OperationResult["operation"],
+): Promise<OperationResult | undefined> {
+  const done = (await table.get(operationResultKey(seen.keyHash))) as unknown as OperationResult | undefined;
+  return done && done.request_hash === seen.requestHash && done.operation === operation ? done : undefined;
+}
+
+/** The result item a commit writes in its own transaction (IDEM#<key hash> / RESULT, TTL as the key). */
+export function resultItem(
+  ctx: { requestId: string; requestHash: string },
+  operation: OperationResult["operation"],
+  at: Date,
+  recorded: Recorded,
+): OperationResult {
+  return {
+    ...operationResultKey(ctx.requestId),
+    SK: "RESULT",
+    type: "operation_result",
+    operation,
+    request_hash: ctx.requestHash,
+    ...recorded,
+    created_at: at.toISOString(),
+    expires_at: Math.floor(at.getTime() / 1000) + TTL_SECONDS,
+  };
 }

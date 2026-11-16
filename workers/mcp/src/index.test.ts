@@ -283,6 +283,29 @@ describe("tools/call", () => {
     }
   });
 
+  it("search and entity lists show only committed, published pages, with the live record's metadata", async () => {
+    const h = harness();
+    const row = h.d1.rows[0] as Record<string, unknown>;
+    // A first publish that never committed (no LATEST), a withdrawn page, and an update whose commit failed after it
+    // wrote its search row and hub entries.
+    h.d1.rows.push(
+      { ...row, page_id: "ghost-page", path: "/2026/11/ghost-page", title: "Ghost" },
+      { ...row, page_id: "old-page", path: "/2026/10/old-page", title: "Old" },
+    );
+    row.title = "Uncommitted title";
+    const hub = h.table.dump().filter((i) => i.PK === "HUB#ent/country:US")[0] as Record<string, never>;
+    h.table.seed(
+      { ...hub, title: "Uncommitted title" as never },
+      { ...hub, SK: "2026-11-12T00:00:00.000Z#ghost-page" as never, page_id: "ghost-page" as never },
+      { ...hub, SK: "2026-11-12T00:00:01.000Z#old-page" as never, page_id: "old-page" as never },
+    );
+    const search = await body(await callTool(h.deps, "search_pages", { query: "inflation" }));
+    const entity = await body(await callTool(h.deps, "get_entity", { entity_id: "country:US" }));
+    for (const list of [search.result?.structuredContent.results, entity.result?.structuredContent.pages]) {
+      expect(list.map((p: Loose) => [p.page_id, p.title])).toEqual([["us-cpi-october", h.page.title]]);
+    }
+  });
+
   it("does not cache 'being updated': the next call reads again and gets the content", async () => {
     const stored = new Map<string, string>();
     const cache = {

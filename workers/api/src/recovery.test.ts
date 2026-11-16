@@ -2,7 +2,7 @@
 // cannot leave its files, hubs or search row out of step with its live record.
 
 import { sha256Hex } from "@news/worker-shared/crypto";
-import { OutcomeUnknownError } from "@news/worker-shared/dynamo/table";
+import { OutcomeUnknownError, SubrequestLimitError } from "@news/worker-shared/dynamo/table";
 import { curationPages, makeBundle, makeCuration, makeMeta } from "@news/worker-shared/testing/fixtures";
 import { describe, expect, it } from "vitest";
 import { executeIndex } from "./pages";
@@ -75,6 +75,9 @@ describe("withdrawal is resumable", () => {
       key: "withdraw-0002",
     });
     expect(first.status).toBe(503);
+    // Files are deleted and purged before the hub entries, so the page stops being served first.
+    expect(h.bucket.objects.size).toBe(0);
+    expect(h.purger.all).toContain(`${ORIGIN}/2026/11/test-page/index.html`);
     const retry = await h.call("POST", "/v1/pages/test-page/withdraw", {
       body: { reason: "wrong figure" },
       key: "withdraw-0002",
@@ -108,6 +111,38 @@ describe("withdrawal is resumable", () => {
     ).toBe(200);
     expect(h.search.rows.has("test-page")).toBe(false);
     expect(h.bucket.objects.size).toBe(0);
+  });
+});
+
+describe("a withdrawal retry replays what it committed", () => {
+  it("replay record lost, then v2 published: the retry only purges and answers v1, and v2 stays live", async () => {
+    const h = harness();
+    await published(h);
+    const put = h.table.put.bind(h.table);
+    h.table.put = async (item, cond) => {
+      if (String(item.PK).startsWith("IDEM#") && item.state === "done") throw new Error("lost (test)");
+      return put(item, cond);
+    };
+    const body = { reason: "wrong figure" };
+    const first = await h.call("POST", "/v1/pages/test-page/withdraw", { body, key: "withdraw-replay-1" });
+    expect(first.status).toBe(200);
+    h.table.put = put;
+    const v2 = await makeBundle(makeMeta({ version: 2 }));
+    expect((await h.call("PUT", "/v1/pages/test-page", { body: v2 })).status).toBe(200);
+    h.setNow("2026-11-12T10:05:00Z");
+    const purges = h.purger.calls.length;
+    const retry = await h.call("POST", "/v1/pages/test-page/withdraw", { body, key: "withdraw-replay-1" });
+    expect(retry.status).toBe(200);
+    const { purged, ...rest } = (await retry.json()) as { purged: string[] };
+    const { purged: _p, ...original } = (await first.json()) as { purged: string[] };
+    expect(rest).toEqual(original);
+    expect(purged).toContain(`${ORIGIN}/2026/11/test-page/index.html`);
+    expect(h.purger.calls.length).toBe(purges + 1);
+    expect(latest(h)).toMatchObject({ status: "published", version: 2 });
+    expect(items(h, "HUB#latest")).toHaveLength(1);
+    expect(h.bucket.objects.size).toBeGreaterThan(0);
+    expect(h.search.rows.has("test-page")).toBe(true);
+    expectItemsValid(h.table.dump());
   });
 });
 
@@ -252,6 +287,27 @@ describe("a publish abandoned before its commit leaves nothing behind", () => {
     );
   });
 
+  it("a first publish that never committed can be withdrawn: nothing of it stays, and LATEST says withdrawn", async () => {
+    const h = harness();
+    const index = h.search.index.bind(h.search);
+    h.search.index = async (page) => {
+      h.search.index = index;
+      await index(page);
+      throw new Error("D1 answered too late (test)");
+    };
+    expect((await h.call("PUT", "/v1/pages/test-page", { body: await makeBundle() })).status).toBe(500);
+    expect(latest(h)).toBeUndefined();
+    expect(items(h, "HUB#").length).toBeGreaterThan(0);
+    const res = await h.call("POST", "/v1/pages/test-page/withdraw", { body: { reason: "wrong" } });
+    expect(res.status).toBe(200);
+    expect(latest(h)).toMatchObject({ status: "withdrawn", version: 1, withdraw_reason: "wrong" });
+    expect(items(h, "HUB#")).toEqual([]);
+    expect(h.bucket.objects.size).toBe(0);
+    expect(h.search.rows.has("test-page")).toBe(false);
+    expect(((await res.json()) as { purged: string[] }).purged).toContain(`${ORIGIN}/2026/11/test-page/index.html`);
+    expectItemsValid(h.table.dump());
+  });
+
   it("a first publish that never committed fixes the page's URL and publication time for the next attempt", async () => {
     const h = harness();
     const index = h.search.index.bind(h.search);
@@ -386,6 +442,22 @@ describe("home curation retries never publish a second version", () => {
     expect(await retry.json()).toMatchObject({ version: 1, live_version: 1 });
     expect(curationKeys(h)).toHaveLength(7); // LATEST and V#1–V#6
     expect(h.table.dump().find((i) => i.PK === "HOME#CURATION" && i.SK === "LATEST")).toMatchObject({ version: 6 });
+  });
+
+  it("a rollback whose purge failed, then a new curation: the retry only purges and leaves the new one live", async () => {
+    const h = harness();
+    h.table.seed(...(curationPages() as never[]));
+    for (const key of ["curation-rb-1", "curation-rb-2"])
+      expect((await h.call("PUT", "/v1/home/curation", { body: makeCuration(), key })).status).toBe(200);
+    h.purger.failNext = true;
+    const rollback = { body: { version: 1 }, key: "rollback-0001" };
+    expect((await h.call("POST", "/v1/home/curation/rollback", rollback)).status).toBe(502);
+    expect((await h.call("PUT", "/v1/home/curation", { body: makeCuration(), key: "curation-rb-3" })).status).toBe(200);
+    const retry = await h.call("POST", "/v1/home/curation/rollback", rollback);
+    expect(retry.status).toBe(200);
+    expect(await retry.json()).toMatchObject({ version: 2, live_version: 1 });
+    expect(h.table.dump().find((i) => i.PK === "HOME#CURATION" && i.SK === "LATEST")).toMatchObject({ version: 3 });
+    expectItemsValid(h.table.dump());
   });
 
   it("a curated page withdrawn after the commit: the retry still only purges (no new validation)", async () => {
@@ -612,5 +684,27 @@ describe("idempotency records are bookkeeping only", () => {
     const dump = JSON.stringify(h.table.dump());
     expect(dump).not.toContain("secret-looking-key-1");
     expect(dump).toContain(await sha256Hex("secret-looking-key-1"));
+  });
+});
+
+describe("out of subrequests", () => {
+  it("a purge refused with 'Too many subrequests' → 503 throttled, Retry-After 120 (key and lock wait until stale)", async () => {
+    const h = harness();
+    await published(h);
+    h.purger.purge = async () => {
+      throw new Error("Too many subrequests.");
+    };
+    const res = await h.call("POST", "/v1/pages/test-page/withdraw", { body: { reason: "wrong" } });
+    expect([res.status, await errorCode(res), res.headers.get("retry-after")]).toEqual([503, "throttled", "120"]);
+  });
+
+  it("a DynamoDB call over the limit (SubrequestLimitError) → 503 throttled, Retry-After 120", async () => {
+    const h = harness();
+    await published(h);
+    h.table.batchWrite = async () => {
+      throw new SubrequestLimitError();
+    };
+    const res = await h.call("POST", "/v1/pages/test-page/withdraw", { body: { reason: "wrong" } });
+    expect([res.status, await errorCode(res), res.headers.get("retry-after")]).toEqual([503, "throttled", "120"]);
   });
 });

@@ -129,7 +129,12 @@ export class DynamoTable implements Table {
       const reasons = (json.CancellationReasons as Array<{ Code?: string }> | undefined) ?? [];
       if (reasons.some((r) => r.Code === "ConditionalCheckFailed"))
         throw new ConditionFailedError("Transaction cancelled: a condition failed");
-      if (reasons.some((r) => r.Code === "ThrottlingError" || r.Code === "ProvisionedThroughputExceeded"))
+      // TransactionConflict: another write was in flight on one of the items. Nothing was written either way.
+      if (
+        reasons.some((r) =>
+          ["ThrottlingError", "ProvisionedThroughputExceeded", "TransactionConflict"].includes(String(r.Code)),
+        )
+      )
         throw new ThrottledError();
     }
     if (THROTTLE_TYPES.has(type)) throw new ThrottledError();

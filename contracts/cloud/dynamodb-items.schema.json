@@ -287,7 +287,7 @@
       }
     },
     "operationResult": {
-      "description": "PK 'IDEM#<SHA-256 of the Idempotency-Key>', SK 'RESULT'. What a committed operation produced, written in the same transaction as its commit (today: the curation version a home curation published), so a retry with the same key finds it directly, before any validation, and only finishes the work (the purge). Bookkeeping, no `lang`; DynamoDB TTL on `expires_at` after 7 days, like the idempotency record.",
+      "description": "PK 'IDEM#<SHA-256 of the Idempotency-Key>', SK 'RESULT'. What a committed operation produced, written in the same transaction as its commit, so a retry with the same key finds it directly, before any validation, and only finishes the work (the purge) instead of acting again: home_curation records the version it published; home_rollback the newest version (`version`) and the version it made live (`live_version`); withdraw the page and the version it withdrew, with that version's index status. Bookkeeping, no `lang`; DynamoDB TTL on `expires_at` after 7 days, like the idempotency record.",
       "type": "object",
       "additionalProperties": false,
       "required": ["PK", "SK", "type", "operation", "request_hash", "version", "created_at", "expires_at"],
@@ -295,9 +295,12 @@
         "PK": { "type": "string", "pattern": "^IDEM#[0-9a-f]{64}$" },
         "SK": { "const": "RESULT" },
         "type": { "const": "operation_result" },
-        "operation": { "const": "home_curation" },
+        "operation": { "type": "string", "enum": ["home_curation", "home_rollback", "withdraw"] },
         "request_hash": { "$ref": "common.schema.json#/$defs/sha256" },
         "version": { "type": "integer", "minimum": 1 },
+        "live_version": { "type": "integer", "minimum": 1 },
+        "page_id": { "$ref": "common.schema.json#/$defs/pageId" },
+        "index_status": { "type": "string", "enum": ["index", "noindex"] },
         "created_at": { "$ref": "common.schema.json#/$defs/timestamp" },
         "expires_at": { "type": "integer" }
       }

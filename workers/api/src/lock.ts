@@ -100,18 +100,17 @@ export class Fence {
   }
 
   /**
-   * A conditional put that also requires the lock to still be ours (one transaction). Throws lock_expired when it is
-   * not, and ConditionFailedError when only `cond` failed.
+   * A conditional put that also requires the lock to still be ours (one transaction), with `also` (unconditional
+   * puts, such as the request's result record) in the same transaction. Throws lock_expired when the lock is not
+   * ours, and ConditionFailedError when only `cond` failed.
    */
-  async put(table: Table, item: Doc, cond: Cond): Promise<void> {
+  async put(table: Table, item: Doc, cond: Cond, also: Doc[] = []): Promise<void> {
     this.check();
     const lock = this.lock;
-    if (!lock) return table.put(item, cond);
+    const ops = [{ put: item, cond }, ...also.map((put) => ({ put }))];
+    if (!lock) return also.length > 0 ? table.transact(ops) : table.put(item, cond);
     try {
-      await table.transact([
-        { check: lock.key, cond: eq("owner", lock.owner) },
-        { put: item, cond },
-      ]);
+      await table.transact([{ check: lock.key, cond: eq("owner", lock.owner) }, ...ops]);
     } catch (e) {
       if (e instanceof ConditionFailedError && (await table.get(lock.key))?.owner !== lock.owner) throw lockExpired();
       throw e;

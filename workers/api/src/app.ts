@@ -4,13 +4,20 @@
 // Secret key:    everything else under /v1 (Authorization: Bearer <NEWS_WRITE_API_KEY>)
 // Every write needs an Idempotency-Key. Contract: contracts/cloud/write-api.openapi.json.
 import { secretsEqual } from "@news/worker-shared/crypto";
-import { OutcomeUnknownError, ThrottledError } from "@news/worker-shared/dynamo/table";
+import { OutcomeUnknownError, SubrequestLimitError, ThrottledError } from "@news/worker-shared/dynamo/table";
 import { BodyTooLargeError, clientIp, isJsonContentType, json, readBodyCapped } from "@news/worker-shared/http";
 import { PurgeError } from "@news/worker-shared/purge";
 import { executeRedirects, executeTaxonomy, prepareRedirects, prepareTaxonomy } from "./catalog";
 import { type Deps, NotConfiguredError } from "./deps";
 import { ApiError } from "./errors";
-import { executeCuration, executeRollback, prepareCuration, prepareRollback, recoverCuration } from "./home";
+import {
+  executeCuration,
+  executeRollback,
+  prepareCuration,
+  prepareRollback,
+  recoverCuration,
+  recoverRollback,
+} from "./home";
 import { claim, complete, lookup, readKey, release, requestHash } from "./idempotency";
 import { Fence, type HeldLock, lockPage, unlockPage } from "./lock";
 import {
@@ -24,6 +31,7 @@ import {
   prepareIndex,
   preparePut,
   prepareWithdraw,
+  recoverWithdraw,
 } from "./pages";
 import { corsHeaders, listReports, receiveReport } from "./reports";
 
@@ -88,6 +96,7 @@ const ROUTES: Route[] = [
       POST: write({
         operation: "withdraw",
         maxBody: 4096,
+        recover: recoverWithdraw,
         lockPage: ([id]) => id as string,
         check: (_p, b) => checkWithdraw(b),
         prepare: (d, [id], b) => prepareWithdraw(d, id as string, b),
@@ -126,6 +135,7 @@ const ROUTES: Route[] = [
       POST: write({
         operation: "home_rollback",
         maxBody: 4096,
+        recover: recoverRollback,
         prepare: (d, _p, b) => prepareRollback(d, b),
         execute: executeRollback,
       }),
@@ -290,6 +300,17 @@ function toResponse(deps: Deps, e: unknown, extra: Record<string, string> = {}):
     return new ApiError("throttled", "the database is busy; retry with the same Idempotency-Key", undefined, {
       "retry-after": "2",
     }).toResponse(extra);
+  // Out of subrequests (a DynamoDB call, or the purge's own fetch): nothing more could be sent, so the release of the
+  // key and the unlock usually failed too, and both stay until stale (ADR 0004).
+  if (e instanceof SubrequestLimitError || (e instanceof Error && /too many subrequests/i.test(e.message))) {
+    deps.log.error("subrequest_limit");
+    return new ApiError(
+      "throttled",
+      "the request ran out of subrequests; retry with the same Idempotency-Key in 2 minutes",
+      undefined,
+      { "retry-after": "120" },
+    ).toResponse(extra);
+  }
   if (e instanceof OutcomeUnknownError) {
     deps.log.error("outcome_unknown", { message: e.message.slice(0, 200) });
     return new ApiError(

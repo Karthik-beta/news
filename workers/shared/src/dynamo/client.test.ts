@@ -106,6 +106,9 @@ describe("DynamoTable", () => {
     await expect(cond.transact([{ put: { PK: "a", SK: "b" } }])).rejects.toBeInstanceOf(ConditionFailedError);
     const thr = new DynamoTable({ ...config, fetch: recording(() => cancelled("ThrottlingError")).fetch });
     await expect(thr.transact([{ put: { PK: "a", SK: "b" } }])).rejects.toBeInstanceOf(ThrottledError);
+    // Another transaction was writing one of the same items: nothing was written, so it is safe to retry.
+    const busy = new DynamoTable({ ...config, fetch: recording(() => cancelled("TransactionConflict")).fetch });
+    await expect(busy.transact([{ put: { PK: "a", SK: "b" } }])).rejects.toBeInstanceOf(ThrottledError);
   });
 
   it("other errors keep their type and never include the secret", async () => {

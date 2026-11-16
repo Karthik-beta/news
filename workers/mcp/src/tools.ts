@@ -1,6 +1,6 @@
 // The five read-only tools. Schemas come from contracts/cloud/mcp-tools.schema.json (one source for tools/list and
 // for the precompiled validators that check every call's arguments).
-import { categoryHub, entityHub } from "@news/worker-shared/keys";
+import { categoryHub, categoryLineage, entityHub } from "@news/worker-shared/keys";
 import { type CappedText, pageObjectKey, readCapped } from "@news/worker-shared/r2";
 import type { PageRecord } from "@news/worker-shared/records";
 import { MAX_TERMS, QueryTooLongError, searchPages } from "@news/worker-shared/search";
@@ -75,6 +75,16 @@ async function readLiveFile(
   throw new RetryLaterError(`Page ${page.page_id} is being updated right now; try again in a few seconds.`);
 }
 
+/**
+ * The live records of listed pages, in list order, keeping only published ones. Search rows and hub entries are
+ * written before a publish commits, so a list shows a page only once its LATEST exists, with LATEST's metadata.
+ */
+async function committedPages(deps: Deps, ids: string[]): Promise<PageRecord[]> {
+  if (ids.length === 0) return [];
+  const live = await deps.reader().getPages(ids);
+  return ids.map((id) => live.get(id)).filter((p): p is PageRecord => p?.status === "published");
+}
+
 const summaryOf = (deps: Deps, p: PageRecord) => ({
   page_id: p.page_id,
   url: absolute(deps.siteOrigin, p.path),
@@ -130,18 +140,22 @@ export const TOOLS: Tool[] = [
           throw new ToolError(`Use at most ${MAX_TERMS} words; every word must match.`);
         throw e;
       }
+      const pages = await committedPages(
+        deps,
+        hits.map((h) => h.page_id),
+      );
       return {
         structured: {
-          results: hits.map((h) => ({
-            page_id: h.page_id,
-            title: h.title,
-            summary: h.summary,
-            url: absolute(deps.siteOrigin, h.path),
-            published_at: h.published_at,
-            categories: h.categories,
-            region: h.region,
-            page_type: h.page_type,
-            lang: h.lang,
+          results: pages.map((p) => ({
+            page_id: p.page_id,
+            title: p.title,
+            summary: p.summary,
+            url: absolute(deps.siteOrigin, p.path),
+            published_at: p.published_at,
+            categories: [...new Set(p.categories.flatMap(categoryLineage))],
+            region: p.region,
+            page_type: p.page_type,
+            lang: p.lang,
           })),
         },
       };
@@ -217,16 +231,20 @@ export const TOOLS: Tool[] = [
       const entity = await reader.getEntity(id);
       if (!entity) throw new ToolError(`No entity with ID ${id}.`);
       const hub = await reader.listHub(entityHub(id), { limit: Number(args.limit ?? 10) });
+      const pages = await committedPages(
+        deps,
+        hub.items.map((e) => e.page_id),
+      );
       return {
         structured: {
           entity: { id: entity.id, name: entity.name, kind: entity.kind, lang: entity.lang },
-          pages: hub.items.map((e) => ({
-            page_id: e.page_id,
-            title: e.title,
-            summary: e.summary,
-            url: absolute(deps.siteOrigin, e.path),
-            published_at: e.published_at,
-            lang: e.lang,
+          pages: pages.map((p) => ({
+            page_id: p.page_id,
+            title: p.title,
+            summary: p.summary,
+            url: absolute(deps.siteOrigin, p.path),
+            published_at: p.published_at,
+            lang: p.lang,
           })),
         },
       };

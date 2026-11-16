@@ -22,7 +22,15 @@ import {
 import { PURGE_BATCH } from "@news/worker-shared/purge";
 import { deletePageFiles, putPageFile } from "@news/worker-shared/r2";
 import { Reader } from "@news/worker-shared/read";
-import type { EntityRecord, HubEntry, Manifest, PageMeta, PageRecord, PathClaim } from "@news/worker-shared/records";
+import type {
+  EntityRecord,
+  HubEntry,
+  Manifest,
+  OperationResult,
+  PageMeta,
+  PageRecord,
+  PathClaim,
+} from "@news/worker-shared/records";
 import { MissingShardError } from "@news/worker-shared/search";
 import { normalizeTimestamp } from "@news/worker-shared/time";
 import { absolute, HOME_PATH, hubPath, pageFileUrls } from "@news/worker-shared/urls";
@@ -30,6 +38,7 @@ import { check, type Issue, schemas } from "@news/worker-shared/validate";
 import type { OpContext } from "./app";
 import type { Deps } from "./deps";
 import { ApiError } from "./errors";
+import { committedResult, resultItem } from "./idempotency";
 import { Fence } from "./lock";
 
 export const REQUIRED_FILES = ["index.html", "index.md", "data.json", "sources.json", "meta.json", "page.oui"];
@@ -501,38 +510,77 @@ export async function checkWithdraw(body: unknown): Promise<{ reason: string }> 
   return req.value;
 }
 
-export async function prepareWithdraw(deps: Deps, pageId: string, req: { reason: string }): Promise<PreparedPageOp> {
+export type PreparedWithdraw =
+  | (PreparedPageOp & {
+      /** No LATEST yet (a first publish that never committed): `page` is its newest version record. */
+      neverLive?: boolean;
+      committed?: undefined;
+    })
+  | { committed: OperationResult };
+
+/** Before any check: the withdrawal this request (same key and body) already committed, if any. */
+export async function recoverWithdraw(
+  deps: Deps,
+  seen: { keyHash: string; requestHash: string },
+): Promise<PreparedWithdraw | undefined> {
+  const committed = await committedResult(deps.table(), seen, "withdraw");
+  return committed ? { committed } : undefined;
+}
+
+export async function prepareWithdraw(
+  deps: Deps,
+  pageId: string,
+  req: { reason: string },
+): Promise<PreparedPageOp & { neverLive?: boolean }> {
   const reader = new Reader(deps.table());
-  const page = await reader.getPage(pageId);
+  const live = await reader.getPage(pageId);
+  const newer = await reader.pageVersionsAfter(pageId, live?.version ?? 0);
+  // Without LATEST, a first publish may still have written files and hub entries: withdraw its newest attempt.
+  const newest = newer[newer.length - 1];
+  const page = live ?? (newest && { ...newest, ...pageLatestKey(pageId) });
   if (!page) throw new ApiError("not_found", `page ${pageId} does not exist`);
-  const newer = await reader.pageVersionsAfter(pageId, page.version);
   const leftovers = { hubs: unique(...newer.map((v) => v.hubs)), files: unique(...newer.map((v) => v.files)) };
-  return { page, reason: req.reason, leftovers };
+  return { page, reason: req.reason, leftovers, ...(live ? {} : { neverLive: true }) };
 }
 
 /**
- * Marks the page withdrawn (unless it already is), then removes its hub entries (and those of any publish that never
- * committed), search row and public files and purges. Those steps run on every attempt, including when the page is
- * already withdrawn, so a retry finishes a withdrawal that failed half way. Versions stay in DynamoDB and the bundle
- * on the laptop.
+ * Marks the page withdrawn (unless it already is) and records that under the request's key in the same transaction,
+ * then removes its search row and public files, purges, and removes its hub entries (and those of any publish that
+ * never committed). Those steps run on every attempt, including when the page is already withdrawn, so a retry
+ * finishes a withdrawal that failed half way. A retry of a request that committed while a later version is live only
+ * purges again and answers as the first attempt did. Versions stay in DynamoDB and the bundle on the laptop.
  */
 export async function executeWithdraw(
   deps: Deps,
-  p: PreparedPageOp,
+  prepared: PreparedWithdraw,
   ctx: OpContext = unlocked(deps),
 ): Promise<OpResult> {
   const table = deps.table();
   const { fence } = ctx;
+  let p: PreparedPageOp & { neverLive?: boolean };
+  if (prepared.committed) {
+    const done = prepared.committed;
+    const again = await prepareWithdraw(deps, done.page_id as string, { reason: "" });
+    if (again.page.status !== "withdrawn" || again.page.version !== done.version) return replayWithdraw(deps, done);
+    p = again;
+  } else p = prepared;
   let page = p.page;
   if (page.status !== "withdrawn") {
+    const now = deps.now();
     const withdrawn: PageRecord = {
       ...page,
       status: "withdrawn",
-      withdrawn_at: deps.now().toISOString(),
+      withdrawn_at: now.toISOString(),
       withdraw_reason: p.reason,
     };
+    const recorded = { version: page.version, page_id: page.page_id, index_status: page.index_status };
     try {
-      await fence.put(table, withdrawn as unknown as Doc, and(eq("version", page.version), eq("status", "published")));
+      await fence.put(
+        table,
+        withdrawn as unknown as Doc,
+        p.neverLive ? notExists() : and(eq("version", page.version), eq("status", "published")),
+        ctx.requestId ? [resultItem(ctx, "withdraw", now, recorded) as unknown as Doc] : [],
+      );
     } catch (e) {
       if (e instanceof ConditionFailedError)
         throw new ApiError("version_conflict", "the page changed; read it again and retry");
@@ -545,18 +593,18 @@ export async function executeWithdraw(
     hubs: unique(gone.hubs, gone.cleanup?.hubs ?? [], p.leftovers?.hubs ?? []),
     files: unique(gone.files, gone.cleanup?.files ?? [], p.leftovers?.files ?? []),
   };
+  fence.check();
+  await fence.bounded("search remove", deps.search.remove(gone));
+  // The public files go first: a withdrawn page must stop being served, even if a hub batch fails below.
+  fence.check();
+  await fence.bounded("R2 delete", deletePageFiles(deps.bucket(), gone.path, removed.files));
+  fence.check();
+  const purged = await deps.purger.purge(affectedUrls(deps, { ...gone, cleanup: removed }));
   await writeBatches(
     table,
     fence,
     removed.hubs.map((h) => ({ delete: hubKey(gone, h) })),
   );
-  fence.check();
-  await fence.bounded("search remove", deps.search.remove(gone));
-  // The public files go: a withdrawn page must stop being served.
-  fence.check();
-  await fence.bounded("R2 delete", deletePageFiles(deps.bucket(), gone.path, removed.files));
-  fence.check();
-  const purged = await deps.purger.purge(affectedUrls(deps, { ...gone, cleanup: removed }));
   return {
     status: 200,
     body: {
@@ -566,6 +614,17 @@ export async function executeWithdraw(
       index_status: gone.index_status,
       purged,
     },
+  };
+}
+
+/** A retry of a withdrawal that committed, now that a later version is live: purge again, answer as before. */
+async function replayWithdraw(deps: Deps, done: OperationResult): Promise<OpResult> {
+  const pageId = done.page_id as string;
+  const version = await new Reader(deps.table()).getPageVersion(pageId, done.version);
+  const purged = version ? await deps.purger.purge(affectedUrls(deps, version)) : [];
+  return {
+    status: 200,
+    body: { page_id: pageId, version: done.version, status: "withdrawn", index_status: done.index_status, purged },
   };
 }
 
