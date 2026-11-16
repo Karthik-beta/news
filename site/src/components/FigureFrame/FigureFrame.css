@@ -63,6 +63,12 @@
 .figure-frame__table > summary::-webkit-details-marker {
   display: none;
 }
+/* Open, the table takes the whole row. min-width: 0 lets the flex item narrow below the table's own width, so
+   the scroll box below scrolls instead of widening the page. */
+.figure-frame__table {
+  min-width: 0;
+  max-width: 100%;
+}
 .figure-frame__table[open] {
   flex-basis: 100%;
 }
