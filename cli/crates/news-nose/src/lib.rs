@@ -9,7 +9,7 @@ use news_core::job::{Handler, JobFailure, JobFuture, JobInput};
 pub const ISSUE: &str = "#15";
 
 /// Job kinds this subsystem handles (see `news_dispatch::KINDS`).
-pub const KINDS: &[&str] = &["story.score", "run.select", "traffic.pull"];
+pub const KINDS: &[&str] = &["story.score", "run.select"];
 
 /// Run one job.
 pub fn handle(input: JobInput) -> JobFuture {

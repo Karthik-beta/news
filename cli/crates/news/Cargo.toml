@@ -30,6 +30,7 @@ news-proof = { workspace = true }
 news-rewrite = { workspace = true }
 news-press = { workspace = true }
 news-critic = { workspace = true }
+news-board = { workspace = true }
 chrono = { workspace = true }
 clap = { workspace = true }
 serde = { workspace = true }

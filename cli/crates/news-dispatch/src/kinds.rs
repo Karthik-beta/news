@@ -55,8 +55,9 @@ pub const KINDS: [KindSpec; 22] = [
     k("work.prune", "cpu", CODE, "wire"),
 ];
 
-/// Kinds added for schedules beyond §5.4 (analytics pull, §8.14).
-pub const EXTRA_KINDS: [KindSpec; 1] = [k("traffic.pull", "net", CODE, "nose")];
+/// Kinds added for schedules beyond §5.4: the analytics pull (§8.14), owned by Board (#16) per the TD's
+/// telemetry section (cloud analytics pulled through their APIs).
+pub const EXTRA_KINDS: [KindSpec; 1] = [k("traffic.pull", "net", CODE, "board")];
 
 pub fn spec(kind: &str) -> Option<&'static KindSpec> {
     KINDS

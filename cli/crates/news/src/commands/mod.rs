@@ -56,20 +56,21 @@ pub async fn run(cli: Cli, path: &str, shape: &Shape) -> NewsResult<Reply> {
 
         // Not built yet: each names the issue that builds its subsystem.
         C::Sources(_) => stub(path, news_contacts::ISSUE),
-        C::Discover { .. } | C::Fetch { .. } => stub(path, news_wire::ISSUE),
+        // `prune` deletes working files; Wire owns them and the `work.prune` job (#9).
+        C::Discover { .. } | C::Fetch { .. } | C::Prune => stub(path, news_wire::ISSUE),
         C::Parse { .. } => stub(path, news_clerk::ISSUE),
         C::Run(_) => stub(path, news_chief::ISSUE),
         C::Calendar(_) => stub(path, news_diary::ISSUE),
         C::Related { .. } | C::Entities(_) => stub(path, news_roster::ISSUE),
         C::Stories(_) => stub(path, news_taster::ISSUE),
         C::Plan { .. } | C::Scores(_) => stub(path, news_nose::ISSUE),
-        C::Stats => stub(path, "#16"),
+        C::Stats => stub(path, news_board::ISSUE),
         C::Save { .. } | C::Render { .. } | C::Check { .. } => stub(path, news_proof::ISSUE),
         C::Brief { .. } => stub(path, news_fixer::ISSUE),
         C::Ai(_) => stub(path, news_ghost::ISSUE),
         C::Eval(_) | C::Review(_) => stub(path, news_critic::ISSUE),
         C::Update { .. } => stub(path, news_rewrite::ISSUE),
-        C::Publish { .. } | C::Prune | C::Home(_) => stub(path, news_press::ISSUE),
+        C::Publish { .. } | C::Home(_) => stub(path, news_press::ISSUE),
         C::Corrections(_) => stub(path, "#21"),
     }
 }

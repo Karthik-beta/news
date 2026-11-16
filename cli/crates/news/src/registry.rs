@@ -14,6 +14,7 @@ pub fn handler_for_owner(owner: &str) -> Option<Handler> {
         "proof" => news_proof::HANDLER,
         "rewrite" => news_rewrite::HANDLER,
         "press" => news_press::HANDLER,
+        "board" => news_board::HANDLER,
         _ => return None,
     })
 }
@@ -48,6 +49,7 @@ mod tests {
             ("proof", news_proof::KINDS),
             ("rewrite", news_rewrite::KINDS),
             ("press", news_press::KINDS),
+            ("board", news_board::KINDS),
         ];
         let mut total = 0;
         for (owner, kinds) in owned {

@@ -28,6 +28,7 @@ news-proof = { path = "crates/news-proof" }
 news-rewrite = { path = "crates/news-rewrite" }
 news-press = { path = "crates/news-press" }
 news-critic = { path = "crates/news-critic" }
+news-board = { path = "crates/news-board" }
 
 # Third party. No TLS anywhere: PostgreSQL, ClickHouse and the OTel collector are all on loopback.
 chrono = { version = "0.4", default-features = false, features = ["std", "clock", "serde"] }
