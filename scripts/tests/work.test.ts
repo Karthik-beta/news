@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { root } from "../lib";
 import { main, workArgs, workBinary, workEnv } from "../work";
 import { tempDir } from "./helpers";
 
@@ -84,4 +85,13 @@ test("the default binary is the debug build that `bun run setup` makes", () => {
 test("work arguments default to the code-only pools and keep an explicit --pools", () => {
   expect(workArgs([])).toEqual(["work", "--pools", "net,cpu,docling"]);
   expect(workArgs(["--pools", "net"])).toEqual(["work", "--pools", "net"]);
+});
+
+describe("infra/windows/news-work.task.xml", () => {
+  test("its comments are valid XML (no -- inside a comment), so Task Scheduler can import it", () => {
+    const xml = readFileSync(join(root, "infra/windows/news-work.task.xml"), "utf8");
+    const comments = [...xml.matchAll(/<!--([\s\S]*?)-->/g)].map((m) => m[1] as string);
+    expect(comments.length).toBeGreaterThan(0);
+    for (const c of comments) expect(c).not.toContain("--");
+  });
 });

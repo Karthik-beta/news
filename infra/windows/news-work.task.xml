@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   Windows Task Scheduler template for the optional Dispatch background worker (Bureau Design §5.6,
-  decision D8): `news work --pools net,cpu,docling` at log-on. Code-only pools; never ai, render or
+  decision D8): `news work` for the net, cpu and docling pools at log-on. Code-only pools; never ai, render or
   publish, so it never needs the write-API key.
 
   Before importing, replace the two placeholders:
