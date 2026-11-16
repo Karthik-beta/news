@@ -2,16 +2,17 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://news.karthik.nz/contracts/cli/commands/component.schema.json",
   "title": "news component",
-  "description": "One component's props, data shape and example. Input is the command's arguments as an object; output is the envelope's data.",
+  "description": "One component's entry from component-index.json (contracts/component-index.schema.json): its one-line summary plus props, data shape, example and description when the site build provides them; `missing` names the absent ones and a warning says so. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "R",
   "x-news-status": "built",
-  "x-news-errors": ["not_found", "precondition"],
+  "x-news-errors": ["not_found", "precondition", "validation_failed"],
   "$defs": {
     "input": {
       "type": "object",
       "properties": {
         "type": {
-          "type": "string"
+          "type": "string",
+          "description": "The component name, for example Page"
         }
       },
       "required": ["type"],
@@ -20,17 +21,37 @@
     "output": {
       "type": "object",
       "properties": {
-        "type": {
+        "name": {
           "type": "string"
         },
-        "summary": {},
-        "props": {
-          "type": "object"
+        "line": {
+          "type": "string",
+          "description": "The one-line entry: Name — purpose — data shape"
         },
-        "data_shape": {},
-        "example": {}
+        "description": {
+          "type": ["string", "null"]
+        },
+        "props": {
+          "type": ["object", "null"],
+          "description": "JSON Schema of the props"
+        },
+        "data_shape": {
+          "type": ["string", "null"]
+        },
+        "example": {
+          "type": ["string", "null"],
+          "description": "One call in OpenUI Lang"
+        },
+        "missing": {
+          "type": "array",
+          "items": {
+            "enum": ["description", "props", "data_shape", "example"]
+          },
+          "uniqueItems": true,
+          "description": "Detail fields the index does not have yet (#4, #7)"
+        }
       },
-      "required": ["type", "summary", "props", "data_shape", "example"],
+      "required": ["name", "line", "description", "props", "data_shape", "example", "missing"],
       "additionalProperties": false
     }
   }

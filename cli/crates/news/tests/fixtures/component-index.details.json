@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "budget": {
+    "tokens": 4000,
+    "perEntry": 24
+  },
+  "tokens": 87,
+  "components": [
+    {
+      "name": "FixtureFigure",
+      "line": "FixtureFigure — fixture only: key figure — dp_/dv_ value, dv_ change",
+      "tokens": 24,
+      "description": "Fixture-only key figure for renderer tests: label, cited value, change in words.",
+      "dataShape": "value: dp_ or dv_; change: a dv_ change; against: the pd_ period it is measured against.",
+      "example": "sales = FixtureFigure(\"Net sales\", \"dp_aapl_net_sales_fy2024\", \"dv_aapl_net_sales_growth_fy2024\", \"pd_fy2023\")",
+      "props": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "What the figure is"
+          },
+          "value": {
+            "type": "string",
+            "pattern": "^(dp|dv)_[a-z0-9]+(_[a-z0-9]+)*$",
+            "description": "dp_… or dv_… reference"
+          },
+          "change": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(dp|dv)_[a-z0-9]+(_[a-z0-9]+)*$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "against": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^pd_[a-z0-9]+(_[a-z0-9]+)*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "pd_… reference"
+          }
+        },
+        "required": ["label", "value"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "FixtureLineChart",
+      "line": "FixtureLineChart — fixture only: line chart island — sr_ series",
+      "tokens": 23
+    },
+    {
+      "name": "FixtureText",
+      "line": "FixtureText — fixture only: paragraph — text with {ref} tokens",
+      "tokens": 22
+    },
+    {
+      "name": "Page",
+      "line": "Page — root; blocks in reading order — children[]",
+      "tokens": 18
+    }
+  ]
+}

@@ -1,32 +1,30 @@
 {
   "version": 1,
+  "budget": {
+    "tokens": 4000,
+    "perEntry": 24
+  },
+  "tokens": 87,
   "components": [
     {
-      "type": "LineChart",
-      "summary": "One or more series over time, with optional annotations",
-      "data_shape": "series[] of {ref: sr_*, label}",
-      "props": {
-        "series": { "type": "array", "items": { "type": "string", "pattern": "^sr_" }, "required": true },
-        "title": { "type": "string", "required": true },
-        "annotations": { "type": "array", "items": { "type": "string", "pattern": "^cx_" } }
-      },
-      "example": "LineChart(title=\"Consumer prices\", series=[sr_cpi_yoy_5y])"
+      "name": "FixtureFigure",
+      "line": "FixtureFigure — fixture only: key figure — dp_/dv_ value, dv_ change",
+      "tokens": 24
     },
     {
-      "type": "KeyFigures",
-      "summary": "Two to six headline figures with labels and periods",
-      "data_shape": "figures[] of {ref: dp_*|dv_*, period: pd_*}",
-      "props": {
-        "figures": { "type": "array", "minItems": 2, "maxItems": 6, "required": true }
-      },
-      "example": "KeyFigures(figures=[{ref: dp_7kq2, period: pd_2026_10}, {ref: dv_3ab8}])"
+      "name": "FixtureLineChart",
+      "line": "FixtureLineChart — fixture only: line chart island — sr_ series",
+      "tokens": 23
     },
     {
-      "type": "DataTable",
-      "summary": "A table of data points with sources",
-      "data_shape": "rows[] of dp_*",
-      "props": { "rows": { "type": "array", "required": true } },
-      "example": "DataTable(rows=[dp_7kq2, dp_9mz1])"
+      "name": "FixtureText",
+      "line": "FixtureText — fixture only: paragraph — text with {ref} tokens",
+      "tokens": 22
+    },
+    {
+      "name": "Page",
+      "line": "Page — root; blocks in reading order — children[]",
+      "tokens": 18
     }
   ]
 }

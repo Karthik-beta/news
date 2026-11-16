@@ -23,7 +23,7 @@
           "type": "array",
           "items": {
             "type": "string",
-            "description": "Type: summary [data shape]"
+            "description": "The component's one-line entry from component-index.json: Name — purpose — data shape"
           }
         },
         "text": {

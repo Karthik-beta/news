@@ -65,7 +65,7 @@ Jobs live in `jobs`, pools in `pools` (seeded per §5.7; `ai` follows `NEWS_PARA
 
 ## Component index
 
-`news components` / `news component <type>` read `component-index.json` from `NEWS_COMPONENT_INDEX`, else `site/dist/component-index.json` in the nearest ancestor of the working directory. Accepted shape (the site build, #4, generates it): `{"components": [{"type", "summary", "data_shape", "props", "example"}]}` or a bare array; `name`, `purpose`, `dataShape` are accepted as synonyms. Fixture: `crates/news/tests/fixtures/component-index.json`.
+`news components` / `news component <name>` read `component-index.json` from `NEWS_COMPONENT_INDEX`, else `site/dist/component-index.json` in the nearest ancestor of the working directory. The shape is the site build's (#4, `buildComponentIndex` in `site/src/components/library.ts`), described by [`contracts/component-index.schema.json`](../contracts/component-index.schema.json): `{"version": 1, "budget", "tokens", "components": [{"name", "line", "tokens"}]}`. `news components` returns each `line`; `news component <name>` also returns the optional `description`, `props` (JSON Schema), `dataShape` and `example` when the index has them, and lists the absent ones in `missing` with a warning (#4/#7 add them). Anything else is `validation_failed`. Fixtures: `crates/news/tests/fixtures/component-index.json` (what #4 emits today) and `component-index.details.json` (with the optional fields).
 
 ## Tests
 
