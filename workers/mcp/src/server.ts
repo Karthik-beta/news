@@ -5,8 +5,8 @@
 // server is dual-era: `initialize` (2025-11-25 / 2025-06-18) is answered without minting a session, and their
 // tools/list and tools/call are served the same way. One endpoint, POST /mcp; GET and DELETE are 405.
 import { clientIp, readBodyCapped, SECURITY_HEADERS } from "@news/worker-shared/http";
-import { type Deps, UnavailableError } from "./deps";
 import { cachedRun } from "./cache";
+import { type Deps, UnavailableError } from "./deps";
 import { CAPS, TOOL_BY_NAME, TOOL_LIST, type ToolOutput } from "./tools";
 
 export const MODERN_VERSION = "2026-07-28";
@@ -252,7 +252,8 @@ export async function handleMcp(deps: Deps, request: Request): Promise<Response>
     "access-control-max-age": "86400",
     vary: "origin",
   };
-  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: { ...cors, ...SECURITY_HEADERS } });
+  if (request.method === "OPTIONS")
+    return new Response(null, { status: 204, headers: { ...cors, ...SECURITY_HEADERS } });
   const res = await handle(deps, request);
   const out = new Response(res.body, res);
   for (const [k, v] of Object.entries(cors)) out.headers.set(k, v);

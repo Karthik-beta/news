@@ -14,10 +14,10 @@ import { executeCuration, executeRollback, prepareCuration, prepareRollback } fr
 import { claim, complete, lookup, readKey, release, requestHash } from "./idempotency";
 import { type HeldLock, lockPage, unlockPage } from "./lock";
 import {
-  executeIndex,
   checkBundle,
   checkIndex,
   checkWithdraw,
+  executeIndex,
   executePut,
   executeWithdraw,
   type OpResult,

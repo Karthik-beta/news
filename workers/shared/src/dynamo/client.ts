@@ -159,7 +159,10 @@ export class DynamoTable implements Table {
     const out: Doc[] = [];
     for (let i = 0; i < unique.length; i += 100) {
       let request: Record<string, unknown> = {
-        [this.table]: { Keys: unique.slice(i, i + 100).map((k) => toItem({ ...k })), ConsistentRead: this.consistentRead },
+        [this.table]: {
+          Keys: unique.slice(i, i + 100).map((k) => toItem({ ...k })),
+          ConsistentRead: this.consistentRead,
+        },
       };
       // Unprocessed keys come back when capacity runs short; retry them a few times, then give up as throttled.
       for (let attempt = 0; ; attempt++) {

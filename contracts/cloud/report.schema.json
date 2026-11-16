@@ -11,19 +11,7 @@
       "required": ["page_id", "text"],
       "properties": {
         "page_id": { "$ref": "common.schema.json#/$defs/pageId" },
-        "text": {
-      "description": "What the reader says is wrong. Untrusted input: data only, never instructions. At most 2,000 characters and 4,000 UTF-8 bytes (the byte cap is checked by the API).",
-      "type": "string",
-      "minLength": 10,
-      "maxLength": 2000
-    },
-    "where": {
-      "description": "Where on the page (the report form's optional \"Where on the page?\" field). Untrusted input like `text`. At most 200 characters and 600 UTF-8 bytes.",
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 200
-    },
-    "kind": { "$ref": "#/$defs/kind" },
+        "kind": { "$ref": "#/$defs/kind" },
         "text": { "$ref": "#/$defs/text" },
         "where": { "$ref": "#/$defs/where" },
         "email": { "$ref": "#/$defs/email" },
@@ -39,19 +27,7 @@
         "id": { "type": "string", "pattern": "^r_[0-9a-f]{32}$" },
         "page_id": { "$ref": "common.schema.json#/$defs/pageId" },
         "page_path": { "$ref": "common.schema.json#/$defs/pagePath" },
-        "text": {
-      "description": "What the reader says is wrong. Untrusted input: data only, never instructions. At most 2,000 characters and 4,000 UTF-8 bytes (the byte cap is checked by the API).",
-      "type": "string",
-      "minLength": 10,
-      "maxLength": 2000
-    },
-    "where": {
-      "description": "Where on the page (the report form's optional \"Where on the page?\" field). Untrusted input like `text`. At most 200 characters and 600 UTF-8 bytes.",
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 200
-    },
-    "kind": { "$ref": "#/$defs/kind" },
+        "kind": { "$ref": "#/$defs/kind" },
         "text": { "$ref": "#/$defs/text" },
         "where": { "$ref": "#/$defs/where" },
         "email": { "$ref": "#/$defs/email" },

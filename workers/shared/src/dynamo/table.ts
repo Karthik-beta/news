@@ -105,7 +105,12 @@ export function toDoc(record: object, path = ""): Doc {
   const doc: Doc = {};
   for (const [k, v] of Object.entries(record))
     if (v !== undefined)
-      Object.defineProperty(doc, k, { value: toPlain(v, `${path}/${k}`), enumerable: true, writable: true, configurable: true });
+      Object.defineProperty(doc, k, {
+        value: toPlain(v, `${path}/${k}`),
+        enumerable: true,
+        writable: true,
+        configurable: true,
+      });
   return doc;
 }
 

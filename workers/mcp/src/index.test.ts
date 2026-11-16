@@ -3,8 +3,8 @@
 import { exports } from "cloudflare:workers";
 import type { DynamoTable } from "@news/worker-shared/dynamo/client";
 import { schemas } from "@news/worker-shared/validate";
-import { depsFromEnv } from "./deps";
 import { describe, expect, it } from "vitest";
+import { depsFromEnv } from "./deps";
 import { ERR, handleMcp, LEGACY_VERSIONS, MODERN_VERSION, SERVER_INFO } from "./server";
 import { callTool, harness, ORIGIN, rpc } from "./testing";
 import { CAPS, type TOOL_LIST } from "./tools";
@@ -259,7 +259,10 @@ describe("tools/call", () => {
       expect(b.result?.content[0].text).toMatch(/being updated/);
     }
     // Once the live record says version 2, the same files are served as version 2.
-    const live = h.table.dump().find((i) => i.PK === "PAGE#us-cpi-october" && i.SK === "LATEST") as Record<string, never>;
+    const live = h.table.dump().find((i) => i.PK === "PAGE#us-cpi-october" && i.SK === "LATEST") as Record<
+      string,
+      never
+    >;
     h.table.seed({ ...live, version: 2 as never });
     const b = await body(await callTool(h.deps, "get_page", { page_id: "us-cpi-october" }));
     expect(b.result?.structuredContent).toMatchObject({ version: 2, markdown: "# Version two\n" });
@@ -469,7 +472,7 @@ describe("transport", () => {
     expect((await rpc(deps, "tools/list")).headers.get("access-control-allow-origin")).toBeNull();
   });
 
-    it("bad bodies: wrong type 415, oversize 413, parse error, batch, bad id", async () => {
+  it("bad bodies: wrong type 415, oversize 413, parse error, batch, bad id", async () => {
     const { deps } = harness();
     expect((await rpc(deps, "tools/list", { headers: { "content-type": "text/plain" } })).status).toBe(415);
     await expectRpcError(

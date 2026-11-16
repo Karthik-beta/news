@@ -122,7 +122,8 @@ export const TOOLS: Tool[] = [
       try {
         hits = await searchPages(shards, { ...(args as { query: string }), limit: Number(args.limit ?? 10) });
       } catch (e) {
-        if (e instanceof QueryTooLongError) throw new ToolError(`Use at most ${MAX_TERMS} words; every word must match.`);
+        if (e instanceof QueryTooLongError)
+          throw new ToolError(`Use at most ${MAX_TERMS} words; every word must match.`);
         throw e;
       }
       return {
@@ -164,9 +165,11 @@ export const TOOLS: Tool[] = [
       }
       const { page, got: md } = await readLiveFile(deps, record, "index.md", CAPS.markdownBytes);
       const base = summaryOf(deps, page);
-      const note = md.truncated ? `
+      const note = md.truncated
+        ? `
 
-[Truncated. Full page: ${base.url}/index.md]` : "";
+[Truncated. Full page: ${base.url}/index.md]`
+        : "";
       return {
         structured: { ...base, format: "markdown", markdown: md.text, truncated: md.truncated },
         text: md.text + note,

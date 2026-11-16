@@ -308,10 +308,13 @@ describe("PUT /v1/taxonomy and /v1/redirects", () => {
     const transact = h.table.transact.bind(h.table);
     let second: Promise<Response> | undefined;
     h.table.transact = async (ops) => {
-      if (!second) second = h.call("PUT", "/v1/redirects", { body: { redirects: [{ from: "/b", to: "/a", status: 301 }] } });
+      if (!second)
+        second = h.call("PUT", "/v1/redirects", { body: { redirects: [{ from: "/b", to: "/a", status: 301 }] } });
       return transact(ops);
     };
-    const first = await h.call("PUT", "/v1/redirects", { body: { redirects: [{ from: "/a", to: "/b", status: 301 }] } });
+    const first = await h.call("PUT", "/v1/redirects", {
+      body: { redirects: [{ from: "/a", to: "/b", status: 301 }] },
+    });
     expect(second).toBeDefined();
     const statuses = [first.status, (await second)?.status].sort();
     expect(statuses[0]).toBe(200);

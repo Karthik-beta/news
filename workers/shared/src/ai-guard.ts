@@ -65,9 +65,11 @@ export function scanFile(file: string, text: string): Finding[] {
   if (/^wrangler\.(jsonc?|toml)$/.test(name)) {
     // Comments may mention the rule; only live configuration counts.
     const toml = name.endsWith(".toml");
-    const live = text.replace(toml ? /^\s*#.*$/gm : /^\s*\/\/.*$/gm, "");
+    // [ \t]*, not \s*: a match must not swallow the line breaks before it, or the reported line numbers shift.
+    const live = text.replace(toml ? /^[ \t]*#.*$/gm : /^[ \t]*\/\/.*$/gm, "");
     const m = (toml ? BINDING_TOML : BINDING_CONFIG).exec(live);
-    if (m) findings.push({ file, line: lineOf(live, m.index), rule: "ai-binding", detail: `"${m[1] ?? m[2]}" binding` });
+    if (m)
+      findings.push({ file, line: lineOf(live, m.index), rule: "ai-binding", detail: `"${m[1] ?? m[2]}" binding` });
     return findings;
   }
   if (/\.(?:[cm]?[jt]sx?)$/.test(name)) {

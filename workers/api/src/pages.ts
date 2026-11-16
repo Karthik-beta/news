@@ -410,7 +410,13 @@ export async function executeWithdraw(deps: Deps, p: PreparedPageOp): Promise<Op
   const purged = await deps.purger.purge(affectedUrls(deps, gone));
   return {
     status: 200,
-    body: { page_id: gone.page_id, version: gone.version, status: "withdrawn", index_status: gone.index_status, purged },
+    body: {
+      page_id: gone.page_id,
+      version: gone.version,
+      status: "withdrawn",
+      index_status: gone.index_status,
+      purged,
+    },
   };
 }
 

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { fromItem, toItem } from "./codec";
 import { compile, eq, evaluate, le, notExists, or } from "./conditions";
 import { tableContract } from "./contract";
 import { FakeTable } from "./fake";
-import { fromItem, toItem } from "./codec";
 import { type Doc, itemSize, ThrottledError, toDoc } from "./table";
 
 const shared = new FakeTable();

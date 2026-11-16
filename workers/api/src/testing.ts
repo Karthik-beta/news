@@ -7,8 +7,8 @@ import { DEFAULT_REGION_VIEWS } from "@news/worker-shared/urls";
 import { schemas } from "@news/worker-shared/validate";
 import { expect } from "vitest";
 import { handle } from "./app";
-import { MemoryReportStore } from "./report-store";
 import type { Deps, Logger } from "./deps";
+import { MemoryReportStore } from "./report-store";
 
 export const TEST_KEY = "test-write-key-0123456789abcdef-not-real";
 export const ORIGIN = "https://news.test";

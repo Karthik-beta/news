@@ -161,6 +161,7 @@ export async function listReports(deps: Deps, url: URL): Promise<Response> {
   const store = deps.reports();
   await store.deleteExpired(nowSeconds);
   const rows = await store.list({
+    // biome-ignore lint/complexity/useMathMinMax: ISO strings; Math.max would turn them into NaN.
     after: after < oldest ? oldest : after,
     afterId: after < oldest ? "" : afterId,
     receivedBefore: new Date(now.getTime() - SETTLE_MS).toISOString(),

@@ -153,6 +153,7 @@ export class MemoryReportStore implements ReportStore {
   }
 
   async deleteExpired(now: number): Promise<void> {
-    for (let i = this.rows.length - 1; i >= 0; i--) if ((this.rows[i] as StoredReport).expires_at <= now) this.rows.splice(i, 1);
+    for (let i = this.rows.length - 1; i >= 0; i--)
+      if ((this.rows[i] as StoredReport).expires_at <= now) this.rows.splice(i, 1);
   }
 }

@@ -37,9 +37,15 @@ describe("withdrawal is resumable", () => {
     const h = harness();
     await published(h);
     h.purger.failNext = true;
-    const first = await h.call("POST", "/v1/pages/test-page/withdraw", { body: { reason: "wrong figure" }, key: "withdraw-0001" });
+    const first = await h.call("POST", "/v1/pages/test-page/withdraw", {
+      body: { reason: "wrong figure" },
+      key: "withdraw-0001",
+    });
     expect([first.status, await errorCode(first)]).toEqual([502, "purge_failed"]);
-    const retry = await h.call("POST", "/v1/pages/test-page/withdraw", { body: { reason: "wrong figure" }, key: "withdraw-0001" });
+    const retry = await h.call("POST", "/v1/pages/test-page/withdraw", {
+      body: { reason: "wrong figure" },
+      key: "withdraw-0001",
+    });
     expect(retry.status).toBe(200);
     expect(((await retry.json()) as { purged: string[] }).purged).toEqual(
       expect.arrayContaining([`${ORIGIN}/2026/11/test-page`, `${ORIGIN}/2026/11/test-page/index.html`]),
@@ -50,9 +56,15 @@ describe("withdrawal is resumable", () => {
     const h = harness();
     await published(h);
     throttleOnce(h, "delete", "HUB#");
-    const first = await h.call("POST", "/v1/pages/test-page/withdraw", { body: { reason: "wrong figure" }, key: "withdraw-0002" });
+    const first = await h.call("POST", "/v1/pages/test-page/withdraw", {
+      body: { reason: "wrong figure" },
+      key: "withdraw-0002",
+    });
     expect(first.status).toBe(503);
-    const retry = await h.call("POST", "/v1/pages/test-page/withdraw", { body: { reason: "wrong figure" }, key: "withdraw-0002" });
+    const retry = await h.call("POST", "/v1/pages/test-page/withdraw", {
+      body: { reason: "wrong figure" },
+      key: "withdraw-0002",
+    });
     expect(retry.status).toBe(200);
     expect(items(h, "HUB#")).toEqual([]);
     expect(h.bucket.objects.size).toBe(0);
@@ -72,8 +84,14 @@ describe("withdrawal is resumable", () => {
       }
       return remove(page);
     };
-    expect((await h.call("POST", "/v1/pages/test-page/withdraw", { body: { reason: "wrong" }, key: "withdraw-0003" })).status).toBe(500);
-    expect((await h.call("POST", "/v1/pages/test-page/withdraw", { body: { reason: "wrong" }, key: "withdraw-0003" })).status).toBe(200);
+    expect(
+      (await h.call("POST", "/v1/pages/test-page/withdraw", { body: { reason: "wrong" }, key: "withdraw-0003" }))
+        .status,
+    ).toBe(500);
+    expect(
+      (await h.call("POST", "/v1/pages/test-page/withdraw", { body: { reason: "wrong" }, key: "withdraw-0003" }))
+        .status,
+    ).toBe(200);
     expect(h.search.rows.has("test-page")).toBe(false);
     expect(h.bucket.objects.size).toBe(0);
   });
@@ -157,7 +175,12 @@ describe("publishing retries keep the invalidation set", () => {
     const before = h.bucket.text("2026/11/test-page/index.md");
     // A version record for v2 exists with other content (a publish that never went live), so v2 is refused up front.
     const v2 = await makeBundle(makeMeta({ version: 2, title: "Other content" }));
-    h.table.seed({ ...(latest(h) as Record<string, never>), SK: "V#000002", version: 2, bundle_sha256: "f".repeat(64) });
+    h.table.seed({
+      ...(latest(h) as Record<string, never>),
+      SK: "V#000002",
+      version: 2,
+      bundle_sha256: "f".repeat(64),
+    });
     const res = await h.call("PUT", "/v1/pages/test-page", { body: v2 });
     expect([res.status, await errorCode(res)]).toEqual([409, "version_conflict"]);
     expect(h.bucket.text("2026/11/test-page/index.md")).toBe(before);
@@ -169,7 +192,9 @@ describe("a withdrawn page stays withdrawn", () => {
     const h = harness();
     const v1 = await makeBundle();
     expect((await h.call("PUT", "/v1/pages/test-page", { body: v1, key: "pub-v1-0001" })).status).toBe(200);
-    expect((await h.call("POST", "/v1/pages/test-page/withdraw", { body: { reason: "wrong figure" } })).status).toBe(200);
+    expect((await h.call("POST", "/v1/pages/test-page/withdraw", { body: { reason: "wrong figure" } })).status).toBe(
+      200,
+    );
     const again = await h.call("PUT", "/v1/pages/test-page", { body: v1, key: "pub-v1-0001-later" });
     expect([again.status, await errorCode(again)]).toEqual([409, "page_withdrawn"]);
     expect(latest(h)).toMatchObject({ status: "withdrawn" });
@@ -187,7 +212,11 @@ describe("the search shard is checked for the date the record keeps", () => {
     const v1 = makeMeta({ published_at: "2025-12-30T12:00:00Z", updated_at: "2025-12-30T12:00:00Z" });
     expect((await h.call("PUT", "/v1/pages/test-page", { body: await makeBundle(v1) })).status).toBe(200);
     h.search.years = new Set([2026]);
-    const [r2Before, searchBefore, tableBefore] = [h.bucket.writes.length, h.search.calls.length, h.table.writes.length];
+    const [r2Before, searchBefore, tableBefore] = [
+      h.bucket.writes.length,
+      h.search.calls.length,
+      h.table.writes.length,
+    ];
     const v2 = makeMeta({ version: 2, published_at: "2026-11-11T12:00:00Z", updated_at: "2026-11-11T12:00:00Z" });
     const res = await h.call("PUT", "/v1/pages/test-page", { body: await makeBundle(v2) });
     expect([res.status, await errorCode(res)]).toEqual([500, "not_configured"]);

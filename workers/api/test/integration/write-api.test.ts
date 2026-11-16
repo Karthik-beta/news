@@ -295,11 +295,21 @@ describe("reports in their own D1 database", () => {
     expect(await store.add(report("2", "2026-11-10T09:00:00.000Z"), 2)).toBe(true);
     expect(await store.add(report("3", "2026-11-10T10:00:00.000Z"), 2)).toBe(false);
     expect(await store.add(report("4", "2026-11-11T08:00:00.000Z", 1_000), 2)).toBe(true);
-    const query = { after: "2026-11-01T00:00:00.000Z", afterId: "", receivedBefore: "2026-11-12T00:00:00.000Z", limit: 10 };
+    const query = {
+      after: "2026-11-01T00:00:00.000Z",
+      afterId: "",
+      receivedBefore: "2026-11-12T00:00:00.000Z",
+      limit: 10,
+    };
     const all = await store.list({ ...query, liveAt: 1_500 });
     expect(all.map((r) => r.id.slice(-1))).toEqual(["1", "2"]);
     expect(all[0]).toMatchObject({ where: "Second chart" });
-    const next = await store.list({ ...query, after: "2026-11-10T08:00:00.000Z", afterId: all[0]?.id ?? "", liveAt: 1_500 });
+    const next = await store.list({
+      ...query,
+      after: "2026-11-10T08:00:00.000Z",
+      afterId: all[0]?.id ?? "",
+      liveAt: 1_500,
+    });
     expect(next.map((r) => r.id.slice(-1))).toEqual(["2"]);
     await store.deleteExpired(1_500);
     expect((await env.REPORTS.prepare("SELECT COUNT(*) AS n FROM reports").first<{ n: number }>())?.n).toBe(2);
