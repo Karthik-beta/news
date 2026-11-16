@@ -13,7 +13,7 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 200,
-          "description": "Keywords to search titles, summaries, entities, tags and categories."
+          "description": "Up to 8 keywords; every one must match (titles, summaries, entities, tags, categories). The last word also matches as a prefix when it has at least 3 characters."
         },
         "category": {
           "type": "string",
@@ -149,7 +149,7 @@
           "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
           "description": "Entity ID, e.g. 'company:apple'."
         },
-        "limit": { "type": "integer", "minimum": 1, "maximum": 50, "default": 20 }
+        "limit": { "type": "integer", "minimum": 1, "maximum": 20, "default": 10 }
       }
     },
     "getEntityOutput": {

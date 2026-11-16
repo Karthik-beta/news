@@ -3,7 +3,7 @@
 import { categoryHub, entityHub } from "@news/worker-shared/keys";
 import { type CappedText, pageObjectKey, readCapped } from "@news/worker-shared/r2";
 import type { PageRecord } from "@news/worker-shared/records";
-import { searchPages } from "@news/worker-shared/search";
+import { MAX_TERMS, QueryTooLongError, searchPages } from "@news/worker-shared/search";
 import { absolute, hubPath } from "@news/worker-shared/urls";
 import type { Validator } from "@news/worker-shared/validate";
 import { schemas } from "@news/worker-shared/validate";
@@ -118,7 +118,13 @@ export const TOOLS: Tool[] = [
     async run(deps, args) {
       const shards = deps.shards();
       if (shards.length === 0) throw new Error("no search shard is bound");
-      const hits = await searchPages(shards, { ...(args as { query: string }), limit: Number(args.limit ?? 10) });
+      let hits: Awaited<ReturnType<typeof searchPages>>;
+      try {
+        hits = await searchPages(shards, { ...(args as { query: string }), limit: Number(args.limit ?? 10) });
+      } catch (e) {
+        if (e instanceof QueryTooLongError) throw new ToolError(`Use at most ${MAX_TERMS} words; every word must match.`);
+        throw e;
+      }
       return {
         structured: {
           results: hits.map((h) => ({
@@ -203,7 +209,7 @@ export const TOOLS: Tool[] = [
       const reader = deps.reader();
       const entity = await reader.getEntity(id);
       if (!entity) throw new ToolError(`No entity with ID ${id}.`);
-      const hub = await reader.listHub(entityHub(id), { limit: Number(args.limit ?? 20) });
+      const hub = await reader.listHub(entityHub(id), { limit: Number(args.limit ?? 10) });
       return {
         structured: {
           entity: { id: entity.id, name: entity.name, kind: entity.kind, lang: entity.lang },

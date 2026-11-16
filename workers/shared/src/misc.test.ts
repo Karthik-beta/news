@@ -7,7 +7,7 @@ import { BodyTooLargeError, isJsonContentType, readBodyCapped } from "./http";
 import { categoryLineage, hubsForPage, reportKey, versionFromSk, versionSk } from "./keys";
 import { CloudflarePurger, PurgeError } from "./purge";
 import { decodeCursor, encodeCursor, Reader } from "./read";
-import { listShards, shardFor, toFtsQuery } from "./search";
+import { listShards, QueryTooLongError, shardFor, toFtsQuery } from "./search";
 import { makeMeta, makePageRecord } from "./testing/fixtures";
 import { homeUrls, hubPath, regionViews } from "./urls";
 
@@ -105,16 +105,21 @@ describe("search query building", () => {
   it.each([
     ["inflation", '"inflation"*'],
     ["US CPI, October!", '"US" "CPI" "October"*'],
-    ['title:x OR "a" NEAR(b) *', '"title" "x" "OR" "a" "NEAR" "b"*'],
+    ['title:x OR "a" NEAR(b) *', '"title" "x" "OR" "a" "NEAR" "b"'],
     ["café Ünïcode 2026", '"café" "Ünïcode" "2026"*'],
     ["   ", null],
     ["***", null],
+    // A prefix needs 3 characters: a 1- or 2-letter prefix would match a large share of the index.
+    ["US", '"US"'],
+    ["inflation in", '"inflation" "in"'],
+    ["fed rat", '"fed" "rat"*'],
   ])("%j → %j", (input, expected) => {
     expect(toFtsQuery(input)).toBe(expected);
   });
 
-  it("keeps at most 8 terms", () => {
-    expect(toFtsQuery("a b c d e f g h i j")?.split(" ")).toHaveLength(8);
+  it("accepts 8 words, all required, and refuses more instead of dropping some", () => {
+    expect(toFtsQuery("a b c d e f g h")?.split(" ")).toHaveLength(8);
+    expect(() => toFtsQuery("alpha beta gamma delta epsilon zeta eta theta iota")).toThrow(QueryTooLongError);
   });
 
   it("finds SEARCH_<year> shards, newest first, and routes by publication year", () => {

@@ -199,6 +199,8 @@ describe("tools/call", () => {
     for (const [name, args] of [
       ["search_pages", {}],
       ["search_pages", { query: "x", limit: 500 }],
+      ["search_pages", { query: "one two three four five six seven eight nine" }],
+      ["get_entity", { entity_id: "country:US", limit: 21 }],
       ["get_page", {}],
       ["get_page", { page_id: "a", path: "/2026/11/a" }],
       ["get_page", { page_id: "../../etc/passwd" }],

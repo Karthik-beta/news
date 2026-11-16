@@ -103,16 +103,29 @@ export interface SearchHit {
   published_at: string;
 }
 
-const MAX_TERMS = 8;
+export const MAX_TERMS = 8;
+/** The shortest last word searched as a prefix: "e*" would walk a large part of the index for one query. */
+const MIN_PREFIX = 3;
+
+/** More words than a query may have. Refused rather than cut, because every word must match. */
+export class QueryTooLongError extends RangeError {
+  constructor() {
+    super(`a search takes at most ${MAX_TERMS} words`);
+    this.name = "QueryTooLongError";
+  }
+}
 
 /**
  * Turns free text into a safe FTS5 query: words only (letters and digits), each quoted so no FTS5 operator or
- * column filter can be injected, all required, the last one as a prefix. Returns null when nothing searchable is left.
+ * column filter can be injected, all required, the last one as a prefix when it has at least 3 characters.
+ * Returns null when nothing searchable is left; throws QueryTooLongError above MAX_TERMS words.
  */
 export function toFtsQuery(text: string): string | null {
-  const words = (text.normalize("NFKC").match(/[\p{L}\p{N}]+/gu) ?? []).slice(0, MAX_TERMS);
+  const words = text.normalize("NFKC").match(/[\p{L}\p{N}]+/gu) ?? [];
+  if (words.length > MAX_TERMS) throw new QueryTooLongError();
   if (words.length === 0) return null;
-  return words.map((w, i) => `"${w}"${i === words.length - 1 ? "*" : ""}`).join(" ");
+  const last = words.length - 1;
+  return words.map((w, i) => `"${w}"${i === last && [...w].length >= MIN_PREFIX ? "*" : ""}`).join(" ");
 }
 
 const dayEnd = (d: string) => `${d}T23:59:59.999Z`;
