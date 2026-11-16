@@ -975,8 +975,9 @@ with c as (
   where pool = $1 and state in ('available','scheduled','retryable','snoozed') and run_after <= now()
     and coalesce((select paused_until from pools where pool = $1), '-infinity') < now()
     -- 3. A job of a run is claimed only while that run is live; background jobs have no run.
+    --    The run row is locked FOR SHARE, so a claim and a pause on the same run are serialised (see below).
     and (run_id is null or exists (select 1 from runs r where r.run_id = jobs.run_id
-                                    and r.status in ('running','waiting_ai')))
+                                    and r.status in ('running','waiting_ai') for share of r))
   order by priority, run_after, job_id
   for update skip locked
   limit greatest(0, least($2, (select max_running from pools where pool = $1)
@@ -989,7 +990,7 @@ returning j.*;
 commit;
 ```
 
-**Jobs of paused runs.** Step 3 of the claim skips jobs whose run is queued, pausing, paused, waiting at a gate or finished, so pausing a run (including the at-once pause of a stalled run, §6.4) stops all its work in every pool, and nothing of it is claimed until it resumes.
+**Jobs of paused runs.** Step 3 of the claim skips jobs whose run is queued, pausing, paused, waiting at a gate or finished, so pausing a run (including the at-once pause of a stalled run, §6.4) stops all its work in every pool, and nothing of it is claimed until it resumes. The claim and the pause synchronise on the run row: the claim holds a `FOR SHARE` lock on it until it commits, and the pause's first step (`update runs set status = 'pausing'`) needs the row's write lock. So a pause waits for any claim already holding the row to commit, and a claim that starts after the pause has the row waits for it and then, under READ COMMITTED, re-checks the updated row, sees `pausing` and takes nothing. Every claim of the run therefore either committed before the `pausing` transaction, so its jobs are `running` when the pause's cancellation scan runs after it, or finds nothing. The pause drains exactly those jobs before it frees the slot.
 
 **Releasing a slot.** Capacity is counted from jobs in state `running`, so a slot frees itself the moment a job leaves that state: completion, failure, snooze or cancel each update the job's state in their own transaction. The lease reaper, which moves `running` jobs whose `lease_until` has passed back to `retryable`, takes the same pool lock first, so an expired job's slot and a new claim never race. No separate counter exists, so there is nothing to drift.
 
