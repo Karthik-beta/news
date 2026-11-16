@@ -12,6 +12,8 @@ declare namespace Cloudflare {
     PAGES: R2Bucket;
     TEST_MIGRATIONS: import("cloudflare:test").D1Migration[];
     SEARCH_MIGRATIONS: import("cloudflare:test").D1Migration[];
+    REPORTS: D1Database;
+    REPORTS_MIGRATIONS: import("cloudflare:test").D1Migration[];
     NEWS_DYNAMODB_ENDPOINT: string;
     NEWS_DYNAMODB_REGION: string;
     NEWS_DYNAMODB_ACCESS_KEY_ID: string;

@@ -4,11 +4,12 @@ import { secretsEqual, sha256Hex } from "./crypto";
 import { FakeTable } from "./dynamo/fake";
 import type { Doc } from "./dynamo/table";
 import { BodyTooLargeError, isJsonContentType, readBodyCapped } from "./http";
-import { categoryLineage, hubsForPage, reportKey, versionFromSk, versionSk } from "./keys";
+import { categoryLineage, hubsForPage, versionFromSk, versionSk } from "./keys";
 import { CloudflarePurger, PurgeError } from "./purge";
 import { decodeCursor, encodeCursor, Reader } from "./read";
 import { listShards, QueryTooLongError, shardFor, toFtsQuery } from "./search";
 import { makeMeta, makePageRecord } from "./testing/fixtures";
+import { normalizeTimestamp } from "./time";
 import { homeUrls, hubPath, regionViews } from "./urls";
 
 describe("keys", () => {
@@ -30,12 +31,29 @@ describe("keys", () => {
     ]);
     expect(categoryLineage("a/b/c")).toEqual(["a", "a/b", "a/b/c"]);
   });
+});
 
-  it("partitions reports by month", () => {
-    expect(reportKey("2026-11-15T10:00:00.000Z", "r_1")).toEqual({
-      PK: "REPORT#2026-11",
-      SK: "2026-11-15T10:00:00.000Z#r_1",
-    });
+describe("timestamps", () => {
+  it.each([
+    ["2026-11-12T10:00:00Z", "2026-11-12T10:00:00.000Z"],
+    ["2026-11-12T10:00:00.5Z", "2026-11-12T10:00:00.500Z"],
+    ["2026-11-12T10:00:00.123Z", "2026-11-12T10:00:00.123Z"],
+    ["2028-02-29T00:00:00Z", "2028-02-29T00:00:00.000Z"],
+    ["2026-02-29T00:00:00Z", null],
+    ["2026-02-31T12:00:00Z", null],
+    ["2026-04-31T12:00:00Z", null],
+    ["2026-13-01T00:00:00Z", null],
+    ["2026-11-12T24:00:00Z", null],
+    ["2026-11-12 10:00:00Z", null],
+    ["2026-11-12T10:00:00+01:00", null],
+  ])("%s → %s", (input, expected) => {
+    expect(normalizeTimestamp(input)).toBe(expected);
+  });
+
+  it("normalised timestamps sort as time", () => {
+    const a = normalizeTimestamp("2026-11-12T10:00:00Z") as string;
+    const b = normalizeTimestamp("2026-11-12T10:00:00.5Z") as string;
+    expect(a < b).toBe(true);
   });
 });
 

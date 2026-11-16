@@ -36,7 +36,6 @@ export declare const validatePathClaimItem: Validator;
 export declare const validatePageLockItem: Validator;
 export declare const validateCurationItem: Validator;
 export declare const validateIdempotencyItem: Validator;
-export declare const validateReportItem: Validator;
 export declare const validateSearchPagesInput: Validator;
 export declare const validateSearchPagesOutput: Validator;
 export declare const validateGetPageInput: Validator;

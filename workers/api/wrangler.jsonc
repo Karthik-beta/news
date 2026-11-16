@@ -23,6 +23,10 @@
   //   [{ "binding": "SEARCH_2026", "database_name": "news-search-2026", "database_id": "<real D1 id>",
   //      "migrations_dir": "../shared/migrations/search" }],
   // "r2_buckets": [{ "binding": "PAGES", "bucket_name": "<real R2 bucket>" }],
+  // and the reports database (reader error reports live here, never in DynamoDB; ADR 0006):
+  //   { "binding": "REPORTS", "database_name": "news-reports", "database_id": "<real D1 id>",
+  //     "migrations_dir": "migrations/reports" } in "d1_databases".
+  // "vars": optionally "NEWS_REPORT_DAILY_CAP" (reports accepted per UTC day across the site; default 200).
   // Secrets, set with `wrangler secret put`, never in this file: NEWS_WRITE_API_KEY (32+ random characters),
   // NEWS_DYNAMODB_ACCESS_KEY_ID and NEWS_DYNAMODB_SECRET_ACCESS_KEY (the publish-only IAM key),
   // CLOUDFLARE_PURGE_TOKEN (API token with only Zone > Cache Purge on the site's zone).

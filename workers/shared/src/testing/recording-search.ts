@@ -23,6 +23,11 @@ export class RecordingSearchIndex implements SearchIndex {
     this.rows.delete(page.page_id);
   }
 
+  async findPage(pageId: string): Promise<{ path: string; lang: string } | undefined> {
+    const row = this.rows.get(pageId);
+    return row && { path: row.path, lang: row.lang };
+  }
+
   async setIndexStatus(page: Pick<PageRecord, "page_id">, status: "index" | "noindex"): Promise<void> {
     this.calls.push({ op: "status", page_id: page.page_id });
     const row = this.rows.get(page.page_id);

@@ -7,6 +7,7 @@ import { DEFAULT_REGION_VIEWS } from "@news/worker-shared/urls";
 import { schemas } from "@news/worker-shared/validate";
 import { expect } from "vitest";
 import { handle } from "./app";
+import { MemoryReportStore } from "./report-store";
 import type { Deps, Logger } from "./deps";
 
 export const TEST_KEY = "test-write-key-0123456789abcdef-not-real";
@@ -30,6 +31,7 @@ export interface Harness {
   table: FakeTable;
   bucket: FakeBucket;
   search: RecordingSearchIndex;
+  reports: MemoryReportStore;
   purger: RecordingPurger;
   logs: { level: string; event: string; fields?: Record<string, unknown> }[];
   /** Moves the clock. */
@@ -54,6 +56,7 @@ export function harness(overrides: Partial<Deps> = {}): Harness {
   const bucket = new FakeBucket();
   const search = new RecordingSearchIndex();
   const purger = new RecordingPurger();
+  const reports = new MemoryReportStore();
   const logs: Harness["logs"] = [];
   const log: Logger = {
     warn: (event, fields) => logs.push({ level: "warn", event, fields }),
@@ -64,6 +67,8 @@ export function harness(overrides: Partial<Deps> = {}): Harness {
     table: () => table,
     bucket: () => bucket.asBucket(),
     search,
+    reports: () => reports,
+    reportDailyCap: 200,
     purger,
     writeKey: TEST_KEY,
     siteOrigin: ORIGIN,
@@ -79,6 +84,7 @@ export function harness(overrides: Partial<Deps> = {}): Harness {
     table,
     bucket,
     search,
+    reports,
     purger,
     logs,
     setNow: (iso) => {
@@ -108,7 +114,6 @@ const validators: Record<string, (d: unknown) => boolean> = {
   curation: schemas.validateCurationItem,
   taxonomy_node: schemas.validateTaxonomyItem,
   redirect: schemas.validateRedirectItem,
-  report: schemas.validateReportItem,
 };
 
 /** Every stored item matches its schema in contracts/cloud/dynamodb-items.schema.json. */

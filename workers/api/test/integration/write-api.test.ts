@@ -16,6 +16,7 @@ import { DynamoDbLocal, dynamoConfigFromEnv, uniqueTableName } from "@news/worke
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { handle } from "../../src/app";
 import type { Deps } from "../../src/deps";
+import { d1ReportStore } from "../../src/report-store";
 import { expectItemsValid } from "../../src/testing";
 
 const local = dynamoConfigFromEnv(env as unknown as Record<string, unknown>);
@@ -54,15 +55,18 @@ const real = new DynamoTable({
 });
 const table = new CountingTable(real);
 const purger = new RecordingPurger();
+let clock = new Date("2026-11-12T10:00:00Z");
 const deps: Deps = {
   table: () => table,
   bucket: () => env.PAGES,
   search: new D1SearchIndex(env),
+  reports: () => d1ReportStore(env.REPORTS),
+  reportDailyCap: 200,
   purger,
   writeKey: KEY,
   siteOrigin: ORIGIN,
   regions: [...DEFAULT_REGION_VIEWS],
-  now: () => new Date("2026-11-12T10:00:00Z"),
+  now: () => clock,
   limiters: {},
   log: { warn: () => {}, error: () => {} },
 };
@@ -90,6 +94,7 @@ beforeAll(async () => {
   await admin.createSingleTable(tableName);
   for (const shard of ["SEARCH_2025", "SEARCH_2026"] as const)
     await applyD1Migrations(env[shard], env.SEARCH_MIGRATIONS);
+  await applyD1Migrations(env.REPORTS, env.REPORTS_MIGRATIONS);
 });
 afterAll(async () => {
   await admin.deleteTableIfExists(tableName);
@@ -218,8 +223,9 @@ describe("home curation on DynamoDB Local", () => {
   });
 });
 
-describe("reports on DynamoDB Local", () => {
-  it("stores an intake without request details and lists it for Errata", async () => {
+describe("reports in their own D1 database", () => {
+  it("stores an intake without request details, never touching DynamoDB, and lists it for Errata", async () => {
+    const writesBefore = table.writes;
     const res = await handle(
       deps,
       new Request("http://api.test/v1/reports", {
@@ -229,10 +235,41 @@ describe("reports on DynamoDB Local", () => {
       }),
     );
     expect(res.status).toBe(202);
-    const stored = (await allItems()).filter((i) => i.type === "report");
+    expect(table.writes).toBe(writesBefore);
+    const stored = (await env.REPORTS.prepare("SELECT * FROM reports").all()).results;
     expect(stored).toHaveLength(1);
     expect(JSON.stringify(stored)).not.toContain("203.0.113.77");
+    clock = new Date("2026-11-12T10:05:00Z");
     const list = await call("GET", "/v1/reports?after=2026-11-01T00:00:00Z");
     expect(((await list.json()) as { reports: unknown[] }).reports).toHaveLength(1);
+    clock = new Date("2026-11-12T10:00:00Z");
+  });
+
+  it("enforces the daily cap in the database, lists by receipt with a cursor, and drops expired reports", async () => {
+    const store = d1ReportStore(env.REPORTS);
+    await env.REPORTS.prepare("DELETE FROM reports").run();
+    const report = (id: string, created_at: string, expires_at = 2_000_000_000) => ({
+      id: `r_${id.padStart(32, "0")}`,
+      page_id: "it-page",
+      page_path: "/2026/11/it-page",
+      kind: "figure",
+      text: "A figure looks wrong here.",
+      where: "Second chart",
+      lang: "en",
+      created_at,
+      expires_at,
+    });
+    expect(await store.add(report("1", "2026-11-10T08:00:00.000Z"), 2)).toBe(true);
+    expect(await store.add(report("2", "2026-11-10T09:00:00.000Z"), 2)).toBe(true);
+    expect(await store.add(report("3", "2026-11-10T10:00:00.000Z"), 2)).toBe(false);
+    expect(await store.add(report("4", "2026-11-11T08:00:00.000Z", 1_000), 2)).toBe(true);
+    const query = { after: "2026-11-01T00:00:00.000Z", afterId: "", receivedBefore: "2026-11-12T00:00:00.000Z", limit: 10 };
+    const all = await store.list({ ...query, liveAt: 1_500 });
+    expect(all.map((r) => r.id.slice(-1))).toEqual(["1", "2"]);
+    expect(all[0]).toMatchObject({ where: "Second chart" });
+    const next = await store.list({ ...query, after: "2026-11-10T08:00:00.000Z", afterId: all[0]?.id ?? "", liveAt: 1_500 });
+    expect(next.map((r) => r.id.slice(-1))).toEqual(["2"]);
+    await store.deleteExpired(1_500);
+    expect((await env.REPORTS.prepare("SELECT COUNT(*) AS n FROM reports").first<{ n: number }>())?.n).toBe(2);
   });
 });

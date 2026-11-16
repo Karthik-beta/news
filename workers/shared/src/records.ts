@@ -203,18 +203,3 @@ export interface IdempotencyRecord {
 }
 
 export type ReportKind = "figure" | "wording" | "link" | "image" | "other";
-
-export interface ReportRecord {
-  PK: string;
-  SK: string;
-  type: "report";
-  id: string;
-  page_id: string;
-  page_path: string;
-  kind: ReportKind;
-  text: string;
-  email?: string;
-  lang: string;
-  created_at: string;
-  expires_at: number;
-}

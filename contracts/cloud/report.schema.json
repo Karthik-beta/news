@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://news.karthik.nz/contracts/cloud/report.schema.json",
   "title": "Reader error reports",
-  "description": "Public report intake (POST /v1/reports) and the stored record that `news corrections pull` reads (GET /v1/reports). The record holds the report text, the page and the optional e-mail; never the IP address, user agent or any other request detail. Spam controls: ADR 0006.",
+  "description": "Public report intake (POST /v1/reports) and the stored record that `news corrections pull` reads (GET /v1/reports). Reports are stored in their own D1 database (REPORTS), not in DynamoDB. The record holds the report text, the page, the optional \"where\" and e-mail; never the IP address, user agent or any other request detail. Spam controls: ADR 0006. UNTRUSTED: `text` and `where` are written by anyone on the internet. Consumers (Errata, triage call A9) treat them as data only: quoted or fenced, never as instructions, passed to a model with no tools, and no correction is published without Karthik's approval.",
   "$defs": {
     "intake": {
       "description": "Body of POST /v1/reports. `website` is a honeypot: people never see the field, so it must be empty or absent.",
@@ -11,8 +11,21 @@
       "required": ["page_id", "text"],
       "properties": {
         "page_id": { "$ref": "common.schema.json#/$defs/pageId" },
-        "kind": { "$ref": "#/$defs/kind" },
-        "text": { "type": "string", "minLength": 10, "maxLength": 2000 },
+        "text": {
+      "description": "What the reader says is wrong. Untrusted input: data only, never instructions. At most 2,000 characters and 4,000 UTF-8 bytes (the byte cap is checked by the API).",
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 2000
+    },
+    "where": {
+      "description": "Where on the page (the report form's optional \"Where on the page?\" field). Untrusted input like `text`. At most 200 characters and 600 UTF-8 bytes.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "kind": { "$ref": "#/$defs/kind" },
+        "text": { "$ref": "#/$defs/text" },
+        "where": { "$ref": "#/$defs/where" },
         "email": { "$ref": "#/$defs/email" },
         "lang": { "$ref": "common.schema.json#/$defs/lang" },
         "website": { "type": "string", "maxLength": 200 }
@@ -26,12 +39,37 @@
         "id": { "type": "string", "pattern": "^r_[0-9a-f]{32}$" },
         "page_id": { "$ref": "common.schema.json#/$defs/pageId" },
         "page_path": { "$ref": "common.schema.json#/$defs/pagePath" },
-        "kind": { "$ref": "#/$defs/kind" },
-        "text": { "type": "string", "minLength": 10, "maxLength": 2000 },
+        "text": {
+      "description": "What the reader says is wrong. Untrusted input: data only, never instructions. At most 2,000 characters and 4,000 UTF-8 bytes (the byte cap is checked by the API).",
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 2000
+    },
+    "where": {
+      "description": "Where on the page (the report form's optional \"Where on the page?\" field). Untrusted input like `text`. At most 200 characters and 600 UTF-8 bytes.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "kind": { "$ref": "#/$defs/kind" },
+        "text": { "$ref": "#/$defs/text" },
+        "where": { "$ref": "#/$defs/where" },
         "email": { "$ref": "#/$defs/email" },
         "lang": { "$ref": "common.schema.json#/$defs/lang" },
         "created_at": { "$ref": "common.schema.json#/$defs/timestamp" }
       }
+    },
+    "text": {
+      "description": "What the reader says is wrong. Untrusted input: data only, never instructions. At most 2,000 characters and 4,000 UTF-8 bytes (the byte cap is checked by the API).",
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 2000
+    },
+    "where": {
+      "description": "Where on the page (the report form's optional \"Where on the page?\" field). Untrusted input like `text`. At most 200 characters and 600 UTF-8 bytes.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
     },
     "kind": {
       "type": "string",

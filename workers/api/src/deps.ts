@@ -4,6 +4,7 @@ import type { Table } from "@news/worker-shared/dynamo/table";
 import { CloudflarePurger, type Purger } from "@news/worker-shared/purge";
 import { D1SearchIndex, type SearchIndex } from "@news/worker-shared/search";
 import { DEFAULT_SITE_ORIGIN, regionViews } from "@news/worker-shared/urls";
+import { d1ReportStore, type ReportStore } from "./report-store";
 
 export interface Env {
   PAGES?: R2Bucket;
@@ -19,6 +20,10 @@ export interface Env {
   CLOUDFLARE_PURGE_TOKEN?: string;
   NEWS_SITE_ORIGIN?: string;
   NEWS_REGION_VIEWS?: string;
+  /** Reader reports (D1, migrations/reports). Kept out of DynamoDB so reports cannot spend publishing capacity. */
+  REPORTS?: D1Database;
+  /** Reports accepted per UTC day across the whole site. Default 200. */
+  NEWS_REPORT_DAILY_CAP?: string;
   AUTH_FAILURE_LIMITER?: RateLimit;
   REPORT_IP_LIMITER?: RateLimit;
   REPORT_GLOBAL_LIMITER?: RateLimit;
@@ -41,6 +46,9 @@ export interface Deps {
   /** Throws (as not_configured) when the R2 binding is missing. */
   bucket: () => R2Bucket;
   search: SearchIndex;
+  /** Throws (as not_configured) when the REPORTS binding is missing. */
+  reports: () => ReportStore;
+  reportDailyCap: number;
   purger: Purger;
   writeKey: string | undefined;
   siteOrigin: string;
@@ -87,6 +95,11 @@ export function depsFromEnv(env: Env, log: Logger = consoleLogger): Deps {
       return env.PAGES;
     },
     search: new D1SearchIndex(env),
+    reports: () => {
+      if (!env.REPORTS) throw new NotConfiguredError("D1 database REPORTS");
+      return d1ReportStore(env.REPORTS);
+    },
+    reportDailyCap: /^[0-9]{1,6}$/.test(env.NEWS_REPORT_DAILY_CAP ?? "") ? Number(env.NEWS_REPORT_DAILY_CAP) : 200,
     purger:
       env.CLOUDFLARE_ZONE_ID && env.CLOUDFLARE_PURGE_TOKEN
         ? new CloudflarePurger({ zoneId: env.CLOUDFLARE_ZONE_ID, token: env.CLOUDFLARE_PURGE_TOKEN })

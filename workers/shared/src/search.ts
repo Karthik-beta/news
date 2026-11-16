@@ -175,6 +175,8 @@ export interface SearchIndex {
   index(page: PageRecord): Promise<void>;
   remove(page: Pick<PageRecord, "page_id" | "published_at">): Promise<void>;
   setIndexStatus(page: Pick<PageRecord, "page_id" | "published_at">, status: "index" | "noindex"): Promise<void>;
+  /** Path and language of a published page (its search row exists exactly while it is published), or undefined. */
+  findPage(pageId: string): Promise<{ path: string; lang: string } | undefined>;
 }
 
 /** The D1 shards bound to the Worker (SEARCH_<YYYY>). */
@@ -191,5 +193,15 @@ export class D1SearchIndex implements SearchIndex {
   }
   setIndexStatus(page: Pick<PageRecord, "page_id" | "published_at">, status: "index" | "noindex"): Promise<void> {
     return setIndexStatus(shardFor(this.env, page.published_at), page.page_id, status);
+  }
+  async findPage(pageId: string): Promise<{ path: string; lang: string } | undefined> {
+    for (const shard of listShards(this.env)) {
+      const row = await shard.db
+        .prepare("SELECT path, lang FROM pages WHERE page_id = ?1")
+        .bind(pageId)
+        .first<{ path: string; lang: string }>();
+      if (row) return { path: row.path, lang: row.lang };
+    }
+    return undefined;
   }
 }

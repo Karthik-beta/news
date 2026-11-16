@@ -34,6 +34,8 @@ export interface IntegrationOptions extends WorkerTestOptions {
    * search schema from workers/shared/migrations/search, for the tests to apply.
    */
   searchShards?: string[];
+  /** More migration folders to inject, as binding name → folder (e.g. REPORTS_MIGRATIONS for the api Worker). */
+  migrations?: Record<string, string>;
 }
 
 const SEARCH_MIGRATIONS_DIR = fileURLToPath(new URL("../../shared/migrations/search", import.meta.url));
@@ -48,12 +50,20 @@ export function unitConfig({ root }: WorkerTestOptions) {
   });
 }
 
-export function integrationConfig({ root, d1 = [], r2 = [], dynamodb = false, searchShards = [] }: IntegrationOptions) {
+export function integrationConfig({
+  root,
+  d1 = [],
+  r2 = [],
+  dynamodb = false,
+  searchShards = [],
+  migrations = {},
+}: IntegrationOptions) {
   return defineConfig(async () => {
     const bindings: Record<string, string | D1Migration[]> = {};
     if (dynamodb) Object.assign(bindings, dynamoBindings(dynamoConfigFromEnv(repoEnv())));
     if (d1.length > 0) bindings.TEST_MIGRATIONS = await readD1Migrations(MIGRATIONS_DIR);
     if (searchShards.length > 0) bindings.SEARCH_MIGRATIONS = await readD1Migrations(SEARCH_MIGRATIONS_DIR);
+    for (const [name, dir] of Object.entries(migrations)) bindings[name] = await readD1Migrations(dir);
     return {
       root,
       plugins: [

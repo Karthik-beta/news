@@ -45,13 +45,6 @@ export const curationVersionKey = (version: number): Key => ({ PK: CURATION_PK, 
 
 export const idempotencyKey = (keyHash: string): Key => ({ PK: `IDEM#${keyHash}`, SK: "META" });
 
-/** Reports are partitioned by month of receipt: 'REPORT#2026-11'. */
-export const reportPk = (createdAt: string) => `REPORT#${createdAt.slice(0, 7)}`;
-export const reportKey = (createdAt: string, reportId: string): Key => ({
-  PK: reportPk(createdAt),
-  SK: `${createdAt}#${reportId}`,
-});
-
 /** Hub IDs: 'latest', 'cat/<slug>', 'ent/<entity id>', 'region/<region>'. */
 export const HUB_LATEST = "latest";
 export const categoryHub = (slug: string) => `cat/${slug}`;
