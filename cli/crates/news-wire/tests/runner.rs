@@ -22,6 +22,7 @@ fn policy(id: &str) -> SourcePolicy {
     SourcePolicy {
         source_id: id.into(),
         rate_per_sec: 2.0,
+        max_concurrency: 1,
         daily_quota: None,
         robots_respect: true,
         requires_contact_email: false,
@@ -388,4 +389,111 @@ async fn the_daily_quota_defers_to_tomorrow() {
     assert_eq!(e.class, ErrorClass::RateLimited);
     let wait = e.retry_after.unwrap().as_secs();
     assert!((15 * 3600..=16 * 3600 + 600).contains(&wait), "{wait}");
+}
+
+#[tokio::test]
+async fn one_bucket_per_source_across_its_hosts() {
+    // SEC allows 10 req/s per user across data.sec.gov and www.sec.gov together: alternating hosts
+    // must not double the source's rate.
+    let fake = Arc::new(FakeTransport::new());
+    let (a, b) = (
+        "https://data.sec.gov/submissions/x.json",
+        "https://www.sec.gov/Archives/y.json",
+    );
+    fake.route(a, vec![Reply::ok("application/json", "{}")]);
+    fake.route(b, vec![Reply::ok("application/json", "{}")]);
+    let clock = Arc::new(VirtualClock::new(t0()));
+    let r = runner(&fake, &clock, Some("desk@example.org"));
+    let mut sec = policy("sec-edgar");
+    sec.robots_respect = false;
+    sec.requires_contact_email = true;
+    for url in [a, b, a, b, a] {
+        r.fetch(&sec, &Request::json(url), None).await.unwrap();
+    }
+    // 2 req/s for the source: the first at once, four more 500 ms apart.
+    assert_eq!((clock.now() - t0()).num_milliseconds(), 2000);
+}
+
+/// A transport that stays busy for a few polls per request and records the peak in flight.
+struct Busy {
+    inner: FakeTransport,
+    now: std::sync::atomic::AtomicUsize,
+    peak: std::sync::atomic::AtomicUsize,
+}
+
+impl news_wire::runner::Transport for Busy {
+    fn get(
+        &self,
+        req: news_wire::runner::HttpRequest,
+    ) -> news_wire::pace::BoxFut<
+        '_,
+        Result<news_wire::runner::HttpResponse, news_wire::runner::TransportError>,
+    > {
+        use std::sync::atomic::Ordering::SeqCst;
+        Box::pin(async move {
+            let n = self.now.fetch_add(1, SeqCst) + 1;
+            self.peak.fetch_max(n, SeqCst);
+            for _ in 0..10 {
+                tokio::task::yield_now().await;
+            }
+            self.now.fetch_sub(1, SeqCst);
+            self.inner.get(req).await
+        })
+    }
+}
+
+#[tokio::test]
+async fn max_concurrency_from_contacts_is_honoured() {
+    for limit in [1u32, 2] {
+        let busy = Arc::new(Busy {
+            inner: FakeTransport::new(),
+            now: Default::default(),
+            peak: Default::default(),
+        });
+        busy.inner
+            .route(URL, vec![Reply::ok("application/json", "{}")]);
+        let clock = Arc::new(VirtualClock::new(t0()));
+        let r = Runner::new(busy.clone(), clock, config(None));
+        let mut p = policy("x");
+        p.robots_respect = false;
+        p.rate_per_sec = 1000.0;
+        p.max_concurrency = limit;
+        let req = Request::json(URL);
+        let (r1, r2, r3, r4) = tokio::join!(
+            r.fetch(&p, &req, None),
+            r.fetch(&p, &req, None),
+            r.fetch(&p, &req, None),
+            r.fetch(&p, &req, None)
+        );
+        for x in [r1, r2, r3, r4] {
+            x.unwrap();
+        }
+        assert_eq!(
+            busy.peak.load(std::sync::atomic::Ordering::SeqCst),
+            limit as usize
+        );
+    }
+}
+
+#[tokio::test]
+async fn a_403_from_a_contact_email_source_snoozes_and_slows_down() {
+    // SEC answers 403 when it throttles a User-Agent: snooze ten minutes and halve the rate, rather
+    // than discarding the job as invalid data.
+    let (fake, clock) = setup();
+    fake.route(
+        URL,
+        vec![Reply::status(403), Reply::ok("application/json", "{}")],
+    );
+    let r = runner(&fake, &clock, Some("desk@example.org"));
+    let mut sec = policy("sec-edgar");
+    sec.requires_contact_email = true;
+    let e = fetch(&r, &sec, None).await.unwrap_err();
+    assert_eq!(e.class, ErrorClass::RateLimited);
+    assert_eq!(e.retry_after, Some(Duration::from_secs(600)));
+    assert_eq!(JobFailure::from(e).class.policy(), Policy::Snooze);
+    let before = clock.now();
+    fetch(&r, &sec, None).await.unwrap();
+    fetch(&r, &sec, None).await.unwrap();
+    // Penalised to 1 req/s: each of the two waits a full second.
+    assert_eq!((clock.now() - before).num_milliseconds(), 2000);
 }

@@ -1,8 +1,9 @@
 //! The Runner: one shared, polite HTTP client (Bureau Design §3.2).
 //!
 //! Every connector request goes through [`Runner::fetch`]: daily quota, robots.txt (RFC 9309, cached
-//! 24 h; unreachable or 5xx snoozes the job and is remembered only for minutes), the per-host token
-//! bucket inside the global `net` pool of 6, the User-Agent (with the contact e-mail only for sources
+//! 24 h; unreachable or 5xx snoozes the job and is remembered only for minutes), one token bucket and
+//! `max_concurrency` slots per source (across all its hosts: SEC's limit is per user, not per host)
+//! inside the global `net` pool of 6, the User-Agent (with the contact e-mail only for sources
 //! that require it), conditional GET, `Retry-After` (both forms → snooze), the content-type
 //! allow-list, the size cap and a streaming SHA-256.
 //!
@@ -17,7 +18,7 @@ use chrono::{DateTime, NaiveDate, Utc};
 use news_connectors::Request;
 use news_core::job::{ErrorClass, JobFailure};
 use sha2::{Digest, Sha256};
-use tokio::sync::Semaphore;
+use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 
 use crate::pace::{BoxFut, Clock, TokenBucket, retry_after};
 use crate::robots::{self, Robots};
@@ -30,6 +31,8 @@ const ROBOTS_TTL_HOURS: i64 = 24;
 const ROBOTS_RETRY: Duration = Duration::from_secs(5 * 60);
 /// …and remember the miss at most this long.
 const ROBOTS_MISS_TTL_MAX: Duration = Duration::from_secs(10 * 60);
+/// A 403 from a source that requires a contact e-mail is its throttle (SEC): snooze this long.
+const THROTTLE_403_SNOOZE: Duration = Duration::from_secs(10 * 60);
 /// RFC 9309 asks parsers to read at least 500 KiB.
 const ROBOTS_MAX: u64 = 512 * 1024;
 pub const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
@@ -136,6 +139,8 @@ impl Transport for ReqwestTransport {
 pub struct SourcePolicy {
     pub source_id: String,
     pub rate_per_sec: f64,
+    /// Requests of this source in flight at once (Contacts `max_concurrency`, at least 1).
+    pub max_concurrency: u32,
     pub daily_quota: Option<u32>,
     pub robots_respect: bool,
     pub requires_contact_email: bool,
@@ -245,7 +250,9 @@ pub struct Runner {
     transport: Arc<dyn Transport>,
     clock: Arc<dyn Clock>,
     config: RunnerConfig,
+    /// Per source: its token bucket and its `max_concurrency` slots.
     buckets: Mutex<HashMap<String, TokenBucket>>,
+    slots: Mutex<HashMap<String, Arc<Semaphore>>>,
     /// Per host: until when the entry holds, and the rules or the reason robots.txt was unavailable.
     robots: Mutex<HashMap<String, (DateTime<Utc>, Result<Robots, FetchError>)>>,
     quota: Mutex<HashMap<(String, NaiveDate), u32>>,
@@ -259,6 +266,7 @@ impl Runner {
             clock,
             config,
             buckets: Mutex::new(HashMap::new()),
+            slots: Mutex::new(HashMap::new()),
             robots: Mutex::new(HashMap::new()),
             quota: Mutex::new(HashMap::new()),
             net: Semaphore::new(NET_POOL),
@@ -295,13 +303,27 @@ impl Runner {
         }
     }
 
-    /// Wait for a token from `host`'s bucket.
-    async fn pace(&self, host: &str, rate: f64) {
+    /// One of the source's `max_concurrency` slots, held for the whole request.
+    async fn slot(&self, policy: &SourcePolicy) -> Result<OwnedSemaphorePermit, FetchError> {
+        let sem = self
+            .slots
+            .lock()
+            .map_err(|_| FetchError::new(ErrorClass::Bug, "slot lock poisoned"))?
+            .entry(policy.source_id.clone())
+            .or_insert_with(|| Arc::new(Semaphore::new(policy.max_concurrency.max(1) as usize)))
+            .clone();
+        sem.acquire_owned()
+            .await
+            .map_err(|_| FetchError::new(ErrorClass::Bug, "source slots closed"))
+    }
+
+    /// Wait for a token from the source's bucket (one bucket per source, whatever the host).
+    async fn pace(&self, policy: &SourcePolicy) {
         loop {
             let wait = match self.buckets.lock() {
                 Ok(mut m) => m
-                    .entry(host.to_owned())
-                    .or_insert_with(|| TokenBucket::new(rate, self.clock.now()))
+                    .entry(policy.source_id.clone())
+                    .or_insert_with(|| TokenBucket::new(policy.rate_per_sec, self.clock.now()))
                     .reserve(self.clock.now()),
                 Err(_) => Duration::ZERO,
             };
@@ -312,9 +334,9 @@ impl Runner {
         }
     }
 
-    fn penalise(&self, host: &str) {
+    fn penalise(&self, policy: &SourcePolicy) {
         if let Ok(mut m) = self.buckets.lock()
-            && let Some(b) = m.get_mut(host)
+            && let Some(b) = m.get_mut(&policy.source_id)
         {
             b.penalise(self.clock.now());
         }
@@ -394,7 +416,8 @@ impl Runner {
     /// treats that as temporarily unavailable, not as a licence decision).
     async fn fetch_robots(&self, policy: &SourcePolicy, url: &str) -> Result<Robots, FetchError> {
         let host = host_of(url).unwrap_or_default().to_owned();
-        self.pace(&host, policy.rate_per_sec).await;
+        let _slot = self.slot(policy).await?;
+        self.pace(policy).await;
         let req = HttpRequest {
             url: url.to_owned(),
             headers: vec![("User-Agent".into(), self.user_agent(policy)?)],
@@ -465,7 +488,9 @@ impl Runner {
             url.push_str(&value);
         }
         self.spend_quota(policy)?;
-        self.pace(&host, policy.rate_per_sec).await;
+        // Slot first, then the token: with one slot, requests stay spaced by the bucket.
+        let _slot = self.slot(policy).await?;
+        self.pace(policy).await;
         let mut headers = vec![
             ("User-Agent".to_owned(), ua),
             ("Accept".to_owned(), req.accept.join(", ")),
@@ -493,7 +518,7 @@ impl Runner {
         match resp.status {
             304 => return Ok(Outcome::NotModified),
             429 | 503 => {
-                self.penalise(&host);
+                self.penalise(policy);
                 let wait = resp
                     .header("Retry-After")
                     .and_then(|v| retry_after(v, now))
@@ -506,6 +531,16 @@ impl Runner {
                 return Err(e);
             }
             200..=299 => {}
+            403 if policy.requires_contact_email => {
+                // SEC's answer to too many requests from one User-Agent: back off, don't discard.
+                self.penalise(policy);
+                let mut e = FetchError::new(
+                    ErrorClass::RateLimited,
+                    format!("HTTP 403 from {host} (throttled)"),
+                );
+                e.retry_after = Some(THROTTLE_403_SNOOZE);
+                return Err(e);
+            }
             404 | 410 => {
                 return Err(FetchError::new(
                     ErrorClass::UpstreamChanged,

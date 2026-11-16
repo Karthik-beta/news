@@ -17,11 +17,11 @@ pub fn url_hash(url: &str) -> Vec<u8> {
     Sha256::digest(url.as_bytes()).to_vec()
 }
 
-/// The Runner policy for a source, from its Contacts row. `requires_contact_email` is not a column:
-/// it comes from the connector's own needs (SEC).
+/// The Runner policy for a source, from its Contacts row (synced from `data/sources/<id>.toml`).
 pub async fn policy(pool: &PgPool, source_id: &str) -> Result<Option<SourcePolicy>, WireError> {
     let row = sqlx::query(
-        "select source_id, rate_per_sec::float8 as rate, daily_quota, robots_respect, connector
+        "select source_id, rate_per_sec::float8 as rate, max_concurrency, daily_quota, robots_respect,
+                requires_contact_email
            from sources where source_id = $1 and enabled",
     )
     .bind(source_id)
@@ -31,11 +31,16 @@ pub async fn policy(pool: &PgPool, source_id: &str) -> Result<Option<SourcePolic
     Ok(row.map(|r| SourcePolicy {
         source_id: r.get("source_id"),
         rate_per_sec: r.get("rate"),
+        max_concurrency: r
+            .get::<i16, _>("max_concurrency")
+            .try_into()
+            .unwrap_or(1)
+            .max(1),
         daily_quota: r
             .get::<Option<i32>, _>("daily_quota")
             .and_then(|q| u32::try_from(q).ok()),
         robots_respect: r.get("robots_respect"),
-        requires_contact_email: r.get::<String, _>("connector") == news_connectors::sec::ID,
+        requires_contact_email: r.get("requires_contact_email"),
     }))
 }
 

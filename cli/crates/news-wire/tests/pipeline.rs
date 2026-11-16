@@ -105,6 +105,7 @@ fn policy(id: &str, robots: bool, sec: bool) -> SourcePolicy {
     SourcePolicy {
         source_id: id.into(),
         rate_per_sec: 1.0,
+        max_concurrency: 1,
         daily_quota: None,
         robots_respect: robots,
         requires_contact_email: sec,
