@@ -35,4 +35,21 @@ export const cases: FixtureCase[] = [
   { name: "rupees", render: () => <SourceRef dataRef="dp_edge_inr" className="text-figure" /> },
   { name: "no value published (null)", render: () => <SourceRef dataRef="dp_edge_null" className="text-figure" /> },
   { name: "unknown reference", render: () => <SourceRef dataRef="dp_does_not_exist" className="text-figure" /> },
+  // Added by the tester (news-component-testing): positions near the edges, and inside a heading.
+  {
+    name: "cited figure at the end of a right-aligned line",
+    render: () => (
+      <p className="text-body fixture-align-end">
+        Net sales were <SourceRef dataRef="dp_aapl_net_sales_fy2024" />
+      </p>
+    ),
+  },
+  {
+    name: "cited figure inside a heading",
+    render: () => (
+      <h3 className="text-headline-s">
+        Sales reached <SourceRef dataRef="dp_aapl_net_sales_fy2024" />
+      </h3>
+    ),
+  },
 ];

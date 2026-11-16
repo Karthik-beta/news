@@ -15,6 +15,20 @@ const tenK: SourceT = {
 };
 const sources = [{ id: "src_aapl_10k_2024", source: tenK }];
 
+const QUARTERS = [
+  "Q1 FY23",
+  "Q2 FY23",
+  "Q3 FY23",
+  "Q4 FY23",
+  "Q1 FY24",
+  "Q2 FY24",
+  "Q3 FY24",
+  "Q4 FY24",
+  "Q1 FY25",
+  "Q2 FY25",
+  "Q3 FY25",
+  "Q4 FY25",
+];
 const Plot = () => <div className="fixture-plot-placeholder">Plot area</div>;
 const table = (
   <table>
@@ -82,6 +96,64 @@ export const cases: FixtureCase[] = [
         title="The International Monetary Fund lowered its forecast for global growth in 2025 for the second time this year, citing trade"
         subtitle="Real GDP growth, annual percentage change, World Economic Outlook editions from April 2023 to October 2025, as published"
         sources={sources}
+      >
+        <Plot />
+      </FigureFrame>
+    ),
+  },
+  // Added by the tester (news-component-testing): content edge cases for the screen matrix.
+  {
+    name: "wide data table scrolls inside the frame",
+    render: () => (
+      <FigureFrame
+        id="frame-wide"
+        title="Sales by quarter and region"
+        subtitle="Net sales, US$ millions, as reported"
+        sources={sources}
+        table={
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Region</th>
+                {QUARTERS.map((q) => (
+                  <th key={q} scope="col" className="is-number">
+                    {q}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Greater China</th>
+                {QUARTERS.map((q) => (
+                  <td key={q} className="is-number">
+                    20,819.5
+                  </td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+        }
+        downloads={{ csv: "#frame-wide-title" }}
+      >
+        <Plot />
+      </FigureFrame>
+    ),
+  },
+  {
+    name: "level-3 title, JSON only, unbroken source name",
+    render: () => (
+      <FigureFrame
+        id="frame-h3"
+        headingLevel={3}
+        title="A frame inside a section"
+        sources={[
+          {
+            id: "src_aapl_10k_2024",
+            source: { ...tenK, publisher: "Bundesministeriumfürwirtschaftundklimaschutzstatistikabteilung" },
+          },
+        ]}
+        downloads={{ json: "#frame-h3-title" }}
       >
         <Plot />
       </FigureFrame>

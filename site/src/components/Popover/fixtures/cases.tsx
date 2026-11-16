@@ -41,4 +41,25 @@ export const cases: FixtureCase[] = [
       </div>
     ),
   },
+  // Added by the tester (news-component-testing): the other tooltip placements.
+  {
+    name: "tooltip below, aligned to the end",
+    render: () => (
+      <div className="fixture-stage">
+        <Tooltip x="100%" y={0} placement="below" align="end">
+          <span className="popover__value">$391.0bn</span>
+        </Tooltip>
+      </div>
+    ),
+  },
+  {
+    name: "tooltip below, aligned to the start",
+    render: () => (
+      <div className="fixture-stage">
+        <Tooltip x={0} y={0} placement="below" align="start">
+          <span className="popover__value">−5.7%</span>
+        </Tooltip>
+      </div>
+    ),
+  },
 ];

@@ -113,15 +113,21 @@ export async function expectNoSmallText(page: Page, min = 12, scope: Locator = p
 }
 
 /**
- * Every interactive target is at least `min` x `min` CSS px (WCAG 2.2 2.5.8). Inline links inside a sentence
- * are exempt by the standard, so elements laid out `display: inline` are skipped.
+ * Every interactive target is at least `min` x `min` CSS px (WCAG 2.2 2.5.8). Targets inside a sentence are
+ * exempt by the standard, so elements laid out `display: inline`, and targets with words beside them, are skipped.
  */
 export async function expectTargetSize(page: Page, min = 24): Promise<void> {
   const small = await page.evaluate((minPx) => {
     const selector =
       'a[href], button, input:not([type="hidden"]), select, textarea, summary, [role="button"], [role="link"], [tabindex]:not([tabindex="-1"])';
+    // Buttons are blockified (an inline button computes to inline-block), so a cited figure inside a sentence is
+    // recognised by the words around it: a sibling text node with letters (WCAG 2.5.8 "inline" exception).
+    const inSentence = (el: HTMLElement) =>
+      [...(el.parentElement?.childNodes ?? [])].some(
+        (n) => n !== el && n.nodeType === Node.TEXT_NODE && /\p{L}/u.test(n.textContent ?? ""),
+      );
     return [...document.querySelectorAll<HTMLElement>(selector)]
-      .filter((el) => getComputedStyle(el).display !== "inline")
+      .filter((el) => getComputedStyle(el).display !== "inline" && !inSentence(el))
       .map((el) => ({ el, rect: el.getBoundingClientRect() }))
       .filter(({ rect }) => rect.width > 0 && rect.height > 0 && (rect.width < minPx || rect.height < minPx))
       .map(({ el, rect }) => `${el.tagName.toLowerCase()} ${Math.round(rect.width)}x${Math.round(rect.height)}`);
