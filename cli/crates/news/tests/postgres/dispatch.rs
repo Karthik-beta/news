@@ -1022,3 +1022,35 @@ async fn a_heartbeat_marks_the_jobs_run_as_seen() {
         1
     );
 }
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn a_claim_that_waited_for_the_pool_lock_still_gets_its_full_lease() {
+    let f = Fixture::migrated().await;
+    let id = enqueue(&f, "doc.fetch", "net").await;
+    // Another claimer holds the pool row; this claim waits two seconds for it with a three-second lease.
+    let mut tx = f.pool.begin().await.unwrap();
+    sqlx::query("select pool from pools where pool = 'net' for update")
+        .execute(&mut *tx)
+        .await
+        .unwrap();
+    let waiter = {
+        let db = f.pool(2).await;
+        tokio::spawn(async move {
+            queue::claim(&db, "net", 1, Duration::from_secs(3), "waiter")
+                .await
+                .unwrap()
+        })
+    };
+    tokio::time::sleep(Duration::from_secs(2)).await;
+    tx.commit().await.unwrap();
+    let claimed = waiter.await.unwrap();
+    assert_eq!(claimed.jobs[0].job_id, id);
+    // The lease runs from when the claim got the lock, not from when its transaction began.
+    let left = f
+        .scalar_i64(&format!(
+            "select (extract(epoch from lease_until - clock_timestamp()) * 1000)::bigint from jobs where job_id = {id}"
+        ))
+        .await;
+    assert!(left > 2000, "only {left} ms of a 3 s lease left");
+}

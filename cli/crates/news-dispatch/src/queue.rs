@@ -269,6 +269,8 @@ pub async fn claim(
             paused_until: until,
         });
     }
+    // The lease runs from this statement, not from `now()` (the transaction's start): the wait for the
+    // pool row above must not eat into it.
     let sql = format!(
         "with c as (
            select job_id from jobs
@@ -278,7 +280,7 @@ pub async fn claim(
             limit greatest(0, least($2, $3 - (select count(*) from jobs where pool = $1 and state = 'running')))
          )
          update jobs j set state = 'running', attempt = j.attempt + 1,
-                lease_until = now() + make_interval(secs => $4), locked_by = $5
+                lease_until = statement_timestamp() + make_interval(secs => $4), locked_by = $5
            from c where j.job_id = c.job_id
          returning {}",
         JOB_COLUMNS
