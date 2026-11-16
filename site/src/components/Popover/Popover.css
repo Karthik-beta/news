@@ -53,6 +53,15 @@
   cursor: pointer;
 }
 
+/* In print the trigger is plain text in its sentence: no underline, no button look. The popover itself is
+   dropped by the print rules in base.css. Doubled class to beat the trigger styles of SourceRef and others. */
+@media print {
+  .popover-trigger.popover-trigger {
+    text-decoration: none;
+    cursor: auto;
+  }
+}
+
 /* Tooltip for islands: positioned by the island inside its own relative container. */
 .popover--tooltip {
   position: absolute;
