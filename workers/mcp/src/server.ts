@@ -234,9 +234,32 @@ function originAllowed(deps: Deps, request: Request): boolean {
   return origin === null || deps.allowedOrigins.has(origin);
 }
 
+/** Request headers a browser client sends (2026-07-28 mirrors the method and tool name in headers). */
+const CORS_ALLOW_HEADERS = "content-type, accept, mcp-protocol-version, mcp-method, mcp-name, mcp-session-id";
+
+/**
+ * The one MCP endpoint. A browser Origin must be one we know (DNS-rebinding defence); an allowed one gets its
+ * preflight answered and CORS headers on every response, so a browser client can read them.
+ */
 export async function handleMcp(deps: Deps, request: Request): Promise<Response> {
-  // DNS-rebinding defence: a browser Origin must be one we know.
   if (!originAllowed(deps, request)) return rpcError(null, new RpcError(ERR.invalidRequest, "Forbidden origin", 403));
+  const origin = request.headers.get("origin");
+  if (origin === null) return handle(deps, request);
+  const cors = {
+    "access-control-allow-origin": origin,
+    "access-control-allow-methods": "POST, OPTIONS",
+    "access-control-allow-headers": CORS_ALLOW_HEADERS,
+    "access-control-max-age": "86400",
+    vary: "origin",
+  };
+  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: { ...cors, ...SECURITY_HEADERS } });
+  const res = await handle(deps, request);
+  const out = new Response(res.body, res);
+  for (const [k, v] of Object.entries(cors)) out.headers.set(k, v);
+  return out;
+}
+
+async function handle(deps: Deps, request: Request): Promise<Response> {
   if (request.method === "GET" || request.method === "DELETE")
     return new Response(null, { status: 405, headers: { allow: "POST", ...SECURITY_HEADERS } });
   if (request.method !== "POST")
@@ -292,11 +315,21 @@ export async function handleMcp(deps: Deps, request: Request): Promise<Response>
     }
     const era = negotiate(request, msg);
     const result = await dispatch(deps, msg, era, new URL(request.url).origin);
-    const body =
-      era.kind === "modern"
-        ? { ...result, resultType: "complete", _meta: { [`${META}serverInfo`]: SERVER_INFO } }
-        : result;
-    return new Response(JSON.stringify({ jsonrpc: "2.0", id, result: body }), { status: 200, headers: headers() });
+    const envelope = (r: Record<string, unknown>) =>
+      JSON.stringify({
+        jsonrpc: "2.0",
+        id,
+        result:
+          era.kind === "modern" ? { ...r, resultType: "complete", _meta: { [`${META}serverInfo`]: SERVER_INFO } } : r,
+      });
+    let text = envelope(result);
+    // The cap covers the whole response, request ID and metadata included, not only the tool result.
+    if (msg.method === "tools/call" && enc.encode(text).length > CAPS.resultBytes)
+      text = envelope({
+        content: [{ type: "text", text: `The result of ${String(msg.params?.name).slice(0, 100)} is too large.` }],
+        isError: true,
+      });
+    return new Response(text, { status: 200, headers: headers() });
   } catch (e) {
     if (e instanceof RpcError) return rpcError(id, e);
     deps.log.error("unhandled", { error: e instanceof Error ? e.name : "unknown" });

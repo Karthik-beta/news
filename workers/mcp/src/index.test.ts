@@ -5,7 +5,7 @@ import type { DynamoTable } from "@news/worker-shared/dynamo/client";
 import { schemas } from "@news/worker-shared/validate";
 import { depsFromEnv } from "./deps";
 import { describe, expect, it } from "vitest";
-import { ERR, LEGACY_VERSIONS, MODERN_VERSION, SERVER_INFO } from "./server";
+import { ERR, handleMcp, LEGACY_VERSIONS, MODERN_VERSION, SERVER_INFO } from "./server";
 import { callTool, harness, ORIGIN, rpc } from "./testing";
 import { CAPS, type TOOL_LIST } from "./tools";
 
@@ -298,6 +298,23 @@ describe("tools/call", () => {
     expect(calls()).toBeGreaterThan(before);
   });
 
+  it("applies the result cap to the whole response, request ID included", async () => {
+    const h = harness();
+    // Control characters cost 6 bytes each once JSON-escaped: a file under the data cap makes a near-cap result.
+    await h.bucket.put("2026/11/us-cpi-october/data.json", "".repeat(41_500));
+    const size = async (res: Response) => new TextEncoder().encode(await res.clone().text()).length;
+    const short = await callTool(h.deps, "get_data", { page_id: "us-cpi-october" });
+    const nearCap = await size(short);
+    expect(nearCap).toBeLessThanOrEqual(CAPS.resultBytes);
+    expect(nearCap).toBeGreaterThan(CAPS.resultBytes - 50_000);
+    const longId = await callTool(h.deps, "get_data", { page_id: "us-cpi-october" }, { id: "i".repeat(55_000) });
+    expect(longId.status).toBe(200);
+    expect(await size(longId)).toBeLessThanOrEqual(CAPS.resultBytes);
+    const b = await body(longId);
+    expect(b.result?.isError).toBe(true);
+    expect(b.result?.content[0].text).toMatch(/too large/);
+  });
+
   it("keeps responses within their size caps, and says when it truncated", async () => {
     const h = harness();
     await h.bucket.put("2026/11/us-cpi-october/index.md", `# Big\n${"é paragraph text. ".repeat(20_000)}`);
@@ -422,7 +439,37 @@ describe("transport", () => {
     expect((await rpc(deps, "tools/list", { headers: { origin: ORIGIN } })).status).toBe(200);
   });
 
-  it("bad bodies: wrong type 415, oversize 413, parse error, batch, bad id", async () => {
+  it("answers a browser preflight from an allowed origin, and adds CORS headers to its responses", async () => {
+    const { deps } = harness();
+    const preflight = (origin: string) =>
+      handleMcp(
+        deps,
+        new Request("http://mcp.test/mcp", {
+          method: "OPTIONS",
+          headers: {
+            origin,
+            "access-control-request-method": "POST",
+            "access-control-request-headers": "content-type, mcp-protocol-version, mcp-method, mcp-name",
+          },
+        }),
+      );
+    const ok = await preflight(ORIGIN);
+    expect(ok.status).toBe(204);
+    expect(ok.headers.get("access-control-allow-origin")).toBe(ORIGIN);
+    expect(ok.headers.get("access-control-allow-methods")).toBe("POST, OPTIONS");
+    for (const h of ["content-type", "mcp-protocol-version", "mcp-method", "mcp-name"])
+      expect(ok.headers.get("access-control-allow-headers")).toContain(h);
+    expect((await preflight("https://evil.example")).status).toBe(403);
+    const call = await rpc(deps, "tools/list", { headers: { origin: ORIGIN } });
+    expect(call.headers.get("access-control-allow-origin")).toBe(ORIGIN);
+    expect(call.headers.get("vary")).toContain("origin");
+    const failed = await rpc(deps, "nope/nope", { headers: { origin: ORIGIN } });
+    expect(failed.headers.get("access-control-allow-origin")).toBe(ORIGIN);
+    // Non-browser clients send no Origin and get no CORS headers.
+    expect((await rpc(deps, "tools/list")).headers.get("access-control-allow-origin")).toBeNull();
+  });
+
+    it("bad bodies: wrong type 415, oversize 413, parse error, batch, bad id", async () => {
     const { deps } = harness();
     expect((await rpc(deps, "tools/list", { headers: { "content-type": "text/plain" } })).status).toBe(415);
     await expectRpcError(
