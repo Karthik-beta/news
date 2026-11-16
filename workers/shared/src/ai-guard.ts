@@ -42,6 +42,8 @@ export function isModelPackage(specifier: string): boolean {
 const IMPORT = /(?:\bfrom\s*|\bimport\s*\(\s*|\brequire\s*\(\s*|\bimport\s+)["']([^"'\n]+)["']/g;
 // Workers AI and AI Gateway bindings in a wrangler config, and code that reaches for an AI binding on env.
 const BINDING_CONFIG = /"(ai|ai_search)"\s*:/;
+// TOML: a table `[ai]` / `[ai_search]`, also per environment (`[env.production.ai]`), or an inline `ai = { … }`.
+const BINDING_TOML = /^[ \t]*(?:\[\s*(?:env\.[A-Za-z0-9_-]+\.)?(ai|ai_search)\s*\]|(ai|ai_search)\s*=)/m;
 const BINDING_CODE = /\benv\s*\.\s*AI\b|\benv\s*\[\s*["']AI["']\s*\]/;
 
 const lineOf = (text: string, index: number) => text.slice(0, index).split("\n").length;
@@ -62,9 +64,10 @@ export function scanFile(file: string, text: string): Finding[] {
   }
   if (/^wrangler\.(jsonc?|toml)$/.test(name)) {
     // Comments may mention the rule; only live configuration counts.
-    const live = text.replace(/^\s*\/\/.*$/gm, "");
-    const m = BINDING_CONFIG.exec(live);
-    if (m) findings.push({ file, line: lineOf(live, m.index), rule: "ai-binding", detail: `"${m[1]}" binding` });
+    const toml = name.endsWith(".toml");
+    const live = text.replace(toml ? /^\s*#.*$/gm : /^\s*\/\/.*$/gm, "");
+    const m = (toml ? BINDING_TOML : BINDING_CONFIG).exec(live);
+    if (m) findings.push({ file, line: lineOf(live, m.index), rule: "ai-binding", detail: `"${m[1] ?? m[2]}" binding` });
     return findings;
   }
   if (/\.(?:[cm]?[jt]sx?)$/.test(name)) {

@@ -47,6 +47,15 @@ describe("the scanner catches", () => {
     });
   });
 
+  it.each([
+    ['[ai]\nbinding = "AI"\n', 1],
+    ['name = "x"\n\n[env.production.ai]\nbinding = "AI"\n', 3],
+    ['name = "x"\n[ai_search]\nbinding = "S"\n', 2],
+    ['name = "x"\nai = { binding = "AI" }\n', 2],
+  ])("an AI binding in wrangler.toml: %j", (toml, line) => {
+    expect(scanFile("wrangler.toml", toml)[0]).toMatchObject({ rule: "ai-binding", line });
+  });
+
   it("a model SDK in package.json", () => {
     const pkg = JSON.stringify(
       { dependencies: { aws4fetch: "1" }, devDependencies: { "@anthropic-ai/sdk": "1" } },
@@ -61,5 +70,6 @@ describe("the scanner catches", () => {
   it("but not look-alikes or comments in wrangler.jsonc", () => {
     expect(scanFile("src/x.ts", 'import { x } from "aim"; import y from "./ai"; import "ai-guard-not";')).toEqual([]);
     expect(scanFile("wrangler.jsonc", '{\n  // never add "ai": bindings\n  "name": "x"\n}')).toEqual([]);
+    expect(scanFile("wrangler.toml", '# never add [ai]\nname = "ai-free"\n[vars]\nMODE = "x"\n')).toEqual([]);
   });
 });
