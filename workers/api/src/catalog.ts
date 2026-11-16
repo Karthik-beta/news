@@ -1,4 +1,6 @@
 // Taxonomy nodes (PUT /v1/taxonomy) and redirects (PUT /v1/redirects). Categories are data, not code.
+import { notExists } from "@news/worker-shared/dynamo/conditions";
+import { ConditionFailedError } from "@news/worker-shared/dynamo/table";
 import { categoryHub, redirectKey, taxonomyNodeKey } from "@news/worker-shared/keys";
 import { Reader } from "@news/worker-shared/read";
 import type { RedirectRecord, TaxonomyNode } from "@news/worker-shared/records";
@@ -60,7 +62,7 @@ export async function executeTaxonomy(deps: Deps, p: { nodes: NodeInput[] }): Pr
   return { status: 200, body: { written: p.nodes.length, purged } };
 }
 
-export async function prepareRedirects(_deps: Deps, body: unknown): Promise<{ redirects: RedirectInput[] }> {
+export async function prepareRedirects(deps: Deps, body: unknown): Promise<{ redirects: RedirectInput[] }> {
   const r = check<{ redirects: RedirectInput[] }>(schemas.validateRedirectsRequest, body);
   if (!r.ok) throw new ApiError("invalid_request", "the request body does not match redirectsRequest", r.issues);
   const issues: Issue[] = [];
@@ -75,6 +77,15 @@ export async function prepareRedirects(_deps: Deps, body: unknown): Promise<{ re
   if (r.value.redirects.some((x) => from.has(x.to)))
     issues.push({ code: "redirect.chain", message: "a redirect target is itself redirected in this request" });
   if (issues.length > 0) throw new ApiError("invalid_request", "the redirects are not consistent", issues);
+  // Nor by a stored redirect: that would make a chain, or close a loop (/a → /b stored, then /b → /a).
+  const stored = new Set(
+    (await deps.table().batchGet(r.value.redirects.map((x) => redirectKey(x.to)))).map((d) => String(d.from)),
+  );
+  r.value.redirects.forEach((x, i) => {
+    if (stored.has(x.to))
+      issues.push({ code: "redirect.chain", message: `${x.to} is itself redirected`, path: `/redirects/${i}/to` });
+  });
+  if (issues.length > 0) throw new ApiError("invalid_request", "the redirects would make a chain or a loop", issues);
   return r.value;
 }
 
@@ -90,7 +101,14 @@ export async function executeRedirects(deps: Deps, p: { redirects: RedirectInput
       ...x,
       created_at: now,
     };
-    await table.put(item as never);
+    // Written only while the target is still not redirected, so two requests racing to close a loop cannot both win.
+    try {
+      await table.transact([{ put: item as never }, { check: redirectKey(x.to), cond: notExists() }]);
+    } catch (e) {
+      if (e instanceof ConditionFailedError)
+        throw new ApiError("version_conflict", `${x.to} was redirected meanwhile; read the redirects again`);
+      throw e;
+    }
   }
   const purged = await deps.purger.purge(p.redirects.map((x) => absolute(deps.siteOrigin, x.from)));
   return { status: 200, body: { written: p.redirects.length, purged } };

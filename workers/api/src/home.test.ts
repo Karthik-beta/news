@@ -267,6 +267,58 @@ describe("PUT /v1/taxonomy and /v1/redirects", () => {
     expect(orphan.status).toBe(400);
   });
 
+  it("a large invalid taxonomy lists at most 50 problems, within the error contract", async () => {
+    const h = harness();
+    const nodes = Array.from({ length: 100 }, (_, i) => ({
+      id: `science/topic-${i}`,
+      name: `Topic ${i}`,
+      parent: "economy",
+      order: i,
+      lang: "en",
+    }));
+    const res = await h.call("PUT", "/v1/taxonomy", { body: { nodes } });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: { details: unknown[] } };
+    expect(body.error.details).toHaveLength(50);
+    expect(schemas.validateErrorBody(body)).toBe(true);
+  });
+
+  it("refuses a redirect whose target is itself redirected, including by an earlier request", async () => {
+    const h = harness();
+    const put = (from: string, to: string) =>
+      h.call("PUT", "/v1/redirects", { body: { redirects: [{ from, to, status: 301 }] } });
+    expect((await put("/a", "/b")).status).toBe(200);
+    // /b → /a would close the loop /a → /b → /a; /c → /a would make a chain.
+    for (const [from, to] of [
+      ["/b", "/a"],
+      ["/c", "/a"],
+    ]) {
+      const res = await put(from, to);
+      expect(res.status, `${from} → ${to}`).toBe(400);
+      expect(((await res.json()) as { error: { details: { code: string }[] } }).error.details[0]?.code).toBe(
+        "redirect.chain",
+      );
+    }
+    expect(h.table.dump().filter((i) => i.type === "redirect")).toHaveLength(1);
+  });
+
+  it("two requests racing to close a loop cannot both win", async () => {
+    const h = harness();
+    // Both requests have passed their checks (nothing redirected yet) before either writes.
+    const transact = h.table.transact.bind(h.table);
+    let second: Promise<Response> | undefined;
+    h.table.transact = async (ops) => {
+      if (!second) second = h.call("PUT", "/v1/redirects", { body: { redirects: [{ from: "/b", to: "/a", status: 301 }] } });
+      return transact(ops);
+    };
+    const first = await h.call("PUT", "/v1/redirects", { body: { redirects: [{ from: "/a", to: "/b", status: 301 }] } });
+    expect(second).toBeDefined();
+    const statuses = [first.status, (await second)?.status].sort();
+    expect(statuses[0]).toBe(200);
+    expect(statuses[1]).not.toBe(200);
+    expect(h.table.dump().filter((i) => i.type === "redirect")).toHaveLength(1);
+  });
+
   it("writes redirects and refuses loops and unsafe paths", async () => {
     const h = harness();
     const ok = await h.call("PUT", "/v1/redirects", {
