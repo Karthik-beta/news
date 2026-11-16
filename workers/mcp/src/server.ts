@@ -6,7 +6,8 @@
 // tools/list and tools/call are served the same way. One endpoint, POST /mcp; GET and DELETE are 405.
 import { clientIp, readBodyCapped, SECURITY_HEADERS } from "@news/worker-shared/http";
 import { type Deps, UnavailableError } from "./deps";
-import { CAPS, TOOL_BY_NAME, TOOL_LIST, ToolError, type ToolOutput } from "./tools";
+import { cachedRun } from "./cache";
+import { CAPS, TOOL_BY_NAME, TOOL_LIST, type ToolOutput } from "./tools";
 
 export const MODERN_VERSION = "2026-07-28";
 export const LEGACY_VERSIONS = ["2025-11-25", "2025-06-18"] as const;
@@ -149,7 +150,11 @@ function negotiate(request: Request, msg: Message): Era {
 
 const enc = new TextEncoder();
 
-async function callTool(deps: Deps, params: Record<string, unknown> | undefined): Promise<Record<string, unknown>> {
+async function callTool(
+  deps: Deps,
+  params: Record<string, unknown> | undefined,
+  origin: string,
+): Promise<Record<string, unknown>> {
   const name = params?.name;
   if (typeof name !== "string") throw new RpcError(ERR.invalidParams, "params.name must be a string", 400);
   const tool = TOOL_BY_NAME.get(name);
@@ -164,9 +169,12 @@ async function callTool(deps: Deps, params: Record<string, unknown> | undefined)
   }
   let out: ToolOutput;
   try {
-    out = await tool.run(deps, args as Record<string, unknown>);
+    const outcome = await cachedRun(deps.cache, origin, name, args as Record<string, unknown>, () =>
+      tool.run(deps, args as Record<string, unknown>),
+    );
+    if (!outcome.ok) return failure(outcome.message);
+    out = outcome.out;
   } catch (e) {
-    if (e instanceof ToolError) return failure(e.message);
     if (e instanceof UnavailableError) throw new RpcError(ERR.internal, "The server is not fully configured", 500);
     deps.log.error("tool_failed", {
       tool: name,
@@ -184,7 +192,7 @@ async function callTool(deps: Deps, params: Record<string, unknown> | undefined)
   return result;
 }
 
-async function dispatch(deps: Deps, msg: Message, era: Era): Promise<Record<string, unknown>> {
+async function dispatch(deps: Deps, msg: Message, era: Era, origin: string): Promise<Record<string, unknown>> {
   switch (msg.method) {
     case "server/discover":
       if (era.kind !== "modern") break;
@@ -202,7 +210,7 @@ async function dispatch(deps: Deps, msg: Message, era: Era): Promise<Record<stri
         ? { tools: TOOL_LIST, ttlMs: 3_600_000, cacheScope: "public" }
         : { tools: TOOL_LIST };
     case "tools/call":
-      return callTool(deps, msg.params);
+      return callTool(deps, msg.params, origin);
   }
   throw new RpcError(ERR.methodNotFound, `Method not found: ${msg.method.slice(0, 100)}`, 404);
 }
@@ -283,7 +291,7 @@ export async function handleMcp(deps: Deps, request: Request): Promise<Response>
       return Response.json({ jsonrpc: "2.0", id, result: legacyInitialize(msg) }, { headers: headers() });
     }
     const era = negotiate(request, msg);
-    const result = await dispatch(deps, msg, era);
+    const result = await dispatch(deps, msg, era, new URL(request.url).origin);
     const body =
       era.kind === "modern"
         ? { ...result, resultType: "complete", _meta: { [`${META}serverInfo`]: SERVER_INFO } }

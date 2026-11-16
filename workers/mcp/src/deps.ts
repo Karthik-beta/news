@@ -34,6 +34,8 @@ export interface Deps {
   bucket: () => R2Bucket;
   shards: () => SearchShard[];
   limiter?: RateLimit;
+  /** Edge cache for tool results (cache.ts); absent in tests and on workers.dev, where nothing is cached. */
+  cache?: Cache;
   siteOrigin: string;
   allowedOrigins: Set<string>;
   log: Logger;
@@ -71,6 +73,7 @@ export function depsFromEnv(env: Env): Deps {
     },
     shards: () => listShards(env),
     limiter: env.MCP_RATE_LIMITER,
+    cache: typeof caches === "undefined" ? undefined : caches.default,
     siteOrigin,
     allowedOrigins: new Set([siteOrigin, ...allowed]),
     log,

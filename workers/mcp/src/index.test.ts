@@ -265,6 +265,39 @@ describe("tools/call", () => {
     expect(b.result?.structuredContent).toMatchObject({ version: 2, markdown: "# Version two\n" });
   });
 
+  it("answers a repeated call from the edge cache without reading storage again", async () => {
+    const stored = new Map<string, { body: string; cacheControl: string | null }>();
+    const cache = {
+      async match(key: string) {
+        const hit = stored.get(key);
+        return hit ? new Response(hit.body) : undefined;
+      },
+      async put(key: string, res: Response) {
+        stored.set(key, { body: await res.text(), cacheControl: res.headers.get("cache-control") });
+      },
+    } as unknown as Cache;
+    const h = harness({ cache });
+    const calls = () => h.table.calls.length + h.d1.statements.length;
+    for (const [name, args] of [
+      ["get_page", { page_id: "us-cpi-october" }],
+      ["get_entity", { entity_id: "country:US" }],
+      ["search_pages", { query: "inflation" }],
+      ["list_categories", {}],
+      ["get_page", { page_id: "nope" }], // a "not found" is cached too, so hammering a missing ID costs nothing
+    ] as const) {
+      const first = await body(await callTool(h.deps, name, args));
+      const before = calls();
+      const again = await body(await callTool(h.deps, name, { ...args }));
+      expect(calls(), name).toBe(before);
+      expect(again.result).toEqual(first.result);
+    }
+    expect([...stored.values()].every((v) => /max-age=\d+/.test(v.cacheControl ?? ""))).toBe(true);
+    // Different arguments are a different entry.
+    const before = calls();
+    await callTool(h.deps, "get_entity", { entity_id: "country:US", limit: 5 });
+    expect(calls()).toBeGreaterThan(before);
+  });
+
   it("keeps responses within their size caps, and says when it truncated", async () => {
     const h = harness();
     await h.bucket.put("2026/11/us-cpi-october/index.md", `# Big\n${"é paragraph text. ".repeat(20_000)}`);
