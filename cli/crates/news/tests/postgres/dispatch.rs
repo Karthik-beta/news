@@ -446,10 +446,11 @@ async fn retrying_more_than_50_dead_jobs_is_karthiks_call() {
     .await
     .unwrap();
     let mut agent = f.news();
-    agent
-        .args(["jobs", "retry", "--class", "upstream_changed"])
-        .env("CLAUDECODE", "1");
-    let (env, code, _, _) = super::fixture::call(&mut agent);
+    agent.env("CLAUDECODE", "1");
+    let (env, code, _, _) = super::fixture::call(
+        &mut agent,
+        &["jobs", "retry", "--class", "upstream_changed"],
+    );
     assert_eq!(
         (code, env["error"]["code"].as_str()),
         (7, Some("gated")),
@@ -648,9 +649,9 @@ async fn news_work_never_reads_the_write_api_key() {
     }
     let sentinel = "sentinel-write-key-9d2e41";
     let mut cmd = f.news();
-    cmd.args(["work", "--pools", "net,cpu,docling", "--once"])
-        .env("NEWS_WRITE_API_KEY", sentinel);
-    let (env, code, stdout, stderr) = super::fixture::call(&mut cmd);
+    cmd.env("NEWS_WRITE_API_KEY", sentinel);
+    let (env, code, stdout, stderr) =
+        super::fixture::call(&mut cmd, &["work", "--pools", "net,cpu,docling", "--once"]);
     assert_eq!(code, 0, "{env}");
     assert_eq!(env["data"]["write_api_key_reads"], 0);
     assert_eq!(env["data"]["report"]["claimed"], 3, "{env}");
@@ -694,6 +695,7 @@ async fn news_work_never_reads_the_write_api_key() {
     let stderr = String::from_utf8_lossy(&out.stderr);
     assert_eq!(out.status.code(), Some(0), "{stdout}\n{stderr}");
     let env: serde_json::Value = serde_json::from_str(stdout.trim()).unwrap();
+    super::fixture::check_output(&["work"], &env);
     assert_eq!(env["data"]["report"]["claimed"], 2, "{env}");
     assert_eq!(env["data"]["write_api_key_reads"], 0);
     let names = stderr

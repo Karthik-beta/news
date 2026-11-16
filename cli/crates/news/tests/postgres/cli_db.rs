@@ -30,8 +30,8 @@ async fn db_migrate_is_idempotent_from_the_cli() {
 async fn db_migrate_sets_the_ai_pool_from_news_parallel() {
     let f = Fixture::new().await;
     let mut cmd = f.news();
-    cmd.args(["db", "migrate"]).env("NEWS_PARALLEL", "5");
-    let (env, code, _, _) = super::fixture::call(&mut cmd);
+    cmd.env("NEWS_PARALLEL", "5");
+    let (env, code, _, _) = super::fixture::call(&mut cmd, &["db", "migrate"]);
     assert_eq!(code, 0, "{env}");
     assert_eq!(env["data"]["ai_max_running"], 5);
     assert_eq!(

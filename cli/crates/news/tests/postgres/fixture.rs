@@ -74,9 +74,10 @@ impl Fixture {
         cmd
     }
 
-    /// Run the binary: (envelope, exit code, stdout, stderr).
+    /// Run the binary: (envelope, exit code, stdout, stderr). A successful envelope's `data` is
+    /// validated against the command's `$defs.output` contract.
     pub fn call(&self, args: &[&str]) -> (serde_json::Value, i32, String, String) {
-        call(self.news().args(args))
+        call(&mut self.news(), args)
     }
 
     pub async fn scalar_i64(&self, sql: &str) -> i64 {
@@ -94,8 +95,13 @@ impl Fixture {
     }
 }
 
-pub fn call(cmd: &mut assert_cmd::Command) -> (serde_json::Value, i32, String, String) {
-    let out = cmd.output().unwrap();
+/// Run `cmd` with `args`: (envelope, exit code, stdout, stderr). Checks that stdout is one envelope
+/// line and, when it is `ok`, that `data` matches the command's output contract.
+pub fn call(
+    cmd: &mut assert_cmd::Command,
+    args: &[&str],
+) -> (serde_json::Value, i32, String, String) {
+    let out = cmd.args(args).output().unwrap();
     let stdout = String::from_utf8(out.stdout).unwrap();
     let stderr = String::from_utf8(out.stderr).unwrap();
     assert_eq!(
@@ -103,8 +109,51 @@ pub fn call(cmd: &mut assert_cmd::Command) -> (serde_json::Value, i32, String, S
         1,
         "stdout is not one line: {stdout:?} / {stderr}"
     );
-    let env = serde_json::from_str(&stdout).unwrap_or_else(|e| panic!("{e}: {stdout}"));
+    let env: serde_json::Value =
+        serde_json::from_str(&stdout).unwrap_or_else(|e| panic!("{e}: {stdout}"));
+    check_output(args, &env);
     (env, out.status.code().unwrap(), stdout, stderr)
+}
+
+/// The command a call ran, as the dotted name of its contract file (`jobs.claim`): the longest run of
+/// leading words that names a file in `contracts/cli/commands/`.
+fn contract_of(args: &[&str]) -> Option<(String, std::path::PathBuf)> {
+    let dir =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../contracts/cli/commands");
+    let words: Vec<&str> = args
+        .iter()
+        .copied()
+        .take_while(|a| !a.starts_with('-'))
+        .collect();
+    (1..=words.len()).rev().find_map(|n| {
+        let name = words[..n].join(".");
+        let path = dir.join(format!("{name}.schema.json"));
+        path.is_file().then_some((name, path))
+    })
+}
+
+/// Validate a successful envelope's `data` against `$defs.output` of the command's contract. Skipped
+/// with `--fields`, which removes keys the contract requires by design.
+pub fn check_output(args: &[&str], env: &serde_json::Value) {
+    if env["ok"] != true || args.contains(&"--fields") {
+        return;
+    }
+    let (name, path) =
+        contract_of(args).unwrap_or_else(|| panic!("no output contract for {args:?}"));
+    let mut schema: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+    schema["$ref"] = serde_json::json!("#/$defs/output");
+    let validator = jsonschema::draft202012::new(&schema)
+        .unwrap_or_else(|e| panic!("{name}: the contract does not compile: {e}"));
+    let errors: Vec<String> = validator
+        .iter_errors(&env["data"])
+        .map(|e| format!("{} at {}", e, e.instance_path()))
+        .collect();
+    assert!(
+        errors.is_empty(),
+        "{name}: data breaks $defs.output: {errors:?}
+{env}"
+    );
 }
 
 impl Drop for Fixture {
