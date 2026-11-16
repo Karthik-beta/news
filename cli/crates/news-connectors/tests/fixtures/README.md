@@ -21,3 +21,5 @@ curl "https://api.stlouisfed.org/fred/series/observations?series_id=CPIAUCSL&rea
 ```
 
 Then update the expected values in `tests/stringers.rs` and `news-wire/tests/pipeline.rs`.
+
+**SEC EDGAR is disabled** (`enabled = false` in `data/sources/sec-edgar.toml`) until both are done: the `sec/` fixtures are recorded as above, and `NEWS_CONTACT_EMAIL` is set in `.env`. Without the e-mail the Runner refuses every SEC request as `bug`, which would put each SEC job on the dead list. `news sources sync` only sets `enabled` on insert, so after recording, enable it explicitly.

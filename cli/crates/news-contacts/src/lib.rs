@@ -363,6 +363,9 @@ mod tests {
                 .contains("Securities and Exchange Commission")
         );
         assert!(sec.requires_contact_email);
+        // Off until its fixtures are recorded and NEWS_CONTACT_EMAIL is set: without the e-mail every
+        // SEC job would fail as `bug` and land on the dead list.
+        assert!(!sec.enabled);
         let fred = sources.iter().find(|s| s.source_id == "fred").unwrap();
         assert!(
             !fred.redistribution,
@@ -403,10 +406,12 @@ mod tests {
     }
 
     fn good() -> Source {
-        repo_sources()
+        let mut s = repo_sources()
             .into_iter()
             .find(|s| s.source_id == "sec-edgar")
-            .unwrap()
+            .unwrap();
+        s.enabled = true;
+        s
     }
 
     fn rules(s: Source) -> Vec<&'static str> {

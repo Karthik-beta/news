@@ -23,5 +23,8 @@ requires_contact_email = true
 regions = ["us"]
 categories = ["finance", "earnings"]
 calendar_kind = "derived"
-enabled = true
+# Off until the SEC fixtures are recorded and NEWS_CONTACT_EMAIL is set (see
+# cli/crates/news-connectors/tests/fixtures/README.md): without the e-mail every SEC job fails as `bug`.
+# Enabling it is Karthik's call (`news sources enable`, through Chief).
+enabled = false
 notes = "Discovery: submissions JSON per tracked CIK. Earnings = 10-Q, 10-K, or 8-K with Item 2.02 (code only)."
