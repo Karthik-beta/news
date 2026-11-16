@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cloud/curation.v1.schema.json",
+  "title": "Home page curation (curation.v1)",
+  "description": "The body of PUT /v1/home/curation, sent by `news home publish` after `news home check` passed and Karthik approved the preview. Slots point at page IDs, never at copies of page text. The curator's rationale stays in PostgreSQL and is not accepted here. Slot counts and breadth rules: ADR 0005.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "lang", "created_at", "approved_at", "curator_model", "slots", "checks"],
+  "properties": {
+    "schema": { "const": "curation.v1" },
+    "lang": { "$ref": "common.schema.json#/$defs/lang" },
+    "created_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+    "approved_at": { "$ref": "common.schema.json#/$defs/timestamp" },
+    "curator_model": { "type": "string", "minLength": 1, "maxLength": 80, "pattern": "^[A-Za-z0-9._:/-]+$" },
+    "slots": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lead", "side", "sections"],
+      "properties": {
+        "lead": { "$ref": "#/$defs/leadSlot" },
+        "side": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "$ref": "#/$defs/slot" } },
+        "sections": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 5,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["category", "pages"],
+            "properties": {
+              "category": { "$ref": "common.schema.json#/$defs/categorySlug" },
+              "pages": { "type": "array", "minItems": 3, "maxItems": 4, "items": { "$ref": "#/$defs/slot" } }
+            }
+          }
+        }
+      }
+    },
+    "checks": {
+      "description": "Results of `news home check` on the laptop. Only a passing draft can be published; the write API runs its own checks again.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["passed", "results"],
+      "properties": {
+        "passed": { "const": true },
+        "results": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["rule", "ok"],
+            "properties": {
+              "rule": { "type": "string", "minLength": 1, "maxLength": 60, "pattern": "^[a-z0-9_]+$" },
+              "ok": { "type": "boolean" },
+              "detail": { "type": "string", "maxLength": 300 }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "slot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["page_id"],
+      "properties": {
+        "page_id": { "$ref": "common.schema.json#/$defs/pageId" },
+        "figure_id": { "$ref": "common.schema.json#/$defs/dataId" },
+        "chart_id": { "$ref": "common.schema.json#/$defs/chartId" }
+      },
+      "not": { "required": ["figure_id", "chart_id"] }
+    },
+    "leadSlot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["page_id"],
+      "properties": {
+        "page_id": { "$ref": "common.schema.json#/$defs/pageId" },
+        "figure_id": { "$ref": "common.schema.json#/$defs/dataId" },
+        "chart_id": { "$ref": "common.schema.json#/$defs/chartId" },
+        "still_leading": {
+          "description": "The curator marks a Tier 1 lead older than 7 days as still leading (TD, Home page curation, freshness rule).",
+          "type": "boolean"
+        }
+      },
+      "not": { "required": ["figure_id", "chart_id"] }
+    }
+  }
+}
