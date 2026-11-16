@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { DynamoTable, dynamoTableFromEnv, resolveEndpoint } from "./client";
 import { eq } from "./conditions";
-import { ConditionFailedError, DynamoError, OutcomeUnknownError, ThrottledError } from "./table";
+import { ConditionFailedError, DynamoError, OutcomeUnknownError, SubrequestLimitError, ThrottledError } from "./table";
 
 const config = {
   table: "news",
@@ -141,6 +141,40 @@ describe("DynamoTable", () => {
     const t = new DynamoTable({ ...config, fetch });
     await expect(t.batchGet([{ PK: "a", SK: "b" }])).rejects.toBeInstanceOf(ThrottledError);
     expect(calls).toBe(4);
+  });
+
+  it("batchWrite: 25 writes per call, unprocessed ones retried twice, then throttled", async () => {
+    const sizes: number[] = [];
+    const { fetch } = recording((body) => {
+      const items = (body.RequestItems as Record<string, unknown[]>).news ?? [];
+      sizes.push(items.length);
+      return Response.json({});
+    });
+    const t = new DynamoTable({ ...config, fetch });
+    await t.batchWrite([
+      ...Array.from({ length: 30 }, (_, i) => ({ put: { PK: "HUB#x", SK: `k${i}` } })),
+      { delete: { PK: "HUB#x", SK: "gone" } },
+    ]);
+    expect(sizes).toEqual([25, 6]);
+    let calls = 0;
+    const stuck = recording((body) => {
+      calls++;
+      return Response.json({ UnprocessedItems: { news: (body.RequestItems as Record<string, unknown[]>).news } });
+    });
+    await expect(
+      new DynamoTable({ ...config, fetch: stuck.fetch }).batchWrite([{ put: { PK: "a", SK: "b" } }]),
+    ).rejects.toBeInstanceOf(ThrottledError);
+    expect(calls).toBe(3);
+  });
+
+  it("over the subrequest limit a write is a plain failure (never sent), not an unknown outcome", async () => {
+    const limited = async () => {
+      throw new Error("Too many subrequests.");
+    };
+    const t = new DynamoTable({ ...config, fetch: limited });
+    await expect(t.put({ PK: "a", SK: "b" })).rejects.toBeInstanceOf(SubrequestLimitError);
+    await expect(t.batchWrite([{ put: { PK: "a", SK: "b" } }])).rejects.toBeInstanceOf(SubrequestLimitError);
+    await expect(t.get({ PK: "a", SK: "b" })).rejects.toBeInstanceOf(SubrequestLimitError);
   });
 
   it("builds from env and refuses missing settings without echoing values", () => {

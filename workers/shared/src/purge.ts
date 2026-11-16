@@ -29,6 +29,8 @@ export interface CloudflarePurgerConfig {
 }
 
 const ZONE_ID = /^[0-9a-f]{32}$/;
+/** URLs per purge call (the free plan's maximum): one subrequest each. */
+export const PURGE_BATCH = 30;
 
 export class CloudflarePurger implements Purger {
   readonly #config: Required<Omit<CloudflarePurgerConfig, "fetch" | "sleep">>;
@@ -38,7 +40,7 @@ export class CloudflarePurger implements Purger {
   constructor(config: CloudflarePurgerConfig) {
     if (!ZONE_ID.test(config.zoneId)) throw new Error("invalid Cloudflare zone ID");
     if (!config.token) throw new Error("Cloudflare purge token is not set");
-    this.#config = { batchSize: 30, pauseMs: 250, ...config };
+    this.#config = { batchSize: PURGE_BATCH, pauseMs: 250, ...config };
     if (this.#config.batchSize < 1 || this.#config.batchSize > 100) throw new Error("purge batch size must be 1–100");
     this.#fetch = config.fetch ?? ((r) => fetch(r));
     this.#sleep = config.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));

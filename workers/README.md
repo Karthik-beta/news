@@ -72,6 +72,7 @@ api Worker (publish key): items of the one table only; no `Scan`, `UpdateItem` o
         "dynamodb:Query",
         "dynamodb:PutItem",
         "dynamodb:DeleteItem",
+        "dynamodb:BatchWriteItem",
         "dynamodb:ConditionCheckItem"
       ],
       "Resource": "arn:aws:dynamodb:<region>:<account>:table/<table>"

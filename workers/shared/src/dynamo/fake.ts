@@ -2,6 +2,8 @@
 // which runs the same suite against DynamoDB Local), and records every call so a test can assert "wrote nothing".
 import { type Cond, evaluate } from "./conditions";
 import {
+  BATCH_WRITE_MAX,
+  type BatchOp,
   ConditionFailedError,
   type Doc,
   DynamoError,
@@ -16,21 +18,21 @@ import {
   type TransactOp,
 } from "./table";
 
-export type FakeOp = "get" | "batchGet" | "put" | "delete" | "query" | "transact";
+export type FakeOp = "get" | "batchGet" | "put" | "delete" | "query" | "transact" | "batchWrite";
 
 export interface FakeCall {
   op: FakeOp;
   keys: Key[];
 }
 
-const WRITES: ReadonlySet<FakeOp> = new Set(["put", "delete", "transact"]);
+const WRITES: ReadonlySet<FakeOp> = new Set(["put", "delete", "transact", "batchWrite"]);
 
 const id = (k: Key) => `${k.PK}\u0000${k.SK}`;
 const clone = <T>(v: T): T => structuredClone(v);
 
 export class FakeTable implements Table {
   readonly #items = new Map<string, Doc>();
-  /** Every call, in order. */
+  /** Every call, in order. A batch write is one call per BATCH_WRITE_MAX items, as DynamoDB counts them. */
   readonly calls: FakeCall[] = [];
   /** Set to make the next N calls fail as throttled (tests of the 503 path). */
   throttleNext = 0;
@@ -114,6 +116,21 @@ export class FakeTable implements Table {
     // Like DynamoDB: a page cut by Limit carries a LastEvaluatedKey even when nothing follows it.
     const next = items.length >= limit && page.length > 0 ? keyOf(page[page.length - 1] as Doc) : undefined;
     return { items: page.map(clone), ...(next ? { next } : {}) };
+  }
+
+  async batchWrite(ops: BatchOp[]): Promise<void> {
+    for (let i = 0; i < ops.length; i += BATCH_WRITE_MAX) {
+      const chunk = ops.slice(i, i + BATCH_WRITE_MAX);
+      const keys = chunk.map((op) => ("put" in op ? keyOf(op.put) : op.delete));
+      this.#record("batchWrite", keys);
+      if (new Set(keys.map(id)).size !== keys.length)
+        throw new DynamoError("ValidationException", "Provided list of item keys contains duplicates", 400);
+      for (const op of chunk) if ("put" in op) this.#checkPut(op.put);
+      for (const op of chunk) {
+        if ("put" in op) this.#items.set(id(keyOf(op.put)), clone(op.put));
+        else this.#items.delete(id(op.delete));
+      }
+    }
   }
 
   async transact(ops: TransactOp[]): Promise<void> {

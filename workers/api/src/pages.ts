@@ -1,7 +1,15 @@
 // Page operations: publish (PUT /v1/pages/{id}), withdraw, and index promotion.
 import { sha256Hex } from "@news/worker-shared/crypto";
 import { and, eq, le, notExists, or } from "@news/worker-shared/dynamo/conditions";
-import { ConditionFailedError, type Doc, itemSize, OutcomeUnknownError } from "@news/worker-shared/dynamo/table";
+import {
+  BATCH_WRITE_MAX,
+  type BatchOp,
+  ConditionFailedError,
+  type Doc,
+  itemSize,
+  OutcomeUnknownError,
+  type Table,
+} from "@news/worker-shared/dynamo/table";
 import {
   entityKey,
   hubPk,
@@ -11,6 +19,7 @@ import {
   pageVersionKey,
   pathClaimKey,
 } from "@news/worker-shared/keys";
+import { PURGE_BATCH } from "@news/worker-shared/purge";
 import { deletePageFiles, putPageFile } from "@news/worker-shared/r2";
 import { Reader } from "@news/worker-shared/read";
 import type { EntityRecord, HubEntry, Manifest, PageMeta, PageRecord, PathClaim } from "@news/worker-shared/records";
@@ -25,6 +34,19 @@ export const REQUIRED_FILES = ["index.html", "index.md", "data.json", "sources.j
 /** Page record items stay far below DynamoDB's 400 KB: metadata only, files in R2 (ADR 0004). */
 const MAX_PAGE_ITEM_BYTES = 64 * 1024;
 const CONCURRENCY = 6;
+
+/**
+ * External subrequests one publish may plan. The Workers free plan allows 50 per request, and every DynamoDB call and
+ * purge call is one (R2 and D1 bindings count against Cloudflare's separate, larger limit for its own services). The
+ * five left over cover retries of unprocessed batch writes and one rate-limited purge batch.
+ */
+export const SUBREQUEST_BUDGET = 45;
+/**
+ * DynamoDB calls of a publish that are not batches: idempotency lookup, claim and completion; page lock and unlock;
+ * live record and stored version reads; path claim; version record; LATEST; clearing the cleanup note.
+ */
+const PUBLISH_SINGLE_CALLS = 11;
+const batches = (n: number, size: number) => Math.ceil(n / size);
 
 export interface OpResult {
   status: number;
@@ -62,6 +84,10 @@ export interface CheckedBundle {
 
 export interface PreparedPage extends CheckedBundle {
   previous: PageRecord | undefined;
+  /** The new live record, its cleanup note, and the entity records to write: planned before anything is written. */
+  page: PageRecord;
+  cleanup: PageRecord["cleanup"];
+  entities: EntityRecord[];
 }
 
 const enc = new TextEncoder();
@@ -161,8 +187,55 @@ export async function preparePut(deps: Deps, pageId: string, bundle: CheckedBund
   const stored = await reader.getPageVersion(pageId, meta.version);
   if (stored && stored.bundle_sha256 !== manifest.bundle_sha256)
     throw new ApiError("version_conflict", `version ${meta.version} already exists with different content`);
-  return { ...bundle, previous };
+
+  const now = deps.now();
+  const page = pageRecord(meta, manifest, previous, now);
+  const cleanup = cleanupFor(previous, page);
+  const entities = newEntities(meta, previous, page.lang, now);
+  const planned =
+    PUBLISH_SINGLE_CALLS +
+    batches(page.hubs.length + entities.length, BATCH_WRITE_MAX) +
+    batches(cleanup?.hubs.length ?? 0, BATCH_WRITE_MAX) +
+    batches(new Set(affectedUrls(deps, { ...page, cleanup })).size, PURGE_BATCH);
+  if (planned > SUBREQUEST_BUDGET)
+    throw new ApiError("invalid_meta", "this publish needs more storage calls than one request may make", [
+      {
+        code: "meta.too_many_writes",
+        message: `${planned} DynamoDB and purge calls planned; at most ${SUBREQUEST_BUDGET} fit in one request`,
+      },
+    ]);
+  return { ...bundle, previous, page, cleanup, entities };
 }
+
+/** Entity records to write: those the live version does not already list with the same name and kind. */
+function newEntities(meta: PageMeta, previous: PageRecord | undefined, lang: string, now: Date): EntityRecord[] {
+  const entityId = (e: { id: string; name: string; kind: string }) => `${e.id}\u0000${e.name}\u0000${e.kind}`;
+  const known = new Set((previous?.entities ?? []).map(entityId));
+  const byId = new Map<string, EntityRecord>();
+  for (const e of meta.entities)
+    if (!known.has(entityId(e)))
+      byId.set(e.id, {
+        ...entityKey(e.id),
+        SK: "META",
+        type: "entity",
+        lang,
+        id: e.id,
+        name: e.name,
+        kind: e.kind,
+        updated_at: now.toISOString(),
+      });
+  return [...byId.values()];
+}
+
+/** Unconditional writes in batches of 25: one subrequest per batch instead of one per item. */
+async function writeBatches(table: Table, ops: BatchOp[]): Promise<void> {
+  for (let i = 0; i < ops.length; i += BATCH_WRITE_MAX) await table.batchWrite(ops.slice(i, i + BATCH_WRITE_MAX));
+}
+
+const hubKey = (page: Pick<PageRecord, "published_at" | "page_id">, hub: string) => ({
+  PK: hubPk(hub),
+  SK: hubSk(page.published_at, page.page_id),
+});
 
 function assertCanReplace(previous: PageRecord, meta: PageMeta, manifest: Manifest): void {
   if (previous.path !== meta.path)
@@ -249,7 +322,7 @@ export function cleanupFor(previous: PageRecord | undefined, page: PageRecord): 
 }
 
 /** URLs to purge after a page changes: its files, every hub it is or was in, and the home page. */
-function affectedUrls(deps: Deps, page: PageRecord): string[] {
+function affectedUrls(deps: Deps, page: Pick<PageRecord, "path" | "hubs" | "files" | "cleanup">): string[] {
   const hubs = unique(page.hubs, page.cleanup?.hubs ?? []);
   const files = unique(page.files, page.cleanup?.files ?? []);
   return [
@@ -262,9 +335,7 @@ function affectedUrls(deps: Deps, page: PageRecord): string[] {
 export async function executePut(deps: Deps, p: PreparedPage): Promise<OpResult> {
   const table = deps.table();
   const bucket = deps.bucket();
-  const now = deps.now();
-  const page = pageRecord(p.meta, p.manifest, p.previous, now);
-  const cleanup = cleanupFor(p.previous, page);
+  const { page, cleanup } = p;
   const live: PageRecord = cleanup ? { ...page, cleanup } : page;
   if (itemSize(live as unknown as Doc) > MAX_PAGE_ITEM_BYTES)
     throw new ApiError("invalid_meta", "page metadata is too large for one record (64 KB)");
@@ -280,7 +351,7 @@ export async function executePut(deps: Deps, p: PreparedPage): Promise<OpResult>
     lang: page.lang,
     page_id: page.page_id,
     path: page.path,
-    created_at: now.toISOString(),
+    created_at: page.written_at,
   };
   try {
     await table.put(claimItem as never, or(notExists(), eq("page_id", page.page_id)));
@@ -307,28 +378,12 @@ export async function executePut(deps: Deps, p: PreparedPage): Promise<OpResult>
     throw e;
   }
 
-  // 4. Hub entries and entities. An entity the live version already listed with the same name and kind is not
-  //    rewritten: its item exists, because entities are written before LATEST moves.
-  await eachLimited(
-    page.hubs.map((h) => hubEntry(page, h)),
-    CONCURRENCY,
-    (e) => table.put(e as never),
-  );
-  const entityId = (e: { id: string; name: string; kind: string }) => `${e.id}\u0000${e.name}\u0000${e.kind}`;
-  const known = new Set((p.previous?.entities ?? []).map(entityId));
-  const entities: EntityRecord[] = p.meta.entities
-    .filter((e) => !known.has(entityId(e)))
-    .map((e) => ({
-      ...entityKey(e.id),
-      SK: "META",
-      type: "entity",
-      lang: page.lang,
-      id: e.id,
-      name: e.name,
-      kind: e.kind,
-      updated_at: now.toISOString(),
-    }));
-  await eachLimited(entities, CONCURRENCY, (e) => table.put(e as never));
+  // 4. Hub entries and entities, in batches. An entity the live version already listed with the same name and kind
+  //    is not rewritten: its item exists, because entities are written before LATEST moves.
+  await writeBatches(table, [
+    ...page.hubs.map((h) => ({ put: hubEntry(page, h) as unknown as Doc })),
+    ...p.entities.map((e) => ({ put: e as unknown as Doc })),
+  ]);
 
   // 5. Search row, then LATEST last: moving LATEST is the commit point readers see.
   await deps.search.index(page);
@@ -343,8 +398,9 @@ export async function executePut(deps: Deps, p: PreparedPage): Promise<OpResult>
   // 6. After the commit: leave the hubs and delete the files the page dropped, purge, then clear the cleanup note.
   //    The note is part of LATEST, so a retry of this request (or the next version) finishes it if this fails.
   if (cleanup) {
-    await eachLimited(cleanup.hubs, CONCURRENCY, (h) =>
-      table.delete({ PK: hubPk(h), SK: hubSk(page.published_at, page.page_id) }),
+    await writeBatches(
+      table,
+      cleanup.hubs.map((h) => ({ delete: hubKey(page, h) })),
     );
     await deletePageFiles(bucket, page.path, cleanup.files);
   }
@@ -413,8 +469,9 @@ export async function executeWithdraw(deps: Deps, p: PreparedPageOp): Promise<Op
     page = withdrawn;
   }
   const gone = page;
-  await eachLimited(unique(gone.hubs, gone.cleanup?.hubs ?? []), CONCURRENCY, (h) =>
-    table.delete({ PK: hubPk(h), SK: hubSk(gone.published_at, gone.page_id) }),
+  await writeBatches(
+    table,
+    unique(gone.hubs, gone.cleanup?.hubs ?? []).map((h) => ({ delete: hubKey(gone, h) })),
   );
   await deps.search.remove(gone);
   // The public files go: a withdrawn page must stop being served.
@@ -464,7 +521,10 @@ export async function executeIndex(deps: Deps, p: PreparedPageOp): Promise<OpRes
       throw new ApiError("version_conflict", "the page changed; read it again and retry");
     throw e;
   }
-  await eachLimited(page.hubs, CONCURRENCY, (h) => table.put(hubEntry(page, h) as never));
+  await writeBatches(
+    table,
+    page.hubs.map((h) => ({ put: hubEntry(page, h) as unknown as Doc })),
+  );
   await deps.search.setIndexStatus(page, status);
   // The page's own URLs: its robots meta and sitemap entry follow index_status (ADR 0004).
   const purged = await deps.purger.purge(pageFileUrls(deps.siteOrigin, page.path, ["index.html"]));

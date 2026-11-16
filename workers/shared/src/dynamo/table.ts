@@ -35,6 +35,12 @@ export interface QueryOutput {
 
 export type TransactOp = { put: Doc; cond?: Cond } | { delete: Key; cond?: Cond } | { check: Key; cond: Cond };
 
+/** One unconditional write in a batch. */
+export type BatchOp = { put: Doc } | { delete: Key };
+
+/** DynamoDB's BatchWriteItem takes at most 25 writes per call. */
+export const BATCH_WRITE_MAX = 25;
+
 export interface Table {
   get(key: Key): Promise<Doc | undefined>;
   /** Items that exist, in no particular order. Any number of keys: split into calls of 100. */
@@ -45,6 +51,11 @@ export interface Table {
   query(input: QueryInput): Promise<QueryOutput>;
   /** All or nothing, at most 100 operations, one per item. Throws ConditionFailedError if any condition fails. */
   transact(ops: TransactOp[]): Promise<void>;
+  /**
+   * Unconditional puts and deletes, BATCH_WRITE_MAX per call (one subrequest each), not atomic. Keys within one call
+   * must differ. Writes DynamoDB leaves unprocessed are retried twice, then the batch fails as ThrottledError.
+   */
+  batchWrite(ops: BatchOp[]): Promise<void>;
 }
 
 export class ConditionFailedError extends Error {
@@ -70,6 +81,17 @@ export class OutcomeUnknownError extends Error {
   constructor(message = "the DynamoDB write may or may not have been applied") {
     super(message);
     this.name = "OutcomeUnknownError";
+  }
+}
+
+/**
+ * The Worker ran out of subrequests (the free plan allows 50 external ones per request): the call was never sent, so
+ * nothing was written by it. An ordinary failure, not an unknown outcome.
+ */
+export class SubrequestLimitError extends Error {
+  constructor(message = "the Worker's subrequest limit was reached; the call was not sent") {
+    super(message);
+    this.name = "SubrequestLimitError";
   }
 }
 

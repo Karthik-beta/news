@@ -126,14 +126,14 @@ describe("PUT /v1/pages/{id}", () => {
   it("a failure releases the key: throttling → 503, and the retry with the same key succeeds", async () => {
     const h = harness();
     const bundle = await makeBundle();
-    const original = h.table.put.bind(h.table);
+    const original = h.table.batchWrite.bind(h.table);
     let failed = false;
-    h.table.put = async (item, cond) => {
-      if (!failed && String(item.PK).startsWith("HUB#")) {
+    h.table.batchWrite = async (ops) => {
+      if (!failed) {
         failed = true;
         h.table.throttleNext = 1;
       }
-      return original(item, cond);
+      return original(ops);
     };
     const res = await put(h, bundle, "retry-key-123");
     expect(res.status).toBe(503);

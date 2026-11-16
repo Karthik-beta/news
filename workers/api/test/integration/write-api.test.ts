@@ -6,7 +6,7 @@ import { DynamoTable } from "@news/worker-shared/dynamo/client";
 import { fromItem, type Item } from "@news/worker-shared/dynamo/codec";
 import type { Cond } from "@news/worker-shared/dynamo/conditions";
 import { tableContract } from "@news/worker-shared/dynamo/contract";
-import type { Doc, Key, QueryInput, Table, TransactOp } from "@news/worker-shared/dynamo/table";
+import type { BatchOp, Doc, Key, QueryInput, Table, TransactOp } from "@news/worker-shared/dynamo/table";
 import { RecordingPurger } from "@news/worker-shared/purge";
 import { readCapped } from "@news/worker-shared/r2";
 import { D1SearchIndex, indexPage, listShards, searchPages } from "@news/worker-shared/search";
@@ -49,6 +49,10 @@ class CountingTable implements Table {
   transact = (ops: TransactOp[]) => {
     this.writes++;
     return this.inner.transact(ops);
+  };
+  batchWrite = (ops: BatchOp[]) => {
+    this.writes++;
+    return this.inner.batchWrite(ops);
   };
 }
 

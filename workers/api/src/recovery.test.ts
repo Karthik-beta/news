@@ -19,16 +19,21 @@ async function published(h: H) {
   expect(res.status).toBe(200);
 }
 
-/** Makes the first call of `method` on the table whose key starts with `prefix` fail as throttled. */
-function throttleOnce(h: H, method: "put" | "delete", prefix: string) {
-  const original = h.table[method].bind(h.table) as (a: never, c?: never) => Promise<void>;
+/** Makes the first batch write with a `kind` of an item whose key starts with `prefix` fail as throttled. */
+function throttleOnce(h: H, kind: "put" | "delete", prefix: string) {
+  const original = h.table.batchWrite.bind(h.table);
   let done = false;
-  (h.table as unknown as Record<string, unknown>)[method] = async (arg: { PK: string }, cond?: never) => {
-    if (!done && String(arg.PK).startsWith(prefix)) {
+  h.table.batchWrite = async (ops) => {
+    const hit = ops.some((op) =>
+      "put" in op
+        ? kind === "put" && String(op.put.PK).startsWith(prefix)
+        : kind === "delete" && op.delete.PK.startsWith(prefix),
+    );
+    if (!done && hit) {
       done = true;
       h.table.throttleNext = 1;
     }
-    return original(arg as never, cond);
+    return original(ops);
   };
 }
 
@@ -382,6 +387,41 @@ describe("one page, one writer at a time", () => {
     expect(await errorCode(await h.call("PUT", "/v1/pages/test-page", { body: v2 }))).toBe("page_busy");
     h.setNow("2026-11-12T10:02:00Z");
     expect((await h.call("PUT", "/v1/pages/test-page", { body: v2 })).status).toBe(200);
+  });
+});
+
+describe("one request stays inside the free plan's 50 external subrequests", () => {
+  // The schema's maximum: 8 categories four levels deep (32 hubs), 50 entities, latest and region: 84 hubs; 64 files.
+  const maxMeta = (version: number, tag: string) =>
+    makeMeta({
+      version,
+      categories: Array.from({ length: 8 }, (_, i) => `${tag}${i}/a/b/c`),
+      entities: Array.from({ length: 50 }, (_, i) => ({ id: `company:${tag}${i}`, name: `C${i}`, kind: "company" })),
+      chart_ids: Array.from({ length: 58 }, (_, i) => `${tag}-chart-${i}`),
+    });
+
+  /** DynamoDB calls plus purge API calls (30 URLs each): every external subrequest the request made. */
+  async function subrequests(h: H, run: () => Promise<Response>) {
+    const [calls, purges] = [h.table.calls.length, h.purger.calls.length];
+    const res = await run();
+    expect(res.status).toBe(200);
+    const purgeCalls = h.purger.calls.slice(purges).reduce((n, urls) => n + Math.ceil(urls.length / 30), 0);
+    return h.table.calls.length - calls + purgeCalls;
+  }
+
+  it("publishing, replacing every hub and entity, and withdrawing at the schema maximum", async () => {
+    const h = harness();
+    const v1 = await makeBundle(maxMeta(1, "x"));
+    expect(v1.manifest.files).toHaveLength(64);
+    expect(await subrequests(h, () => h.call("PUT", "/v1/pages/test-page", { body: v1 }))).toBeLessThanOrEqual(45);
+    expect(items(h, "HUB#")).toHaveLength(84);
+    const v2 = await makeBundle(maxMeta(2, "y"));
+    expect(await subrequests(h, () => h.call("PUT", "/v1/pages/test-page", { body: v2 }))).toBeLessThanOrEqual(45);
+    expect(items(h, "HUB#")).toHaveLength(84);
+    expect(items(h, "ENT#")).toHaveLength(100);
+    const withdraw = () => h.call("POST", "/v1/pages/test-page/withdraw", { body: { reason: "wrong" } });
+    expect(await subrequests(h, withdraw)).toBeLessThanOrEqual(45);
+    expect(items(h, "HUB#")).toEqual([]);
   });
 });
 

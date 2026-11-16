@@ -2,7 +2,7 @@
 // (api integration tests). If the fake ever behaves differently from DynamoDB, one of the two runs fails.
 import { describe, expect, it } from "vitest";
 import { and, eq, le, notExists, or } from "./conditions";
-import { ConditionFailedError, type Doc, type Table } from "./table";
+import { ConditionFailedError, type Doc, DynamoError, type Table } from "./table";
 
 export function tableContract(label: string, getTable: () => Table): void {
   const uid = () => crypto.randomUUID().slice(0, 8);
@@ -151,6 +151,25 @@ export function tableContract(label: string, getTable: () => Table): void {
       expect(await t.get({ PK: pk, SK: "V#000003" })).toBeUndefined();
       await t.transact([{ delete: { PK: pk, SK: "V#000002" } }]);
       expect(await t.get({ PK: pk, SK: "V#000002" })).toBeUndefined();
+    });
+
+    it("batchWrite: puts and deletes in calls of 25, any number of them; duplicate keys in one call are refused", async () => {
+      const t = getTable();
+      const pk = `HUB#${uid()}`;
+      await t.put({ PK: pk, SK: "old", n: 0 });
+      const puts = Array.from({ length: 30 }, (_, i) => ({
+        put: { PK: pk, SK: `k${String(i).padStart(2, "0")}`, n: i },
+      }));
+      await t.batchWrite([...puts, { delete: { PK: pk, SK: "old" } }]);
+      const all = await t.query({ pk });
+      expect(all.items.map((i) => i.SK)).toEqual(puts.map((p) => p.put.SK));
+      await t.batchWrite(puts.slice(0, 10).map((p) => ({ delete: { PK: pk, SK: p.put.SK } })));
+      expect((await t.query({ pk })).items).toHaveLength(20);
+      await t.batchWrite([]);
+      await failsWith(
+        t.batchWrite([{ put: { PK: pk, SK: "dup", n: 1 } }, { delete: { PK: pk, SK: "dup" } }]),
+        DynamoError,
+      );
     });
 
     it("rejects an item over 400 KB and stores nothing", async () => {

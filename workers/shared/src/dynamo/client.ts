@@ -4,6 +4,8 @@ import { AwsClient } from "aws4fetch";
 import { type AttributeValue, fromItem, type Item, toItem } from "./codec";
 import { type Cond, compile } from "./conditions";
 import {
+  BATCH_WRITE_MAX,
+  type BatchOp,
   ConditionFailedError,
   type Doc,
   DynamoError,
@@ -11,6 +13,7 @@ import {
   OutcomeUnknownError,
   type QueryInput,
   type QueryOutput,
+  SubrequestLimitError,
   type Table,
   ThrottledError,
   type TransactOp,
@@ -36,7 +39,7 @@ export interface DynamoTableConfig {
 const LOOPBACK = new Set(["127.0.0.1", "localhost", "[::1]"]);
 const REGION = /^[a-z]{2}(?:-[a-z]+)+-[0-9]$/;
 const TABLE = /^[A-Za-z0-9_.-]{3,255}$/;
-const WRITES = new Set(["PutItem", "DeleteItem", "TransactWriteItems"]);
+const WRITES = new Set(["PutItem", "DeleteItem", "TransactWriteItems", "BatchWriteItem"]);
 const THROTTLE_TYPES = new Set([
   "ProvisionedThroughputExceededException",
   "ThrottlingException",
@@ -104,6 +107,8 @@ export class DynamoTable implements Table {
       res = await this.#fetch(request);
       text = await res.text();
     } catch (e) {
+      // Over the Worker's subrequest limit, fetch throws before sending anything: nothing was written.
+      if (e instanceof Error && /too many subrequests/i.test(e.message)) throw new SubrequestLimitError();
       // Sent, but no answer: a write may have been applied. Reads are simply failed.
       if (write) throw new OutcomeUnknownError(`${operation}: ${e instanceof Error ? e.name : "no response"}`);
       throw e;
@@ -220,6 +225,27 @@ export class DynamoTable implements Table {
       items,
       ...(last ? { next: { PK: String(last.PK), SK: String(last.SK) } } : {}),
     };
+  }
+
+  async batchWrite(ops: BatchOp[]): Promise<void> {
+    for (let i = 0; i < ops.length; i += BATCH_WRITE_MAX) {
+      let requests: unknown[] = ops
+        .slice(i, i + BATCH_WRITE_MAX)
+        .map((op) =>
+          "put" in op ? { PutRequest: { Item: toItem(op.put) } } : { DeleteRequest: { Key: toItem({ ...op.delete }) } },
+        );
+      // Unprocessed writes come back when capacity runs short; retry them twice, then give up as throttled.
+      for (let attempt = 0; ; attempt++) {
+        const res = await this.#call<{ UnprocessedItems?: Record<string, unknown[]> }>("BatchWriteItem", {
+          RequestItems: { [this.table]: requests },
+        });
+        const rest = res.UnprocessedItems?.[this.table];
+        if (!rest || rest.length === 0) break;
+        if (attempt >= 2) throw new ThrottledError("DynamoDB left writes unprocessed");
+        await new Promise((r) => setTimeout(r, 50 * 2 ** attempt));
+        requests = rest;
+      }
+    }
   }
 
   async transact(ops: TransactOp[]): Promise<void> {
