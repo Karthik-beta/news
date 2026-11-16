@@ -38,11 +38,11 @@ describe("PUT /v1/pages/{id}", () => {
       expect.arrayContaining([
         "PAGE#test-page LATEST",
         "PAGE#test-page V#000001",
-        "HUB#latest 2026-11-10T12:00:00Z#test-page",
-        "HUB#cat/economy 2026-11-10T12:00:00Z#test-page",
-        "HUB#cat/economy/inflation 2026-11-10T12:00:00Z#test-page",
-        "HUB#ent/country:US 2026-11-10T12:00:00Z#test-page",
-        "HUB#region/north-america 2026-11-10T12:00:00Z#test-page",
+        "HUB#latest 2026-11-10T12:00:00.000Z#test-page",
+        "HUB#cat/economy 2026-11-10T12:00:00.000Z#test-page",
+        "HUB#cat/economy/inflation 2026-11-10T12:00:00.000Z#test-page",
+        "HUB#ent/country:US 2026-11-10T12:00:00.000Z#test-page",
+        "HUB#region/north-america 2026-11-10T12:00:00.000Z#test-page",
         "ENT#country:US META",
         "URL#/2026/11/test-page PAGE",
       ]),
@@ -172,6 +172,23 @@ describe("PUT /v1/pages/{id}", () => {
     expect((await put(h, await makeBundle(makeMeta({ version: 2 })))).status).toBe(200);
   });
 
+  it("stores timestamps in one form (so they compare and sort as times) and refuses days that do not exist", async () => {
+    const h = harness();
+    const meta = makeMeta({ published_at: "2026-11-15T12:00:00Z", updated_at: "2026-11-15T12:00:00.001Z" });
+    expect((await put(h, await makeBundle(meta))).status).toBe(200);
+    const keys = h.table.dump().map((i) => `${i.PK} ${i.SK}`);
+    expect(keys).toContain("HUB#latest 2026-11-15T12:00:00.000Z#test-page");
+    expect(h.table.dump().find((i) => i.SK === "LATEST")).toMatchObject({
+      published_at: "2026-11-15T12:00:00.000Z",
+      updated_at: "2026-11-15T12:00:00.001Z",
+    });
+    for (const bad of ["2026-02-31T12:00:00Z", "2026-02-29T12:00:00Z"]) {
+      const res = await put(h, await makeBundle(makeMeta({ id: "other", published_at: bad, updated_at: bad })));
+      expect(res.status).toBe(400);
+      expect(((await res.json()) as { error: { code: string } }).error.code).toBe("invalid_meta");
+    }
+  });
+
   it("refuses a page that would take another page's URL", async () => {
     const h = harness();
     await put(h, await makeBundle(makeMeta({ id: "first", path: "/2026/11/shared-path" })));
@@ -205,10 +222,10 @@ describe("PUT /v1/pages/{id}", () => {
     });
     expect((await put(h, await makeBundle(v2))).status).toBe(200);
     const keys = h.table.dump().map((i) => `${i.PK} ${i.SK}`);
-    expect(keys).toContain("HUB#cat/technology 2026-11-10T12:00:00Z#test-page");
-    expect(keys).toContain("HUB#latest 2026-11-10T12:00:00Z#test-page");
+    expect(keys).toContain("HUB#cat/technology 2026-11-10T12:00:00.000Z#test-page");
+    expect(keys).toContain("HUB#latest 2026-11-10T12:00:00.000Z#test-page");
     expect(keys.filter((k) => k.startsWith("HUB#cat/economy"))).toEqual([]);
-    expect(keys).not.toContain("HUB#ent/country:US 2026-11-10T12:00:00Z#test-page");
+    expect(keys).not.toContain("HUB#ent/country:US 2026-11-10T12:00:00.000Z#test-page");
     expect(keys).toEqual(expect.arrayContaining(["PAGE#test-page V#000001", "PAGE#test-page V#000002"]));
     expect(h.bucket.objects.has("2026/11/test-page/charts/cpi-trend.csv")).toBe(false);
     expect(h.purger.calls[1]).toContain(`${ORIGIN}/economy/inflation`);

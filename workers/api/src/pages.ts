@@ -15,6 +15,7 @@ import { deletePageFiles, putPageFile } from "@news/worker-shared/r2";
 import { Reader } from "@news/worker-shared/read";
 import type { EntityRecord, HubEntry, Manifest, PageMeta, PageRecord, PathClaim } from "@news/worker-shared/records";
 import { MissingShardError } from "@news/worker-shared/search";
+import { normalizeTimestamp } from "@news/worker-shared/time";
 import { absolute, HOME_PATH, hubPath, pageFileUrls } from "@news/worker-shared/urls";
 import { check, type Issue, schemas } from "@news/worker-shared/validate";
 import type { Deps } from "./deps";
@@ -102,10 +103,21 @@ export async function checkBundle(pageId: string, body: unknown): Promise<Checke
   }
   const m = check<PageMeta>(schemas.validateMeta, metaJson);
   if (!m.ok) throw new ApiError("invalid_meta", "meta.json does not match meta.v1", m.issues);
-  const meta = m.value;
+  // Timestamps are stored in one form (toISOString), so they compare and sort as times; a day that does not exist
+  // (2026-02-31) is refused. meta.json itself stays byte for byte as sent.
+  const publishedAt = normalizeTimestamp(m.value.published_at);
+  const updatedAt = normalizeTimestamp(m.value.updated_at);
+  if (!publishedAt) bad("meta.published_at", "published_at is not a real UTC time", "/published_at");
+  if (!updatedAt) bad("meta.updated_at", "updated_at is not a real UTC time", "/updated_at");
+  const meta: PageMeta = {
+    ...m.value,
+    published_at: publishedAt ?? m.value.published_at,
+    updated_at: updatedAt ?? m.value.updated_at,
+  };
   if (meta.id !== pageId) bad("meta.id", "meta.id differs from the URL", "/id");
   if (meta.version !== manifest.version) bad("meta.version", "meta.version differs from manifest.version", "/version");
-  if (meta.updated_at < meta.published_at) bad("meta.updated_at", "updated_at is before published_at", "/updated_at");
+  if (publishedAt && updatedAt && updatedAt < publishedAt)
+    bad("meta.updated_at", "updated_at is before published_at", "/updated_at");
   for (const name of Object.keys(files)) {
     const chart = /^charts\/(.+)\.csv$/.exec(name)?.[1];
     if (chart && !meta.chart_ids.includes(chart))
