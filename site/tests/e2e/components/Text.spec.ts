@@ -40,18 +40,20 @@ test.describe("Text", () => {
   test("every variant has its size for this screen, its face and a line height of at least 1", async ({ page }) => {
     await gotoPage(page, PATH);
     const width = page.viewportSize()?.width ?? 0;
-    const styles = await page.locator(".fixture-case").evaluateAll((cases) =>
-      Object.fromEntries(
-        cases.map((c) => {
-          const el = c.querySelector("[class^='text-']:not(.fixture-case__name)") as HTMLElement;
-          const s = getComputedStyle(el);
-          return [
-            c.getAttribute("aria-label"),
-            { size: Number.parseFloat(s.fontSize), lh: Number.parseFloat(s.lineHeight), family: s.fontFamily },
-          ];
-        }),
-      ),
-    );
+    const styles: Record<string, { size: number; lh: number; family: string }> = await page
+      .locator(".fixture-case")
+      .evaluateAll((cases) =>
+        Object.fromEntries(
+          cases.map((c) => {
+            const el = c.querySelector("[class^='text-']:not(.fixture-case__name)") as HTMLElement;
+            const s = getComputedStyle(el);
+            return [
+              c.getAttribute("aria-label"),
+              { size: Number.parseFloat(s.fontSize), lh: Number.parseFloat(s.lineHeight), family: s.fontFamily },
+            ];
+          }),
+        ),
+      );
     for (const [variant, token] of Object.entries(FIXED)) {
       expect(styles[variant]?.size, variant).toBeCloseTo(px(token), 1);
     }

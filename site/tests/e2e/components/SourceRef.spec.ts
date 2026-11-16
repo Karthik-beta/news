@@ -88,7 +88,7 @@ test.describe("SourceRef", () => {
 
   test("keyboard: Enter and Space open it, Tab reaches the source link, Escape closes and returns focus", {
     tag: "@interaction",
-  }, async ({ page }) => {
+  }, async ({ page, browserName }) => {
     await gotoPage(page, PATH);
     const trigger = fixtureCase(page, "money, compact").locator("button.source-ref");
     const panel = await panelFor(page, trigger);
@@ -97,8 +97,16 @@ test.describe("SourceRef", () => {
     expect(ring, "visible focus ring").toEqual(["solid", "2px"]);
     await page.keyboard.press("Enter");
     await expect(panel).toBeVisible();
-    await page.keyboard.press("Tab");
-    await expect(panel.getByRole("link", { name: "Open the source" })).toBeFocused();
+    const link = panel.getByRole("link", { name: "Open the source" });
+    if (browserName === "webkit") {
+      // Playwright's WebKit on Windows never tabs to links (Safari does only with "Press Tab to highlight each item"
+      // or Option-Tab), so check the link is focusable inside the open panel instead.
+      test.info().annotations.push({ type: "webkit", description: "Tab to links not emulated; link focused directly" });
+      await link.focus();
+    } else {
+      await page.keyboard.press("Tab");
+    }
+    await expect(link).toBeFocused();
     await page.keyboard.press("Escape");
     await expect(panel).toBeHidden();
     await expect(trigger).toBeFocused();

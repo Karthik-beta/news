@@ -87,7 +87,7 @@ describe("Text: design-system compliance (design/typography.md)", () => {
     }
   });
 
-  it("the serif (Literata) carries the wordmark, headlines and reading text; the sans the rest", () => {
+  it("the serif token carries the wordmark, headlines and reading text; the sans the rest", () => {
     const serif = TEXT_VARIANTS.filter((v) => rule(v).get("font-family") === "var(--font-family-serif)");
     expect(serif).toEqual([
       "wordmark",
@@ -126,6 +126,11 @@ describe("Text: design-system compliance (design/typography.md)", () => {
 
   it("no all-caps labels and no third face anywhere in the type styles", () => {
     expect(css).not.toMatch(/text-transform:\s*uppercase/);
-    expect(css).not.toMatch(/monospace/);
+    // Only the two family tokens (the token lint forbids writing a family name here, so it is checked that way).
+    expect(
+      [...css.matchAll(/font-family:\s*([^;]+);/g)]
+        .map((m) => m[1])
+        .filter((v) => !/^var\(--font-family-(serif|sans)\)$/.test(v as string)),
+    ).toEqual([]);
   });
 });
