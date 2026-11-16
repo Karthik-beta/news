@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/entities.resolve.schema.json",
+  "title": "news entities resolve",
+  "description": "Resolve a mention to an entity, deterministically. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "R",
+  "x-news-status": "stub until #12",
+  "x-news-errors": [],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": ["company", "country", "central_bank", "institution", "person", "topic", "agency"]
+        }
+      },
+      "required": ["text"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "entity_id": {
+          "type": ["integer", "null"]
+        },
+        "name": {
+          "type": ["string", "null"]
+        },
+        "kind": {
+          "type": ["string", "null"]
+        },
+        "step": {
+          "enum": ["identifier", "alias", "gazetteer", "fuzzy", "unresolved"]
+        },
+        "score": {
+          "type": ["number", "null"]
+        }
+      },
+      "required": ["entity_id", "name", "kind", "step", "score"],
+      "additionalProperties": false
+    }
+  }
+}

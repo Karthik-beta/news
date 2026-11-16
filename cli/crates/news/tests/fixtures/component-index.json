@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "budget": {
+    "tokens": 4000,
+    "perEntry": 24
+  },
+  "tokens": 87,
+  "components": [
+    {
+      "name": "FixtureFigure",
+      "line": "FixtureFigure — fixture only: key figure — dp_/dv_ value, dv_ change",
+      "tokens": 24
+    },
+    {
+      "name": "FixtureLineChart",
+      "line": "FixtureLineChart — fixture only: line chart island — sr_ series",
+      "tokens": 23
+    },
+    {
+      "name": "FixtureText",
+      "line": "FixtureText — fixture only: paragraph — text with {ref} tokens",
+      "tokens": 22
+    },
+    {
+      "name": "Page",
+      "line": "Page — root; blocks in reading order — children[]",
+      "tokens": 18
+    }
+  ]
+}

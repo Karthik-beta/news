@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/ai.schema.schema.json",
+  "title": "news ai schema",
+  "description": "JSON Schema of an AI step's output. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "R",
+  "x-news-status": "built",
+  "x-news-errors": ["not_found"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "step": {
+          "type": "string",
+          "pattern": "^([Aa]([1-7]|9|12)|[Bb][Rr][Ii][Ee][Ff])$",
+          "description": "One of A1, A2, A3, A4, A5, A6, A7, A9, A12, brief, in any letter case; the output names it in this form"
+        }
+      },
+      "required": ["step"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "step": {
+          "type": "string"
+        },
+        "schema": {
+          "type": "object"
+        }
+      },
+      "required": ["step", "schema"],
+      "additionalProperties": false
+    }
+  }
+}

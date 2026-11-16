@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/components.schema.json",
+  "title": "news components",
+  "description": "The component index, one line per component. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "R",
+  "x-news-status": "built",
+  "x-news-errors": ["precondition", "validation_failed"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "integer"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "The component's one-line entry from component-index.json: Name — purpose — data shape"
+          }
+        },
+        "text": {
+          "type": "string",
+          "description": "Code-rendered text, printed verbatim to Karthik"
+        },
+        "next_cursor": {
+          "type": "string",
+          "description": "Present when truncated: pass to --cursor"
+        }
+      },
+      "required": ["count", "items", "text"],
+      "additionalProperties": false
+    }
+  }
+}

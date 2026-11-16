@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/corrections.pull.schema.json",
+  "title": "news corrections pull",
+  "description": "Fetch new reader error reports. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "W",
+  "x-news-status": "stub until #21",
+  "x-news-errors": ["upstream_unavailable"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "new": {
+          "type": "integer"
+        }
+      },
+      "required": ["new"],
+      "additionalProperties": false
+    }
+  }
+}

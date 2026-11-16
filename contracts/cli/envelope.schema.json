@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/envelope.schema.json",
+  "title": "news CLI envelope",
+  "description": "The one JSON object every command prints on stdout (Bureau Design §6.2).",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "const": true
+        },
+        "data": {},
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "truncated": {
+          "type": "boolean"
+        }
+      },
+      "required": ["ok", "data", "warnings", "truncated"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "const": false
+        },
+        "error": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "enum": [
+                "usage",
+                "not_found",
+                "conflict",
+                "precondition",
+                "gated",
+                "validation_failed",
+                "rate_limited",
+                "upstream_unavailable",
+                "licence_blocked",
+                "budget_exceeded",
+                "internal"
+              ]
+            },
+            "message": {
+              "type": "string"
+            },
+            "retryable": {
+              "type": "boolean"
+            },
+            "hint": {
+              "type": "string"
+            },
+            "details": {},
+            "text": {
+              "type": "string",
+              "description": "Code-rendered text for Karthik"
+            }
+          },
+          "required": ["code", "message", "retryable"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["ok", "error"],
+      "additionalProperties": false
+    }
+  ],
+  "x-news-exit-codes": {
+    "usage": 2,
+    "not_found": 3,
+    "conflict": 4,
+    "precondition": 4,
+    "licence_blocked": 4,
+    "budget_exceeded": 4,
+    "rate_limited": 5,
+    "upstream_unavailable": 5,
+    "validation_failed": 6,
+    "gated": 7,
+    "internal": 10
+  }
+}

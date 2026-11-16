@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/ai.accept.schema.json",
+  "title": "news ai accept",
+  "description": "Validate and store a model output (schema and semantic validators). Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "W",
+  "x-news-status": "stub until #18",
+  "x-news-errors": ["not_found", "validation_failed"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "job": {
+          "type": "integer"
+        },
+        "file": {
+          "type": "string"
+        }
+      },
+      "required": ["job", "file"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "valid": {
+          "type": "boolean"
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "rule": {
+                "type": "string"
+              },
+              "where": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": ["rule", "where", "message"],
+            "additionalProperties": false
+          }
+        },
+        "stored": {
+          "type": "boolean"
+        }
+      },
+      "required": ["valid", "errors", "stored"],
+      "additionalProperties": false
+    }
+  }
+}

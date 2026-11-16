@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/hotline/commands/docker.stop.schema.json",
+  "title": "Hotline docker.stop",
+  "description": "Stop one News container. The shared ClickHouse is never stopped (precondition). Handler built in #29. Input is the request's args; output is the reply envelope's data.",
+  "x-news-tier": "H",
+  "x-hotline-from": ["board"],
+  "x-news-status": "#29",
+  "x-news-cli": null,
+  "x-news-errors": ["usage", "not_found", "precondition", "gated", "upstream_unavailable"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "container": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_.-]{0,63}$"
+        }
+      },
+      "required": ["container"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "state": {
+          "enum": ["running", "starting", "exited", "missing", "unknown"]
+        },
+        "text": {
+          "$ref": "../common.schema.json#/$defs/text"
+        }
+      },
+      "required": ["name", "state", "text"],
+      "additionalProperties": false
+    }
+  }
+}

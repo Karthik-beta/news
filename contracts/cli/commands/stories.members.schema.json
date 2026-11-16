@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/stories.members.schema.json",
+  "title": "news stories members",
+  "description": "A story's candidates. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "R",
+  "x-news-status": "stub until #15",
+  "x-news-errors": ["not_found"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "story": {
+          "type": "string"
+        }
+      },
+      "required": ["story"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "cand_id": {
+                "type": "integer"
+              },
+              "source_id": {
+                "type": "string"
+              },
+              "title": {
+                "type": ["string", "null"]
+              },
+              "published_at": {
+                "type": ["string", "null"],
+                "format": "date-time"
+              }
+            },
+            "required": ["cand_id", "source_id", "title", "published_at"],
+            "additionalProperties": false
+          }
+        },
+        "next_cursor": {
+          "type": "string",
+          "description": "Present when truncated: pass to --cursor"
+        }
+      },
+      "required": ["items"],
+      "additionalProperties": false
+    }
+  }
+}

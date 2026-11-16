@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/hotline/events/source.schema.json",
+  "title": "Hotline event source",
+  "description": "A source's health changed. Emitted once Contacts (#9) and the health roll-up (#16) exist. Validates the event's data.",
+  "x-hotline-topic": "source",
+  "x-news-status": "#9",
+  "$defs": {
+    "data": {
+      "type": "object",
+      "properties": {
+        "source_id": {
+          "type": "string"
+        },
+        "health": {
+          "enum": ["green", "amber", "red"]
+        },
+        "previous": {
+          "anyOf": [
+            {
+              "enum": ["green", "amber", "red"]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "text": {
+          "$ref": "../common.schema.json#/$defs/text"
+        }
+      },
+      "required": ["source_id", "health", "previous", "reason", "text"],
+      "additionalProperties": false
+    }
+  }
+}
