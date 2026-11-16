@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
 # CodeRabbit: light review. One pass per PR, low-noise feedback on correctness, security and the design system.
 language: en-GB
-tone_instructions: "Be brief. Flag only real bugs, security holes, wrong numbers, accessibility failures and design-system violations, each with a concrete failure. Skip nitpicks, wording, hypothetical races and minor hardening. Do not reopen or follow up on a fixed comment unless the fix is broken."
+tone_instructions: "Be brief. Flag only real bugs, security holes, wrong numbers, accessibility and design-system failures, each with a concrete failure. No nitpicks, wording or hypothetical races. Do not reopen a fixed comment unless the fix is broken."
 
 reviews:
   profile: chill # light review ("quiet" is lighter still; "assertive" is the heavy option)
