@@ -418,7 +418,7 @@ Changes to `news-store`'s migration tests: the numbering test accepts the blocks
 - One crate holds every `unsafe` line, so the security review reads one crate for memory safety.
 - Every `claude -p` runs at Low integrity: it cannot reach the Hotline at all, start a process through WMI, or write Karthik's files outside its Low folder. #18 must prove the login survives a token refresh before the first scheduled run.
 - Service log-on with a password is unproven while passwordless sign-in is on; the log-on fallback (§9) keeps #10's design unchanged if it fails.
-- Runs scheduled while Karthik is signed out wait for sign-in and run if still within the late limit, otherwise they are skipped and noted (Karthik's choice; no boot-time Docker engine).
+- Runs scheduled while Karthik is signed out wait for sign-in; there the missed-slot rule applies first (a dropped slot is `missed`), then the late limit (past it, `skipped` with a Wrap), and anything else runs (Karthik's choice; no boot-time Docker engine).
 - Board must be restarted after a service update before it can act again.
 - The data model gains `gates`, `rota_fires` and `hotline_refusals`; the design document is updated with the build.
 
