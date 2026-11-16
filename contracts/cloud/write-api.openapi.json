@@ -321,7 +321,7 @@
         "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/error" } } }
       },
       "Unavailable": {
-        "description": "throttled: DynamoDB capacity used up (Retry-After: 2), or outcome_unknown: a database write got no answer and may have been applied (Retry-After: 120; the key stays held until then). Retry with the same Idempotency-Key.",
+        "description": "throttled: DynamoDB capacity used up (Retry-After: 2); lock_expired: the page operation ran out of time on its page lock and stopped before its next write (Retry-After: 5); or outcome_unknown: a write got no answer and may have been applied (Retry-After: 120; the key and page lock stay held until then). Retry with the same Idempotency-Key.",
         "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/error" } } }
       }
     }

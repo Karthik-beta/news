@@ -12,7 +12,7 @@ import { type Deps, NotConfiguredError } from "./deps";
 import { ApiError } from "./errors";
 import { executeCuration, executeRollback, prepareCuration, prepareRollback } from "./home";
 import { claim, complete, lookup, readKey, release, requestHash } from "./idempotency";
-import { type HeldLock, lockPage, unlockPage } from "./lock";
+import { Fence, type HeldLock, lockPage, unlockPage } from "./lock";
 import {
   checkBundle,
   checkIndex,
@@ -34,6 +34,8 @@ const PAGE_ID = "([a-z0-9](?:[a-z0-9-]{0,118}[a-z0-9])?)";
 export interface OpContext {
   /** SHA-256 of the Idempotency-Key: a retry of this request carries the same one. */
   requestId: string;
+  /** Deadline, storage timeouts and the lock check for the commit (lock.ts). */
+  fence: Fence;
 }
 
 interface WriteRoute<P, C = unknown> {
@@ -242,7 +244,10 @@ async function handleWrite<P, C>(
     const idem = await claim(table, seen, route.operation, deps.now());
     let result: OpResult;
     try {
-      result = await route.execute(deps, prepared, { requestId: seen.keyHash });
+      result = await route.execute(deps, prepared, {
+        requestId: seen.keyHash,
+        fence: new Fence(pageLock, deps.now, deps.storageTimeoutMs),
+      });
     } catch (e) {
       if (e instanceof OutcomeUnknownError) keepLocks = true;
       // Any other failure: release the key so the retry runs the operation again, which finishes what is missing.
@@ -278,7 +283,7 @@ function toResponse(deps: Deps, e: unknown, extra: Record<string, string> = {}):
     deps.log.error("outcome_unknown", { message: e.message.slice(0, 200) });
     return new ApiError(
       "outcome_unknown",
-      "a database write may or may not have been applied; retry with the same Idempotency-Key in 2 minutes",
+      "a write may or may not have been applied; retry with the same Idempotency-Key in 2 minutes",
       undefined,
       { "retry-after": "120" },
     ).toResponse(extra);

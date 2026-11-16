@@ -23,6 +23,7 @@ export type ErrorCode =
   | "unknown_page"
   | "page_withdrawn"
   | "page_busy"
+  | "lock_expired"
   | "purge_failed"
   | "not_configured"
   | "payload_too_large"
@@ -51,6 +52,7 @@ export const STATUS: Record<ErrorCode, number> = {
   unknown_page: 400,
   page_withdrawn: 409,
   page_busy: 409,
+  lock_expired: 503,
   purge_failed: 502,
   not_configured: 500,
   payload_too_large: 413,

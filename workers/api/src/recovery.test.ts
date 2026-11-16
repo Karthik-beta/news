@@ -14,6 +14,15 @@ const errorCode = async (r: Response) => ((await r.clone().json()) as { error?: 
 const items = (h: H, prefix: string) => h.table.dump().filter((i) => String(i.PK).startsWith(prefix));
 const latest = (h: H, id = "test-page") => h.table.dump().find((i) => i.PK === `PAGE#${id}` && i.SK === "LATEST");
 
+const pageLock = (owner: string) => ({
+  PK: "PAGE#test-page",
+  SK: "LOCK",
+  type: "page_lock",
+  owner,
+  acquired_at: "2026-11-12T10:00:00.000Z",
+  expires_at: 1_900_000_000,
+});
+
 async function published(h: H) {
   const res = await h.call("PUT", "/v1/pages/test-page", { body: await makeBundle() });
   expect(res.status).toBe(200);
@@ -441,6 +450,77 @@ describe("one page, one writer at a time", () => {
     expect([res.status, slowLanded]).toEqual([500, true]);
     expect(items(h, "PAGE#test-page").map((i) => i.SK)).not.toContain("LOCK");
   }, 20_000);
+
+  it("an operation past its deadline (lease − 20 s) starts no further write, answers 503 and gives the lock back", async () => {
+    const h = harness();
+    await published(h);
+    const bucketPut = h.bucket.put.bind(h.bucket);
+    h.bucket.put = async (key, value, options) => {
+      h.setNow("2026-11-12T10:01:41Z"); // 101 s after the lock was taken
+      return bucketPut(key, value, options);
+    };
+    const v2 = await makeBundle(makeMeta({ version: 2, title: "Version two" }));
+    const before = h.bucket.writes.length;
+    const res = await h.call("PUT", "/v1/pages/test-page", { body: v2, key: "late-0001" });
+    expect([res.status, await errorCode(res)]).toEqual([503, "lock_expired"]);
+    // The first file write moved the clock past the deadline: no other file write was started after it.
+    expect(h.bucket.writes.length - before).toBe(1);
+    expect(items(h, "HUB#latest")[0]).toMatchObject({ title: "Test page test-page" });
+    expect(latest(h)).toMatchObject({ version: 1 });
+    expect(items(h, "PAGE#test-page").map((i) => i.SK)).not.toContain("LOCK");
+    h.bucket.put = bucketPut;
+    expect((await h.call("PUT", "/v1/pages/test-page", { body: v2, key: "late-0001" })).status).toBe(200);
+  });
+
+  it("a request whose lock was taken over cannot move LATEST, and leaves the new holder's lock alone", async () => {
+    const h = harness();
+    await published(h);
+    const index = h.search.index.bind(h.search);
+    h.search.index = async (page) => {
+      // Another request took the lock over while this one was still writing.
+      h.table.seed({ ...pageLock("other"), acquired_at: "2026-11-12T10:00:00.000Z" });
+      return index(page);
+    };
+    const v2 = await makeBundle(makeMeta({ version: 2, title: "Version two" }));
+    const res = await h.call("PUT", "/v1/pages/test-page", { body: v2 });
+    expect([res.status, await errorCode(res)]).toEqual([503, "lock_expired"]);
+    expect(latest(h)).toMatchObject({ version: 1 });
+    expect(items(h, "PAGE#test-page").find((i) => i.SK === "LOCK")).toMatchObject({ owner: "other" });
+  });
+
+  it("withdraw and index promotion check the lock in the same transaction as their status change", async () => {
+    for (const [path, body] of [
+      ["/v1/pages/test-page/withdraw", { reason: "gone" }],
+      ["/v1/pages/test-page/index", { index_status: "index" }],
+    ] as const) {
+      const h = harness();
+      await published(h);
+      const get = h.table.get.bind(h.table);
+      let taken = false;
+      h.table.get = async (key) => {
+        const out = await get(key);
+        // Taken over right after this request read the live record.
+        if (!taken && key.SK === "LATEST") {
+          taken = true;
+          h.table.seed(pageLock("other"));
+        }
+        return out;
+      };
+      const res = await h.call("POST", path, { body });
+      expect([res.status, await errorCode(res)], path).toEqual([503, "lock_expired"]);
+      expect(latest(h)).toMatchObject({ status: "published", index_status: "noindex" });
+    }
+  });
+
+  it("an R2 call that hangs is abandoned at its timeout as an unknown outcome, and the lock is kept", async () => {
+    const h = harness({ storageTimeoutMs: 20 });
+    await published(h);
+    h.bucket.put = () => new Promise(() => {});
+    const v2 = await makeBundle(makeMeta({ version: 2 }));
+    const res = await h.call("PUT", "/v1/pages/test-page", { body: v2 });
+    expect([res.status, await errorCode(res)]).toEqual([503, "outcome_unknown"]);
+    expect(items(h, "PAGE#test-page").map((i) => i.SK)).toContain("LOCK");
+  });
 
   it("a lock left by a crashed request is taken over once it is stale", async () => {
     const h = harness();

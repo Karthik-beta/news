@@ -27,8 +27,10 @@ import { MissingShardError } from "@news/worker-shared/search";
 import { normalizeTimestamp } from "@news/worker-shared/time";
 import { absolute, HOME_PATH, hubPath, pageFileUrls } from "@news/worker-shared/urls";
 import { check, type Issue, schemas } from "@news/worker-shared/validate";
+import type { OpContext } from "./app";
 import type { Deps } from "./deps";
 import { ApiError } from "./errors";
+import { Fence } from "./lock";
 
 export const REQUIRED_FILES = ["index.html", "index.md", "data.json", "sources.json", "meta.json", "page.oui"];
 /** Page record items stay far below DynamoDB's 400 KB: metadata only, files in R2 (ADR 0004). */
@@ -244,9 +246,12 @@ function newEntities(meta: PageMeta, previous: PageRecord | undefined, lang: str
   return [...byId.values()];
 }
 
-/** Unconditional writes in batches of 25: one subrequest per batch instead of one per item. */
-async function writeBatches(table: Table, ops: BatchOp[]): Promise<void> {
-  for (let i = 0; i < ops.length; i += BATCH_WRITE_MAX) await table.batchWrite(ops.slice(i, i + BATCH_WRITE_MAX));
+/** Unconditional writes in batches of 25 (one subrequest per batch), each started only before the lock's deadline. */
+async function writeBatches(table: Table, fence: Fence, ops: BatchOp[]): Promise<void> {
+  for (let i = 0; i < ops.length; i += BATCH_WRITE_MAX) {
+    fence.check();
+    await table.batchWrite(ops.slice(i, i + BATCH_WRITE_MAX));
+  }
 }
 
 const hubKey = (page: Pick<PageRecord, "published_at" | "page_id">, hub: string) => ({
@@ -362,16 +367,24 @@ function affectedUrls(deps: Deps, page: Pick<PageRecord, "path" | "hubs" | "file
   ];
 }
 
-export async function executePut(deps: Deps, p: PreparedPage): Promise<OpResult> {
+/** The context of a direct call (tests): no page lock, so only the storage timeouts apply. */
+const unlocked = (deps: Deps): OpContext => ({
+  requestId: "",
+  fence: new Fence(undefined, deps.now, deps.storageTimeoutMs),
+});
+
+export async function executePut(deps: Deps, p: PreparedPage, ctx: OpContext = unlocked(deps)): Promise<OpResult> {
   const table = deps.table();
   const bucket = deps.bucket();
+  const { fence } = ctx;
   const { page, cleanup } = p;
   const live: PageRecord = cleanup ? { ...page, cleanup } : page;
   if (itemSize(live as unknown as Doc) > MAX_PAGE_ITEM_BYTES)
     throw new ApiError("invalid_meta", "page metadata is too large for one record (64 KB)");
 
   // The caller holds the page lock (lock.ts) and preparePut refused every conflict it could see, so nothing below
-  // races another write to this page. Every step is an idempotent put: a retry after a failure anywhere finishes.
+  // races another write to this page. Every step is idempotent: a retry after a failure anywhere finishes. The fence
+  // stops the work at the lock's deadline, bounds every R2 and D1 call, and makes the commit check the lock.
 
   // 1. Claim the path for this page, so no other page can publish at the same URL (or R2 prefix).
   const claimItem: PathClaim = {
@@ -383,6 +396,7 @@ export async function executePut(deps: Deps, p: PreparedPage): Promise<OpResult>
     path: page.path,
     created_at: page.written_at,
   };
+  fence.check();
   try {
     await table.put(claimItem as never, or(notExists(), eq("page_id", page.page_id)));
   } catch (e) {
@@ -393,6 +407,7 @@ export async function executePut(deps: Deps, p: PreparedPage): Promise<OpResult>
   // 2. The immutable version record, before anything it lists is written: if this publish never commits, the next one
   //    (or a withdrawal) finds it above LATEST and removes its files and hub entries. An identical retry passes,
   //    different content under the same version does not.
+  fence.check();
   try {
     await table.put(
       { ...page, SK: pageVersionKey(page.page_id, page.version).SK } as never,
@@ -406,21 +421,24 @@ export async function executePut(deps: Deps, p: PreparedPage): Promise<OpResult>
 
   // 3. The files, each stamped with its version, so a reader can tell which version it got.
   const stamp = { version: page.version, bundle_sha256: page.bundle_sha256 };
-  await eachLimited(Object.entries(p.files), CONCURRENCY, ([name, text]) =>
-    putPageFile(bucket, page.path, name, text, stamp),
-  );
+  await eachLimited(Object.entries(p.files), CONCURRENCY, ([name, text]) => {
+    fence.check();
+    return fence.bounded(`R2 put ${name}`, putPageFile(bucket, page.path, name, text, stamp));
+  });
 
   // 4. Hub entries and entities, in batches. An entity the live version already listed with the same name and kind
   //    is not rewritten: its item exists, because entities are written before LATEST moves.
-  await writeBatches(table, [
+  await writeBatches(table, fence, [
     ...page.hubs.map((h) => ({ put: hubEntry(page, h) as unknown as Doc })),
     ...p.entities.map((e) => ({ put: e as unknown as Doc })),
   ]);
 
-  // 5. Search row, then LATEST last: moving LATEST is the commit point readers see.
-  await deps.search.index(page);
+  // 5. Search row, then LATEST last: moving LATEST is the commit point readers see. It is one transaction with a
+  //    check that this request still holds the page lock.
+  fence.check();
+  await fence.bounded("search index", deps.search.index(page));
   try {
-    await table.put(live as never, or(notExists(), le("version", page.version)));
+    await fence.put(table, live as unknown as Doc, or(notExists(), le("version", page.version)));
   } catch (e) {
     if (e instanceof ConditionFailedError)
       throw new ApiError("version_conflict", "a newer version was published while this one was being written");
@@ -432,14 +450,21 @@ export async function executePut(deps: Deps, p: PreparedPage): Promise<OpResult>
   if (cleanup) {
     await writeBatches(
       table,
+      fence,
       cleanup.hubs.map((h) => ({ delete: hubKey(page, h) })),
     );
-    await deletePageFiles(bucket, page.path, cleanup.files);
+    fence.check();
+    await fence.bounded("R2 delete", deletePageFiles(bucket, page.path, cleanup.files));
   }
+  fence.check();
   const purged = await deps.purger.purge(affectedUrls(deps, live));
   if (cleanup) {
-    await table
-      .put(page as never, and(eq("version", page.version), eq("bundle_sha256", page.bundle_sha256)))
+    await fence
+      .put(
+        table,
+        page as unknown as Doc,
+        and(eq("version", page.version), eq("bundle_sha256", page.bundle_sha256), eq("status", "published")),
+      )
       .catch((e) => {
         if (!(e instanceof ConditionFailedError)) throw e;
       });
@@ -487,8 +512,13 @@ export async function prepareWithdraw(deps: Deps, pageId: string, req: { reason:
  * already withdrawn, so a retry finishes a withdrawal that failed half way. Versions stay in DynamoDB and the bundle
  * on the laptop.
  */
-export async function executeWithdraw(deps: Deps, p: PreparedPageOp): Promise<OpResult> {
+export async function executeWithdraw(
+  deps: Deps,
+  p: PreparedPageOp,
+  ctx: OpContext = unlocked(deps),
+): Promise<OpResult> {
   const table = deps.table();
+  const { fence } = ctx;
   let page = p.page;
   if (page.status !== "withdrawn") {
     const withdrawn: PageRecord = {
@@ -498,7 +528,7 @@ export async function executeWithdraw(deps: Deps, p: PreparedPageOp): Promise<Op
       withdraw_reason: p.reason,
     };
     try {
-      await table.put(withdrawn as never, and(eq("version", page.version), eq("status", "published")));
+      await fence.put(table, withdrawn as unknown as Doc, and(eq("version", page.version), eq("status", "published")));
     } catch (e) {
       if (e instanceof ConditionFailedError)
         throw new ApiError("version_conflict", "the page changed; read it again and retry");
@@ -513,11 +543,15 @@ export async function executeWithdraw(deps: Deps, p: PreparedPageOp): Promise<Op
   };
   await writeBatches(
     table,
+    fence,
     removed.hubs.map((h) => ({ delete: hubKey(gone, h) })),
   );
-  await deps.search.remove(gone);
+  fence.check();
+  await fence.bounded("search remove", deps.search.remove(gone));
   // The public files go: a withdrawn page must stop being served.
-  await deletePageFiles(deps.bucket(), gone.path, removed.files);
+  fence.check();
+  await fence.bounded("R2 delete", deletePageFiles(deps.bucket(), gone.path, removed.files));
+  fence.check();
   const purged = await deps.purger.purge(affectedUrls(deps, { ...gone, cleanup: removed }));
   return {
     status: 200,
@@ -549,15 +583,17 @@ export async function prepareIndex(
 }
 
 /**
- * Sets index_status on the live record (only while it is still the published version that was read), its hub
- * entries and its search row, then purges the page. Every step runs on every attempt, so a retry finishes.
+ * Sets index_status on the live record (only while it is still the published version that was read, and only while
+ * this request holds the page lock), its hub entries and its search row, then purges the page. Every step runs on
+ * every attempt, so a retry finishes.
  */
-export async function executeIndex(deps: Deps, p: PreparedPageOp): Promise<OpResult> {
+export async function executeIndex(deps: Deps, p: PreparedPageOp, ctx: OpContext = unlocked(deps)): Promise<OpResult> {
   const table = deps.table();
+  const { fence } = ctx;
   const status = p.indexStatus as "index" | "noindex";
   const page: PageRecord = { ...p.page, index_status: status };
   try {
-    await table.put(page as never, and(eq("version", page.version), eq("status", "published")));
+    await fence.put(table, page as unknown as Doc, and(eq("version", page.version), eq("status", "published")));
   } catch (e) {
     if (e instanceof ConditionFailedError)
       throw new ApiError("version_conflict", "the page changed; read it again and retry");
@@ -565,10 +601,13 @@ export async function executeIndex(deps: Deps, p: PreparedPageOp): Promise<OpRes
   }
   await writeBatches(
     table,
+    fence,
     page.hubs.map((h) => ({ put: hubEntry(page, h) as unknown as Doc })),
   );
-  await deps.search.setIndexStatus(page, status);
+  fence.check();
+  await fence.bounded("search index status", deps.search.setIndexStatus(page, status));
   // The page's own URLs: its robots meta and sitemap entry follow index_status (ADR 0004).
+  fence.check();
   const purged = await deps.purger.purge(pageFileUrls(deps.siteOrigin, page.path, ["index.html"]));
   return {
     status: 200,

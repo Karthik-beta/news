@@ -74,6 +74,7 @@ export function harness(overrides: Partial<Deps> = {}): Harness {
     siteOrigin: ORIGIN,
     regions: [...DEFAULT_REGION_VIEWS],
     now: () => now,
+    storageTimeoutMs: 10_000,
     limiters: {},
     log,
     ...overrides,

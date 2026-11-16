@@ -77,6 +77,7 @@ const deps: Deps = {
   siteOrigin: ORIGIN,
   regions: [...DEFAULT_REGION_VIEWS],
   now: () => clock,
+  storageTimeoutMs: 10_000,
   limiters: {},
   log: { warn: () => {}, error: () => {} },
 };

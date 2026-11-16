@@ -194,6 +194,7 @@
                 "unknown_page",
                 "page_withdrawn",
                 "page_busy",
+                "lock_expired",
                 "purge_failed",
                 "not_configured",
                 "payload_too_large",

@@ -4,6 +4,7 @@ import type { Table } from "@news/worker-shared/dynamo/table";
 import { CloudflarePurger, type Purger } from "@news/worker-shared/purge";
 import { D1SearchIndex, type SearchIndex } from "@news/worker-shared/search";
 import { DEFAULT_SITE_ORIGIN, regionViews } from "@news/worker-shared/urls";
+import { STORAGE_TIMEOUT_MS } from "./lock";
 import { d1ReportStore, type ReportStore } from "./report-store";
 
 export interface Env {
@@ -54,6 +55,8 @@ export interface Deps {
   siteOrigin: string;
   regions: string[];
   now: () => Date;
+  /** Timeout of one R2 or D1 call made by a page operation (lock.ts). */
+  storageTimeoutMs: number;
   limiters: { authFailure?: RateLimit; reportIp?: RateLimit; reportGlobal?: RateLimit };
   log: Logger;
 }
@@ -135,6 +138,7 @@ export function depsFromEnv(env: Env, log: Logger = consoleLogger): Deps {
     siteOrigin: origin,
     regions: regionViews(env.NEWS_REGION_VIEWS),
     now: () => new Date(),
+    storageTimeoutMs: STORAGE_TIMEOUT_MS,
     limiters: {
       authFailure: env.AUTH_FAILURE_LIMITER,
       reportIp: env.REPORT_IP_LIMITER,
