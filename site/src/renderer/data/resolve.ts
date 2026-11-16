@@ -193,7 +193,8 @@ export class PageDataResolver {
       for (const input of derived.inputs) {
         const point = this.data.points[input];
         if (point) inputSources.push(point.source);
-        else this.problem({ code: "broken-link", ref, message: `${ref} is calculated from ${input}, not in data.json` });
+        else
+          this.problem({ code: "broken-link", ref, message: `${ref} is calculated from ${input}, not in data.json` });
       }
       return {
         ok: true,
@@ -353,9 +354,9 @@ export class PageDataResolver {
             return s.text;
           case "quote":
             return `“${s.text}”`;
-          case "missing":
-            return MISSING_TEXT.toLowerCase();
         }
+        // The one remaining segment type, "missing".
+        return MISSING_TEXT.toLowerCase();
       })
       .join("");
   }
@@ -393,7 +394,8 @@ export class PageDataResolver {
       if (!this.sources.sources[q.source]) add("unknown-source", ref, `${ref} cites ${q.source}, not in sources.json`);
     }
     for (const [ref, c] of Object.entries(context)) {
-      for (const input of c.inputs ?? []) if (!all.has(input)) add("broken-link", ref, `${ref} input ${input} is missing`);
+      for (const input of c.inputs ?? [])
+        if (!all.has(input)) add("broken-link", ref, `${ref} input ${input} is missing`);
     }
     for (const p of found) this.problem(p);
     return found;
@@ -416,7 +418,13 @@ export function formatValue(
   if (style === "as-reported") {
     if (kind === "percent") return formatPercent(v.value, { decimals: v.value.split(".")[1]?.length ?? 0 });
     if (kind !== "other") return formatQuantity(v.value, v.unit, { decimals: v.value.split(".")[1]?.length ?? 0 });
-    const word = { units: "", thousands: " thousand", millions: " million", billions: " billion", trillions: " trillion" };
+    const word = {
+      units: "",
+      thousands: " thousand",
+      millions: " million",
+      billions: " billion",
+      trillions: " trillion",
+    };
     return `${formatNumber(v.value)}${word[scale]} ${v.unit}`;
   }
   return formatQuantity(v.value, v.unit, { scale, sourceDecimals });
