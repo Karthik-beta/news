@@ -25,7 +25,7 @@ Read first: the Bureau design §3.1–§3.4 (Contacts; Wire: Stringers, Runner, 
 
 - **Never convert** currencies, units or fiscal periods. Store what the source says; formatting happens at render time.
 - **Revisions are data**: when a source revises a figure, store the new value as a new vintage that supersedes the old one and let Rewrite queue a page update.
-- **No `unwrap` on external data.** Every parse failure becomes a typed error with the locator where it failed; the job goes to the dead list, not into blind retries. After a parser fix, the Salvage workflow (`/bureau retry`) re-parses the stored snapshots.
+- **No `unwrap` on external data.** Every parse failure becomes a typed error with the locator where it failed; the job goes to the dead list, not into blind retries. After a parser fix, the Salvage workflow (started from Board) re-parses the stored snapshots.
 - **No AI.** Discovery, fetching, parsing and classification of structured items are code only.
 - **Idempotent and resumable**: running a command twice changes nothing the second time.
 - **Low CPU**: stream large files; use Docling only for hard PDF tables, one at a time.
