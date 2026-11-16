@@ -60,6 +60,8 @@ export const STATUS: Record<ErrorCode, number> = {
   internal: 500,
 };
 
+export const MAX_DETAILS = 50;
+
 export class ApiError extends Error {
   constructor(
     readonly code: ErrorCode,
@@ -77,7 +79,12 @@ export class ApiError extends Error {
 
   toResponse(extraHeaders: Record<string, string> = {}): Response {
     const body = {
-      error: { code: this.code, message: this.message, ...(this.details?.length ? { details: this.details } : {}) },
+      // The contract allows at most MAX_DETAILS; the first ones are enough to act on.
+      error: {
+        code: this.code,
+        message: this.message,
+        ...(this.details?.length ? { details: this.details.slice(0, MAX_DETAILS) } : {}),
+      },
     };
     return json(body, this.status, { ...this.headers, ...extraHeaders });
   }
