@@ -326,6 +326,47 @@ describe("one page, one writer at a time", () => {
     expect(latest(h)).toMatchObject({ status: "published", index_status: "index" });
   });
 
+  it("a failed file write waits for every write still in flight before the lock is given back", async () => {
+    const h = harness();
+    await published(h);
+    const bucketPut = h.bucket.put.bind(h.bucket);
+    let letGo = () => {};
+    const held = new Promise<void>((r) => {
+      letGo = r;
+    });
+    let slowLanded = false;
+    let failed = false;
+    h.bucket.put = async (key, value, options) => {
+      if (key.endsWith("/index.html")) {
+        await held;
+        const out = await bucketPut(key, value, options);
+        slowLanded = true;
+        return out;
+      }
+      if (key.endsWith("/index.md")) {
+        failed = true;
+        throw new Error("R2 unavailable (test)");
+      }
+      return bucketPut(key, value, options);
+    };
+    const v2 = await makeBundle(makeMeta({ version: 2, title: "Version two" }));
+    let settled = false;
+    const outer = h.call("PUT", "/v1/pages/test-page", { body: v2 }).then((r) => {
+      settled = true;
+      return r;
+    });
+    while (!failed) await new Promise((r) => setTimeout(r, 1));
+    for (let i = 0; i < 10; i++) await new Promise((r) => setTimeout(r, 1));
+    // index.md failed, but index.html is still being written: the request has not answered and still holds the lock.
+    expect(settled).toBe(false);
+    const v3 = await makeBundle(makeMeta({ version: 3, title: "Version three" }));
+    expect(await errorCode(await h.call("PUT", "/v1/pages/test-page", { body: v3 }))).toBe("page_busy");
+    letGo();
+    const res = await outer;
+    expect([res.status, slowLanded]).toEqual([500, true]);
+    expect(items(h, "PAGE#test-page").map((i) => i.SK)).not.toContain("LOCK");
+  }, 20_000);
+
   it("a lock left by a crashed request is taken over once it is stale", async () => {
     const h = harness();
     await published(h);

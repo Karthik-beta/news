@@ -1,7 +1,7 @@
 // Page operations: publish (PUT /v1/pages/{id}), withdraw, and index promotion.
 import { sha256Hex } from "@news/worker-shared/crypto";
 import { and, eq, le, notExists, or } from "@news/worker-shared/dynamo/conditions";
-import { ConditionFailedError, type Doc, itemSize } from "@news/worker-shared/dynamo/table";
+import { ConditionFailedError, type Doc, itemSize, OutcomeUnknownError } from "@news/worker-shared/dynamo/table";
 import {
   entityKey,
   hubPk,
@@ -31,13 +31,25 @@ export interface OpResult {
   body: unknown;
 }
 
-/** Runs `fn` over `items` with at most `n` in flight (keeps subrequests and DynamoDB bursts small). */
-async function eachLimited<T>(items: T[], n: number, fn: (item: T) => Promise<unknown>): Promise<void> {
+/**
+ * Runs `fn` over `items` with at most `n` in flight (keeps DynamoDB bursts small). After a failure nothing new is
+ * started, but every call already running is waited for before the failure is thrown: the caller gives the page lock
+ * back only once no write of this request can still land. An outcome-unknown failure wins over any other.
+ */
+export async function eachLimited<T>(items: T[], n: number, fn: (item: T) => Promise<unknown>): Promise<void> {
   let next = 0;
+  const errors: unknown[] = [];
   const worker = async () => {
-    while (next < items.length) await fn(items[next++] as T);
+    while (next < items.length && errors.length === 0) {
+      try {
+        await fn(items[next++] as T);
+      } catch (e) {
+        errors.push(e);
+      }
+    }
   };
   await Promise.all(Array.from({ length: Math.min(n, items.length) }, worker));
+  if (errors.length > 0) throw errors.find((e) => e instanceof OutcomeUnknownError) ?? errors[0];
 }
 
 // --- publish ------------------------------------------------------------------------------------------------------
