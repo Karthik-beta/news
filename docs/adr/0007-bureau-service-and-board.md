@@ -21,7 +21,7 @@ Everything else stays: PostgreSQL in Docker, the shared ClickHouse, the OTel col
 1. **Bureau is a Windows service.** It logs on as Karthik's account, because `claude -p` uses his Claude login and Docker runs under his user. It hosts Chief, the Dispatch workers for every pool (replacing `news work` and Task Scheduler), Rota and Ghost. Runs continue with Board closed.
 2. **Ghost is Rust, inside the service.** It spawns one `claude -p` per AI job, as before (Bureau Design §3.9). The 10-minute Bash limit and `--max-seconds` slicing go, because no chat session runs Ghost any more. The page renderer stays Bun + React/OpenUI, as a warm local render server that the service calls over HTTP on 127.0.0.1.
 3. **Board is the desktop app.** Pure Rust on egui/eframe. It talks only to the service. It replaces the `/bureau` skill and the planned Bun web dashboard.
-4. **One binary.** `news.exe` holds the CLI, the service (`news service run|install|uninstall|update`) and Board (`news board`), all built from the shared crates in `cli/`.
+4. **One binary.** `news.exe` holds the CLI, the service (`news service run|install|uninstall`; updates are started from Board, `service.update`) and Board (`news board`), all built from the shared crates in `cli/`.
 5. **Board opens minimised at log-on.** If the service is down, Board shows an offline banner, a "Start service" button and the last error. It follows the Windows light or dark setting, with a manual override. Its themes are generated from `design/tokens/tokens.json`.
 6. **Laptop only.** Nothing is exposed to the network and there is no remote access. The Hotline rejects remote clients, and Plate and any other local listener bind to 127.0.0.1.
 7. **`/bureau` is removed entirely:** the skill, the `UserPromptSubmit` prompt hook, start tickets (`start_tickets`), plain-English intent mapping (`news run intent`), `/bureau yes`, `news run hook-prompt`, `news run ticket`, and the agent deny-list built around them.
@@ -121,7 +121,7 @@ ADRs 0001–0006 are on unmerged branches. Apply these there, as an "Amended by 
 
 - Header: add `- Amended by: ADR 0007 (item 9; item 2's command tree)`.
 - Item 9, new wording: "**Tiers.** H-tier commands are actions only Karthik takes, and only from Board: the Bureau service accepts them over its named pipe (the Hotline) only from the installed `news.exe` running as `news board`, and never from a process it spawned for `claude -p` (ADR 0007). The CLI has no H-tier form; in the terminal it reads status and runs R and W commands. There is no `CLAUDECODE` check. The real boundary stays in Chief (approvals bound to `subject_sha`, the G-tier rule)."
-- Item 2, add a sentence: "The `news run intent`, `news run hook-prompt` and `news run ticket` stubs are removed, and `news service run|install|uninstall|update` and `news board` are added (ADR 0007)."
+- Item 2, add a sentence: "The `news run intent`, `news run hook-prompt` and `news run ticket` stubs are removed, and `news service run|install|uninstall` and `news board` are added; service updates are a Board action, not a CLI command (ADR 0007)."
 - Item 6, add a sentence: "`start_tickets` is dropped and Standing, a versioned settings table, is added in a later migration block (ADR 0007); the `runs` constraints change as in Bureau Design §5.5."
 
 **`docs/adr/0003-dispatch-job-engine.md`** (branch `phase-5/cli/core`)

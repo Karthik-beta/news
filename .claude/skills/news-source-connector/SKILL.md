@@ -11,7 +11,7 @@ Read first: the Bureau design §3.1–§3.4 (Contacts; Wire: Stringers, Runner, 
 
 ## What a connector delivers
 
-1. **Registry entry** (Contacts) in the `sources` table seed: id, name, publisher to credit, base URL, connector, source tier, licence (public domain, CC BY, custom, unclear), required attribution text, image policy, redistribution allowed (yes/no), rate limit (the documented limit, halved), concurrency, daily quota, the *name* of the env var holding a free key, regions, categories, calendar kind.
+1. **Registry entry** (Contacts) in the `sources` table seed: id, name, publisher to credit, base URL, connector, source tier, licence (public domain, CC BY, custom, unclear), required attribution text, image policy, redistribution allowed (yes/no), rate limit (the documented limit, halved), concurrency, daily quota, the *name* of the Credential Manager entry holding a free key, regions, categories, calendar kind.
    - Unclear redistribution terms → `redistribution: false`: the page links and summarises; data files are not republished.
 2. **Discover** (`discover`): a cheap listing since a cursor (feed, index, API "updated after"), returning item refs with an event-key hint, not content.
 3. **Fetch** (`fetch`) through the shared **Runner**, never your own HTTP client: conditional GET (`ETag` / `Last-Modified`, so a 304 costs no parse), the per-host rate limit, `Retry-After` (the job is snoozed, not failed) and `robots.txt`. The Runner stores the bytes exactly as received in Morgue (`work/raw/sha256/…`, content-addressed, with a `snapshots` row) and sets the User-Agent; a contact e-mail (the `NEWS_CONTACT_EMAIL` setting, read from Standing, the versioned settings table; `.env` holds only bootstrap values) is added only for sources that require one, such as SEC EDGAR.
@@ -29,7 +29,7 @@ Read first: the Bureau design §3.1–§3.4 (Contacts; Wire: Stringers, Runner, 
 - **No AI.** Discovery, fetching, parsing and classification of structured items are code only.
 - **Idempotent and resumable**: running a command twice changes nothing the second time.
 - **Low CPU**: stream large files; use Docling only for hard PDF tables, one at a time.
-- **No paid APIs, no API keys that cost money.** If a source needs a free key, it goes in the local secrets file, never in code or fixtures.
+- **No paid APIs, no API keys that cost money.** If a source needs a free key, Karthik stores it in Windows Credential Manager (entered through Board, ADR 0007), and the registry records only the entry's name; never in code, fixtures, `.env` or PostgreSQL.
 
 ## Tests
 

@@ -180,7 +180,7 @@ create table sources (
   attribution      text not null,
   redistribution   boolean not null,            -- false → link and summarise, no data files (PRD rule 4)
   image_policy     text not null,
-  auth_env         text,                        -- NAME of the env var holding a free key, never the key
+  auth_env         text,                        -- NAME of the Credential Manager entry holding a free key, never the key
   rate_per_sec     numeric(6,3) not null,       -- documented limit, then halved for safety
   max_concurrency  smallint not null default 1,
   daily_quota      integer,                     -- e.g. BLS v2: 500 queries/day [22]
@@ -569,7 +569,7 @@ create table scores (
 create table run_plans (           -- the Budget
   run_id uuid not null, story_id bigint not null, rank int not null, tier smallint not null,
   bucket text not null, adjusted numeric(5,2) not null, reason text not null,
-  action text not null,           -- 'new' | 'update'
+  action text not null,           -- 'new' | 'update' (direction flip, A1) | 'revise' (value-only re-render, code)
   primary key (run_id, story_id)
 );
 ```
@@ -836,7 +836,7 @@ Hard limits: **category cap** = `max(2, ⌈0.35 · NEWS_TARGET_PAGES⌉)` storie
 
 **Tiers:** Tier 1 if `S ≥ 70`, or the main entity has prominence 1 and `S ≥ 60`; Tier 2 if `S ≥ 40`; otherwise stays *queued* (re-scored next run; freshness decays, so stale items fall away, and the Catchup workflow can pick them with F ignored).
 
-**Updates** are planned separately: value-only revisions never enter the plan (code re-renders them); AI updates take at most 10 % of the run.
+**Updates** are planned in the same Budget but outside the breadth caps: value-only revisions enter it as `revise` items (code re-renders them, no AI) and direction flips as `update` items, up to the `bulk` threshold of 100 pages (§8.3); AI updates take at most 10 % of the run. Because they are in the Budget, the run's start or its `plan` approval authorises publishing them (§5.5).
 
 ### 4.5 Index priority and home candidates
 
@@ -974,6 +974,9 @@ with c as (
   select job_id from jobs
   where pool = $1 and state in ('available','scheduled','retryable','snoozed') and run_after <= now()
     and coalesce((select paused_until from pools where pool = $1), '-infinity') < now()
+    -- 3. A job of a run is claimed only while that run is live; background jobs have no run.
+    and (run_id is null or exists (select 1 from runs r where r.run_id = jobs.run_id
+                                    and r.status in ('running','waiting_ai')))
   order by priority, run_after, job_id
   for update skip locked
   limit greatest(0, least($2, (select max_running from pools where pool = $1)
@@ -985,6 +988,8 @@ from c where j.job_id = c.job_id
 returning j.*;
 commit;
 ```
+
+**Jobs of paused runs.** Step 3 of the claim skips jobs whose run is queued, paused, waiting at a gate or finished, so pausing a run (including the at-once pause of a stalled run, §6.4) stops all its work in every pool, and nothing of it is claimed until it resumes.
 
 **Releasing a slot.** Capacity is counted from jobs in state `running`, so a slot frees itself the moment a job leaves that state: completion, failure, snooze or cancel each update the job's state in their own transaction. The lease reaper, which moves `running` jobs whose `lease_until` has passed back to `retryable`, takes the same pool lock first, so an expired job's slot and a new claim never race. No separate counter exists, so there is nothing to drift.
 
@@ -1078,10 +1083,10 @@ Every step is idempotent: after a crash or a service restart, Chief finishes the
 
 **The Lineup** (supersedes D16; ADR 0007). A heavy run that cannot get the slot is not refused:
 
-- A **scheduled** heavy run is inserted as `queued` with `start_by` = its scheduled time plus the late limit (setting `queue_late_limit`, starting at 2 hours). If the slot is still busy at `start_by`, the run ends as `skipped` with a Wrap that says why, and Board notes it.
+- A **scheduled** heavy run is inserted as `queued` with `start_by` = its scheduled time plus the late limit (setting `queue_late_limit`, starting at 2 hours). If the slot is still busy at `start_by`, the run ends as `skipped` with a Wrap that says why, and Board notes it. `start_by` applies only to a run's first start: Chief clears it when the run starts, so a run that has already started and later rejoins the Lineup (after a gate, a pause or a resume) is never skipped for being late.
 - A **manual** Start while the slot is busy returns `queue_offer`. Board offers "Queue it" (the run is inserted as `queued` with no `start_by`, and waits until it starts or Karthik cancels it) or "Pause the running one and start this" (the running heavy run stops at its next step boundary as `paused`, reason `karthik`, and the new run takes the slot; the paused run stays on the board with Resume).
 - A gated run whose gate is approved while the slot is busy, and a Resume while the slot is busy, join the queue the same way.
-- When the slot frees, the oldest queued run whose `start_by` has not passed starts. Board lists the Lineup and can cancel entries (`lineup.cancel`). Quiet hours and the quota guard also hold queued runs (§5.6, §7.4).
+- When the slot frees, the oldest queued run whose `start_by` is unset or has not passed starts. Board lists the Lineup and can cancel entries (`lineup.cancel`). Quiet hours and the quota guard also hold queued runs (§5.6, §7.4).
 - A second run of a preset that is already live or queued is not queued: Board shows the live run with Resume or Cancel, and a schedule that fires for it is skipped and noted.
 
 **G-tier authorisation** (one rule for every G-tier command: `news publish`, `news home publish`, `news eval promote`, `news corrections resolve --action update`, and `news scores adopt`, `news sources enable|disable` and `news jobs retry` above 50 when they run as a step). Chief runs the command only when all three hold, read from PostgreSQL and never from environment variables such as `NEWS_RUN_ID`:
@@ -1143,7 +1148,7 @@ Heavy development jobs (Playwright matrices, release builds) should not overlap 
 | Laptop sleeps mid-run | Same as a crash; leases expire on wake |
 | PostgreSQL restart | Transactions roll back; jobs stay in their last committed state |
 | Plan usage limit | `-p` calls fail rather than wait [64]. Ghost pauses pool `ai` until the reset time the error gives and sets the run `paused` (reason `usage_limit`); Board raises a toast. At the reset time the service unpauses the pool and resumes the run on its own. The error's shape and reset time are confirmed in the service spike (ADR 0007) |
-| Service update | `news service update` waits for a safe point (no AI call or publish in flight), swaps the binary and restarts; live runs resume from PostgreSQL |
+| Service update | Started from Board only (`service.update`, H tier); waits for a safe point (no AI call or publish in flight), swaps the binary and restarts; live runs resume from PostgreSQL |
 | Bad parser shipped | Fix, then the Salvage workflow re-parses affected snapshots (`parse` is pure) and lets revisions flow through Rewrite |
 | Bad prompt shipped | Audit catches it before promotion; if it slipped through, re-run `ai.write` for affected pages with `--force` under the new prompt version |
 
@@ -1226,8 +1231,8 @@ Existing TD commands keep their names; each new command group is a tool family n
 | Start (Board: `run.start`, `run.start_after_pause`) | preset id, args | `{run_id, short_id, steps:[…], status}`; `runs.origin` is `board`. When the heavy slot is busy: `queue_offer` with code-rendered `text`; Board then queues the run or pauses the running heavy run first (§5.5). No CLI form | `conflict` (reason `preset_live`: this preset already has a live or queued run), `precondition` (preflight, quiet hours, quota guard), `gated` (sent from a spawned process) | H |
 | `news run status [<run>]` | — | no run: the status board (§8.1); with a run: step table, counts, budget used, open gate with its summary, Wrap if finished | `not_found` | R |
 | Approve / Request changes / Reject (Board: `gate.approve\|changes\|reject`) | run, gate, round, the `subject_sha` Board showed; a note for changes | `{decision, round, subject_sha}` | `precondition` (gate not waiting), `gated` (hash differs, or not sent by Board) | H |
-| Resume (Board: `run.resume`) | run | `{status}`; joins the Lineup when the heavy slot is busy | `precondition` (not paused or waiting) | H |
-| Pause (Board: `run.pause`) | run | `{pausing, after_step}`; the run stops at the next step boundary and frees the heavy slot. On a stalled run (`last_seen_at` more than 15 minutes old) it takes effect at once, in this order: Chief terminates the run's AI Job Object (ending any `claude -p` still going), revokes every `running` lease of the run by moving those jobs to `retryable` with a new attempt and no holder, and only then sets the run `paused` and frees the slot. A worker that was only slow, not dead, then finds it no longer holds its job: its heartbeat, completion or failure is rejected (`conflict`, the holder check of ADR 0003), so its result is never recorded and no two workers finish the same step. Finished keys make the re-run safe (§5.8) | `precondition` (not running) | H |
+| Resume (Board: `run.resume`) | run | `{status}`; joins the Lineup when the heavy slot is busy. A stalled run is still `running`, so it is paused first (it pauses at once), then resumed | `precondition` (not paused or waiting) | H |
+| Pause (Board: `run.pause`) | run | `{pausing, after_step}`; the run stops at the next step boundary and frees the heavy slot. On a stalled run (`last_seen_at` more than 15 minutes old) it takes effect at once, and nothing of the run keeps working once the slot is free: (1) Chief terminates the run's AI Job Object, ending any `claude -p` still going; (2) it cancels the run's in-flight jobs in every pool (`cpu`, `docling`, `render`, `publish` as well as `ai`): the workers are tasks inside the service, so it signals them and waits for them to stop, up to the lease length; (3) it waits for any publish request already sent to the write API to return or time out (the same "no publish in flight" rule as an update, §5.9), and Press sends none of the run's other outbox rows until it resumes (a resend reuses the idempotency key, §3.12); (4) in one transaction it sets the run `paused` and moves all its `running` jobs, in every pool, to `retryable` with a new attempt and no holder. Because the claim query skips jobs whose run is not `running` or `waiting_ai` (§5.4), none of them can be claimed again until the run resumes. Only then is the slot free. A worker that did not stop in time finds it no longer holds its job: its heartbeat, completion or failure is rejected (`conflict`, the holder check of ADR 0003), so its result is never recorded, and any write it made before that is keyed and idempotent (§5.8), so the re-run after resume is safe | `precondition` (not running) | H |
 | Cancel (Board: `run.cancel`) | run | `{cancelled, wrap}` | | H |
 | `news run lineup` | — | the Lineup in order, with `start_by` (cancelling an entry is a Board action, `lineup.cancel`) | — | R |
 | `news run list [--active]` | — | recent runs | | R |
@@ -1348,7 +1353,7 @@ Models: `NEWS_MODEL_MAIN` = Sonnet 5.5, `NEWS_MODEL_LIGHT` = Haiku 5.5, `NEWS_MO
 Bureau shares Karthik's Claude plan with his development work, and scheduled runs start without him, so the service keeps Bureau inside limits he sets (ADR 0007):
 
 - **Bureau token cap.** A daily and a weekly cap on Bureau's own tokens, counted from `ai_calls`. A run that would start over the cap does not start; a running run stops claiming new AI jobs at the cap, finishes its code work and says so in its Wrap, as `NEWS_AI_RUN_TOKENS` does per run.
-- **Reserve.** Near the plan limit, no new run starts, so Karthik keeps quota for development. The plan limit is not published, so "near" is the reserve Karthik sets. Total usage comes from one source only: Claude Code's own OpenTelemetry metrics (`claude_code.token.usage` [69]) for every session that exports to the collector. Bureau's `claude -p` calls export there too (Ghost tags them with `news.run_id`), so they are already in the total; `ai_calls` is used for Bureau's own share and the cap, and is never added to the total. A session that does not export is not seen.
+- **Reserve.** Near the plan limit, no new run starts, and running runs stop claiming new AI jobs (Ghost checks the reserve before every claim, as it checks the cap); they finish their code work and in-flight calls, wait in `paused` (reason `quota`), and resume on their own when usage falls back under the reserve. So Karthik keeps quota for development. The plan limit is not published, so "near" is the reserve Karthik sets. Total usage comes from one source only: Claude Code's own OpenTelemetry metrics (`claude_code.token.usage` [69]) for every session that exports to the collector. Bureau's `claude -p` calls export there too (Ghost tags them with `news.run_id`), so they are already in the total; `ai_calls` is used for Bureau's own share and the cap, and is never added to the total. A session that does not export is not seen.
 - **Usage limit reached anyway.** The run pauses, Board raises a toast, and the run resumes on its own when the limit resets (§5.9).
 - **In Board.** Settings & schedules holds the caps and the reserve; the status board shows Bureau usage against the total for the day and the week.
 
@@ -1422,7 +1427,7 @@ The top of Runs & approvals. `news run status` builds it from PostgreSQL with no
 
 **Next-action rules**, first match wins *(thresholds are starting values, kept as data; speculative)*:
 
-1. A heavy run is stalled → Resume it.
+1. A heavy run is stalled → Pause it (a stalled run pauses at once), then Resume it.
 2. Tier 1 stories are captured but not on a page, the heavy slot is free and no Edition is scheduled within the hour → Start Edition (or Flash with their keys when there are at most 3 and an Edition finished in the last 3 hours).
 3. A gate is open → open that run, so Karthik reads the summary before answering.
 4. A source that today's Diary needs is red → Start Rollcall for that source.
@@ -1514,7 +1519,7 @@ Every action is an H-tier command over the Hotline, accepted only from Board (AD
 | Start (a preset's form) | Starts a run with arguments; if the heavy slot is busy, offers "Queue it" or "Pause the running one and start this" (below) | `run.start`, `run.start_after_pause` |
 | Approve / Request changes / Reject | Answers the open gate, bound to the `subject_sha` of what Board showed. Request changes needs a note and sends the run back to its drafting step (Frontpage, Rollcall, Huddle); Reject skips the gated work and continues with the next step (for per-item gates, the next item), and the run ends with its Wrap as usual | `gate.approve`, `gate.changes`, `gate.reject` |
 | Pause | Stops after the current step (after the current chunk in Catchup; Ghost stops claiming and lets in-flight calls finish); the run becomes `paused` and frees the heavy slot. On a stalled run it takes effect at once (§6.4) | `run.pause` |
-| Resume | Continues a paused, stalled or waiting run from its last finished step; queues it if the heavy slot is busy | `run.resume` |
+| Resume | Continues a paused or waiting run from its last finished step; queues it if the heavy slot is busy. For a stalled run, Pause first (it pauses at once), then Resume | `run.resume` |
 | Cancel | Stops now; finished pages stay published, queued jobs are cancelled, the Wrap is written | `run.cancel` |
 | Cancel queued | Removes a run from the Lineup (it ends with a Wrap that says so) | `lineup.cancel` |
 | Save Standing | Writes one new settings version, schedules included | `standing.set` |
@@ -1564,7 +1569,7 @@ Board raises native Windows toasts (a service cannot show them) for: a gate wait
 
 - **Settings** live in a versioned PostgreSQL table: every change records who (always `board`), when, and old and new value. Each run snapshots the settings version it started with (`runs.settings_version`). Schedules, targets, parallelism, budgets, the token cap and reserve, quiet hours, models per step and sources on or off are all settings.
 - **Secrets** (the write-API key, the read-only Cloudflare and AWS tokens, and the GitHub token) live in Windows Credential Manager under Karthik's account. Board writes them; the service reads them when a step needs one. Nothing secret crosses the pipe or sits in PostgreSQL. `.env` keeps only bootstrap values.
-- **Install and update.** `news service install` registers the service under Karthik's account (Windows asks for his password); `uninstall` removes it. `news service update` waits for a safe point, swaps the binary, restarts the service, and runs resume from PostgreSQL.
+- **Install and update.** `news service install` registers the service under Karthik's account (Windows asks for his password); `uninstall` removes it; both run in Karthik's terminal, because they come before the service exists. An update is started from Board only (`service.update`): it waits for a safe point, swaps the binary, restarts the service, and runs resume from PostgreSQL.
 
 ### 8.2 How every preset works
 
@@ -1928,7 +1933,7 @@ Settled on 15 November 2026: Karthik chose D2 himself and adopted the recommenda
 | Lean-call flags behave differently from the docs (settings sources, hooks) | Page calls load project context or tools | Lean-call spike before building Ghost; env and config isolation as a second layer |
 | Plan usage limits hit mid-run | Partial runs | Run token budget, pause and automatic resume at the reset, back-to-back cached prefixes |
 | Unattended scheduled runs publish a bad batch | Wrong pages live before Karthik looks | Only pages that pass Proof publish; sample checks; `review_plan` per schedule; withdraw and correct from Board; Errata |
-| Bureau uses the quota Karthik needs for development | Development stalls | The Bureau token cap and reserve: no new run starts near the limit (§7.4); Board shows Bureau usage against the total |
+| Bureau uses the quota Karthik needs for development | Development stalls | The Bureau token cap and reserve: near the limit no new run starts and running runs stop claiming AI jobs, checked before every claim (§7.4); Board shows Bureau usage against the total |
 | The service runs as Karthik's account | It has his rights; a password change stops it logging on | Pipe locked to his user; spawn marker; Board's offline banner shows the last error and he re-enters the password with `news service install` |
 | `claude -p` does not use his login when started by a service (session 0) | No AI runs from the service | The service spike in the step after wave 1, before anything else is built on it (ADR 0007) |
 | Hand-set weights pick a narrow mix | Repetitive coverage | Bucket diversity, coverage gap, weekly pairwise calibration |

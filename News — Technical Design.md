@@ -69,7 +69,7 @@ PostgreSQL was chosen over a second Neo4j instance: the workload is mostly relat
 
 Full design: [Bureau design §8.1](News%20—%20Bureau%20Design.md#81-board-and-the-bureau-service) and [ADR 0007](docs/adr/0007-bureau-service-and-board.md).
 
-- **The Bureau service** (`news service run`) is a Windows service that logs on as Karthik's account, because `claude -p` uses his Claude login and Docker runs under his user. It hosts Chief (runs, gates, the queue for heavy runs), Rota, the Dispatch workers for every pool and Ghost, the AI runner. Runs continue with Board closed. `news service install|uninstall|update` installs it (Windows asks for Karthik's password), removes it, or updates it at a safe point; runs resume from PostgreSQL.
+- **The Bureau service** (`news service run`) is a Windows service that logs on as Karthik's account, because `claude -p` uses his Claude login and Docker runs under his user. It hosts Chief (runs, gates, the queue for heavy runs), Rota, the Dispatch workers for every pool and Ghost, the AI runner. Runs continue with Board closed. `news service install|uninstall`, run by Karthik in his terminal, installs it (Windows asks for his password) or removes it. Updates are started from Board only and wait for a safe point; runs resume from PostgreSQL.
 - **Board** (`news board`) is a pure-Rust egui desktop app in the same binary. It opens minimised at log-on, follows the Windows light or dark setting with a manual override, and talks only to the service. If the service is down it shows an offline banner, a "Start service" button and the last error. Notifications are native Windows toasts; clicking one opens Board on that item.
 - **Control** goes over the **Hotline**, a named pipe locked to Karthik's user and to local clients. Starts, approvals and every other high-tier (H) action are accepted only from Board; his terminal (the `news` CLI) can read status and run the low-risk tiers only, and the service refuses everything but reads from any process it spawned for `claude -p`. Nothing is exposed to the network.
 - **Names** (Karthik, 16 Nov 2026): **Rota** is the scheduler, **Hotline** the control pipe, **Plate** the warm Bun render server, **Lineup** the heavy runs waiting for the slot, **Standing** the versioned settings store (`news standing`).
@@ -524,7 +524,7 @@ These are settings in **Standing**, a versioned PostgreSQL table, changed only i
 
 ## Free-tier budget and limits
 
-Planning figures, checked during setup and monitored in Board's cloud usage view (Cloudflare Workers, R2 and D1; DynamoDB), which reads them with read-only tokens and raises local alarms at a share of each limit. Over-limit behaviour differs by service: R2 bills, D1 queries fail, DynamoDB throttles.
+Planning figures, checked during setup and monitored in Board's cloud usage view (Cloudflare Workers, R2 and D1; DynamoDB), which reads them with the read-only Cloudflare and AWS tokens and raises local alarms at a share of each limit. Over-limit behaviour differs by service: R2 bills, D1 queries fail, DynamoDB throttles.
 
 | Service | Free allowance | Pressure point | Mitigation |
 | --- | --- | --- | --- |
