@@ -6,7 +6,7 @@ import { schemas } from "@news/worker-shared/validate";
 import { describe, expect, it } from "vitest";
 import { depsFromEnv } from "./deps";
 import { ERR, handleMcp, LEGACY_VERSIONS, MODERN_VERSION, SERVER_INFO } from "./server";
-import { callTool, harness, ORIGIN, rpc } from "./testing";
+import { callTool, harness, ORIGIN, rpc, STAMP_V1 } from "./testing";
 import { CAPS, type TOOL_LIST } from "./tools";
 
 // Responses are checked field by field below; a loose type keeps the assertions readable.
@@ -268,6 +268,47 @@ describe("tools/call", () => {
     expect(b.result?.structuredContent).toMatchObject({ version: 2, markdown: "# Version two\n" });
   });
 
+  it("never serves a file without a version stamp as the page's content", async () => {
+    const h = harness();
+    // An object written by anything but the publish path carries no version: it cannot be shown as version 1.
+    await h.bucket.put("2026/11/us-cpi-october/index.md", "# Unstamped\n");
+    await h.bucket.put("2026/11/us-cpi-october/data.json", '{"unstamped":true}');
+    for (const [name, args] of [
+      ["get_page", { page_id: "us-cpi-october" }],
+      ["get_data", { page_id: "us-cpi-october" }],
+    ] as const) {
+      const b = await body(await callTool(h.deps, name, args));
+      expect(b.result?.isError, name).toBe(true);
+      expect(JSON.stringify(b.result)).not.toContain("nstamped");
+    }
+  });
+
+  it("does not cache 'being updated': the next call reads again and gets the content", async () => {
+    const stored = new Map<string, string>();
+    const cache = {
+      async match(key: string) {
+        const hit = stored.get(key);
+        return hit ? new Response(hit) : undefined;
+      },
+      async put(key: string, res: Response) {
+        stored.set(key, await res.text());
+      },
+    } as unknown as Cache;
+    const h = harness({ cache });
+    const v2 = { customMetadata: { version: "2", bundle_sha256: "b".repeat(64) } };
+    await h.bucket.put("2026/11/us-cpi-october/index.md", "# Version two\n", v2);
+    const busy = await body(await callTool(h.deps, "get_page", { page_id: "us-cpi-october" }));
+    expect(busy.result?.content[0].text).toMatch(/being updated/);
+    expect(stored.size).toBe(0);
+    const live = h.table.dump().find((i) => i.PK === "PAGE#us-cpi-october" && i.SK === "LATEST") as Record<
+      string,
+      never
+    >;
+    h.table.seed({ ...live, version: 2 as never });
+    const done = await body(await callTool(h.deps, "get_page", { page_id: "us-cpi-october" }));
+    expect(done.result?.structuredContent).toMatchObject({ version: 2, markdown: "# Version two\n" });
+  });
+
   it("answers a repeated call from the edge cache without reading storage again", async () => {
     const stored = new Map<string, { body: string; cacheControl: string | null }>();
     const cache = {
@@ -304,7 +345,7 @@ describe("tools/call", () => {
   it("applies the result cap to the whole response, request ID included", async () => {
     const h = harness();
     // Control characters cost 6 bytes each once JSON-escaped: a file under the data cap makes a near-cap result.
-    await h.bucket.put("2026/11/us-cpi-october/data.json", "".repeat(41_500));
+    await h.bucket.put("2026/11/us-cpi-october/data.json", "".repeat(41_500), STAMP_V1);
     const size = async (res: Response) => new TextEncoder().encode(await res.clone().text()).length;
     const short = await callTool(h.deps, "get_data", { page_id: "us-cpi-october" });
     const nearCap = await size(short);
@@ -320,10 +361,11 @@ describe("tools/call", () => {
 
   it("keeps responses within their size caps, and says when it truncated", async () => {
     const h = harness();
-    await h.bucket.put("2026/11/us-cpi-october/index.md", `# Big\n${"é paragraph text. ".repeat(20_000)}`);
+    await h.bucket.put("2026/11/us-cpi-october/index.md", `# Big\n${"é paragraph text. ".repeat(20_000)}`, STAMP_V1);
     await h.bucket.put(
       "2026/11/us-cpi-october/data.json",
       JSON.stringify({ rows: Array.from({ length: 50_000 }, (_, i) => ({ id: `dp:${i}`, v: "1" })) }),
+      STAMP_V1,
     );
     for (const [name, args, cap] of [
       ["get_page", { page_id: "us-cpi-october" }, CAPS.markdownBytes],

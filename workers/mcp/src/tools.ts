@@ -20,6 +20,9 @@ export const CAPS = {
 /** A failure the model can act on: reported as a tool result with isError, not as a protocol error. */
 export class ToolError extends Error {}
 
+/** A passing state ("being updated"): reported like a ToolError but never cached, so the next call reads again. */
+export class RetryLaterError extends ToolError {}
+
 export interface ToolOutput {
   structured: Record<string, unknown>;
   /** Text for the content block. Defaults to the serialized structured result. */
@@ -52,7 +55,8 @@ async function livePage(deps: Deps, args: { page_id?: string; path?: string }): 
  * Reads one file of the live page and makes sure it belongs to the version the page record names. Files are
  * rewritten in place before a publish moves the live record, so for a moment the stored file can be newer than the
  * record (each file carries its version as R2 metadata). Then the record is read again once; if they still differ the
- * caller is told to retry, so content is never labelled with another version.
+ * caller is told to retry, so content is never labelled with another version. A file without a valid stamp (not
+ * written by the publish path) is never served: its version cannot be known.
  */
 async function readLiveFile(
   deps: Deps,
@@ -65,10 +69,10 @@ async function readLiveFile(
     const got = await readCapped(deps.bucket(), pageObjectKey(current.path, file), cap);
     if (!got && attempt > 0) break; // the newer version dropped the file
     if (!got) throw new Error(`${file} missing in storage for ${current.page_id}`);
-    if (got.version === undefined || got.version === current.version) return { page: current, got };
+    if (got.version === current.version) return { page: current, got };
     current = await livePage(deps, { page_id: current.page_id });
   }
-  throw new ToolError(`Page ${page.page_id} is being updated right now; try again in a few seconds.`);
+  throw new RetryLaterError(`Page ${page.page_id} is being updated right now; try again in a few seconds.`);
 }
 
 const summaryOf = (deps: Deps, p: PageRecord) => ({

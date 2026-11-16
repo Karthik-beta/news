@@ -10,6 +10,8 @@ import type { Deps } from "./deps";
 import { handleMcp, MODERN_VERSION } from "./server";
 
 export const ORIGIN = "https://news.test";
+/** R2 metadata of a file written by the publish path for version 1 (the fixture page's live version). */
+export const STAMP_V1 = { customMetadata: { version: "1", bundle_sha256: "a".repeat(64) } };
 
 /** A D1 stand-in for unit tests: records every statement and answers search queries from a fixed row list. */
 export class RecordingD1 {
@@ -100,12 +102,14 @@ export function seedSite(table: FakeTable, bucket: FakeBucket): PageRecord {
   bucket.put(
     "2026/11/us-cpi-october/index.md",
     "# US inflation cools in October\n\nConsumer prices rose 0.2% (BLS).\n",
+    STAMP_V1,
   );
   bucket.put(
     "2026/11/us-cpi-october/data.json",
     '{"points":[{"id":"dp:cpi-yoy","value":"2.4","unit":"percent","source":"src:bls"}]}',
+    STAMP_V1,
   );
-  bucket.put("2026/11/us-cpi-october/charts/cpi-trend.csv", "period,value\n2026-09,2.6\n2026-10,2.4\n");
+  bucket.put("2026/11/us-cpi-october/charts/cpi-trend.csv", "period,value\n2026-09,2.6\n2026-10,2.4\n", STAMP_V1);
   bucket.writes.length = 0;
   return page;
 }

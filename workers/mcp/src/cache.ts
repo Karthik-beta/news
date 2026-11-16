@@ -1,9 +1,9 @@
 // Edge cache for tool results (the Cache API, per Cloudflare location). Identical calls within a short window are
 // answered without touching DynamoDB, R2 or D1, so repeated or scripted calls cannot spend the publishing table's
-// read units. "Not found" answers are cached too. Results may be up to the TTL old: a published update or a
-// withdrawal reaches MCP clients within a minute (five for the category tree).
+// read units. "Not found" answers are cached too; "being updated, try again" is not. Results may be up to the TTL
+// old: a published update or a withdrawal reaches MCP clients within a minute (five for the category tree).
 import { sha256Hex } from "@news/worker-shared/crypto";
-import { ToolError, type ToolOutput } from "./tools";
+import { RetryLaterError, ToolError, type ToolOutput } from "./tools";
 
 export const TTL_SECONDS: Record<string, number> = {
   search_pages: 60,
@@ -13,7 +13,7 @@ export const TTL_SECONDS: Record<string, number> = {
   list_categories: 300,
 };
 
-export type Outcome = { ok: true; out: ToolOutput } | { ok: false; message: string };
+export type Outcome = { ok: true; out: ToolOutput } | { ok: false; message: string; retryLater?: true };
 
 /** JSON with object keys sorted, so `{a, b}` and `{b, a}` share an entry. */
 function canonical(value: unknown): string {
@@ -41,6 +41,7 @@ export async function cachedRun(
     try {
       return { ok: true, out: await run() };
     } catch (e) {
+      if (e instanceof RetryLaterError) return { ok: false, message: e.message, retryLater: true };
       if (e instanceof ToolError) return { ok: false, message: e.message };
       throw e;
     }
@@ -51,6 +52,7 @@ export async function cachedRun(
   const hit = await cache.match(key).catch(() => undefined);
   if (hit) return (await hit.json()) as Outcome;
   const outcome = await execute();
+  if (!outcome.ok && outcome.retryLater) return outcome;
   await cache
     .put(
       key,
