@@ -248,7 +248,7 @@ pub struct ItemRef { pub source_id: String, pub url: String, pub event_key_hint:
 | Conditional requests | Store `ETag` and `Last-Modified` per URL; send `If-None-Match` / `If-Modified-Since`; a 304 costs no parse | RFC 9110 §13 [39] |
 | Rate limits | Token bucket per host from Contacts; global network pool of 6 | Source terms (table above) |
 | `Retry-After` | Honour seconds or HTTP-date on 429/503; the job is *snoozed* (not counted as a failed attempt) | RFC 9110 [39]; River's snooze [5] |
-| robots.txt | Cached ≤ 24 h; 4xx on robots.txt = allowed, 5xx = disallow all; case-insensitive UA match falling back to `*` | RFC 9309 [40] |
+| robots.txt | Cached ≤ 24 h; 4xx on robots.txt = allowed; 5xx or unreachable = `rate_limited` snooze (a few minutes, remembered ≤ 10 min), never a disallow; case-insensitive UA match falling back to `*` | RFC 9309 [40] |
 | User-Agent | `News/<version> (+https://news.karthik.nz/data-access)`, plus the contact e-mail (`NEWS_CONTACT_EMAIL`, from Standing) only for sources that require one (SEC) | SEC fair access [18] |
 | Compression and size | `Accept-Encoding: gzip, br`; stream to disk, hash while streaming; content-type allow-list and max size per source (default 50 MB, PDFs 200 MB) | Low CPU, safety |
 | Timeouts | Connect 10 s, total 120 s (bulk files 30 min) | |

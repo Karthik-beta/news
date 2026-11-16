@@ -170,7 +170,7 @@ async fn retry_after_in_seconds_and_as_a_date_snoozes() {
 }
 
 #[tokio::test]
-async fn robots_4xx_allows_and_5xx_disallows() {
+async fn robots_4xx_allows_5xx_or_unreachable_snoozes_and_disallow_blocks() {
     let (fake, clock) = setup();
     fake.route(URL, vec![Reply::ok("application/json", "{}")]);
     let r = runner(&fake, &clock, None);
@@ -183,16 +183,48 @@ async fn robots_4xx_allows_and_5xx_disallows() {
         .count();
     assert_eq!(robots_hits, 1, "robots.txt is cached");
 
+    // robots.txt answering 5xx is not a Disallow: the job snoozes a few minutes (no attempt spent),
+    // the URL is not requested, and the miss is cached for minutes, not 24 h.
     let fake = Arc::new(FakeTransport::new());
-    fake.route("https://h.test/robots.txt", vec![Reply::status(503)]);
+    fake.route(
+        "https://h.test/robots.txt",
+        vec![Reply::status(503), Reply::status(404)],
+    );
+    fake.route(URL, vec![Reply::ok("application/json", "{}")]);
+    let r = runner(&fake, &clock, None);
+    let robots_hits = |f: &FakeTransport| {
+        f.urls()
+            .iter()
+            .filter(|u| u.ends_with("/robots.txt"))
+            .count()
+    };
+    let e = fetch(&r, &policy("x"), None).await.unwrap_err();
+    assert_eq!(e.class, ErrorClass::RateLimited);
+    assert_eq!(JobFailure::from(e.clone()).class.policy(), Policy::Snooze);
+    let wait = e.retry_after.unwrap();
+    assert!(
+        wait > Duration::ZERO && wait <= Duration::from_secs(600),
+        "{wait:?}"
+    );
+    assert!(
+        !fake.urls().iter().any(|u| u == URL),
+        "the URL was never requested"
+    );
+    let again = fetch(&r, &policy("x"), None).await.unwrap_err();
+    assert_eq!(again.class, ErrorClass::RateLimited);
+    assert_eq!(robots_hits(&fake), 1, "the miss is cached briefly");
+    clock.advance(wait);
+    assert!(fetch(&r, &policy("x"), None).await.is_ok());
+    assert_eq!(robots_hits(&fake), 2, "and asked again after it");
+
+    // robots.txt unreachable (connection error): the same snooze.
+    let fake = Arc::new(FakeTransport::new());
     fake.route(URL, vec![Reply::ok("application/json", "{}")]);
     let r = runner(&fake, &clock, None);
     let e = fetch(&r, &policy("x"), None).await.unwrap_err();
-    assert_eq!(e.class, ErrorClass::LicenceBlocked);
-    assert!(
-        !fake.urls().iter().any(|u| u == URL),
-        "the disallowed URL was never requested"
-    );
+    assert_eq!(e.class, ErrorClass::RateLimited);
+    assert!(e.retry_after.is_some());
+    assert!(!fake.urls().iter().any(|u| u == URL));
 
     // A real robots.txt that disallows everything (api.bls.gov, recorded).
     let fake = Arc::new(FakeTransport::new());

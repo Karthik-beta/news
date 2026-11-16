@@ -1,9 +1,10 @@
 //! The Runner: one shared, polite HTTP client (Bureau Design §3.2).
 //!
 //! Every connector request goes through [`Runner::fetch`]: daily quota, robots.txt (RFC 9309, cached
-//! 24 h), the per-host token bucket inside the global `net` pool of 6, the User-Agent (with the
-//! contact e-mail only for sources that require it), conditional GET, `Retry-After` (both forms →
-//! snooze), the content-type allow-list, the size cap and a streaming SHA-256.
+//! 24 h; unreachable or 5xx snoozes the job and is remembered only for minutes), the per-host token
+//! bucket inside the global `net` pool of 6, the User-Agent (with the contact e-mail only for sources
+//! that require it), conditional GET, `Retry-After` (both forms → snooze), the content-type
+//! allow-list, the size cap and a streaming SHA-256.
 //!
 //! The network sits behind [`Transport`], so all of this is tested against a scripted fake;
 //! [`ReqwestTransport`] is the only implementation that opens sockets.
@@ -25,6 +26,10 @@ use crate::robots::{self, Robots};
 pub const NET_POOL: usize = 6;
 pub const PRODUCT: &str = "News";
 const ROBOTS_TTL_HOURS: i64 = 24;
+/// robots.txt unreachable or 5xx: snooze this long (unless it sent a `Retry-After`)…
+const ROBOTS_RETRY: Duration = Duration::from_secs(5 * 60);
+/// …and remember the miss at most this long.
+const ROBOTS_MISS_TTL_MAX: Duration = Duration::from_secs(10 * 60);
 /// RFC 9309 asks parsers to read at least 500 KiB.
 const ROBOTS_MAX: u64 = 512 * 1024;
 pub const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
@@ -241,7 +246,8 @@ pub struct Runner {
     clock: Arc<dyn Clock>,
     config: RunnerConfig,
     buckets: Mutex<HashMap<String, TokenBucket>>,
-    robots: Mutex<HashMap<String, (DateTime<Utc>, Robots)>>,
+    /// Per host: until when the entry holds, and the rules or the reason robots.txt was unavailable.
+    robots: Mutex<HashMap<String, (DateTime<Utc>, Result<Robots, FetchError>)>>,
     quota: Mutex<HashMap<(String, NaiveDate), u32>>,
     net: Semaphore,
 }
@@ -342,32 +348,50 @@ impl Runner {
         Ok(())
     }
 
-    /// The robots.txt verdict for `url`, fetching and caching the file for 24 h.
+    /// The robots.txt verdict for `url`. The file is cached for 24 h; when it cannot be read
+    /// (unreachable or 5xx) the fetch is `RateLimited` with a retry-after, and that is cached only
+    /// for a few minutes. Only a real `Disallow` blocks.
     async fn robots_allow(&self, policy: &SourcePolicy, url: &str) -> Result<bool, FetchError> {
         let host =
             host_of(url).ok_or_else(|| FetchError::new(ErrorClass::Bug, "URL has no host"))?;
         let now = self.clock.now();
         let cached = self.robots.lock().ok().and_then(|m| {
             m.get(host)
-                .filter(|(at, _)| now - *at < chrono::Duration::hours(ROBOTS_TTL_HOURS))
-                .map(|(_, r)| r.clone())
+                .filter(|(until, _)| now < *until)
+                .map(|(until, r)| (*until, r.clone()))
         });
         let rules = match cached {
-            Some(r) => r,
+            Some((_, Ok(r))) => r,
+            Some((until, Err(mut e))) => {
+                e.retry_after = Some((until - now).to_std().unwrap_or(Duration::ZERO));
+                return Err(e);
+            }
             None => {
                 let scheme = url.split("://").next().unwrap_or("https");
-                let rules = self
+                let got = self
                     .fetch_robots(policy, &format!("{scheme}://{host}/robots.txt"))
-                    .await?;
+                    .await;
+                let until = match &got {
+                    Ok(_) => now + chrono::Duration::hours(ROBOTS_TTL_HOURS),
+                    Err(e) => {
+                        let ttl = e
+                            .retry_after
+                            .unwrap_or(ROBOTS_RETRY)
+                            .min(ROBOTS_MISS_TTL_MAX);
+                        now + chrono::Duration::from_std(ttl).unwrap_or_default()
+                    }
+                };
                 if let Ok(mut m) = self.robots.lock() {
-                    m.insert(host.to_owned(), (now, rules.clone()));
+                    m.insert(host.to_owned(), (until, got.clone()));
                 }
-                rules
+                got?
             }
         };
         Ok(rules.allowed(PRODUCT, path_of(url)))
     }
 
+    /// robots.txt as rules; `Err(RateLimited)` when it is unreachable or answers 5xx (RFC 9309 §2.3.1.4
+    /// treats that as temporarily unavailable, not as a licence decision).
     async fn fetch_robots(&self, policy: &SourcePolicy, url: &str) -> Result<Robots, FetchError> {
         let host = host_of(url).unwrap_or_default().to_owned();
         self.pace(&host, policy.rate_per_sec).await;
@@ -377,9 +401,17 @@ impl Runner {
             timeout: TOTAL_TIMEOUT,
         };
         let _permit = self.net.acquire().await;
+        let unavailable = |why: String, wait: Option<Duration>| {
+            let mut e = FetchError::new(
+                ErrorClass::RateLimited,
+                format!("robots.txt on {host} unavailable ({why})"),
+            );
+            e.retry_after = Some(wait.unwrap_or(ROBOTS_RETRY));
+            e
+        };
         let mut resp = match self.transport.get(req).await {
             Ok(r) => r,
-            Err(_) => return Ok(Robots::DisallowAll),
+            Err(e) => return Err(unavailable(e.message, None)),
         };
         Ok(match resp.status {
             200..=299 => {
@@ -393,7 +425,12 @@ impl Runner {
                 robots::parse(&String::from_utf8_lossy(&body))
             }
             400..=499 => Robots::AllowAll,
-            _ => Robots::DisallowAll,
+            s => {
+                let wait = resp
+                    .header("Retry-After")
+                    .and_then(|v| retry_after(v, self.clock.now()));
+                return Err(unavailable(format!("HTTP {s}"), wait));
+            }
         })
     }
 

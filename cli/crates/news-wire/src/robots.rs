@@ -6,7 +6,8 @@
 pub enum Robots {
     /// 4xx on robots.txt (RFC 9309 §2.3.1.3): no restrictions.
     AllowAll,
-    /// 5xx or unreachable (§2.3.1.4): assume complete disallow.
+    /// Complete disallow. The Runner does not cache this for a 5xx or unreachable robots.txt
+    /// (§2.3.1.4): it snoozes the job for a few minutes instead, so only a real `Disallow` blocks.
     DisallowAll,
     Rules(Vec<Group>),
 }
