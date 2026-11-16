@@ -2045,7 +2045,7 @@ The approved names (Karthik, final). **Bureau** is the whole laptop system, and 
 
 **System**
 
-| Name | What it is | Kind | Command or CLI group | Where described |
+| Name | What it is | Kind | How it starts, or CLI group | Where described |
 | --- | --- | --- | --- | --- |
 | Bureau | Everything in this document: the laptop side of News, running as a Windows service logged on as Karthik's account | System, service | `news service run\|install\|uninstall` (updates: Board `service.update`) | §1, §2, §8.1 |
 | Board | The desktop app (egui) in `news.exe`: runs and approvals, settings and schedules, Docker health, the service log, content and sources, analytics, whole-project actions. Replaces `/bureau` and the planned web dashboard (TD "Board") | App | `news board` | §8.1, §9.2 |
@@ -2126,17 +2126,17 @@ The approved names (Karthik, final). **Bureau** is the whole laptop system, and 
 
 | Name | What it is | Kind | Command or CLI group | Where described |
 | --- | --- | --- | --- | --- |
-| Edition | The main production run | Preset (heavy) | `news run start edition` | §8.3 |
-| Flash | A few named items now | Preset (heavy) | `news run start flash` | §8.4 |
-| Catchup | Current-year backfill | Preset (heavy) | `news run start catchup` | §8.5 |
-| Frontpage | Home curation | Preset (light) | `news run start frontpage` | §8.6 |
-| Rollcall | Source checks and fixes | Preset (light) | `news run start rollcall` | §8.7 |
-| Salvage | Dead jobs and replays | Preset (heavy) | `news run start salvage` | §8.8 |
-| Followup | Source revisions (its code steps also run as Edition step 10) | Preset (heavy) | `news run start followup` | §8.9 |
-| Errata | Reader error reports | Preset (light) | `news run start errata` | §8.10 |
-| Audit | Golden-set evaluation and prompt promotion | Preset (heavy) | `news run start audit` | §8.11 |
-| Huddle | Weekly statistics and ranking calibration (a Board form) | Preset (light) | `news run start huddle` | §8.12 |
-| Reprint | Re-rendering pages on a new renderer | Preset (heavy) | `news run start reprint` | §8.13 |
+| Edition | The main production run | Preset (heavy) | Board `run.start` (edition) or a Rota schedule | §8.3 |
+| Flash | A few named items now | Preset (heavy) | Board `run.start` (flash) or a Rota schedule | §8.4 |
+| Catchup | Current-year backfill | Preset (heavy) | Board `run.start` (catchup) or a Rota schedule | §8.5 |
+| Frontpage | Home curation | Preset (light) | Board `run.start` (frontpage) or a Rota schedule | §8.6 |
+| Rollcall | Source checks and fixes | Preset (light) | Board `run.start` (rollcall) or a Rota schedule | §8.7 |
+| Salvage | Dead jobs and replays | Preset (heavy) | Board `run.start` (salvage) or a Rota schedule | §8.8 |
+| Followup | Source revisions (its code steps also run as Edition step 10) | Preset (heavy) | Board `run.start` (followup) or a Rota schedule | §8.9 |
+| Errata | Reader error reports | Preset (light) | Board `run.start` (errata) or a Rota schedule | §8.10 |
+| Audit | Golden-set evaluation and prompt promotion | Preset (heavy) | Board `run.start` (audit) or a Rota schedule | §8.11 |
+| Huddle | Weekly statistics and ranking calibration (a Board form) | Preset (light) | Board `run.start` (huddle) or a Rota schedule | §8.12 |
+| Reprint | Re-rendering pages on a new renderer | Preset (heavy) | Board `run.start` (reprint) or a Rota schedule | §8.13 |
 
 **Tool families** (named after their owner)
 
