@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { gzipSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
@@ -77,6 +77,48 @@ describe("JavaScript budget", () => {
       expect(total / KB).toBeLessThanOrEqual(ISLAND_PAGE_JS_BUDGET_KB);
     },
   );
+});
+
+describe("per-chart JavaScript budget", () => {
+  // ADR 0001: the React DOM floor is shared and cached across pages; a chart island itself measured about 1 KB.
+  // Each island's own code (its chunk plus anything it loads that the page's entry does not already load) stays
+  // within this budget, so adding chart types never grows what one chart costs.
+  const ISLAND_BUDGET_KB = 8;
+  /** Chunks a script loads before running: static imports only. */
+  const staticGraph = (entry: string): Set<string> => {
+    const seen = new Set<string>();
+    const visit = (urlPath: string) => {
+      if (seen.has(urlPath)) return;
+      seen.add(urlPath);
+      const code = readFileSync(join(distRoot, urlPath), "utf8");
+      for (const m of code.matchAll(/(?:from|import)\s*["'](\.{1,2}\/[^"']+\.js)["']/g)) {
+        visit(new URL(m[1] as string, `https://x${urlPath}`).pathname);
+      }
+    };
+    visit(entry);
+    return seen;
+  };
+  const islandPages = pages.filter((p) => p.doc.querySelector("[data-island]"));
+  const names = [
+    ...new Set(
+      islandPages.flatMap((p) =>
+        [...p.doc.querySelectorAll("[data-island]")].map((e) => e.getAttribute("data-island") as string),
+      ),
+    ),
+  ];
+
+  it.each(names)(`the %s island costs at most ${ISLAND_BUDGET_KB} KB gzip of its own`, (name) => {
+    const page = islandPages.find((p) => p.doc.querySelector(`[data-island="${name}"]`));
+    const entry = page?.scripts[0] as string;
+    const preloaded = staticGraph(entry);
+    const chunk = readdirSync(join(distRoot, "_astro")).find(
+      (f) => f.startsWith(`${name}.client.`) && f.endsWith(".js"),
+    );
+    expect(chunk, `${name}: its own chunk in dist/_astro`).toBeDefined();
+    const own = scriptGraph(`/_astro/${chunk}`).filter((f) => !preloaded.has(f));
+    const total = own.reduce((sum, f) => sum + gz(readFileSync(join(distRoot, f))), 0);
+    expect(total / KB, own.join(", ")).toBeLessThanOrEqual(ISLAND_BUDGET_KB);
+  });
 });
 
 describe("no third-party requests", () => {
