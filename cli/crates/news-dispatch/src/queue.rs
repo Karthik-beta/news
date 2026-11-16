@@ -83,6 +83,8 @@ impl Job {
             run_id: self.run_id,
             item_ref: self.item_ref.clone(),
             args: self.args.clone(),
+            // The worker attaches the claim's lease check before it runs the handler.
+            lease: news_core::job::JobLease::default(),
         }
     }
 }
@@ -344,6 +346,20 @@ async fn not_held(db: &PgPool, job_id: i64, lease: Lease<'_>) -> NewsError {
         ))
         .with_hint("your lease expired and the job was claimed again; drop this claim"),
     }
+}
+
+/// Whether `lease_id` still holds `job_id`: running under that lease, and not yet expired. One
+/// primary-key lookup; handlers reach it through `JobLease::ensure_lease` before external writes.
+pub async fn holds_lease(db: &PgPool, job_id: i64, lease_id: Uuid) -> Result<bool, NewsError> {
+    sqlx::query_scalar(
+        "select exists (select 1 from jobs where job_id = $1 and state = 'running'
+                          and lease_id = $2 and lease_until > clock_timestamp())",
+    )
+    .bind(job_id)
+    .bind(lease_id)
+    .fetch_one(db)
+    .await
+    .map_err(map_err)
 }
 
 /// Extend a running job's lease; `lease` must hold it. When the job belongs to a run, the run's

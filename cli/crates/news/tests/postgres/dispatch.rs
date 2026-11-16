@@ -1175,3 +1175,59 @@ async fn a_handler_that_panics_before_returning_its_future_is_a_bug_failure() {
             .contains("panicked")
     );
 }
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn a_handler_whose_lease_is_revoked_mid_run_is_fenced_off_its_next_write() {
+    use news_core::job::{Handler, JobFuture, JobInput};
+    use tokio::sync::Notify;
+    static STARTED: Notify = Notify::const_new();
+    static REVOKED: Notify = Notify::const_new();
+    static WRITES: Mutex<Vec<&'static str>> = Mutex::new(Vec::new());
+    static FENCED: AtomicBool = AtomicBool::new(false);
+    fn fenced(input: JobInput) -> JobFuture {
+        Box::pin(async move {
+            // Every external write is preceded by ensure_lease().
+            input.lease.ensure_lease().await?;
+            WRITES.lock().unwrap().push("before");
+            STARTED.notify_one();
+            REVOKED.notified().await;
+            if let Err(e) = input.lease.ensure_lease().await {
+                FENCED.store(true, Ordering::SeqCst);
+                return Err(e);
+            }
+            WRITES.lock().unwrap().push("after");
+            Ok(json!({}))
+        })
+    }
+    fn resolve(_: &str) -> Option<Handler> {
+        Some(fenced)
+    }
+    let f = Fixture::migrated().await;
+    let id = enqueue(&f, "test.fenced", "cpu").await;
+    let mut opts = news_dispatch::worker::WorkOptions::new(vec!["cpu".into()], "t");
+    opts.once = true;
+    let worker = tokio::spawn(news_dispatch::worker::run(
+        f.pool.clone(),
+        opts,
+        resolve,
+        std::future::pending(),
+    ));
+    STARTED.notified().await;
+    // The lease expires and the rescuer takes the job back while the handler is mid-run.
+    sqlx::query("update jobs set lease_until = now() - interval '1 second' where job_id = $1")
+        .bind(id)
+        .execute(&f.pool)
+        .await
+        .unwrap();
+    assert_eq!(queue::rescue(&f.pool).await.unwrap().retryable, vec![id]);
+    REVOKED.notify_one();
+    let report = worker.await.unwrap().unwrap();
+    assert!(
+        FENCED.load(Ordering::SeqCst),
+        "ensure_lease() passed after the lease was lost"
+    );
+    assert_eq!(*WRITES.lock().unwrap(), ["before"]);
+    assert_eq!(report.lost, 1, "{report:?}");
+    assert_eq!(state_of(&f, id).await.state, "retryable");
+}

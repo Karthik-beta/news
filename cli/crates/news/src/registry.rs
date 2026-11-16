@@ -76,6 +76,7 @@ mod tests {
             run_id: None,
             item_ref: None,
             args: serde_json::json!({}),
+            lease: Default::default(),
         };
         let err = resolve("doc.fetch")
             .map(|h| h(input))

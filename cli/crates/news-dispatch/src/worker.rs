@@ -4,12 +4,17 @@
 use crate::queue::{self, Job};
 use crate::{kinds, schedule};
 use news_core::NewsError;
-use news_core::job::{ErrorClass, Handler, JobFailure};
+use news_core::job::{ErrorClass, Handler, JobFailure, JobLease, LeaseCheck};
 use serde::Serialize;
 use sqlx::PgPool;
 use std::future::Future;
+use std::pin::Pin;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
+use tokio::sync::Notify;
 use tokio::task::JoinSet;
+use uuid::Uuid;
 
 /// Finds the handler for a job kind.
 pub type Resolver = fn(&str) -> Option<Handler>;
@@ -128,8 +133,53 @@ async fn maintenance(db: &PgPool, report: &mut WorkReport) {
     }
 }
 
+/// The lease check behind `JobLease::ensure_lease`: a flag shared with the heartbeat loop, then one
+/// primary-key select. A check that finds the lease gone wakes the loop, which cancels the handler.
+struct DbLease {
+    db: PgPool,
+    job_id: i64,
+    lease_id: Uuid,
+    lost: Arc<AtomicBool>,
+    wake: Arc<Notify>,
+}
+
+impl DbLease {
+    fn lost_failure(&self) -> JobFailure {
+        JobFailure::new(
+            ErrorClass::Transient,
+            format!(
+                "job {} lost its lease {}; stopped before writing",
+                self.job_id, self.lease_id
+            ),
+        )
+    }
+}
+
+impl LeaseCheck for DbLease {
+    fn ensure(&self) -> Pin<Box<dyn Future<Output = Result<(), JobFailure>> + Send + '_>> {
+        Box::pin(async move {
+            if self.lost.load(Ordering::SeqCst) {
+                return Err(self.lost_failure());
+            }
+            match queue::holds_lease(&self.db, self.job_id, self.lease_id).await {
+                Ok(true) => Ok(()),
+                Ok(false) => {
+                    self.lost.store(true, Ordering::SeqCst);
+                    self.wake.notify_one();
+                    Err(self.lost_failure())
+                }
+                Err(e) => Err(JobFailure::new(
+                    ErrorClass::Transient,
+                    format!("cannot check the lease of job {}: {e}", self.job_id),
+                )),
+            }
+        })
+    }
+}
+
 /// Run one claimed job: the handler in its own task (so a panic becomes a `bug` failure, not a stuck
-/// lease), a heartbeat every lease/3, then complete or fail.
+/// lease), a heartbeat every lease/3, then complete or fail. The handler is cancelled as soon as the
+/// lease is known to be lost: a failed or stalled heartbeat, or an `ensure_lease` that finds it gone.
 async fn run_one(db: PgPool, job: Job, resolve: Resolver, worker: String) -> Outcome {
     let spec = kinds::spec(&job.kind);
     let lease = Duration::from_secs(u64::from(spec.map_or(120, |s| s.lease_secs)));
@@ -152,17 +202,43 @@ async fn run_one(db: PgPool, job: Job, resolve: Resolver, worker: String) -> Out
         );
         return finish_failed(&db, &job, &worker, &f).await;
     };
+    let lost = Arc::new(AtomicBool::new(false));
+    let wake = Arc::new(Notify::new());
+    let mut input = job.input();
+    input.lease = JobLease::new(
+        job.job_id,
+        job.lease_id,
+        Arc::new(DbLease {
+            db: db.clone(),
+            job_id: job.job_id,
+            lease_id: job.lease_id.unwrap_or_default(),
+            lost: lost.clone(),
+            wake: wake.clone(),
+        }),
+    );
     // The handler is called inside the task, so a panic before it returns its future is caught too.
-    let input = job.input();
     let mut handle = tokio::spawn(async move { handler(input).await });
     let mut beat = tokio::time::interval(lease / 3);
     beat.tick().await; // the first tick is immediate
     let joined = loop {
         tokio::select! {
             r = &mut handle => break r,
+            () = wake.notified() => {
+                tracing::warn!(job_id = job.job_id, "lease lost; handler cancelled");
+                handle.abort();
+                return Outcome::Lost;
+            }
             _ = beat.tick() => {
-                if let Err(e) = queue::heartbeat(&db, job.job_id, job.lease(&worker), lease).await {
-                    tracing::warn!(job_id = job.job_id, error = %e, "lease lost");
+                // A heartbeat that cannot finish within lease/3 counts as lost, so the handler never
+                // outlives its lease waiting on a stuck database call.
+                let beat_result = tokio::time::timeout(
+                    lease / 3,
+                    queue::heartbeat(&db, job.job_id, job.lease(&worker), lease),
+                )
+                .await;
+                if !matches!(beat_result, Ok(Ok(_))) {
+                    tracing::warn!(job_id = job.job_id, "lease lost; handler cancelled");
+                    lost.store(true, Ordering::SeqCst);
                     handle.abort();
                     return Outcome::Lost;
                 }
