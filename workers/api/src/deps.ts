@@ -73,6 +73,33 @@ const skippingPurger = (log: Logger): Purger => ({
   },
 });
 
+/** Loggers that already reported a bad purge setting: production has one logger, so that is once per isolate. */
+const purgeConfigLogged = new WeakSet<Logger>();
+
+/**
+ * The Cloudflare purger, built on first use: a malformed zone ID fails only the requests that purge (as
+ * not_configured, logged once per isolate), not every request including /health.
+ */
+function lazyPurger(zoneId: string, token: string, log: Logger): Purger {
+  let purger: Purger | undefined;
+  return {
+    purge(urls) {
+      if (!purger) {
+        try {
+          purger = new CloudflarePurger({ zoneId, token });
+        } catch (e) {
+          if (!purgeConfigLogged.has(log)) {
+            purgeConfigLogged.add(log);
+            log.error("purge_config", { message: e instanceof Error ? e.message : "invalid" });
+          }
+          return Promise.reject(new NotConfiguredError("cache purge"));
+        }
+      }
+      return purger.purge(urls);
+    },
+  };
+}
+
 const ORIGIN = /^https:\/\/[a-z0-9.-]+$|^http:\/\/(?:localhost|127\.0\.0\.1)(?::[0-9]+)?$/;
 
 export function depsFromEnv(env: Env, log: Logger = consoleLogger): Deps {
@@ -102,7 +129,7 @@ export function depsFromEnv(env: Env, log: Logger = consoleLogger): Deps {
     reportDailyCap: /^[0-9]{1,6}$/.test(env.NEWS_REPORT_DAILY_CAP ?? "") ? Number(env.NEWS_REPORT_DAILY_CAP) : 200,
     purger:
       env.CLOUDFLARE_ZONE_ID && env.CLOUDFLARE_PURGE_TOKEN
-        ? new CloudflarePurger({ zoneId: env.CLOUDFLARE_ZONE_ID, token: env.CLOUDFLARE_PURGE_TOKEN })
+        ? lazyPurger(env.CLOUDFLARE_ZONE_ID, env.CLOUDFLARE_PURGE_TOKEN, log)
         : skippingPurger(log),
     writeKey: env.NEWS_WRITE_API_KEY,
     siteOrigin: origin,

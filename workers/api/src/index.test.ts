@@ -4,6 +4,8 @@ import { exports } from "cloudflare:workers";
 import { makeBundle } from "@news/worker-shared/testing/fixtures";
 import { schemas } from "@news/worker-shared/validate";
 import { describe, expect, it } from "vitest";
+import { handle } from "./app";
+import { depsFromEnv, NotConfiguredError } from "./deps";
 import { countingLimiter, harness, TEST_KEY } from "./testing";
 
 async function expectError(res: Response, status: number, code: string) {
@@ -20,6 +22,17 @@ describe("the deployed entry point", () => {
     const res = await exports.default.fetch(new Request("http://localhost/health"));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ worker: "news-api", status: "ok" });
+  });
+
+  it("a malformed purge setting fails only the requests that purge, and is logged once", async () => {
+    const lines: string[] = [];
+    const log = { warn: (e: string) => lines.push(e), error: (e: string) => lines.push(e) };
+    const env = { CLOUDFLARE_ZONE_ID: "not-a-zone", CLOUDFLARE_PURGE_TOKEN: "test-token-not-real" };
+    const deps = depsFromEnv(env, log);
+    expect((await handle(deps, new Request("http://localhost/health"))).status).toBe(200);
+    await expect(deps.purger.purge(["https://news.test/"])).rejects.toBeInstanceOf(NotConfiguredError);
+    await expect(depsFromEnv(env, log).purger.purge(["https://news.test/"])).rejects.toBeInstanceOf(NotConfiguredError);
+    expect(lines.filter((l) => l === "purge_config")).toHaveLength(1);
   });
 
   it("fails closed without a configured write key", async () => {
@@ -54,6 +67,15 @@ describe("routing", () => {
       await expectError(await harness().call("PUT", path, { body: {} }), 404, "not_found");
     },
   );
+
+  it("anything under /v1/ is authenticated before routing: an unknown path tells a stranger nothing", async () => {
+    const h = harness();
+    for (const path of ["/v1/nope", "/v1/pages/UPPER", "/v1/reports/x", "/v1/"])
+      await expectError(await h.call("PUT", path, { body: {}, auth: null }), 401, "unauthorized");
+    await expectError(await h.call("PUT", "/v1/nope", { body: {} }), 404, "not_found");
+    // The public report intake is the one exception.
+    expect((await h.call("OPTIONS", "/v1/reports", { auth: null, key: null })).status).toBe(204);
+  });
 
   it("a known path with the wrong method is 405, but only after authentication", async () => {
     const h = harness();

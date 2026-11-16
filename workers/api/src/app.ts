@@ -324,12 +324,13 @@ export async function handle(deps: Deps, request: Request): Promise<Response> {
     }
   }
 
-  const route = ROUTES.map((r) => ({ r, m: r.pattern.exec(path) })).find((x) => x.m);
-  if (!route?.m) return new ApiError("not_found", "not found").toResponse();
-  const handler = route.r.methods[method];
   try {
-    // Authenticate before anything else, including the method check: unauthenticated callers learn nothing.
-    await authenticate(deps, request);
+    // Everything under /v1/ is authenticated before routing, including the route and method checks: an
+    // unauthenticated caller learns nothing about which paths exist.
+    if (path.startsWith("/v1/")) await authenticate(deps, request);
+    const route = ROUTES.map((r) => ({ r, m: r.pattern.exec(path) })).find((x) => x.m);
+    if (!route?.m) throw new ApiError("not_found", "not found");
+    const handler = route.r.methods[method];
     if (!handler) {
       const allow = Object.keys(route.r.methods).join(", ");
       throw new ApiError("method_not_allowed", `use ${allow}`, undefined, { allow });
