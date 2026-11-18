@@ -24,7 +24,7 @@ One Rust binary that gives agents, Bun code and Karthik every operation on the l
 
 ## Stubs
 
-Commands whose subsystem is not built yet return `precondition` (exit 4) with a hint naming the issue that builds it: Contacts, Wire (with `prune`), Clerk #9 · Chief #10 · Diary, Roster #12 · Taster, Nose #15 · Ticker (`stats`) #16 · render, save, Proof #17 · Fixer, Ghost #18 · Critic, Huddle #19 · Press, home, Rewrite #20 · Errata #21. Built now: `version`, `db`, `components`, `component`, `schema`, `ai schema`, `jobs *`.
+Commands whose subsystem is not built yet return `precondition` (exit 4) with a hint naming the issue that builds it: Contacts, Wire (with `prune`), Clerk #9 (the libraries are built; the commands follow the Bureau service, #10/#29) · Chief #10 · Diary, Roster #12 · Taster, Nose #15 · Ticker (`stats`) #16 · render, save, Proof #17 · Fixer, Ghost #18 · Critic, Huddle #19 · Press, home, Rewrite #20 · Errata #21. Built now: `version`, `db`, `components`, `component`, `schema`, `ai schema`, `jobs *`.
 
 ## Crate map
 
@@ -35,9 +35,14 @@ Commands whose subsystem is not built yet return `precondition` (exit 4) with a 
 | `news-store` | PostgreSQL connection (`search_path` = `NEWS_DB_SCHEMA`, public), embedded migrations, error mapping |
 | `news-telemetry` | Ticker: the `news.events` writer, `tracing` with the OTLP exporter, and the analytics ingestion job (`traffic.pull`, a stub handler until #16) |
 | `news-dispatch` | Dispatch: queue operations, kinds registry, backoff, rescuer, schedules, and the worker loop (`worker::run`) that the Bureau service hosts |
-| `news-contacts`, `news-wire`, `news-clerk`, `news-diary`, `news-roster`, `news-taster`, `news-nose`, `news-fixer`, `news-ghost`, `news-proof`, `news-rewrite`, `news-press`, `news-chief`, `news-critic` | Subsystem skeletons: `ISSUE`, the job kinds they own and a stub `handle` (fails with class `bug`, "not built yet") |
+| `news-ledger` | Ledger rules, pure (ADR 0018): data points as published, `dp_id`, exact decimals and their style, the unit vocabulary, event keys, derived-point guards |
+| `news-connectors` | The Stringers (`Connector` trait; SEC EDGAR, FRED, BLS): request descriptions and pure, versioned parsers. README in the crate; fixtures in `tests/fixtures/` |
+| `news-contacts` | Source rows from `data/sources/*.toml`, the Contacts lint, `sync` into `sources`, the licence gate |
+| `news-wire` | The Runner (robots.txt, token buckets, conditional GET, `Retry-After`, caps; `fake::FakeTransport` for tests), the Morgue, discover/fetch, `snapshots`/`fetch_state` |
+| `news-clerk` | Rule-based classification and the taxonomy seed, candidates, storing data points (vintages, `supersedes`) and Roster step 1 entities, SimHash |
+| `news-diary`, `news-roster`, `news-taster`, `news-nose`, `news-fixer`, `news-ghost`, `news-proof`, `news-rewrite`, `news-press`, `news-chief`, `news-critic` | Subsystem skeletons: `ISSUE`, the job kinds they own and a stub `handle` (fails with class `bug`, "not built yet") |
 
-The name `news-board` is free for Board, the desktop app (#29). Subsystem crates depend only on `news-core`; `news` wires them together. A new handler replaces its crate's `handle`; a new job kind is added to `news_dispatch::KINDS` and to the owning crate's `KINDS` (a test checks both lists agree).
+The name `news-board` is free for Board, the desktop app (#29). Skeleton subsystem crates depend only on `news-core`; the #9 crates also use `news-ledger`, `news-connectors` and sqlx. `news` wires them together. Wire's and Clerk's job handlers still refuse with `bug` until the Bureau service gives them a context (#10, #29). A new handler replaces its crate's `handle`; a new job kind is added to `news_dispatch::KINDS` and to the owning crate's `KINDS` (a test checks both lists agree).
 
 ## Database and migrations
 

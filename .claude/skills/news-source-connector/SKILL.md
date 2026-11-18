@@ -1,17 +1,17 @@
 ---
 name: news-source-connector
-description: "How to add or change a data-source connector in the Rust `news` CLI (cli/crates/connectors): source registry entry with licence and attribution, fetching, parsing into normalised data points, embeds and images, recorded fixtures and tests. Use this whenever you add a source (SEC EDGAR, FRED, IMF, World Bank, Eurostat, RBI, arXiv, NASA, …), fix a connector, or touch parsing of filings, statistics, papers or press releases."
+description: "How to add or change a data-source connector in the Rust `news` CLI (cli/crates/news-connectors): source registry entry with licence and attribution, fetching, parsing into normalised data points, embeds and images, recorded fixtures and tests. Use this whenever you add a source (SEC EDGAR, FRED, IMF, World Bank, Eurostat, RBI, arXiv, NASA, …), fix a connector, or touch parsing of filings, statistics, papers or press releases."
 ---
 
 # Adding a source connector
 
 Connectors are where the site's trust starts. A connector that silently converts a unit, mislabels a fiscal period or drops a licence puts a wrong figure under Karthik's name. Correctness beats coverage.
 
-Read first: the Bureau design §3.1–§3.4 (Contacts; Wire: Stringers, Runner, Morgue; Diary; Clerk and Ledger), the Technical Design sections "Content system", "Data model" and "Agent toolbox", and the PRD "Sourcing and licensing". In Bureau's names a connector is a **Stringer**: one per source, an implementation of the `Connector` trait in `cli/crates/connectors`. Connectors are usually Sonnet 5.5 work; anything that parses XBRL, units, currencies or fiscal periods gets an Opus 5.5 review, and new parsing logic for those is Opus work.
+Read first: the Bureau design §3.1–§3.4 (Contacts; Wire: Stringers, Runner, Morgue; Diary; Clerk and Ledger), the Technical Design sections "Content system", "Data model" and "Agent toolbox", and the PRD "Sourcing and licensing". In Bureau's names a connector is a **Stringer**: one per source, an implementation of the `Connector` trait in `cli/crates/news-connectors` (read its README and ADR 0018 first; SEC EDGAR, FRED and BLS are the worked examples). Connectors are usually Sonnet 5.5 work; anything that parses XBRL, units, currencies or fiscal periods gets an Opus 5.5 review, and new parsing logic for those is Opus work.
 
 ## What a connector delivers
 
-1. **Registry entry** (Contacts) in the `sources` table seed: id, name, publisher to credit, base URL, connector, source tier, licence (public domain, CC BY, custom, unclear), required attribution text, image policy, redistribution allowed (yes/no), rate limit (the documented limit, halved), concurrency, daily quota, the *name* of the Credential Manager entry holding a free key, regions, categories, calendar kind.
+1. **Registry entry** (Contacts) as `data/sources/<id>.toml`, loaded into `sources` by `news_contacts::sync` and checked by the Contacts lint (also record `documented_rate_per_sec` and `documented_limit`; set `requires_contact_email` for sources like SEC): id, name, publisher to credit, base URL, connector, source tier, licence (public domain, CC BY, custom, unclear), required attribution text, image policy, redistribution allowed (yes/no), rate limit (the documented limit, halved), concurrency, daily quota, the *name* of the Credential Manager entry holding a free key, regions, categories, calendar kind.
    - Unclear redistribution terms → `redistribution: false`: the page links and summarises; data files are not republished.
 2. **Discover** (`discover`): a cheap listing since a cursor (feed, index, API "updated after"), returning item refs with an event-key hint, not content.
 3. **Fetch** (`fetch`) through the shared **Runner**, never your own HTTP client: conditional GET (`ETag` / `Last-Modified`, so a 304 costs no parse), the per-host rate limit, `Retry-After` (the job is snoozed, not failed) and `robots.txt`. The Runner stores the bytes exactly as received in Morgue (`work/raw/sha256/…`, content-addressed, with a `snapshots` row) and sets the User-Agent; a contact e-mail (the `NEWS_CONTACT_EMAIL` setting, read from Standing, the versioned settings table; `.env` holds only bootstrap values) is added only for sources that require one, such as SEC EDGAR.
@@ -33,7 +33,7 @@ Read first: the Bureau design §3.1–§3.4 (Contacts; Wire: Stringers, Runner, 
 
 ## Tests
 
-- Record real responses once into `cli/crates/connectors/tests/fixtures/<source>/` (trim to what the tests need; keep the licence note). CI never hits the network.
+- Record real responses once into `cli/crates/news-connectors/tests/fixtures/<source>/` (trim to what the tests need) and record each file's origin and licence in `tests/fixtures/README.md`; mark anything synthetic as synthetic. CI never hits the network: `news-wire/tests/no_network.rs` fails if a test builds the live transport, and pipeline tests use `news_wire::fake::FakeTransport`.
 - Test: discover finds new items and skips known ones; parse produces the exact published values, units, scales, period labels and locators, and `value` formats back to `value_text`; event keys and calendar entries match the patterns; revised values are detected; malformed and partial responses fail cleanly; licence and attribution reach the source record.
 - Include at least one awkward real case per source (restated figure, non-calendar fiscal year, a footnoted value, a missing observation).
 

@@ -1,0 +1,20 @@
+[package]
+name = "news-ledger"
+description = "Ledger types (Bureau Design §3.4, ADR 0018): data points with verbatim values, dp_id derivation, exact decimals, unit vocabulary, event keys and derived-point guards. Pure: no I/O."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+chrono = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+proptest = { workspace = true }
+
+[lints]
+workspace = true

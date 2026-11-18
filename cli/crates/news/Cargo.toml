@@ -45,6 +45,7 @@ workspace = true
 assert_cmd = "2.2.2"
 insta = "1.49.0"
 jsonschema = { version = "0.61", default-features = false }
+news-connectors = { workspace = true }
 postgres = "0.19.14"
 predicates = "3.1.4"
 sqlx = { workspace = true }
