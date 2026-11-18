@@ -44,6 +44,7 @@ export function FigureFrame({
 }: FigureFrameProps) {
   const Heading = `h${headingLevel}` as "h2";
   const titleId = `${id}-title`;
+  const tableNameId = `${id}-table-name`;
   const hasActions = Boolean(table || downloads?.csv || downloads?.json);
   return (
     <figure className={`figure-frame ${ruleTop("brand")}`} aria-labelledby={titleId}>
@@ -78,7 +79,19 @@ export function FigureFrame({
           {table ? (
             <details className="figure-frame__table">
               <summary>Show the data table</summary>
-              <div className="figure-frame__table-scroll">{table}</div>
+              {/* A wide table scrolls sideways inside this box, so keyboard users can reach and scroll it too
+                  (WCAG 2.1.1): focusable, and named "Data table: <title>" so each figure's region is distinct. */}
+              <span id={tableNameId} hidden>
+                Data table:
+              </span>
+              <section
+                className="figure-frame__table-scroll"
+                aria-labelledby={`${tableNameId} ${titleId}`}
+                // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrolling region must be focusable to scroll by keyboard
+                tabIndex={0}
+              >
+                {table}
+              </section>
             </details>
           ) : null}
           {downloads?.csv ? (

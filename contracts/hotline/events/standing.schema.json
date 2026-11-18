@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/hotline/events/standing.schema.json",
+  "title": "Hotline event standing",
+  "description": "A new Standing version was written. Validates the event's data.",
+  "x-hotline-topic": "standing",
+  "x-news-status": "#10",
+  "$defs": {
+    "data": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "who": {
+          "enum": ["board", "seed"]
+        },
+        "changes": {
+          "type": "array",
+          "items": {
+            "$ref": "../common.schema.json#/$defs/standingChange"
+          }
+        }
+      },
+      "required": ["version", "who", "changes"],
+      "additionalProperties": false
+    }
+  }
+}

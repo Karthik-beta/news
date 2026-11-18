@@ -34,7 +34,9 @@ export function Popover({ id, trigger, triggerClassName, label, children }: Popo
       >
         {trigger}
       </button>
-      <span id={id} popover="auto" className="popover" role="dialog" aria-label={label}>
+      {/* tabIndex -1: when the panel is capped and scrolls (a landscape phone), Firefox would otherwise make the
+          scroll box a Tab stop of its own before "Open the source"; the link still scrolls into view on Tab. */}
+      <span id={id} popover="auto" className="popover" role="dialog" aria-label={label} tabIndex={-1}>
         {children}
       </span>
     </>

@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/scores.propose.schema.json",
+  "title": "news scores propose",
+  "description": "Fit new weights from labels; prints a diff. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "W",
+  "x-news-status": "stub until #15",
+  "x-news-errors": ["precondition"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "from_labels": {
+          "type": "boolean"
+        }
+      },
+      "required": ["from_labels"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string"
+        },
+        "diff": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "weight": {
+                "type": "string"
+              },
+              "from": {
+                "type": "number"
+              },
+              "to": {
+                "type": "number"
+              }
+            },
+            "required": ["weight", "from", "to"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["version", "diff"],
+      "additionalProperties": false
+    }
+  }
+}

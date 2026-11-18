@@ -65,11 +65,12 @@ Shared conventions: type styles from [typography.md](typography.md), spacing ste
   - Value: `type.figure`, ink, lining figures ("$391.0bn"), with a dotted 1px `ink-3` underline that shows it can be tapped for its source.
   - Change: Fira 13, ink-2, in words ("Up 2.0% on fiscal 2023"). Never coloured.
 - One source line under the whole row.
-- Tapping or hovering a value opens a **citation popover**.
+- Clicking or tapping a value (or Enter or Space on it) opens a **citation popover**.
 - Variant `KeyFigure` with sparkline: the sparkline (120×36) sits to the right of the value.
 
 ### Citation popover (`SourcePopover`)
-- Opens on hover, focus or tap on any cited number. Paper background, 1px `color.rule` border, no shadow, 12px padding, max 320px wide.
+- Opens on click, tap, Enter or Space on any cited number; never on hover or focus alone (Karthik, 16 Nov 2026). Paper background, 1px `color.rule` border, no shadow, 12px padding, max 320px wide.
+- Sits under the figure, or above it when there is no room under; always wholly on screen. When it fits neither under nor above (a landscape phone), it opens on the side with more room, its height capped to that side, and scrolls inside so "Open the source" stays reachable.
 - Content: the exact value as reported ("$391,035 million"), the document ("Apple Inc. Form 10-K, fiscal 2024"), the location (page, table or XBRL tag), the retrieval date, and a link "Open the source".
 - Escape or tapping outside closes it.
 
@@ -114,7 +115,7 @@ For science pages.
 - Lists: 20px indent, 6px between items. No decorative bullets: default discs in ink-2.
 
 ### Glossary term (`GlossaryTerm`)
-- A dotted 1px `ink-3` underline. Hover, focus or tap opens a popover (same style as the citation popover) with the definition and a link to the glossary entry.
+- A dotted 1px `ink-3` underline. Click, tap, Enter or Space opens a popover (same style and placement as the citation popover) with the definition and a link to the glossary entry; hover and focus alone do not.
 
 ### Quote (`Quote`)
 For official statements, press-conference remarks and report text.

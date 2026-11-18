@@ -1,0 +1,9 @@
+#!/bin/sh
+# Local secret scan of the staged changes (gitleaks). Enabled by `bun run setup`
+# (git config core.hooksPath .githooks). CI and CodeRabbit scan too; this catches a secret before it
+# is ever committed. Without gitleaks installed the hook says so and lets the commit through.
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "pre-commit: gitleaks is not installed; skipping the local secret scan (CI still scans)." >&2
+  exit 0
+fi
+exec gitleaks git --pre-commit --staged --redact --no-banner

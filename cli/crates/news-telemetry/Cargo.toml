@@ -1,0 +1,23 @@
+[package]
+name = "news-telemetry"
+description = "Ticker for the news CLI: one news.events row per call in ClickHouse, tracing with an OTLP exporter to the collector, and the analytics pull job (stub handler; built in #16)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+news-core = { workspace = true }
+chrono = { workspace = true }
+opentelemetry = { workspace = true }
+opentelemetry_sdk = { workspace = true }
+opentelemetry-otlp = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+tracing-opentelemetry = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[lints]
+workspace = true

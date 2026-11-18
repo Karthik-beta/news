@@ -341,27 +341,24 @@ export class PageDataResolver {
 
   /** Text with every reference filled in, as plain text (titles, Markdown, accessible names). */
   plainText(template: string, style: ValueStyle = "compact"): string {
-    return (
-      this.text(template)
-        // biome-ignore lint/suspicious/useIterableCallbackReturn: the switch is exhaustive over TextSegment
-        .map((s) => {
-          switch (s.type) {
-            case "text":
-              return s.text;
-            case "value":
-              return formatValue(s.value, style);
-            case "period":
-              return s.label;
-            case "context":
-              return s.text;
-            case "quote":
-              return `“${s.text}”`;
-            case "missing":
-              return MISSING_TEXT.toLowerCase();
-          }
-        })
-        .join("")
-    );
+    return this.text(template)
+      .map((s) => {
+        switch (s.type) {
+          case "text":
+            return s.text;
+          case "value":
+            return formatValue(s.value, style);
+          case "period":
+            return s.label;
+          case "context":
+            return s.text;
+          case "quote":
+            return `“${s.text}”`;
+        }
+        // The one remaining segment type, "missing".
+        return MISSING_TEXT.toLowerCase();
+      })
+      .join("");
   }
 
   /**
@@ -419,8 +416,8 @@ export function formatValue(
   if (v.currency) return formatMoney(v.value, v.currency, { scale, sourceDecimals, style, ...options });
   const kind = unitKind(v.unit);
   if (style === "as-reported") {
-    if (kind === "percent") return formatPercent(v.value, { decimals: v.value.split(".")[1]?.length ?? 0 });
-    if (kind !== "other") return formatQuantity(v.value, v.unit, { decimals: v.value.split(".")[1]?.length ?? 0 });
+    if (kind === "percent") return formatPercent(v.value, { sourceDecimals });
+    if (kind !== "other") return formatQuantity(v.value, v.unit, { sourceDecimals });
     const word = {
       units: "",
       thousands: " thousand",

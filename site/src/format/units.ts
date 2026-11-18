@@ -4,23 +4,35 @@ import type { Decimal } from "./decimal";
 import { type CompactOptions, formatCompact, formatNumber, isNegative, isZeroValue, MINUS, withSign } from "./number";
 
 export interface PercentOptions {
-  /** Digits after the point. Default: one, unless the source gives fewer. */
+  /**
+   * Digits after the point. Default: the source's own digits, never rounded ("6.50%" stays "6.50%"). Set it only
+   * where a layout needs fewer (an axis tick); it never adds precision the source lacks.
+   */
   decimals?: number;
+  /** Digits after the point the source gives, when the value string has lost trailing zeros ("6.5" for 6.50). */
   sourceDecimals?: number;
 }
 
-const defaultPlaces = (value: Decimal, options: PercentOptions) =>
-  options.decimals ?? Math.min(1, options.sourceDecimals ?? value.split(".")[1]?.length ?? 0);
+/**
+ * Rates, points and basis points keep the source's own digits (Karthik, 16 November 2026): every digit the value
+ * is written with, and trailing zeros the source's decimals say it has. Nothing is rounded away.
+ */
+const sourcePlaces = (value: Decimal, options: PercentOptions) =>
+  Math.max(0, value.split(".")[1]?.length ?? 0, options.sourceDecimals ?? 0);
 
-/** "2.4%", "−5.7%". No space before the sign. */
+function rateNumber(value: Decimal, options: PercentOptions): string {
+  const available = sourcePlaces(value, options);
+  return formatNumber(value, { decimals: options.decimals ?? available, sourceDecimals: available });
+}
+
+/** "2.4%", "6.50%", "−5.7%": the source's digits. No space before the sign. */
 export function formatPercent(value: Decimal, options: PercentOptions = {}): string {
-  return `${formatNumber(value, { decimals: defaultPlaces(value, options), sourceDecimals: options.sourceDecimals })}%`;
+  return `${rateNumber(value, options)}%`;
 }
 
 /** Percentage points ("2.1 points") or basis points ("25 basis points"). */
 export function formatPoints(value: Decimal, kind: "pp" | "bp", options: PercentOptions = {}): string {
-  const places = kind === "bp" ? (options.decimals ?? 0) : defaultPlaces(value, options);
-  const number = formatNumber(value, { decimals: places, sourceDecimals: options.sourceDecimals });
+  const number = rateNumber(value, options);
   const word = kind === "bp" ? "basis point" : "point";
   return `${number} ${word}${number === "1" || number === `${MINUS}1` ? "" : "s"}`;
 }

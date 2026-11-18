@@ -10,6 +10,9 @@
     "test:integration": "vitest run --config vitest.integration.config.ts --configLoader runner",
     "test:e2e": "vitest run --config vitest.e2e.config.ts --configLoader runner"
   },
+  "dependencies": {
+    "@news/worker-shared": "workspace:*"
+  },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "1.8.2",
     "@cloudflare/workers-types": "^5.20261114.1",

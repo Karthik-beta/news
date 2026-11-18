@@ -165,17 +165,24 @@ describe("currencies", () => {
 });
 
 describe("units", () => {
-  it("write percentages with no space and one decimal place unless the source gives fewer", () => {
+  it("write percentages with no space and the source's own digits, never rounded", () => {
     expect(formatPercent("2.4")).toBe("2.4%");
     expect(formatPercent("2")).toBe("2%");
-    expect(formatPercent("2.45")).toBe("2.5%");
+    expect(formatPercent("2.45")).toBe("2.45%");
+    expect(formatPercent("6.50")).toBe("6.50%");
+    expect(formatPercent("6.5", { sourceDecimals: 2 })).toBe("6.50%");
     expect(formatPercent("-5.7")).toBe(`${M}5.7%`);
+    // An explicit precision (an axis tick) may round, but never adds digits the source lacks.
+    expect(formatPercent("2.45", { decimals: 1 })).toBe("2.5%");
+    expect(formatPercent("2.4", { decimals: 3 })).toBe("2.4%");
   });
 
   it("write percentage points and basis points as words", () => {
     expect(formatPoints("2.1", "pp")).toBe("2.1 points");
     expect(formatPoints("1", "pp")).toBe("1 point");
     expect(formatPoints("25", "bp")).toBe("25 basis points");
+    expect(formatPoints("12.5", "bp")).toBe("12.5 basis points");
+    expect(formatPoints("0.25", "pp")).toBe("0.25 points");
     expect(formatPoints("-25", "bp")).toBe(`${M}25 basis points`);
   });
 
@@ -201,7 +208,8 @@ describe("units", () => {
     expect(formatChange("-3.4", formatPercent)).toBe("Down 3.4%");
     expect(formatChange("0", formatPercent)).toBe("Unchanged");
     expect(formatChange("-0.04", (v) => formatPercent(v, { decimals: 2 }))).toBe("Down 0.04%");
-    expect(formatChange("-0.04", formatPercent)).toBe("Unchanged");
+    expect(formatChange("-0.04", formatPercent)).toBe("Down 0.04%");
+    expect(formatChange("-0.04", (v) => formatPercent(v, { decimals: 1 }))).toBe("Unchanged");
   });
 });
 

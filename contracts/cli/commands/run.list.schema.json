@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/run.list.schema.json",
+  "title": "news run list",
+  "description": "Recent runs, newest first. Runs in this process against PostgreSQL through the function the Hotline handler calls, so the data is the Hotline command's output (ADR 0008 §11).",
+  "x-news-tier": "R",
+  "x-news-status": "built",
+  "x-news-errors": ["precondition", "upstream_unavailable"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "active": {
+          "type": "boolean"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "output": {
+      "$ref": "../../hotline/commands/run.list.schema.json#/$defs/output"
+    }
+  }
+}

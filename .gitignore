@@ -28,8 +28,9 @@ __pycache__/
 # Local databases and data volumes
 *.sqlite
 *.sqlite3
-data/
-!site/src/renderer/data/
+# Only the root data/ is local; Contacts source rows (data/sources/<id>.toml) are reviewed like code.
+/data/*
+!/data/sources/
 
 # Claude Code local files
 .claude/settings.local.json

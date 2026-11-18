@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/jobs.list.schema.json",
+  "title": "news jobs list",
+  "description": "Counts by pool and state, and recent jobs (newest first). Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "R",
+  "x-news-status": "built",
+  "x-news-errors": ["usage", "precondition", "upstream_unavailable"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "enum": ["available", "scheduled", "running", "retryable", "snoozed", "completed", "discarded", "cancelled"]
+        },
+        "pool": {
+          "enum": ["net", "cpu", "docling", "render", "ai", "publish"]
+        },
+        "run": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "job_id": {
+                "type": "integer"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "pool": {
+                "enum": ["net", "cpu", "docling", "render", "ai", "publish"]
+              },
+              "state": {
+                "enum": [
+                  "available",
+                  "scheduled",
+                  "running",
+                  "retryable",
+                  "snoozed",
+                  "completed",
+                  "discarded",
+                  "cancelled"
+                ]
+              },
+              "attempt": {
+                "type": "integer"
+              },
+              "max_attempts": {
+                "type": "integer"
+              },
+              "priority": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4
+              },
+              "run_after": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "run_id": {
+                "type": ["string", "null"],
+                "format": "uuid"
+              },
+              "item_ref": {
+                "type": ["string", "null"]
+              },
+              "error_class": {
+                "type": ["string", "null"]
+              }
+            },
+            "required": [
+              "job_id",
+              "kind",
+              "pool",
+              "state",
+              "attempt",
+              "max_attempts",
+              "priority",
+              "run_after",
+              "run_id",
+              "item_ref",
+              "error_class"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "counts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "pool": {
+                "type": "string"
+              },
+              "state": {
+                "type": "string"
+              },
+              "count": {
+                "type": "integer"
+              }
+            },
+            "required": ["pool", "state", "count"],
+            "additionalProperties": false
+          }
+        },
+        "text": {
+          "type": "string",
+          "description": "Code-rendered text, printed verbatim to Karthik"
+        },
+        "next_cursor": {
+          "type": "string",
+          "description": "Present when truncated: pass to --cursor"
+        }
+      },
+      "required": ["items", "counts", "text"],
+      "additionalProperties": false
+    }
+  }
+}

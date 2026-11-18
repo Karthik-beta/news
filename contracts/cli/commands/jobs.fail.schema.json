@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/jobs.fail.schema.json",
+  "title": "news jobs fail",
+  "description": "Record a failure; the error class decides retry, snooze, pool pause or discard. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "W",
+  "x-news-status": "built",
+  "x-news-errors": ["usage", "not_found", "conflict"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "job": {
+          "type": "integer"
+        },
+        "class": {
+          "enum": [
+            "transient",
+            "rate_limited",
+            "ai_usage_limit",
+            "ai_invalid_output",
+            "check_failed",
+            "upstream_changed",
+            "invalid_data",
+            "licence_blocked",
+            "bug"
+          ]
+        },
+        "message": {
+          "type": "string"
+        },
+        "retry_after": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "worker": {
+          "type": "string",
+          "description": "The worker name given to jobs claim"
+        },
+        "lease": {
+          "type": "string",
+          "format": "uuid",
+          "description": "The job's lease_id from jobs claim; with worker it names the lease"
+        },
+        "attempt": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "The job's attempt from jobs claim, recorded on the telemetry event; not part of the lease"
+        }
+      },
+      "required": ["job", "class", "message", "worker", "lease"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "job_id": {
+          "type": "integer"
+        },
+        "state": {
+          "enum": ["retryable", "snoozed", "discarded"]
+        },
+        "attempt": {
+          "type": "integer"
+        },
+        "run_after": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "pool_paused_until": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["job_id", "state", "attempt", "run_after"],
+      "additionalProperties": false
+    }
+  }
+}

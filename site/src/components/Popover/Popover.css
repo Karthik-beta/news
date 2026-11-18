@@ -26,18 +26,46 @@
   display: none;
 }
 
-/* Sit under the trigger where anchor positioning exists (the trigger is the popover's implicit anchor),
-   flipping above or to the other side near the edges. */
+/* Sit under the trigger where anchor positioning exists (the trigger is the popover's implicit anchor). The
+   options, in order, the first that fits wholly on screen winning (the same in Chromium, Firefox and WebKit):
+   1. under the trigger, then above it, starting at the trigger's left edge;
+   2. under, then above, anywhere across the screen 16px in from its edges (a figure at the end of a line);
+   3. when it fits neither under nor above (a landscape phone is 390px tall), on the side with more room, its
+      height capped to that side; it scrolls inside, so "Open the source" stays reachable by Tab and by touch.
+   Option 3 picks the larger side through min-height: the space under the trigger fits that box only when it is at
+   least half the screen less the trigger, which is when it is the larger side.
+   Chromium tries only the first five fallbacks, so the list stays at five. */
 @supports (position-area: block-end) {
   .popover[popover] {
     inset: auto;
     position-area: block-end span-inline-end;
     position-try-fallbacks:
-      flip-block,
-      flip-inline,
-      flip-block flip-inline;
+      flip-block, --popover-below-wide, --popover-above-wide, --popover-below-scroll, --popover-above-scroll;
     margin-block: var(--space-2);
+    overflow-y: auto;
+    /* When capped, Tab to the last link scrolls it clear of the edge (Firefox stopped it 1-2px short, under the border). */
+    scroll-padding-block: var(--space-4);
   }
+}
+
+@position-try --popover-below-wide {
+  position-area: block-end span-all;
+  margin-inline: var(--space-5);
+}
+@position-try --popover-above-wide {
+  position-area: block-start span-all;
+  margin-inline: var(--space-5);
+}
+@position-try --popover-below-scroll {
+  position-area: block-end span-all;
+  margin-inline: var(--space-5);
+  max-height: calc(100% - 2 * var(--space-2));
+  min-height: calc((100dvh - anchor-size(height)) / 2 - 2 * var(--space-2));
+}
+@position-try --popover-above-scroll {
+  position-area: block-start span-all;
+  margin-inline: var(--space-5);
+  max-height: calc(100% - 2 * var(--space-2));
 }
 
 .popover-trigger {
@@ -51,6 +79,15 @@
   letter-spacing: inherit;
   text-align: inherit;
   cursor: pointer;
+}
+
+/* In print the trigger is plain text in its sentence: no underline, no button look. The popover itself is
+   dropped by the print rules in base.css. Doubled class to beat the trigger styles of SourceRef and others. */
+@media print {
+  .popover-trigger.popover-trigger {
+    text-decoration: none;
+    cursor: auto;
+  }
 }
 
 /* Tooltip for islands: positioned by the island inside its own relative container. */
