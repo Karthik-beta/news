@@ -148,7 +148,6 @@ describe("no agent-shell guard", () => {
     "scripts",
     "workers",
     "pipeline",
-    "dashboard",
     "skills",
     "site/src",
     ".github",

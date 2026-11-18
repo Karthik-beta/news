@@ -41,11 +41,12 @@ This is safe to re-run. It:
 
 | Command | Does |
 |---|---|
+| `news board` · `news service install` | Board, the desktop app, and the Bureau service's one-time install (you run it in your own terminal; `--dry-run` first). See `cli/crates/news-board/README.md` and `cli/crates/news-service/README.md` |
 | `bun run doctor` | Checks tools, `.env`, containers and services (`-- --e2e` adds the telemetry round trip) |
 | `bun run dev` | Site at http://127.0.0.1:4321 |
 | `bun run typecheck` · `bun run test` · `bun run lint` | Checks across all workspaces (`bun run test` is the unit level) |
 | `bun run test:integration` | Integration level, needs `bun run infra:up`: the site build checks, the Workers against D1/R2 in Miniflare and DynamoDB Local, then the CLI's PostgreSQL tests |
-| `bun run test:e2e` | E2E level: site smoke tests (Playwright; first time: `bunx playwright install chromium` in `site/`), each Worker under the Wrangler harness, the dashboard process |
+| `bun run test:e2e` | E2E level: site smoke tests (Playwright; first time: `bunx playwright install chromium` in `site/`), each Worker under the Wrangler harness |
 | `bun test scripts/tests` · `bun run validate` | The setup scripts' tests; config, skill and agent file checks |
 | `bun run infra:up` · `infra:down` · `infra:logs` | Local containers |
 | `bun run clickhouse:setup` | Re-apply the ClickHouse database, user and tables |
@@ -60,7 +61,6 @@ cli/        Rust `news` binary: the CLI, the Bureau service and Board, its deskt
 contracts/  JSON Schemas: the CLI envelope, every command, the AI step outputs
 workers/    Cloudflare Workers: api, search, mcp (Phase 6)
 pipeline/   page-call settings and golden sets (Phase 7; Ghost, the AI runner, is Rust in cli/)
-dashboard/  skeleton only; replaced by Board and removed by the Board shell PR (ADR 0007)
 infra/      docker-compose, ClickHouse SQL, OTel config, PostgreSQL init
 skills/     runtime skills for the page writers
 design/     design system (done)

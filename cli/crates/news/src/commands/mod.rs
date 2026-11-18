@@ -63,6 +63,10 @@ pub async fn run(cli: Cli, path: &str, shape: &Shape) -> NewsResult<Reply> {
         C::Run(cmd) => run::run(cmd).await,
         C::Standing(cmd) => run::standing(cmd).await,
         C::Service(cmd) => run::service(cmd).await,
+        // `main` runs Board before the parser; this arm is for completeness.
+        C::Board(_) => Err(NewsError::usage(
+            "news board opens a window and is run directly",
+        )),
         // G tier: the CLI forms are always gated (ADR 0008 §6.3).
         C::Publish { .. } => run::gated("publish"),
         C::Home(HomeCmd::Publish { .. }) => run::gated("home publish"),
@@ -111,6 +115,13 @@ pub const BUILT: &[&str] = &[
     "standing.show",
     "standing.history",
     "service.run",
+    "service.install",
+    "service.uninstall",
+    "service.stage",
+    "service.start",
+    "service.stop",
+    "service.status",
+    "board",
     "publish",
     "home.publish",
     "eval.promote",
