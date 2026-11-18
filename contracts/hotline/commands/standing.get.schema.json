@@ -46,7 +46,17 @@
                 "description": "Set explicitly in this version (else the default applies)"
               },
               "type": {
-                "enum": ["integer", "boolean", "text", "time_of_day", "time_zone", "enum", "tokens", "decimal", "schedule"]
+                "enum": [
+                  "integer",
+                  "boolean",
+                  "text",
+                  "time_of_day",
+                  "time_zone",
+                  "enum",
+                  "tokens",
+                  "decimal",
+                  "schedule"
+                ]
               },
               "doc": {
                 "type": "string"
