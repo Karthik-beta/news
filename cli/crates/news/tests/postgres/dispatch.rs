@@ -186,9 +186,17 @@ async fn a_killed_workers_job_returns_to_retryable_through_the_rescuer() {
     tokio::time::sleep(Duration::from_millis(1500)).await;
     // A second worker starts: its first maintenance pass runs the rescuer. It runs only `net`, so it
     // does not pick the rescued docling job up again.
-    let (env, code, _, _) = f.call(&["work", "--pools", "net", "--once"]);
-    assert_eq!(code, 0, "{env}");
-    assert_eq!(env["data"]["report"]["rescued"], 1);
+    let mut opts = news_dispatch::worker::WorkOptions::new(vec!["net".into()], "second");
+    opts.once = true;
+    let report = news_dispatch::worker::run(
+        f.pool.clone(),
+        opts,
+        news::registry::resolve,
+        std::future::pending(),
+    )
+    .await
+    .unwrap();
+    assert_eq!(report.rescued, 1, "{report:?}");
     let job = state_of(&f, id).await;
     assert_eq!(job.state, "retryable");
     assert_eq!(job.attempt, 1);
@@ -448,7 +456,9 @@ async fn permanent_classes_go_straight_to_the_dead_list_and_retry_brings_them_ba
 
 #[tokio::test(flavor = "multi_thread")]
 #[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
-async fn retrying_more_than_50_dead_jobs_is_karthiks_call() {
+async fn retrying_more_than_50_dead_jobs_is_not_a_terminal_command() {
+    // Above 50 the CLI form is gated for every caller: no environment check, no way round it. Salvage's
+    // approved step or a Board action requeues them (#10), through the queue operation used below.
     let f = Fixture::migrated().await;
     sqlx::query(
         "insert into jobs (kind, pool, state, error_class, finished_at)
@@ -457,26 +467,40 @@ async fn retrying_more_than_50_dead_jobs_is_karthiks_call() {
     .execute(&f.pool)
     .await
     .unwrap();
-    let mut agent = f.news();
-    agent.env("CLAUDECODE", "1");
-    let (env, code, _, _) = super::fixture::call(
-        &mut agent,
-        &["jobs", "retry", "--class", "upstream_changed"],
-    );
+    let (env, code, _, _) = f.call(&["jobs", "retry", "--class", "upstream_changed"]);
     assert_eq!(
         (code, env["error"]["code"].as_str()),
         (7, Some("gated")),
         "{env}"
     );
     assert_eq!(env["error"]["details"]["matched"], 51);
+    assert_eq!(env["error"]["details"]["limit"], 50);
     assert_eq!(
         f.scalar_i64("select count(*) from jobs where state = 'available'")
             .await,
         0
     );
+    // One job of another class leaves exactly 50 of this one: still a plain W-tier retry.
+    sqlx::query(
+        "update jobs set error_class = 'invalid_data'
+          where job_id = (select min(job_id) from jobs)",
+    )
+    .execute(&f.pool)
+    .await
+    .unwrap();
     let (env, code, _, _) = f.call(&["jobs", "retry", "--class", "upstream_changed"]);
     assert_eq!(code, 0, "{env}");
-    assert_eq!(env["data"]["requeued"].as_array().unwrap().len(), 51);
+    assert_eq!(env["data"]["requeued"].as_array().unwrap().len(), 50);
+    // The queue operation has no tier: the service decides who may call it.
+    let last: i64 = f
+        .scalar_i64("select job_id from jobs where state = 'discarded'")
+        .await;
+    queue::retry(&f.pool, last).await.unwrap();
+    assert_eq!(
+        f.scalar_i64("select count(*) from jobs where state = 'available'")
+            .await,
+        51
+    );
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -507,9 +531,8 @@ async fn a_usage_limit_pauses_the_ai_pool_without_spending_the_attempt() {
         .unwrap();
     assert!(c.jobs.is_empty());
     assert!(c.paused_until.is_some());
-    // Unpausing (Karthik, from a terminal) releases it.
-    let (env, code, _, _) = f.call(&["jobs", "unpause", "ai"]);
-    assert_eq!(code, 0, "{env}");
+    // Unpausing is a Board action (no CLI form); the queue operation behind it releases the pool.
+    queue::unpause(&f.pool, "ai").await.unwrap();
     assert_eq!(
         queue::claim(&f.pool, "ai", 3, LEASE, "ghost")
             .await
@@ -518,8 +541,13 @@ async fn a_usage_limit_pauses_the_ai_pool_without_spending_the_attempt() {
             .len(),
         1
     );
-    let (env, code, _, _) = f.call(&["jobs", "pause", "cpu", "--until", "+2h"]);
-    assert_eq!(code, 0, "{env}");
+    queue::pause(
+        &f.pool,
+        "cpu",
+        chrono::Utc::now() + chrono::Duration::hours(2),
+    )
+    .await
+    .unwrap();
     assert!(
         queue::claim(&f.pool, "cpu", 1, LEASE, "w")
             .await
@@ -631,14 +659,23 @@ async fn a_schedule_that_slept_through_several_runs_fires_once() {
     );
 }
 
+/// Set in the child process of the sentinel test below: the schema the parent made.
+const SENTINEL_CHILD: &str = "NEWS_SENTINEL_CHILD_SCHEMA";
+
 #[tokio::test(flavor = "multi_thread")]
 #[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
-async fn news_work_never_reads_the_write_api_key() {
-    // The sentinel test: a live `news work` round over every work pool, with jobs whose handlers run,
-    // and the write-API key set to a sentinel in its environment.
+async fn the_background_pools_never_read_the_write_api_key() {
+    // The sentinel test (ADR 0003, as amended by ADR 0007): a live round of the worker loop's library
+    // entry point over the background pools, with the write-API key set to a sentinel in the process
+    // environment. The sentinel has to be in the environment of the process that runs the loop, and
+    // `set_var` is unsafe, so the test runs itself again as a child process with the variable set.
+    if let Ok(schema) = std::env::var(SENTINEL_CHILD) {
+        return sentinel_round(&schema).await;
+    }
     let f = Fixture::migrated().await;
     for (kind, pool) in [
         ("doc.fetch", "net"),
+        ("traffic.pull", "net"),
         ("doc.parse", "cpu"),
         ("doc.parse_docling", "docling"),
         ("page.publish", "publish"),
@@ -646,13 +683,24 @@ async fn news_work_never_reads_the_write_api_key() {
         enqueue(&f, kind, pool).await;
     }
     let sentinel = "sentinel-write-key-9d2e41";
-    let mut cmd = f.news();
-    cmd.env("NEWS_WRITE_API_KEY", sentinel);
-    let (env, code, stdout, stderr) =
-        super::fixture::call(&mut cmd, &["work", "--pools", "net,cpu,docling", "--once"]);
-    assert_eq!(code, 0, "{env}");
-    assert_eq!(env["data"]["write_api_key_reads"], 0);
-    assert_eq!(env["data"]["report"]["claimed"], 3, "{env}");
+    let name = module_path!().split_once("::").unwrap().1;
+    let out = std::process::Command::new(std::env::current_exe().unwrap())
+        .args([
+            "--exact",
+            &format!("{name}::the_background_pools_never_read_the_write_api_key"),
+        ])
+        .args(["--ignored", "--nocapture", "--test-threads=1"])
+        .env(SENTINEL_CHILD, &f.schema)
+        .env("NEWS_WRITE_API_KEY", sentinel)
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(out.status.success(), "{stdout}\n{stderr}");
+    assert!(
+        stdout.contains("sentinel round: claimed 4, key reads 0"),
+        "the child did not run the round: {stdout}"
+    );
     assert!(!stdout.contains(sentinel) && !stderr.contains(sentinel));
     let errors = f
         .scalar_str("select coalesce(string_agg(errors::text, ' '), '') from jobs")
@@ -664,56 +712,40 @@ async fn news_work_never_reads_the_write_api_key() {
             .await,
         "available"
     );
-    // The stub handlers fail as not-built bugs: discarded, never retried blindly.
+    // The stub handlers fail as not-built bugs: discarded, never retried blindly. `traffic.pull` ran
+    // through its new owner, Ticker (#16).
     assert_eq!(
         f.scalar_i64("select count(*) from jobs where state = 'discarded' and error_class = 'bug'")
             .await,
-        3
+        4
     );
+    assert!(
+        f.scalar_str("select errors::text from jobs where kind = 'traffic.pull'")
+            .await
+            .contains("#16")
+    );
+}
 
-    // `bun run work` (scripts/work.ts) starts the worker with an allow-listed environment: secrets
-    // exported in its shell (or set in .env) are not in the worker's process at all.
-    for (kind, pool) in [("doc.fetch", "net"), ("doc.parse", "cpu")] {
-        enqueue(&f, kind, pool).await;
-    }
-    let repo = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
-    let aws = "sentinel-aws-secret-51c0";
-    let out = std::process::Command::new("bun")
-        .args(["--no-env-file", "scripts/work.ts", "--once"])
-        .current_dir(&repo)
-        .env("NEWS_WORK_BIN", env!("CARGO_BIN_EXE_news"))
-        .env("DATABASE_URL", super::fixture::url())
-        .env("NEWS_DB_SCHEMA", &f.schema)
-        .env("NEWS_TELEMETRY", "off")
-        .env("NEWS_WRITE_API_KEY", sentinel)
-        .env("AWS_SECRET_ACCESS_KEY", aws)
-        .output()
-        .expect("bun runs scripts/work.ts");
-    let stdout = String::from_utf8_lossy(&out.stdout);
-    let stderr = String::from_utf8_lossy(&out.stderr);
-    assert_eq!(out.status.code(), Some(0), "{stdout}\n{stderr}");
-    let env: serde_json::Value = serde_json::from_str(stdout.trim()).unwrap();
-    super::fixture::check_output(&["work"], &env);
-    assert_eq!(env["data"]["report"]["claimed"], 2, "{env}");
-    assert_eq!(env["data"]["write_api_key_reads"], 0);
-    let names = stderr
-        .lines()
-        .find_map(|l| l.strip_prefix("news work environment: "))
-        .unwrap_or_else(|| panic!("no environment line: {stderr}"));
-    assert!(names.contains("DATABASE_URL"), "{names}");
-    for absent in [
-        "NEWS_WRITE_API_KEY",
-        "AWS_SECRET_ACCESS_KEY",
-        "NEWS_WORK_BIN",
-    ] {
-        assert!(
-            !names.contains(absent),
-            "{absent} reached news work: {names}"
-        );
-    }
-    for s in [sentinel, aws] {
-        assert!(!stdout.contains(s) && !stderr.contains(s));
-    }
+/// The child half of the sentinel test: runs the loop once over the background pools, with the real
+/// subsystem handlers of the binary's registry, and checks the guard's counter.
+async fn sentinel_round(schema: &str) {
+    // The key is in this process's environment (the test would prove nothing otherwise).
+    assert!(std::env::var("NEWS_WRITE_API_KEY").is_ok_and(|v| !v.is_empty()));
+    let cfg = news_store::DbConfig::new(super::fixture::url(), schema).unwrap();
+    let pool = news_store::connect(&cfg, 5).await.unwrap();
+    let mut opts = news_dispatch::worker::WorkOptions::background("sentinel");
+    opts.once = true;
+    let report =
+        news_dispatch::worker::run(pool, opts, news::registry::resolve, std::future::pending())
+            .await
+            .unwrap();
+    let reads = news_core::secrets::write_api_key_reads();
+    println!(
+        "sentinel round: claimed {}, key reads {reads}",
+        report.claimed
+    );
+    assert_eq!(reads, 0);
+    assert_eq!(report.claimed, 4, "{report:?}");
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -795,7 +827,7 @@ async fn a_claim_rescues_expired_leases_when_no_worker_is_running() {
     assert_eq!(code, 0, "{env}");
     assert_eq!(env["data"]["items"][0]["job_id"], id);
     tokio::time::sleep(Duration::from_millis(1500)).await;
-    // No `news work` runs: the next claim runs the rescuer itself and gets the job back.
+    // No worker runs: the next claim runs the rescuer itself and gets the job back.
     let (env, code, _, _) = f.call(&["jobs", "claim", "--pool", "net", "--worker", "next"]);
     assert_eq!(code, 0, "{env}");
     assert_eq!(env["data"]["items"][0]["job_id"], id, "{env}");
@@ -978,13 +1010,10 @@ async fn a_heartbeat_marks_the_jobs_run_as_seen() {
     let f = Fixture::migrated().await;
     let run_id = uuid::Uuid::new_v4();
     sqlx::query(
-        "with t as (
-           insert into start_tickets (preset, args, canonical, prompt, match, state)
-           values ('edition', '{}', 'run edition', 'run edition', 'grammar', 'consumed') returning ticket_id)
-         insert into runs (run_id, short_id, preset, args, heavy, origin, ticket_id, status, config, budget,
+        "insert into runs (run_id, short_id, preset, args, heavy, origin, status, config, budget,
                            started_at, last_seen_at)
-         select $1, 'r_test1', 'edition', '{}', false, 'terminal', ticket_id, 'running', '{}', '{}',
-                now() - interval '2 hours', now() - interval '1 hour' from t",
+         values ($1, 'r_test1', 'edition', '{}', false, 'test', 'running', '{}', '{}',
+                 now() - interval '2 hours', now() - interval '1 hour')",
     )
     .bind(run_id)
     .execute(&f.pool)

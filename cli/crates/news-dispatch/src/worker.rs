@@ -1,5 +1,10 @@
-//! The `news work` loop (§5.6): claims jobs from its pools, runs each handler with a heartbeat every
+//! The worker loop (§5.6): claims jobs from its pools, runs each handler with a heartbeat every
 //! lease/3, records the outcome, and every `maintenance_every` runs the rescuer and the schedules.
+//!
+//! [`run`] is a library entry point: the Bureau service hosts it (ADR 0007), with
+//! [`WorkOptions::background`] for the pools that run all the time. It reads no environment and no
+//! secret; what a handler may read is the handler's business, and the background pools' handlers never
+//! read the write-API key (a sentinel test runs the loop to show it).
 
 use crate::queue::{self, Job};
 use crate::{kinds, schedule};
@@ -36,6 +41,17 @@ pub struct WorkOptions {
 }
 
 impl WorkOptions {
+    /// The pools that run all the time (`net`, `cpu`, `docling`: [`crate::BACKGROUND_POOLS`]).
+    pub fn background(worker_id: impl Into<String>) -> Self {
+        Self::new(
+            crate::BACKGROUND_POOLS
+                .iter()
+                .map(|p| (*p).to_owned())
+                .collect(),
+            worker_id,
+        )
+    }
+
     pub fn new(pools: Vec<String>, worker_id: impl Into<String>) -> Self {
         Self {
             pools,
@@ -184,7 +200,7 @@ async fn run_one(db: PgPool, job: Job, resolve: Resolver, worker: String) -> Out
     let spec = kinds::spec(&job.kind);
     let lease = Duration::from_secs(u64::from(spec.map_or(120, |s| s.lease_secs)));
     // A registered kind runs only in its own pool. Enqueue enforces it; a row that got into another
-    // pool anyway (raw SQL) is failed, never run, so a publish handler can never run in `news work`.
+    // pool anyway (raw SQL) is failed, never run, so a publish handler can never run in a background pool.
     if let Some(s) = spec.filter(|s| s.pool != job.pool) {
         let f = JobFailure::new(
             ErrorClass::Bug,
@@ -271,6 +287,22 @@ async fn finish_failed(db: &PgPool, job: &Job, worker: &str, f: &JobFailure) -> 
         Err(e) => {
             tracing::warn!(job_id = job.job_id, error = %e, "fail failed");
             Outcome::Lost
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_background_options_name_only_the_always_on_code_pools() {
+        let opts = WorkOptions::background("service-1");
+        assert_eq!(opts.pools, ["net", "cpu", "docling"]);
+        assert_eq!(opts.worker_id, "service-1");
+        // Pools that exist only inside a live run are never claimed by the always-on worker.
+        for pool in ["ai", "render", "publish"] {
+            assert!(!opts.pools.iter().any(|p| p == pool), "{pool}");
         }
     }
 }

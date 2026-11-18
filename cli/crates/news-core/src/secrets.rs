@@ -1,9 +1,10 @@
-//! The write-API key guard (Bureau Design §9.3): only `news publish` and `news home publish` read
-//! `NEWS_WRITE_API_KEY`, and the background worker (`news work`) never does.
+//! The write-API key guard (Bureau Design §9.3): only `news publish` and `news home publish` (Press)
+//! read `NEWS_WRITE_API_KEY`, and the service's background pools never do.
 //!
-//! [`write_api_key`] is the only place in the workspace that names the variable. `news work` calls
-//! [`forbid_write_api_key`] first thing, after which every read fails with `gated`; the attempt count
-//! is reported in `news work`'s output so the sentinel test can assert it stayed at zero.
+//! [`write_api_key`] is the only place in the workspace that names the variable. Every call is counted
+//! ([`write_api_key_reads`]), so the sentinel test that runs the background pools can assert the count
+//! stayed at zero. A process that runs no publishing step can call [`forbid_write_api_key`], after which
+//! every read fails with `gated`.
 
 use crate::error::NewsError;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
@@ -36,7 +37,7 @@ fn read_with(lookup: impl Fn(&str) -> Option<String>) -> Result<String, NewsErro
     READS.fetch_add(1, Ordering::SeqCst);
     if write_api_key_forbidden() {
         return Err(NewsError::gated(
-            "this process may not read the write-API key (news work runs only code pools)",
+            "this process may not read the write-API key (it runs no publishing step)",
         ));
     }
     lookup(WRITE_API_KEY_VAR)

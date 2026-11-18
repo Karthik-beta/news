@@ -51,7 +51,6 @@ This is safe to re-run. It:
 | `bun run clickhouse:setup` | Re-apply the ClickHouse database, user and tables |
 | `bun run tokens` | Regenerate `design/tokens/tokens.css` from `tokens.json` |
 | `cargo build` · `cargo test` · `cargo clippy` · `cargo deny check` in `cli/` | Rust CLI (`cli/target/debug/news version`; conventions in `cli/README.md`) |
-| `bun run work` | The optional Dispatch worker for code-only jobs (release build; `infra/windows/news-work.task.xml` starts it at log-on) |
 
 ### Layout
 
