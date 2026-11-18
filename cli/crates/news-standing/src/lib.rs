@@ -24,6 +24,9 @@ pub enum KeyType {
     },
     Boolean,
     Text,
+    /// A `claude -p --model` value: an alias or model id, `^[a-z0-9][a-z0-9.\-\[\]]{0,63}$`, so it can
+    /// never carry a flag, a space or a shell character onto the command line.
+    Model,
     /// `HH:MM`, 24-hour, local.
     TimeOfDay,
     /// An IANA zone name; null means the laptop's zone.
@@ -45,7 +48,8 @@ impl KeyType {
         match self {
             KeyType::Integer { .. } => "integer",
             KeyType::Boolean => "boolean",
-            KeyType::Text => "text",
+            // A model is text on the wire; only the check is narrower.
+            KeyType::Text | KeyType::Model => "text",
             KeyType::TimeOfDay => "time_of_day",
             KeyType::TimeZone => "time_zone",
             KeyType::Enum(_) => "enum",
@@ -119,91 +123,91 @@ pub const REGISTRY: &[KeyDecl] = &[
     ),
     key(
         "models.a1",
-        KeyType::Text,
+        KeyType::Model,
         "null",
         "Model for step A1, Write page (new, or update after a direction flip) (a claude -p --model value; null: the role's model)",
     ),
     key(
         "models.a10",
-        KeyType::Text,
+        KeyType::Model,
         "null",
         "Model for step A10, Alt text when the image source gives none (a claude -p --model value; null: the role's model)",
     ),
     key(
         "models.a11",
-        KeyType::Text,
+        KeyType::Model,
         "null",
         "Model for step A11, Rollcall proposals (a claude -p --model value; null: the role's model)",
     ),
     key(
         "models.a12",
-        KeyType::Text,
+        KeyType::Model,
         "null",
         "Model for step A12, Eval judge (a claude -p --model value; null: the role's model)",
     ),
     key(
         "models.a2",
-        KeyType::Text,
+        KeyType::Model,
         "null",
         "Model for step A2, Repair a Copy (a claude -p --model value; null: the role's model)",
     ),
     key(
         "models.a3",
-        KeyType::Text,
+        KeyType::Model,
         "null",
         "Model for step A3, Classify an ambiguous item (a claude -p --model value; null: the role's model)",
     ),
     key(
         "models.a4",
-        KeyType::Text,
+        KeyType::Model,
         "null",
         "Model for step A4, Same story? (grey zone) (a claude -p --model value; null: the role's model)",
     ),
     key(
         "models.a5",
-        KeyType::Text,
+        KeyType::Model,
         "null",
         "Model for step A5, Condense long source text for a brief (a claude -p --model value; null: the role's model)",
     ),
     key(
         "models.a6",
-        KeyType::Text,
+        KeyType::Model,
         "null",
         "Model for step A6, Pick an entity from a shortlist (a claude -p --model value; null: the role's model)",
     ),
     key(
         "models.a7",
-        KeyType::Text,
+        KeyType::Model,
         "null",
         "Model for step A7, Sample spot check (a claude -p --model value; null: the role's model)",
     ),
     key(
         "models.a8",
-        KeyType::Text,
+        KeyType::Model,
         "null",
         "Model for step A8, Home curation (Frontpage) (a claude -p --model value; null: the role's model)",
     ),
     key(
         "models.a9",
-        KeyType::Text,
+        KeyType::Model,
         "null",
         "Model for step A9, Triage a reader error report (a claude -p --model value; null: the role's model)",
     ),
     key(
         "models.curator",
-        KeyType::Text,
+        KeyType::Model,
         "\"sonnet\"",
         "Model role for the home page curator (A8) unless that step has its own",
     ),
     key(
         "models.light",
-        KeyType::Text,
+        KeyType::Model,
         "\"haiku\"",
         "Model role for the light steps (A3 to A7, A9, A10) unless a step has its own",
     ),
     key(
         "models.main",
-        KeyType::Text,
+        KeyType::Model,
         "\"sonnet\"",
         "Model role for the main drafting steps (A1, A2, A11, A12) unless a step has its own",
     ),
@@ -457,6 +461,19 @@ pub fn parse_cron(expr: &str) -> Result<croner::Cron, NewsError> {
         .map_err(|e| NewsError::validation(format!("invalid cron expression {expr:?}: {e}")))
 }
 
+/// A `claude -p --model` value: `^[a-z0-9][a-z0-9.\-\[\]]{0,63}$` (`sonnet`, `claude-opus-5-5`,
+/// `opus[1m]`).
+pub fn is_model_name(s: &str) -> bool {
+    let mut chars = s.chars();
+    s.len() <= 64
+        && chars
+            .next()
+            .is_some_and(|c| c.is_ascii_lowercase() || c.is_ascii_digit())
+        && chars.all(|c| {
+            c.is_ascii_lowercase() || c.is_ascii_digit() || matches!(c, '.' | '-' | '[' | ']')
+        })
+}
+
 /// Check `value` against the key's type. Null is the default for every key.
 pub fn validate(key: &str, value: &Value, check: ScheduleCheck<'_>) -> Result<(), NewsError> {
     let d = decl(key).ok_or_else(|| NewsError::validation(format!("unknown setting {key:?}")))?;
@@ -492,6 +509,10 @@ pub fn validate(key: &str, value: &Value, check: ScheduleCheck<'_>) -> Result<()
         KeyType::Boolean => bad("true or false"),
         KeyType::Text if value.is_string() => Ok(()),
         KeyType::Text => bad("text"),
+        KeyType::Model => match value.as_str() {
+            Some(s) if is_model_name(s) => Ok(()),
+            _ => bad("a model name: lower-case letters, digits, '.', '-', '[' or ']', at most 64"),
+        },
         KeyType::TimeOfDay => match value.as_str().and_then(parse_hhmm) {
             Some(_) => Ok(()),
             None => bad("a time of day, HH:MM"),
@@ -858,6 +879,50 @@ mod tests {
 
     fn ok(_: &Schedule) -> Result<(), NewsError> {
         Ok(())
+    }
+
+    #[test]
+    fn model_values_are_names_and_never_flags_or_shell_text() {
+        for good in [
+            "sonnet",
+            "haiku",
+            "claude-opus-5-5",
+            "opus[1m]",
+            "0",
+            "claude-3.5",
+        ] {
+            assert!(is_model_name(good), "{good}");
+            validate("models.a1", &json!(good), &ok).unwrap_or_else(|e| panic!("{good}: {e}"));
+        }
+        let long = "a".repeat(65);
+        for bad in [
+            "",
+            "--dangerously-skip-permissions",
+            "-p",
+            "Sonnet",
+            "sonnet extra",
+            "sonnet;calc",
+            "a\"b",
+            "\u{0}",
+            "opus\n",
+            ".sonnet",
+            "[1m]",
+            "s\u{f6}nnet",
+            long.as_str(),
+        ] {
+            assert!(!is_model_name(bad), "{bad:?}");
+            assert!(
+                validate("models.main", &json!(bad), &ok).is_err(),
+                "{bad:?}"
+            );
+        }
+        assert!(is_model_name(&"a".repeat(64)));
+        // Every models.* key is checked this way; null still means the default.
+        for d in REGISTRY.iter().filter(|d| d.key.starts_with("models.")) {
+            assert_eq!(d.ty, KeyType::Model, "{}", d.key);
+            assert!(validate(d.key, &json!("x y"), &ok).is_err(), "{}", d.key);
+            validate(d.key, &Value::Null, &ok).unwrap();
+        }
     }
 
     #[test]
