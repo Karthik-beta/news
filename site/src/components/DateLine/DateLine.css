@@ -16,7 +16,6 @@
   font-size: var(--font-size-label);
   line-height: var(--font-line-height-ui);
   color: var(--color-ink-2);
-  white-space: nowrap;
 }
 
 .date-line__end {

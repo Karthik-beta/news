@@ -3,7 +3,7 @@
 // the shared checks; the video loads nothing from YouTube before the click and only youtube-nocookie.com after;
 // a blocked image keeps its size and shows its alt text and credit; the gallery overlay and the glossary popover
 // close on Escape and give focus back. The tester extends this into the full procedure and matrix.
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import {
   expect,
   expectAccessible,
@@ -53,6 +53,13 @@ const PAGES: [string, string][] = [
   ...FIXTURES.map(([n, f]): [string, string] => [`${n}/${f}`, fixture(n, f)]),
   ...PARTS.map((n): [string, string] => [`${n} gallery`, `/fixtures/primitives/${n}/`]),
 ];
+
+/** The box in page coordinates: focusing the player may scroll a short screen, which is not a layout shift. */
+const pageBox = (el: Locator) =>
+  el.evaluate((node) => {
+    const r = node.getBoundingClientRect();
+    return { x: r.left + window.scrollX, y: r.top + window.scrollY, width: r.width, height: r.height };
+  });
 
 /** Resolves once React has hydrated the island root (attached a fibre to its first element). */
 async function hydrated(page: Page, island: string) {
@@ -106,14 +113,14 @@ test.describe("VideoEmbed", () => {
     expect(youtube, "requests to YouTube before the click").toEqual([]);
 
     const frame = page.locator(".video-embed__frame");
-    const before = await frame.boundingBox();
+    const before = await pageBox(frame);
     const play = page.getByRole("button", { name: /^Load video from YouTube: / });
     await play.focus();
     await page.keyboard.press("Enter");
     const player = page.locator("iframe.video-embed__player");
     await expect(player).toHaveAttribute("src", "https://www.youtube-nocookie.com/embed/aBcDeFgHiJk?autoplay=1");
     await expect(player).toBeFocused();
-    expect(await frame.boundingBox()).toEqual(before);
+    expect(await pageBox(frame)).toEqual(before);
     await expect.poll(() => youtube.length).toBeGreaterThan(0);
     for (const url of youtube) expect(new URL(url).hostname).toBe("www.youtube-nocookie.com");
   });
@@ -188,7 +195,10 @@ test.describe("GlossaryTerm", () => {
     await gotoPage(page, fixture("Prose", "default"));
     const term = page.getByRole("button", { name: "gross margin" });
     const panel = page.locator(`#${await term.getAttribute("popovertarget")}`);
-    await term.click();
+    // Open from the keyboard: WebKit (like Safari) does not focus a button on a mouse click, so after a click
+    // there is no focused trigger to return to. Click and tap opening are tested in the tester spec.
+    await term.focus();
+    await page.keyboard.press("Enter");
     await expect(panel).toBeVisible();
     await expect(panel).toContainText("Sales minus the cost of the goods and services sold");
     await expect(panel.getByRole("link", { name: "Read the glossary entry" })).toHaveAttribute(
