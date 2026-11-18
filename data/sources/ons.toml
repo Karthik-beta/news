@@ -1,0 +1,21 @@
+# Contacts row for ONS beta API (Bureau Design §3.1). Loaded by `news sources sync`; the Contacts lint checks it in CI.
+source_id = "ons"
+name = "ONS beta API"
+publisher = "Office for National Statistics"
+connector = "ons"
+base_url = "https://api.beta.ons.gov.uk/v1/"
+source_tier = 1
+licence = "custom"
+attribution = "Source: Office for National Statistics, licensed under the Open Government Licence v3.0."
+redistribution = true
+image_policy = "none"
+rate_per_sec = 0.5
+documented_rate_per_sec = 1
+documented_limit = "No published request limit (unverified: 18 Nov 2026)"
+max_concurrency = 1
+robots_respect = true
+requires_contact_email = false
+regions = ["uk"]
+categories = ["economy"]
+enabled = true
+notes = "Beta API: ONS says legacy endpoints are being retired and the beta may change. Followed dataset cpih01 was frozen after January 2026 (ONS points to its time series pages); replace it with a live dataset when one is chosen."

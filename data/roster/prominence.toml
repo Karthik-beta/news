@@ -1,0 +1,133 @@
+# Prominence seed lists (Bureau §3.5, §4.2): 1 flagship, 2 major, 3 other (the default). Entities are
+# named by identifier; an identifier not yet in Roster is skipped, so the list can run before or
+# after the SEC and Wikidata seeds. Loaded with news_roster::store::apply_prominence.
+# CIKs are as the SEC lists them; a person should confirm them once against company_tickers.
+
+# ---- countries (ISO 3166-1 alpha-2): the G7 and the next largest economies ------------------------
+[[entity]]
+scheme = "iso3166"
+value = "US"
+prominence = 1
+
+[[entity]]
+scheme = "iso3166"
+value = "CN"
+prominence = 1
+
+[[entity]]
+scheme = "iso3166"
+value = "GB"
+prominence = 1
+
+[[entity]]
+scheme = "iso3166"
+value = "JP"
+prominence = 1
+
+[[entity]]
+scheme = "iso3166"
+value = "DE"
+prominence = 1
+
+[[entity]]
+scheme = "iso3166"
+value = "IN"
+prominence = 1
+
+[[entity]]
+scheme = "iso3166"
+value = "FR"
+prominence = 2
+
+[[entity]]
+scheme = "iso3166"
+value = "CA"
+prominence = 2
+
+[[entity]]
+scheme = "iso3166"
+value = "AU"
+prominence = 2
+
+[[entity]]
+scheme = "iso3166"
+value = "BR"
+prominence = 2
+
+[[entity]]
+scheme = "iso3166"
+value = "KR"
+prominence = 2
+
+# ---- companies (CIK): flagship US names -----------------------------------------------------------
+[[entity]]
+scheme = "cik"
+value = "0000320193"
+prominence = 1
+note = "Apple"
+
+[[entity]]
+scheme = "cik"
+value = "0000789019"
+prominence = 1
+note = "Microsoft"
+
+[[entity]]
+scheme = "cik"
+value = "0001652044"
+prominence = 1
+note = "Alphabet"
+
+[[entity]]
+scheme = "cik"
+value = "0001018724"
+prominence = 1
+note = "Amazon"
+
+[[entity]]
+scheme = "cik"
+value = "0001045810"
+prominence = 1
+note = "NVIDIA"
+
+[[entity]]
+scheme = "cik"
+value = "0001326801"
+prominence = 1
+note = "Meta Platforms"
+
+[[entity]]
+scheme = "cik"
+value = "0001318605"
+prominence = 1
+note = "Tesla"
+
+[[entity]]
+scheme = "cik"
+value = "0001067983"
+prominence = 2
+note = "Berkshire Hathaway"
+
+[[entity]]
+scheme = "cik"
+value = "0000019617"
+prominence = 2
+note = "JPMorgan Chase"
+
+[[entity]]
+scheme = "cik"
+value = "0000034088"
+prominence = 2
+note = "Exxon Mobil"
+
+[[entity]]
+scheme = "cik"
+value = "0000104169"
+prominence = 2
+note = "Walmart"
+
+[[entity]]
+scheme = "cik"
+value = "0001403161"
+prominence = 2
+note = "Visa"

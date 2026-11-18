@@ -1,0 +1,4 @@
+# False positives in commit history (PR #44), already removed from the tree:
+# a public Bank of England page-analytics key inside a recorded HTML fixture, and a NASA image id in a test.
+574a0d08d2b3a56385dcb99b2b0795eff1f1f2aa:cli/crates/news-connectors/tests/fixtures/centralbank/boe-summary-november-2026.html:generic-api-key:101
+574a0d08d2b3a56385dcb99b2b0795eff1f1f2aa:cli/crates/news-connectors/tests/batch2.rs:generic-api-key:477

@@ -1,8 +1,10 @@
 //! Command routing. Built commands live in their own modules; every other command is a stub that
 //! returns `precondition` (exit 4) naming the issue that builds it.
 
+mod calendar;
 mod components;
 mod db;
+mod entities;
 mod jobs;
 mod run;
 mod schema;
@@ -68,8 +70,10 @@ pub async fn run(cli: Cli, path: &str, shape: &Shape) -> NewsResult<Reply> {
         C::Corrections(CorrectionsCmd::Resolve { action, .. }) if action == "update" => {
             run::gated("corrections resolve --action update")
         }
-        C::Calendar(_) => stub(path, news_diary::ISSUE),
-        C::Related { .. } | C::Entities(_) => stub(path, news_roster::ISSUE),
+        C::Calendar(cmd) => calendar::run(cmd).await,
+        C::Entities(cmd) => entities::run(cmd).await,
+        // Related pages come from stories, which Taster builds.
+        C::Related { .. } => stub(path, news_taster::ISSUE),
         C::Stories(_) => stub(path, news_taster::ISSUE),
         C::Plan { .. } | C::Scores(_) => stub(path, news_nose::ISSUE),
         C::Stats => stub(path, news_telemetry::ISSUE),
@@ -110,6 +114,12 @@ pub const BUILT: &[&str] = &[
     "publish",
     "home.publish",
     "eval.promote",
+    "calendar.upcoming",
+    "calendar.sync",
+    "calendar.late",
+    "entities.resolve",
+    "entities.show",
+    "entities.unresolved",
 ];
 
 /// Dotted names of the commands that have a contract file.

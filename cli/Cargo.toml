@@ -47,6 +47,7 @@ croner = "3"
 fastrand = "2"
 httpdate = "1"
 proptest = "1"
+roxmltree = "0.21"
 sha2 = "0.10"
 toml = { version = "0.9", default-features = false, features = ["parse", "serde"] }
 zstd = { version = "0.13", default-features = false }
@@ -63,6 +64,7 @@ tracing = "0.1"
 tracing-opentelemetry = { version = "0.32", default-features = false }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["std", "fmt", "env-filter", "registry"] }
 uuid = { version = "1", features = ["v4", "serde"] }
+unicode-normalization = "0.1"
 windows-sys = { version = "0.61", features = [
     "Win32_Foundation",
     "Win32_Security",

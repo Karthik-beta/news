@@ -21,6 +21,7 @@ zstd = { workspace = true }
 
 [dev-dependencies]
 news-clerk = { workspace = true }
+news-contacts = { workspace = true }
 news-ledger = { workspace = true }
 serde_json = { workspace = true }
 

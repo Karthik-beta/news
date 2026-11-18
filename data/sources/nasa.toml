@@ -1,0 +1,21 @@
+# Contacts row for NASA Image and Video Library (Bureau Design §3.1). Loaded by `news sources sync`; the Contacts lint checks it in CI.
+source_id = "nasa"
+name = "NASA Image and Video Library"
+publisher = "National Aeronautics and Space Administration"
+connector = "nasa"
+base_url = "https://images-api.nasa.gov/"
+source_tier = 1
+licence = "custom"
+attribution = "Source: NASA."
+redistribution = true
+image_policy = "rehost"
+rate_per_sec = 0.5
+documented_rate_per_sec = 1
+documented_limit = "No published request limit for images-api.nasa.gov (unverified: 18 Nov 2026)"
+max_concurrency = 1
+robots_respect = true
+requires_contact_email = false
+regions = ["global"]
+categories = ["science"]
+enabled = true
+notes = "NASA media guidelines: content generally not copyrighted, may include third-party material. Images are copied to our storage only when the credit line is NASA's own (NASA/...); any other credit, or none, stays a link to NASA's file. News releases are not built."

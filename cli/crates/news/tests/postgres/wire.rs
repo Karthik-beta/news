@@ -75,6 +75,7 @@ fn cx() -> Cx {
         sec_ciks: vec!["320193".into()],
         fred_series: vec!["CPIAUCSL".into()],
         bls_series: vec!["CES0000000001".into()],
+        tracked: Default::default(),
     }
 }
 
@@ -148,9 +149,18 @@ async fn sources_snapshots_and_the_ledger_end_to_end() {
     // Contacts: sync the repo's data files, twice (idempotent).
     let dir = news_contacts::default_dir(Path::new(env!("CARGO_MANIFEST_DIR"))).unwrap();
     let sources = news_contacts::load_dir(&dir).unwrap();
-    assert_eq!(news_contacts::sync(&f.pool, &sources).await.unwrap(), 3);
-    assert_eq!(news_contacts::sync(&f.pool, &sources).await.unwrap(), 3);
-    assert_eq!(scalar_i64(&f, "select count(*) from sources").await, 3);
+    assert_eq!(
+        news_contacts::sync(&f.pool, &sources).await.unwrap(),
+        sources.len()
+    );
+    assert_eq!(
+        news_contacts::sync(&f.pool, &sources).await.unwrap(),
+        sources.len()
+    );
+    assert_eq!(
+        scalar_i64(&f, "select count(*) from sources").await,
+        i64::try_from(sources.len()).unwrap()
+    );
     // sec-edgar ships disabled (no recorded fixtures or contact e-mail yet); this test enables it, as
     // Karthik would, to exercise it end to end on the synthetic fixtures.
     sqlx::query("update sources set enabled = true where source_id = 'sec-edgar'")
@@ -159,7 +169,10 @@ async fn sources_snapshots_and_the_ledger_end_to_end() {
         .unwrap();
     rules::seed_taxonomy(&f.pool).await.unwrap();
     rules::seed_taxonomy(&f.pool).await.unwrap();
-    assert_eq!(scalar_i64(&f, "select count(*) from taxonomy").await, 5);
+    assert_eq!(
+        scalar_i64(&f, "select count(*) from taxonomy").await,
+        i64::try_from(rules::TAXONOMY.len()).unwrap()
+    );
 
     let work = std::env::temp_dir().join(format!("news-it-morgue-{}", f.schema));
     let morgue = Morgue::new(&work);
