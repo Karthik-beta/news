@@ -10,6 +10,26 @@ Tests never touch the network (`news-wire/tests/no_network.rs` enforces it). Eac
 | `fred/*.json` | **Synthetic**: shaped like the FRED API responses (`series`, `series/observations`, `series/vintagedates`, `release/dates`); values are made up. Recording needs `FRED_API_KEY`. | — |
 | `sec/*.json`, `sec/primary-8k.htm` | **Synthetic**: shaped like `submissions` and `api/xbrl/companyfacts` for CIK 320193; accession numbers and FY2026 values are made up. Recording needs `NEWS_CONTACT_EMAIL` (SEC requires a contact in the User-Agent). | — |
 
+**Second batch (#12), recorded 18 Nov 2026** (the sources need no key and no contact e-mail; each file is the response to the exact request the connector builds, trimmed where noted):
+
+| Files | Origin | Licence / note |
+| --- | --- | --- |
+| `ecb/FM.MRR-*.json`, `ecb/EXR.USD-history.json` | `data-api.ecb.europa.eu/service/data/…?lastNObservations=1\|12&format=jsondata` | ECB; terms not confirmed (registry: redistribution false) |
+| `oecd/CPI.USA-*.json` | `sdmx.oecd.org/public/rest/data/…?lastNObservations=1\|12` | OECD; terms not confirmed |
+| `abs/CPI.AUS-*.json` | `data.api.abs.gov.au/rest/data/CPI/1.10001.10.50.Q?lastNObservations=1\|8` (SDMX-JSON 2.0) | ABS, CC BY 4.0 |
+| `eurostat/HICP.EA-*.json` | `…/eurostat/api/dissemination/statistics/1.0/data/prc_hicp_manr?geo=EA&coicop=CP00&lastTimePeriod=1\|12` | Eurostat, CC BY 4.0 |
+| `worldbank/GDP.USA-*.json` | `api.worldbank.org/v2/country/USA/indicator/NY.GDP.MKTP.CD?format=json&mrv=1\|5` | World Bank, CC BY 4.0 |
+| `ons/dataset-cpih01.json`, `ons/observations-cpih01.json` | `api.beta.ons.gov.uk/v1/datasets/cpih01` and its version 67 observations, trimmed to 8 of 457 | OGL v3.0 |
+| `nasa/search-artemis.json` (3 of 20 hits), `nasa/item-*.json` | `images-api.nasa.gov/search?q=artemis…` and `?nasa_id=…` | NASA media guidelines |
+| `openalex/list-field20.json` (3 of 25), `openalex/work-W7234566083.json` | `api.openalex.org/works…` | CC0 metadata |
+| `crossref/list.json` (3 of 25), `crossref/work-10.1007_s00408-021-00426-w.json` (reference list removed) | `api.crossref.org/works…` | CC0 metadata |
+| `arxiv/list-econ.xml` (3 of the records), `arxiv/record-2112.14514.xml` | `oaipmh.arxiv.org/oai?verb=ListRecords\|GetRecord…` | CC0 metadata |
+| `centralbank/*-feed.xml` | Fed `press_monetary.xml`, ECB `rss/press.html`, BoE `rss/news`, BoC press-release feed, RBA media-release feed | Publishers' terms; used for tests only |
+| `centralbank/{fed,boe,boc}-statement-*.html` | The 28 Oct 2026 FOMC statement, the November 2026 MPC summary and the 28 Oct 2026 Bank of Canada decision, cut to the first 8 000 bytes | Publishers' terms; used for tests only |
+| `bea/NIPA.T10101-*.json` | **Synthetic**: shaped like the BEA NIPA `GetData` response; every value is made up. Recording needs `BEA_API_KEY`. | BEA is **disabled** until recorded |
+
+Awkward real cases in the second batch: the ECB main refinancing rate is published only when it changes (irregular dates, a 12-month gap between 2025-06-11 and 2026-06-17); the ECB's EXR unit is "US dollar", not in the unit vocabulary (`needs_human`); OECD US CPI has no October 2025 observation; Eurostat writes `2.0` and the trailing zero is kept; the ONS dataset is frozen after January 2026; OpenAlex returns works dated in 2027 (the cursor must not follow them); NASA images with third-party or no credit (edited copy, made inside the test) are never re-hosted.
+
 Awkward cases covered: BLS October 2025 missing (`-`, footnote `X`, the 2025 lapse in appropriations); BLS preliminary values (footnote `P`); a BLS revision (an edited copy of the recorded CES response, made inside the test); a FRED revision (two vintages of August 2026) and a missing month (`.`); an SEC restatement (FY2025 net income as filed and as restated in the FY2026 10-K); Apple's 52/53-week fiscal year ending in late September; a year-to-date fact that must not get a quarter label; an unknown XBRL unit (`USD/Contract`).
 
 To replace the synthetic files with recorded ones (Karthik, once the key and contact are in `.env`):

@@ -1,0 +1,21 @@
+# Contacts row for arXiv OAI-PMH (Bureau Design §3.1). Loaded by `news sources sync`; the Contacts lint checks it in CI.
+source_id = "arxiv"
+name = "arXiv OAI-PMH"
+publisher = "arXiv (Cornell University)"
+connector = "arxiv"
+base_url = "https://oaipmh.arxiv.org/"
+source_tier = 3
+licence = "custom"
+attribution = "Source: arXiv.org."
+redistribution = true
+image_policy = "none"
+rate_per_sec = 0.16
+documented_rate_per_sec = 0.3333
+documented_limit = "One request every 3 seconds, one connection, shared across all machines (arXiv API terms; Bureau §3.1)"
+max_concurrency = 1
+robots_respect = true
+requires_contact_email = false
+regions = ["global"]
+categories = ["science"]
+enabled = true
+notes = "OAI-PMH host only: export.arxiv.org robots.txt disallows everything (recorded 18 Nov 2026). Paced at one request every 6 seconds, stricter than the 3-second limit (the lint requires at most half). Metadata is CC0; papers carry their own licences and are only linked."

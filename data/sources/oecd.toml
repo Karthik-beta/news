@@ -1,0 +1,21 @@
+# Contacts row for OECD Data Explorer API (Bureau Design §3.1). Loaded by `news sources sync`; the Contacts lint checks it in CI.
+source_id = "oecd"
+name = "OECD Data Explorer API"
+publisher = "Organisation for Economic Co-operation and Development"
+connector = "oecd"
+base_url = "https://sdmx.oecd.org/public/rest/"
+source_tier = 1
+licence = "custom"
+attribution = "Source: OECD."
+redistribution = false
+image_policy = "none"
+rate_per_sec = 0.008
+documented_rate_per_sec = 0.0167
+documented_limit = "60 downloads per hour in the official explainer; a mirror says 20 per minute, so the lower figure is used (Bureau §3.1)"
+max_concurrency = 1
+robots_respect = true
+requires_contact_email = false
+regions = ["global"]
+categories = ["economy"]
+enabled = true
+notes = "SDMX REST, JSON. Two requests per followed series (probe, history): one request every 2 minutes keeps the budget at about 30 an hour. Terms not read in full: link-and-summarise until confirmed."

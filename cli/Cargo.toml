@@ -47,6 +47,7 @@ croner = "3"
 fastrand = "2"
 httpdate = "1"
 proptest = "1"
+roxmltree = "0.21"
 sha2 = "0.10"
 toml = { version = "0.9", default-features = false, features = ["parse", "serde"] }
 zstd = { version = "0.13", default-features = false }

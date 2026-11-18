@@ -1,0 +1,21 @@
+# Contacts row for World Bank Indicators API (Bureau Design §3.1). Loaded by `news sources sync`; the Contacts lint checks it in CI.
+source_id = "worldbank"
+name = "World Bank Indicators API"
+publisher = "The World Bank"
+connector = "worldbank"
+base_url = "https://api.worldbank.org/v2/"
+source_tier = 1
+licence = "cc-by-4.0"
+attribution = "Source: The World Bank, World Development Indicators, licensed under CC BY 4.0."
+redistribution = true
+image_policy = "none"
+rate_per_sec = 0.5
+documented_rate_per_sec = 1
+documented_limit = "No published request limit (unverified: 18 Nov 2026)"
+max_concurrency = 1
+robots_respect = true
+requires_contact_email = false
+regions = ["global"]
+categories = ["economy"]
+enabled = true
+notes = "The API gives no unit for the indicators followed: the unit is the parenthetical of the indicator name, verbatim. Discovery: mrv=1 probe."

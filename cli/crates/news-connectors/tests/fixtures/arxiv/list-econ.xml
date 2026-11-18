@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/" 
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/ http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd">
+    <responseDate>2026-11-18T06:09:07Z</responseDate>
+                <request verb="ListRecords" metadataPrefix="arXiv" from="2026-11-16" set="econ">http://oaipmh.arxiv.org/oai</request>
+
+
+    <ListRecords>
+                    <record>
+                <header>
+        <identifier>oai:arXiv.org:2112.14514</identifier>
+        <datestamp>2026-11-16</datestamp>
+            <setSpec>econ:econ:GN</setSpec>
+            <setSpec>q-fin:q-fin:EC</setSpec>
+    </header>
+
+            <metadata>
+                        <arXiv xmlns="http://arxiv.org/OAI/arXiv/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://arxiv.org/OAI/arXiv/ https://oaipmh.arxiv.org/OAI/arXiv.xsd">
+        <id>2112.14514</id>
+        <created>2026-11-13</created>
+            <updated>2026-11-16</updated>
+        <authors>
+                <author>
+                    <keyname>Ogasawara</keyname>
+                        <forenames>Kota</forenames>
+                </author>
+        </authors>
+        <title>Coal Mining, Women&#39;s Work, and Local Demographic Change: Evidence from Interwar Japan</title>
+            <categories>econ.GN q-fin.EC</categories>
+            <license>http://arxiv.org/licenses/nonexclusive-distrib/1.0/</license>
+            <abstract>This paper examines how coal mining shaped local demographic change in interwar Japan, focusing on the role of women&#39;s work. Coal mines initially employed married couples as underground teams, offering women wages well above those in textile mills. The mechanization of haulage and the subsequent revision of labor regulations, enforced in 1933, removed most women from the pits. Linking mine locations with municipal-level census and vital statistics, I find that coal mining substantially increased local populations, mainly through the inflow of workers, whereas marriage and fertility rates in mining areas were lower than in surrounding areas. After women were removed from the pits, these gaps narrowed. Early-life mortality was higher in mining areas and increased with the number of female miners, consistent with occupational hazards to pregnant women, whereas there is little evidence of pollution channels.</abstract>
+    </arXiv>
+
+            </metadata>
+        </record>
+<record>
+                <header>
+        <identifier>oai:arXiv.org:2209.11691</identifier>
+        <datestamp>2026-11-16</datestamp>
+            <setSpec>econ:econ:EM</setSpec>
+            <setSpec>cs:cs:LG</setSpec>
+            <setSpec>stat:stat:ME</setSpec>
+    </header>
+
+            <metadata>
+                        <arXiv xmlns="http://arxiv.org/OAI/arXiv/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://arxiv.org/OAI/arXiv/ https://oaipmh.arxiv.org/OAI/arXiv.xsd">
+        <id>2209.11691</id>
+        <created>2026-11-13</created>
+            <updated>2026-11-16</updated>
+        <authors>
+                <author>
+                    <keyname>Freeman</keyname>
+                        <forenames>Hugo</forenames>
+                </author>
+        </authors>
+        <title>Linear Multidimensional Regression with Interactive Fixed-Effects</title>
+            <categories>econ.EM cs.LG stat.ME</categories>
+            <license>http://arxiv.org/licenses/nonexclusive-distrib/1.0/</license>
+            <abstract>This paper studies a linear model for multidimensional panel data of three or more dimensions with unobserved interactive fixed-effects. The main estimator is a weighted-within transformation, which is Neyman orthogonal and requires one preliminary step. In that step, the model is embedded within a two-dimensional panel framework where factor model methods in Bai (2009) lead to consistent, but slowly converging, estimates that serve as proxies for the fixed-effects. The weighted-within transformation is robust to multidimensional interactive fixed-effects and achieves the parametric rate of consistency. The estimator is shown to be asymptotically normal. The methods are implemented to estimate the demand elasticity for beer.</abstract>
+    </arXiv>
+
+            </metadata>
+        </record>
+<record>
+                <header>
+        <identifier>oai:arXiv.org:2309.06305</identifier>
+        <datestamp>2026-11-16</datestamp>
+            <setSpec>econ:econ:EM</setSpec>
+            <setSpec>stat:stat:ME</setSpec>
+    </header>
+
+            <metadata>
+                        <arXiv xmlns="http://arxiv.org/OAI/arXiv/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://arxiv.org/OAI/arXiv/ https://oaipmh.arxiv.org/OAI/arXiv.xsd">
+        <id>2309.06305</id>
+        <created>2026-11-13</created>
+            <updated>2026-11-16</updated>
+        <authors>
+                <author>
+                    <keyname>Dorn</keyname>
+                        <forenames>Jacob</forenames>
+                </author>
+                <author>
+                    <keyname>Yap</keyname>
+                        <forenames>Luther</forenames>
+                </author>
+        </authors>
+        <title>Sensitivity Analysis for Linear Estimators</title>
+            <categories>econ.EM stat.ME</categories>
+            <comments>Previously circulated as Sensitivity Analysis for Linear Estimands</comments>
+            <license>http://creativecommons.org/licenses/by/4.0/</license>
+            <abstract>We propose a framework for building sensitivity analyses for linear estimators. We measure the degree of identification failure by the change of measure between the observed distribution and a hypothetical target distribution under which a standard estimator would identify the parameter of interest. Under L_infinity bounds on that derivative, the identified set has closed-form sharp bounds that require no numerical optimization and that are computable and continuous when the derivative is unbounded, nesting Manski-type worst-case bounds and existing characterizations that require bounded changes of measure. The framework nests several selection models for average potential outcomes, yielding the established worst-case bounds of each design. The framework yields a new model family for regression discontinuity (RD) that delivers the first sensitivity analysis on the conditional average treatment effect under manipulation. We show that a bootstrap procedure yields valid confidence intervals. An empirical application shows that a modest restriction on manipulation delivers bounds far more informative than worst-case bounds.</abstract>
+    </arXiv>
+
+            </metadata>
+        </record>
+
+    </ListRecords>
+</OAI-PMH>

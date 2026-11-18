@@ -1,0 +1,21 @@
+# Contacts row for Australian Bureau of Statistics Data API (Bureau Design §3.1). Loaded by `news sources sync`; the Contacts lint checks it in CI.
+source_id = "abs"
+name = "Australian Bureau of Statistics Data API"
+publisher = "Australian Bureau of Statistics"
+connector = "abs"
+base_url = "https://data.api.abs.gov.au/rest/"
+source_tier = 1
+licence = "cc-by-4.0"
+attribution = "Source: Australian Bureau of Statistics, licensed under CC BY 4.0."
+redistribution = true
+image_policy = "none"
+rate_per_sec = 0.25
+documented_rate_per_sec = 1
+documented_limit = "No published request limit (unverified: 18 Nov 2026)"
+max_concurrency = 1
+robots_respect = true
+requires_contact_email = false
+regions = ["au"]
+categories = ["economy"]
+enabled = true
+notes = "SDMX REST, JSON 2.0. robots.txt answers 403 (treated as allowed, RFC 9309 4xx)."

@@ -1,0 +1,21 @@
+# Contacts row for OpenAlex works API (Bureau Design §3.1). Loaded by `news sources sync`; the Contacts lint checks it in CI.
+source_id = "openalex"
+name = "OpenAlex works API"
+publisher = "OurResearch (OpenAlex)"
+connector = "openalex"
+base_url = "https://api.openalex.org/"
+source_tier = 3
+licence = "custom"
+attribution = "Source: OpenAlex (CC0)."
+redistribution = true
+image_policy = "none"
+rate_per_sec = 3
+documented_rate_per_sec = 10
+documented_limit = "10 requests/s without a key; 30 with a free key (Bureau §3.1)"
+max_concurrency = 1
+robots_respect = true
+requires_contact_email = false
+regions = ["global"]
+categories = ["science"]
+enabled = true
+notes = "Metadata is CC0. Discovery lists works by publication date since the cursor, per tracked filter; dates in the future (data deposits) do not advance the cursor."

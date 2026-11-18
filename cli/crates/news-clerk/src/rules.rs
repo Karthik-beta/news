@@ -19,6 +19,10 @@ pub struct Rule {
 const EARNINGS: &[&str] = &["finance", "earnings"];
 const INFLATION: &[&str] = &["economy", "inflation"];
 const JOBS: &[&str] = &["economy", "jobs"];
+const GROWTH: &[&str] = &["economy", "growth"];
+const POLICY: &[&str] = &["economy", "monetary-policy"];
+const ECONOMY: &[&str] = &["economy"];
+const SCIENCE: &[&str] = &["science"];
 
 const fn r(
     source_id: &'static str,
@@ -35,7 +39,43 @@ const fn r(
     }
 }
 
+/// A rule for a region other than the US.
+const fn rr(
+    source_id: &'static str,
+    rule_key: &'static str,
+    page_type: &'static str,
+    categories: &'static [&'static str],
+    region: &'static str,
+) -> Rule {
+    Rule {
+        source_id,
+        rule_key,
+        page_type,
+        categories,
+        region,
+    }
+}
+
 pub const RULES: &[Rule] = &[
+    // The second batch of Stringers (#12). Families the connectors emit: statistics are `macro`,
+    // central-bank statements `policy`, papers `paper`.
+    rr("ecb", "family:policy_rate", "macro", POLICY, "eu"),
+    rr("ecb", "family:eur_usd", "macro", ECONOMY, "eu"),
+    rr("eurostat", "family:hicp", "macro", INFLATION, "eu"),
+    rr("oecd", "family:cpi_yoy", "macro", INFLATION, "us"),
+    rr("oecd", "family:cli", "macro", ECONOMY, "us"),
+    rr("abs", "family:cpi", "macro", INFLATION, "au"),
+    rr("worldbank", "family:gdp_wb", "macro", GROWTH, "global"),
+    rr("ons", "family:cpih", "macro", INFLATION, "uk"),
+    r("bea", "family:gdp", "macro", GROWTH),
+    rr("cb-fed", "kind:statement", "policy", POLICY, "us"),
+    rr("cb-ecb", "kind:statement", "policy", POLICY, "eu"),
+    rr("cb-boe", "kind:statement", "policy", POLICY, "uk"),
+    rr("cb-boc", "kind:statement", "policy", POLICY, "ca"),
+    rr("cb-rba", "kind:statement", "policy", POLICY, "au"),
+    rr("openalex", "family:paper", "paper", SCIENCE, "global"),
+    rr("crossref", "family:paper", "paper", SCIENCE, "global"),
+    rr("arxiv", "family:paper", "paper", SCIENCE, "global"),
     r("sec-edgar", "form:10-K", "earnings", EARNINGS),
     r("sec-edgar", "form:10-Q", "earnings", EARNINGS),
     r("sec-edgar", "form:8-K/2.02", "earnings", EARNINGS),
@@ -60,6 +100,9 @@ pub const TAXONOMY: &[(Option<&str>, &str, &str)] = &[
     (Some("economy"), "jobs", "Jobs"),
     (None, "finance", "Finance"),
     (Some("finance"), "earnings", "Earnings"),
+    (Some("economy"), "growth", "Growth"),
+    (Some("economy"), "monetary-policy", "Monetary policy"),
+    (None, "science", "Science"),
 ];
 
 /// Insert the taxonomy seed. Idempotent (`unique nulls not distinct (parent_id, slug)`).
@@ -91,7 +134,10 @@ mod tests {
             for c in r.categories {
                 assert!(TAXONOMY.iter().any(|(_, s, _)| s == c), "{c}");
             }
-            assert!(matches!(r.page_type, "earnings" | "macro"));
+            assert!(matches!(
+                r.page_type,
+                "earnings" | "macro" | "policy" | "paper"
+            ));
         }
         // Children come after their parents, so the seed inserts in one pass.
         for (i, (parent, ..)) in TAXONOMY.iter().enumerate() {
