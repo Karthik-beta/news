@@ -35,7 +35,13 @@ Commands whose subsystem is not built yet return `precondition` (exit 4) with a 
 | `news-store` | PostgreSQL connection (`search_path` = `NEWS_DB_SCHEMA`, public), embedded migrations, error mapping |
 | `news-telemetry` | Ticker: the `news.events` writer, `tracing` with the OTLP exporter, and the analytics ingestion job (`traffic.pull`, a stub handler until #16) |
 | `news-dispatch` | Dispatch: queue operations, kinds registry, backoff, rescuer, schedules, and the worker loop (`worker::run`) that the Bureau service hosts |
-| `news-contacts`, `news-wire`, `news-clerk`, `news-diary`, `news-roster`, `news-taster`, `news-nose`, `news-fixer`, `news-ghost`, `news-proof`, `news-rewrite`, `news-press`, `news-chief`, `news-critic` | Subsystem skeletons: `ISSUE`, the job kinds they own and a stub `handle` (fails with class `bug`, "not built yet") |
+| `news-chief` | Chief (ADR 0008): the 11 presets as data, the run state machine, step drivers, the Lineup, pause and cancel, gates and `authorize()`, the Wrap, recovery and the status board |
+| `news-standing` | Standing: Karthik's versioned settings, the key registry, history and the optimistic `set` |
+| `news-rota` | Rota: preset schedules (missed slots, the late limit), quiet hours and the quota guard |
+| `news-hotline` | The Hotline protocol: frames, the command table from `contracts/hotline/`, admission, the event bus, the server loop and the client |
+| `news-service` | `news service run`: the singleton lock and its fence, recovery, the pools, Chief's and Rota's ticks, the Hotline handlers |
+| `news-win` | Every Win32 call (the pipe's security descriptor, peer identity, Job Objects); the only crate allowed `unsafe`; stubs off Windows |
+| `news-contacts`, `news-wire`, `news-clerk`, `news-diary`, `news-roster`, `news-taster`, `news-nose`, `news-fixer`, `news-ghost`, `news-proof`, `news-rewrite`, `news-press`, `news-critic` | Subsystem skeletons: `ISSUE`, the job kinds they own and a stub `handle` (fails with class `bug`, "not built yet") |
 
 The name `news-board` is free for Board, the desktop app (#29). Subsystem crates depend only on `news-core`; `news` wires them together. A new handler replaces its crate's `handle`; a new job kind is added to `news_dispatch::KINDS` and to the owning crate's `KINDS` (a test checks both lists agree).
 
@@ -63,7 +69,7 @@ The name `news-board` is free for Board, the desktop app (#29). Subsystem crates
 
 ## Dispatch in short
 
-Jobs live in `jobs`, pools in `pools` (seeded per §5.7; `ai` follows `NEWS_PARALLEL` on `news db migrate`), recurring jobs in `schedules` (UTC cron, seeded disabled). Ghost uses `news jobs claim|heartbeat|complete|fail`; `news jobs retry` takes a job or a class, and a class above 50 jobs is `gated` (Salvage's approved step or a Board action). Pausing and unpausing a pool are Board actions and have no CLI form. There is no `news work` command: the Bureau service hosts the worker loop (`news_dispatch::worker::run`; `WorkOptions::background` is the `net`, `cpu` and `docling` pools that run all the time, #10), and neither the loop nor any handler of those pools reads the write-API key (a sentinel test runs the loop to prove it). Details: ADR 0003.
+Jobs live in `jobs`, pools in `pools` (seeded per §5.7; the service sizes `ai` from the Standing key `pools.ai.max_running`, or `quiet_hours.ai_slots` in reduced quiet hours), recurring jobs in `schedules` (UTC cron, seeded disabled). Ghost uses `news jobs claim|heartbeat|complete|fail`; `news jobs retry` takes a job or a class, and a class above 50 jobs is `gated` (Salvage's approved step or a Board action). Pausing and unpausing a pool are Board actions and have no CLI form. There is no `news work` command: the Bureau service hosts the worker loop (`news_dispatch::worker::run`; `WorkOptions::background` is the `net`, `cpu` and `docling` pools that run all the time, #10), and neither the loop nor any handler of those pools reads the write-API key (a sentinel test runs the loop to prove it). Details: ADR 0003.
 
 ## Component index
 

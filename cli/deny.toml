@@ -31,6 +31,8 @@ unused-allowed-license = "allow"
 
 allow = [
     "MIT",
+    # MIT No Attribution: borrow-or-share, via jsonschema, which the Hotline uses to check requests (#10).
+    "MIT-0",
     "Apache-2.0",
     "Apache-2.0 WITH LLVM-exception",
     "BSD-2-Clause",

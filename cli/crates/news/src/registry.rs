@@ -19,6 +19,12 @@ pub fn handler_for_owner(owner: &str) -> Option<Handler> {
     })
 }
 
+/// Chief's step handlers, bound to their subsystem crates as job kinds are. None has landed yet
+/// (#15–#21), so every preset step is `NotBuilt` and a real run ends `failed` at its first step.
+pub fn step_handlers() -> news_chief::driver::Handlers {
+    news_chief::driver::Handlers::default()
+}
+
 /// The handler for a job kind, or `None` for an unknown kind.
 pub fn resolve(kind: &str) -> Option<Handler> {
     news_dispatch::kinds::spec(kind).and_then(|s| handler_for_owner(s.owner))

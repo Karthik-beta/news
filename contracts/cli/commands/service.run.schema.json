@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/service.run.schema.json",
+  "title": "news service run",
+  "description": "Run the Bureau service in this console until Ctrl-C (ADR 0008 §9). Registration as a Windows service is #29.",
+  "x-news-tier": "W",
+  "x-news-status": "built",
+  "x-news-errors": ["precondition", "conflict", "upstream_unavailable"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "console": {
+          "type": "boolean"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "stopped": {
+          "const": true
+        }
+      },
+      "required": ["stopped"],
+      "additionalProperties": false
+    }
+  }
+}

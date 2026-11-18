@@ -30,6 +30,8 @@ news-proof = { workspace = true }
 news-rewrite = { workspace = true }
 news-press = { workspace = true }
 news-critic = { workspace = true }
+news-standing = { workspace = true }
+news-service = { workspace = true }
 chrono = { workspace = true }
 clap = { workspace = true }
 serde = { workspace = true }
@@ -45,6 +47,8 @@ workspace = true
 assert_cmd = "2.2.2"
 insta = "1.49.0"
 jsonschema = { version = "0.61", default-features = false }
+news-hotline = { workspace = true }
+news-rota = { workspace = true }
 postgres = "0.19.14"
 predicates = "3.1.4"
 sqlx = { workspace = true }

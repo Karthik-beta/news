@@ -27,17 +27,18 @@ async fn db_migrate_is_idempotent_from_the_cli() {
 
 #[tokio::test(flavor = "multi_thread")]
 #[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
-async fn db_migrate_sets_the_ai_pool_from_news_parallel() {
+async fn db_migrate_leaves_the_ai_pool_to_standing() {
+    // NEWS_PARALLEL is gone: the `ai` pool's size is the Standing key pools.ai.max_running.
     let f = Fixture::new().await;
     let mut cmd = f.news();
     cmd.env("NEWS_PARALLEL", "5");
     let (env, code, _, _) = super::fixture::call(&mut cmd, &["db", "migrate"]);
     assert_eq!(code, 0, "{env}");
-    assert_eq!(env["data"]["ai_max_running"], 5);
+    assert!(env["data"].get("ai_max_running").is_none(), "{env}");
     assert_eq!(
         f.scalar_i64("select max_running::bigint from pools where pool = 'ai'")
             .await,
-        5
+        3
     );
 }
 

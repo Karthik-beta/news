@@ -2,10 +2,10 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://news.karthik.nz/contracts/cli/commands/run.list.schema.json",
   "title": "news run list",
-  "description": "Recent runs. Input is the command's arguments as an object; output is the envelope's data.",
+  "description": "Recent runs, newest first. Runs in this process against PostgreSQL through the function the Hotline handler calls, so the data is the Hotline command's output (ADR 0008 §11).",
   "x-news-tier": "R",
-  "x-news-status": "stub until #10",
-  "x-news-errors": [],
+  "x-news-status": "built",
+  "x-news-errors": ["precondition", "upstream_unavailable"],
   "$defs": {
     "input": {
       "type": "object",
@@ -18,46 +18,7 @@
       "additionalProperties": false
     },
     "output": {
-      "type": "object",
-      "properties": {
-        "items": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "run_id": {
-                "type": "string",
-                "format": "uuid"
-              },
-              "short_id": {
-                "type": "string"
-              },
-              "preset": {
-                "type": "string"
-              },
-              "status": {
-                "type": "string"
-              },
-              "started_at": {
-                "type": "string",
-                "format": "date-time"
-              },
-              "finished_at": {
-                "type": ["string", "null"],
-                "format": "date-time"
-              }
-            },
-            "required": ["run_id", "short_id", "preset", "status", "started_at", "finished_at"],
-            "additionalProperties": false
-          }
-        },
-        "next_cursor": {
-          "type": "string",
-          "description": "Present when truncated: pass to --cursor"
-        }
-      },
-      "required": ["items"],
-      "additionalProperties": false
+      "$ref": "../../hotline/commands/run.list.schema.json#/$defs/output"
     }
   }
 }

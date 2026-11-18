@@ -2,9 +2,9 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://news.karthik.nz/contracts/cli/commands/eval.promote.schema.json",
   "title": "news eval promote",
-  "description": "Promote a prompt version. Input is the command's arguments as an object; output is the envelope's data.",
+  "description": "Promote a prompt version. Input is the command's arguments as an object; output is the envelope's data. The CLI form always returns gated (exit 7): Chief runs the promote step in process (ADR 0008 §6.3).",
   "x-news-tier": "G",
-  "x-news-status": "stub until #19",
+  "x-news-status": "built",
   "x-news-errors": ["gated"],
   "$defs": {
     "input": {
