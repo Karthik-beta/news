@@ -16,9 +16,6 @@ pub const STUBS: &[(&str, &str)] = &[
     ("sources show fred", "#9"),
     ("sources health", "#9"),
     ("sources probe fred", "#9"),
-    ("run presets", "#10"),
-    ("run status", "#10"),
-    ("run list --active", "#10"),
     ("related 81234", "#12"),
     ("calendar upcoming --days 3", "#12"),
     ("calendar sync", "#12"),
@@ -45,15 +42,12 @@ pub const STUBS: &[(&str, &str)] = &[
     ("ai fallback 1", "#18"),
     ("eval run g1", "#19"),
     ("eval report e1", "#19"),
-    ("eval promote A1 v3", "#19"),
     ("review weekly", "#19"),
-    ("publish 81234", "#20"),
     ("update 2026/11/us-cpi-october-2026", "#20"),
     ("home candidates", "#20"),
     ("home save curation.json", "#20"),
     ("home check 3", "#20"),
     ("home preview 3", "#20"),
-    ("home publish 3", "#20"),
     ("home show", "#20"),
     ("corrections pull", "#21"),
     ("corrections show c1", "#21"),
@@ -81,6 +75,31 @@ fn every_stub_returns_precondition_with_exit_4() {
             "{argv}: {env}"
         );
         assert!(stderr.is_empty(), "{argv}: {stderr}");
+    }
+}
+
+/// The CLI forms of G-tier commands (ADR 0008 §6.3): always `gated`, exit 7, with no database.
+pub const G_TIER: &[&str] = &[
+    "publish 81234",
+    "home publish 3",
+    "eval promote A1 v3",
+    "corrections resolve c1 --action update",
+];
+
+#[test]
+fn every_g_tier_cli_form_is_gated() {
+    for argv in G_TIER {
+        let args: Vec<&str> = argv.split(' ').collect();
+        let (env, code, _) = call(&args);
+        assert_eq!(code, 7, "{argv}: {env}");
+        assert_eq!(env["error"]["code"], "gated", "{argv}");
+        assert!(
+            env["error"]["message"]
+                .as_str()
+                .unwrap()
+                .contains("authorised step of a live run"),
+            "{argv}: {env}"
+        );
     }
 }
 

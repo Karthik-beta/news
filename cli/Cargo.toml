@@ -28,12 +28,20 @@ news-proof = { path = "crates/news-proof" }
 news-rewrite = { path = "crates/news-rewrite" }
 news-press = { path = "crates/news-press" }
 news-critic = { path = "crates/news-critic" }
+news-standing = { path = "crates/news-standing" }
+news-rota = { path = "crates/news-rota" }
+news-hotline = { path = "crates/news-hotline" }
+news-service = { path = "crates/news-service" }
+news-win = { path = "crates/news-win" }
 news-ledger = { path = "crates/news-ledger" }
 news-connectors = { path = "crates/news-connectors" }
 
 # Third party. TLS only in the Runner (news-wire, rustls): PostgreSQL, ClickHouse and the OTel collector are
 # all on loopback.
 chrono = { version = "0.4", default-features = false, features = ["std", "clock", "serde"] }
+chrono-tz = { version = "0.10", default-features = false, features = ["std"] }
+jsonschema = { version = "0.61", default-features = false }
+tokio-util = { version = "0.7", default-features = false }
 clap = { version = "4", features = ["derive"] }
 croner = "3"
 fastrand = "2"
@@ -50,11 +58,21 @@ serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["raw_value"] }
 sqlx = { version = "0.9", default-features = false, features = ["runtime-tokio", "tls-none", "postgres", "migrate", "json", "uuid", "chrono", "derive", "macros"] }
 thiserror = "2"
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "signal", "sync"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "signal", "sync", "io-util", "net"] }
 tracing = "0.1"
 tracing-opentelemetry = { version = "0.32", default-features = false }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["std", "fmt", "env-filter", "registry"] }
 uuid = { version = "1", features = ["v4", "serde"] }
+windows-sys = { version = "0.61", features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_Security_Authorization",
+    "Win32_System_Pipes",
+    "Win32_System_Threading",
+    "Win32_System_JobObjects",
+    "Win32_UI_Shell",
+    "Wdk_System_Threading",
+] }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

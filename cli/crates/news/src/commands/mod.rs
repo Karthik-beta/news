@@ -4,6 +4,7 @@
 mod components;
 mod db;
 mod jobs;
+mod run;
 mod schema;
 
 use crate::cli::*;
@@ -57,7 +58,16 @@ pub async fn run(cli: Cli, path: &str, shape: &Shape) -> NewsResult<Reply> {
         // `prune` deletes working files; Wire owns them and the `work.prune` job (#9).
         C::Discover { .. } | C::Fetch { .. } | C::Prune => stub(path, news_wire::ISSUE),
         C::Parse { .. } => stub(path, news_clerk::ISSUE),
-        C::Run(_) => stub(path, news_chief::ISSUE),
+        C::Run(cmd) => run::run(cmd).await,
+        C::Standing(cmd) => run::standing(cmd).await,
+        C::Service(cmd) => run::service(cmd).await,
+        // G tier: the CLI forms are always gated (ADR 0008 §6.3).
+        C::Publish { .. } => run::gated("publish"),
+        C::Home(HomeCmd::Publish { .. }) => run::gated("home publish"),
+        C::Eval(EvalCmd::Promote { .. }) => run::gated("eval promote"),
+        C::Corrections(CorrectionsCmd::Resolve { action, .. }) if action == "update" => {
+            run::gated("corrections resolve --action update")
+        }
         C::Calendar(_) => stub(path, news_diary::ISSUE),
         C::Related { .. } | C::Entities(_) => stub(path, news_roster::ISSUE),
         C::Stories(_) => stub(path, news_taster::ISSUE),
@@ -68,7 +78,7 @@ pub async fn run(cli: Cli, path: &str, shape: &Shape) -> NewsResult<Reply> {
         C::Ai(_) => stub(path, news_ghost::ISSUE),
         C::Eval(_) | C::Review(_) => stub(path, news_critic::ISSUE),
         C::Update { .. } => stub(path, news_rewrite::ISSUE),
-        C::Publish { .. } | C::Home(_) => stub(path, news_press::ISSUE),
+        C::Home(_) => stub(path, news_press::ISSUE),
         C::Corrections(_) => stub(path, "#21"),
     }
 }
@@ -90,6 +100,16 @@ pub const BUILT: &[&str] = &[
     "jobs.fail",
     "jobs.retry",
     "ai.schema",
+    "run.presets",
+    "run.status",
+    "run.lineup",
+    "run.list",
+    "standing.show",
+    "standing.history",
+    "service.run",
+    "publish",
+    "home.publish",
+    "eval.promote",
 ];
 
 /// Dotted names of the commands that have a contract file.

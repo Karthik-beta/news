@@ -1,0 +1,21 @@
+[package]
+name = "news-standing"
+description = "Standing: Karthik's versioned settings (ADR 0008 §10): the key registry, typed reads, history and optimistic set."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+news-core = { workspace = true }
+news-store = { workspace = true }
+chrono = { workspace = true }
+chrono-tz = { workspace = true }
+croner = { workspace = true }
+iana-time-zone = "0.1"
+serde = { workspace = true }
+serde_json = { workspace = true }
+sqlx = { workspace = true }
+
+[lints]
+workspace = true

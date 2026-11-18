@@ -1,0 +1,23 @@
+[package]
+name = "news-win"
+description = "Every Win32 call of the Bureau service (ADR 0008 §2): the Hotline pipe's security descriptor, peer identity, and Job Objects. The one crate allowed unsafe; stubs off Windows."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+tokio = { workspace = true }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { workspace = true }
+
+# Not the workspace table: this crate denies (not forbids) unsafe, and allows it per function with a
+# `// SAFETY:` comment (ADR 0008 §2).
+[lints.rust]
+unsafe_code = "deny"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "warn"
+undocumented_unsafe_blocks = "deny"

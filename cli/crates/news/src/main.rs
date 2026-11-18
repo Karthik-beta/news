@@ -381,6 +381,13 @@ mod tests {
             if path == "stories.similar" {
                 full.extend(["--text".into(), "x".into()]);
             }
+            // `--action update` is the G-tier form (always gated); `dismiss` is the stub.
+            if path == "corrections.resolve" {
+                full = full
+                    .into_iter()
+                    .map(|a| if a == "update" { "dismiss".into() } else { a })
+                    .collect();
+            }
             let cli = Cli::try_parse_from(&full).unwrap_or_else(|e| panic!("{full:?}: {e}"));
             let err = commands::run(cli, &path, &Shape::default())
                 .await
@@ -393,7 +400,7 @@ mod tests {
             );
             stubs += 1;
         }
-        assert!(stubs > 45, "only {stubs} stubs");
+        assert!(stubs > 40, "only {stubs} stubs");
     }
 
     #[test]

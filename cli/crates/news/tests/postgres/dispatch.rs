@@ -1010,9 +1010,9 @@ async fn a_heartbeat_marks_the_jobs_run_as_seen() {
     let f = Fixture::migrated().await;
     let run_id = uuid::Uuid::new_v4();
     sqlx::query(
-        "insert into runs (run_id, short_id, preset, args, heavy, origin, status, config, budget,
+        "insert into runs (run_id, short_id, preset, args, heavy, origin, settings_version, status, config, budget,
                            started_at, last_seen_at)
-         values ($1, 'r_test1', 'edition', '{}', false, 'test', 'running', '{}', '{}',
+         values ($1, 'r_test1', 'edition', '{}', false, 'board', 1, 'running', '{}', '{}',
                  now() - interval '2 hours', now() - interval '1 hour')",
     )
     .bind(run_id)

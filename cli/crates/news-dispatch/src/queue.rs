@@ -22,7 +22,7 @@ pub const DEFAULT_USAGE_PAUSE: Duration = Duration::from_secs(3600);
 pub const ERRORS_KEPT: usize = 5;
 
 const JOB_COLUMNS: &str = "job_id, kind, pool, run_id, item_ref, args, unique_key, priority, state, attempt, \
-    max_attempts, snoozes, run_after, lease_until, locked_by, lease_id, error_class, errors, result, created_at, finished_at";
+    max_attempts, snoozes, run_after, lease_until, locked_by, lease_id, error_class, errors, result, created_at, finished_at, step_seq";
 
 /// A row of `jobs`.
 #[derive(Debug, Clone, PartialEq, Serialize, sqlx::FromRow)]
@@ -49,6 +49,8 @@ pub struct Job {
     pub result: Option<Value>,
     pub created_at: DateTime<Utc>,
     pub finished_at: Option<DateTime<Utc>>,
+    /// The run step that enqueued it (Chief, ADR 0008 §6.2).
+    pub step_seq: Option<i16>,
 }
 
 /// Who holds a running job: the worker that claimed it and the `lease_id` that claim created.
@@ -95,6 +97,8 @@ pub struct NewJob {
     pub kind: String,
     pub pool: Option<String>,
     pub run_id: Option<Uuid>,
+    /// The run step that enqueues it; set with `run_id` (Chief's `cx.enqueue`).
+    pub step_seq: Option<i16>,
     pub item_ref: Option<String>,
     pub args: Value,
     pub unique_key: Option<String>,
@@ -130,6 +134,12 @@ impl NewJob {
     }
     pub fn max_attempts(mut self, n: i16) -> Self {
         self.max_attempts = Some(n);
+        self
+    }
+    /// The run and step this job belongs to.
+    pub fn for_step(mut self, run_id: Uuid, step_seq: i16) -> Self {
+        self.run_id = Some(run_id);
+        self.step_seq = Some(step_seq);
         self
     }
 }
@@ -179,9 +189,9 @@ pub async fn enqueue_on(conn: &mut PgConnection, job: &NewJob) -> Result<Enqueue
     // Two tries: a live job can finish between the conflicting insert and the lookup.
     for _ in 0..3 {
         let inserted: Option<i64> = sqlx::query_scalar(
-            "insert into jobs (kind, pool, run_id, item_ref, args, unique_key, priority, max_attempts, run_after, state)
+            "insert into jobs (kind, pool, run_id, item_ref, args, unique_key, priority, max_attempts, run_after, state, step_seq)
              values ($1, $2, $3, $4, $5, $6, $7, coalesce($8, 6::smallint), coalesce($9, now()),
-                     case when coalesce($9, now()) > now() then 'scheduled' else 'available' end)
+                     case when coalesce($9, now()) > now() then 'scheduled' else 'available' end, $10)
              on conflict (unique_key)
                where unique_key is not null and state not in ('completed', 'discarded', 'cancelled')
              do nothing
@@ -196,6 +206,7 @@ pub async fn enqueue_on(conn: &mut PgConnection, job: &NewJob) -> Result<Enqueue
         .bind(priority)
         .bind(job.max_attempts)
         .bind(job.run_after)
+        .bind(job.step_seq)
         .fetch_optional(&mut *conn)
         .await
         .map_err(map_err)?;
@@ -255,6 +266,28 @@ pub async fn claim(
         tracing::warn!(error = %e, "rescuer failed before a claim");
     }
     let mut tx = db.begin().await.map_err(map_err)?;
+    let claimed = claim_in_tx(&mut tx, pool_name, limit, lease, worker).await?;
+    tx.commit().await.map_err(map_err)?;
+    Ok(claimed)
+}
+
+/// The claim inside the caller's transaction, which must commit it. Tests use it to hold a claim open
+/// against a pause (ADR 0008 §4.3).
+///
+/// A job of a run is claimable only while the run is `running` or `waiting_ai`, and the claim holds
+/// that run's row `FOR SHARE` until it commits: a pause (`update runs set status = 'pausing'`) waits for
+/// a claim already holding the row, and a claim that starts after the pause re-checks the committed
+/// row, sees `pausing` and takes nothing of that run.
+pub async fn claim_in_tx(
+    tx: &mut PgConnection,
+    pool_name: &str,
+    limit: i64,
+    lease: Duration,
+    worker: &str,
+) -> Result<Claimed, NewsError> {
+    if limit < 1 {
+        return Err(NewsError::usage("--limit must be at least 1"));
+    }
     let row = sqlx::query(
         "select max_running, paused_until, (paused_until is not null and paused_until > now()) as paused
            from pools where pool = $1 for update",
@@ -268,7 +301,6 @@ pub async fn claim(
     let paused: bool = row.get("paused");
     if paused {
         let until: Option<DateTime<Utc>> = row.get("paused_until");
-        tx.commit().await.map_err(map_err)?;
         return Ok(Claimed {
             jobs: Vec::new(),
             paused_until: until,
@@ -280,6 +312,8 @@ pub async fn claim(
         "with c as (
            select job_id from jobs
             where pool = $1 and state in ('available', 'scheduled', 'retryable', 'snoozed') and run_after <= now()
+              and (jobs.run_id is null or exists (select 1 from runs r
+                     where r.run_id = jobs.run_id and r.status in ('running', 'waiting_ai') for share of r))
             order by priority, run_after, job_id
             for update skip locked
             limit greatest(0, least($2, $3 - (select count(*) from jobs where pool = $1 and state = 'running')))
@@ -304,7 +338,6 @@ pub async fn claim(
         .fetch_all(&mut *tx)
         .await
         .map_err(map_err)?;
-    tx.commit().await.map_err(map_err)?;
     jobs.sort_by(|a, b| {
         (a.priority, a.run_after, a.job_id).cmp(&(b.priority, b.run_after, b.job_id))
     });
@@ -377,14 +410,13 @@ pub async fn heartbeat(
     lease: Lease<'_>,
     extend: Duration,
 ) -> Result<DateTime<Utc>, NewsError> {
-    let until: Option<DateTime<Utc>> = sqlx::query_scalar(
-        "with j as (
-           update jobs set lease_until = clock_timestamp() + make_interval(secs => $4)
-            where job_id = $1 and state = 'running' and locked_by = $2 and lease_id = $3
-              and lease_until > clock_timestamp()
-            returning lease_until, run_id),
-         r as (update runs set last_seen_at = now() where run_id = (select run_id from j))
-         select lease_until from j",
+    // Two statements, no shared transaction (ADR 0008 §4.4): `jobs` then `runs` in one would invert the
+    // lock order of a pause's finish (`runs` then `jobs`) and could deadlock.
+    let row: Option<(DateTime<Utc>, Option<Uuid>)> = sqlx::query_as(
+        "update jobs set lease_until = clock_timestamp() + make_interval(secs => $4)
+          where job_id = $1 and state = 'running' and locked_by = $2 and lease_id = $3
+            and lease_until > clock_timestamp()
+          returning lease_until, run_id",
     )
     .bind(job_id)
     .bind(lease.worker)
@@ -393,8 +425,17 @@ pub async fn heartbeat(
     .fetch_optional(db)
     .await
     .map_err(map_err)?;
-    match until {
-        Some(u) => Ok(u),
+    match row {
+        Some((until, run_id)) => {
+            if let Some(run_id) = run_id {
+                sqlx::query("update runs set last_seen_at = now() where run_id = $1")
+                    .bind(run_id)
+                    .execute(db)
+                    .await
+                    .map_err(map_err)?;
+            }
+            Ok(until)
+        }
         None => Err(not_held(db, job_id, lease).await),
     }
 }
@@ -780,7 +821,8 @@ pub async fn dead(db: &PgPool, class: Option<ErrorClass>) -> Result<Vec<DeadGrou
     .map_err(map_err)
 }
 
-/// Set a pool's `max_running` (used to follow `NEWS_PARALLEL` for `ai`).
+/// Set a pool's `max_running`. The service applies Standing's `pools.ai.max_running` (or, in reduced
+/// quiet hours, `quiet_hours.ai_slots`) to `ai` with it.
 pub async fn set_max_running(db: &PgPool, pool_name: &str, max: i16) -> Result<(), NewsError> {
     sqlx::query("update pools set max_running = $2 where pool = $1")
         .bind(pool_name)
@@ -789,6 +831,71 @@ pub async fn set_max_running(db: &PgPool, pool_name: &str, max: i16) -> Result<(
         .await
         .map_err(map_err)?;
     Ok(())
+}
+
+/// Move a run's `running` jobs back to `retryable` with no holder (ADR 0008 §4.1 step 3), so a late
+/// heartbeat, completion or failure names a lease that no longer exists and gets `conflict`. The
+/// attempt is given back: the job did not fail. Call it in the caller's transaction after locking the
+/// run row (lock order: runs, then jobs).
+pub async fn revoke_run_leases(
+    conn: &mut PgConnection,
+    run_id: Uuid,
+) -> Result<Vec<i64>, NewsError> {
+    sqlx::query_scalar(
+        "update jobs set state = 'retryable', run_after = now(), lease_until = null, locked_by = null,
+                lease_id = null, attempt = greatest(attempt - 1, 0)
+          where run_id = $1 and state = 'running'
+          returning job_id",
+    )
+    .bind(run_id)
+    .fetch_all(&mut *conn)
+    .await
+    .map_err(map_err)
+}
+
+/// Every `running` job, of any run, back to `retryable` with no holder: the takeover fence (ADR 0008
+/// §9 step 4 and the #10 review notes). A service that has just taken the singleton lock calls it in
+/// recovery before anything claims, so a late report from an instance that lost the lock is refused.
+pub async fn revoke_all_leases(db: &PgPool) -> Result<Vec<i64>, NewsError> {
+    let mut tx = db.begin().await.map_err(map_err)?;
+    // Pool rows first, as the claim and the rescuer take them.
+    sqlx::query("select pool from pools order by pool for update")
+        .fetch_all(&mut *tx)
+        .await
+        .map_err(map_err)?;
+    let ids: Vec<i64> = sqlx::query_scalar(
+        "update jobs set state = 'retryable', run_after = now(), lease_until = null, locked_by = null,
+                lease_id = null, attempt = greatest(attempt - 1, 0)
+          where state = 'running'
+          returning job_id",
+    )
+    .fetch_all(&mut *tx)
+    .await
+    .map_err(map_err)?;
+    tx.commit().await.map_err(map_err)?;
+    Ok(ids)
+}
+
+/// Cancel a run's live jobs (of one pool, when given), recording `class`; in the caller's transaction.
+pub async fn cancel_run_jobs(
+    conn: &mut PgConnection,
+    run_id: Uuid,
+    class: Option<ErrorClass>,
+    pool: Option<&str>,
+) -> Result<Vec<i64>, NewsError> {
+    sqlx::query_scalar(
+        "update jobs set state = 'cancelled', finished_at = now(), lease_until = null, locked_by = null,
+                lease_id = null, error_class = coalesce($2, error_class)
+          where run_id = $1 and state in ('available', 'scheduled', 'running', 'retryable', 'snoozed')
+            and ($3::text is null or pool = $3)
+          returning job_id",
+    )
+    .bind(run_id)
+    .bind(class.map(ErrorClass::as_str))
+    .bind(pool)
+    .fetch_all(&mut *conn)
+    .await
+    .map_err(map_err)
 }
 
 #[cfg(test)]
@@ -803,6 +910,6 @@ mod tests {
 
     #[test]
     fn job_columns_match_the_struct() {
-        assert_eq!(JOB_COLUMNS.split(", ").count(), 21);
+        assert_eq!(JOB_COLUMNS.split(", ").count(), 22);
     }
 }

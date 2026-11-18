@@ -30,12 +30,9 @@
           "items": {
             "type": "integer"
           }
-        },
-        "ai_max_running": {
-          "type": ["integer", "null"]
         }
       },
-      "required": ["schema", "applied", "current", "ai_max_running"],
+      "required": ["schema", "applied", "current"],
       "additionalProperties": false
     }
   }

@@ -10,20 +10,12 @@ pub async fn run(cmd: DbCmd) -> NewsResult<Reply> {
     let (pool, cfg) = open_database(2).await?;
     match cmd {
         DbCmd::Migrate => {
+            // The `ai` pool's size is the Standing key `pools.ai.max_running`; the service applies it.
             let report = news_store::migrate(&pool, &cfg.schema).await?;
-            // The `ai` pool follows NEWS_PARALLEL (§5.7).
-            let parallel = std::env::var("NEWS_PARALLEL")
-                .ok()
-                .and_then(|v| v.parse::<i16>().ok())
-                .filter(|n| (1..=32).contains(n));
-            if let Some(n) = parallel {
-                news_dispatch::queue::set_max_running(&pool, "ai", n).await?;
-            }
             Ok(Reply::new(json!({
                 "schema": report.schema,
                 "applied": report.applied,
                 "current": report.current,
-                "ai_max_running": parallel,
             })))
         }
         DbCmd::Status => {

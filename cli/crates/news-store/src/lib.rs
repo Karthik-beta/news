@@ -21,6 +21,28 @@ pub use sqlx::PgPool;
 
 pub static MIGRATOR: Migrator = sqlx::migrate!("../../migrations");
 
+/// Migration blocks (cli/README.md, "Blocks"): core, then one hundred per subsystem issue.
+pub const BLOCKS: [(i64, i64); 10] = [
+    (1, 99),
+    (100, 199),
+    (200, 299),
+    (300, 399),
+    (400, 499),
+    (500, 599),
+    (600, 699),
+    (700, 799),
+    (800, 899),
+    (900, 999),
+];
+
+/// The only files allowed a `do $$ … $$` block or a `drop table` (ADR 0008 §12): one-time reshapes of
+/// tables nothing had written yet, and the preflight's extension check (a `do` block that only raises).
+pub const RESHAPES: [&str; 3] = [
+    "0001_preflight.sql",
+    "0009_retire_start_tickets.sql",
+    "0201_chief_runs.sql",
+];
+
 pub const URL_VAR: &str = "DATABASE_URL";
 pub const SCHEMA_VAR: &str = "NEWS_DB_SCHEMA";
 pub const DEFAULT_SCHEMA: &str = "news";
@@ -324,19 +346,41 @@ mod tests {
     }
 
     #[test]
-    fn migrations_are_numbered_in_their_blocks_and_ascending() {
-        // Blocks of 100 per owner (cli/README.md): 0001–0099 core, 0100–0199 #9, 0200–0299 #10, …
+    fn migrations_are_numbered_in_the_blocks_and_ascending() {
         let versions = known_versions();
         assert!(!versions.is_empty());
         assert!(versions.windows(2).all(|w| w[0] < w[1]));
         assert!(
-            versions.iter().any(|v| (1..=99).contains(v)),
+            versions
+                .iter()
+                .all(|v| BLOCKS.iter().any(|(lo, hi)| (lo..=hi).contains(&v))),
             "{versions:?}"
         );
-        assert!(
-            versions.iter().all(|v| (1..=999).contains(v)),
-            "{versions:?}"
-        );
+    }
+
+    /// The file name of a migration, as on disk.
+    fn file_name(m: &sqlx::migrate::Migration) -> String {
+        format!("{:04}_{}.sql", m.version, m.description.replace(' ', "_"))
+    }
+
+    #[test]
+    fn only_reshapes_drop_tables_or_use_do_blocks() {
+        let names: Vec<String> = MIGRATOR.iter().map(file_name).collect();
+        for r in RESHAPES {
+            assert!(
+                names.iter().any(|n| n == r),
+                "RESHAPES names {r}, which does not exist"
+            );
+        }
+        for m in MIGRATOR.iter() {
+            let name = file_name(m);
+            let sql = statements(&m.sql.as_str().to_lowercase()).join(";");
+            let reshapes = sql.contains("drop table") || sql.contains("do $$");
+            assert!(
+                !reshapes || RESHAPES.contains(&name.as_str()),
+                "{name}: `drop table` and `do $$` blocks are allowed only in RESHAPES"
+            );
+        }
     }
 
     /// SQL statements, lower-cased, without `--` comments, whitespace collapsed to single spaces.

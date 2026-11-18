@@ -41,6 +41,11 @@ const TABLES: &[&str] = &[
     "event_weights",
     "schedules",
     "traffic_daily",
+    // ADR 0008 (#10)
+    "standing",
+    "gates",
+    "rota_fires",
+    "hotline_refusals",
 ];
 
 /// Everything that defines the schema, as one sorted text: tables, columns, indexes and constraints.
@@ -251,11 +256,57 @@ async fn start_tickets_are_dropped_from_a_database_with_the_core_schema_of_5() {
     .await
     .unwrap();
 
-    let report = news_store::migrate(&f.pool, &f.schema).await.unwrap();
-    assert!(report.applied.contains(&9), "{:?}", report.applied);
+    // 0009 alone (0201 refuses a `runs` with rows, tested below).
+    for m in news_store::MIGRATOR.iter().filter(|m| m.version == 9) {
+        sqlx::raw_sql(sqlx::AssertSqlSafe(m.sql.as_str().to_owned()))
+            .execute(&f.pool)
+            .await
+            .unwrap();
+    }
     assert!(!table_exists(&f, "start_tickets").await);
     assert!(!column_exists(&f, "runs", "ticket_id").await);
     assert_eq!(table_count(&f, "runs").await, 1, "the run survives");
+}
+
+/// Applies migrations up to `last` by hand (sqlx records nothing), as an older binary would have.
+async fn apply_through(f: &Fixture, last: i64) {
+    for m in news_store::MIGRATOR.iter().filter(|m| m.version <= last) {
+        sqlx::raw_sql(sqlx::AssertSqlSafe(m.sql.as_str().to_owned()))
+            .execute(&f.pool)
+            .await
+            .unwrap_or_else(|e| panic!("{} {}: {e}", m.version, m.description));
+    }
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn the_chief_reshape_replaces_empty_run_tables_and_refuses_ones_with_rows() {
+    // Empty #5 tables: replaced by the ADR 0008 shape.
+    let f = Fixture::new().await;
+    apply_through(&f, 9).await;
+    assert!(!column_exists(&f, "runs", "settings_version").await);
+    news_store::migrate(&f.pool, &f.schema).await.unwrap();
+    assert!(column_exists(&f, "runs", "settings_version").await);
+    assert!(column_exists(&f, "jobs", "step_seq").await);
+    assert_eq!(
+        f.scalar_str("select note from pools where pool = 'ai'")
+            .await,
+        "Standing: pools.ai.max_running"
+    );
+
+    // A #5 `runs` with a row: 0201 refuses rather than drop it.
+    let g = Fixture::new().await;
+    apply_through(&g, 9).await;
+    sqlx::query(
+        "insert into runs (run_id, short_id, preset, args, heavy, origin, status, config, budget, started_at, last_seen_at)
+         values (gen_random_uuid(), 'r_old1', 'edition', '{}', false, 'terminal', 'running', '{}', '{}', now(), now())",
+    )
+    .execute(&g.pool)
+    .await
+    .unwrap();
+    let err = news_store::migrate(&g.pool, &g.schema).await.unwrap_err();
+    assert!(err.message.contains("will not drop them"), "{err:?}");
+    assert_eq!(table_count(&g, "runs").await, 1);
 }
 
 async fn insert_run(
@@ -266,10 +317,14 @@ async fn insert_run(
     summary: Option<&str>,
 ) -> Result<(), String> {
     sqlx::query(
-        "insert into runs (run_id, short_id, preset, args, heavy, origin, status, config, budget,
-                           started_at, last_seen_at, summary)
-         values (gen_random_uuid(), 'r_' || substr(md5(random()::text), 1, 6), $1, '{}', $2, 'test', $3,
-                 '{}', '{}', now(), now(), $4::jsonb)",
+        "insert into runs (run_id, short_id, preset, args, heavy, origin, settings_version, status, config,
+                           budget, started_at, last_seen_at, summary, finished_at, queued_at, stop_mode, paused_reason)
+         values (gen_random_uuid(), 'r_' || substr(md5(random()::text), 1, 6), $1, '{}', $2, 'board', 1, $3,
+                 '{}', '{}', now(), now(), $4::jsonb,
+                 case when $3 in ('succeeded', 'failed', 'cancelled', 'skipped') then now() end,
+                 case when $3 = 'queued' then now() end,
+                 case when $3 = 'pausing' then 'drain' end,
+                 case when $3 in ('pausing', 'paused') then 'karthik' end)",
     )
     .bind(preset)
     .bind(heavy)
@@ -285,7 +340,7 @@ async fn insert_run(
 #[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
 async fn every_finished_run_needs_a_wrap() {
     let f = Fixture::migrated().await;
-    for status in ["succeeded", "failed", "cancelled"] {
+    for status in ["succeeded", "failed", "cancelled", "skipped"] {
         let err = insert_run(&f, &format!("p_{status}"), false, status, None)
             .await
             .unwrap_err();
@@ -320,6 +375,11 @@ async fn one_live_run_per_preset_and_one_heavy_run_at_a_time() {
         .await
         .unwrap_err();
     assert!(heavy.contains("runs_one_heavy"), "{heavy}");
+    // A pausing heavy run keeps the slot until its work has stopped (ADR 0008 §3).
+    let pausing = insert_run(&f, "reprint", true, "pausing", None)
+        .await
+        .unwrap_err();
+    assert!(pausing.contains("runs_one_heavy"), "{pausing}");
     // A heavy run that is waiting for approval or paused does not hold the slot.
     insert_run(&f, "catchup", true, "waiting_approval", None)
         .await
