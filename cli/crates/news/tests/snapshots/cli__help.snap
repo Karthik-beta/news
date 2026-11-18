@@ -25,9 +25,8 @@ Commands:
   prune        Delete working files for published items
   stats        Run and coverage summary
   home         Home page curation (Frontpage)
-  run          Chief: preset runs behind /bureau
+  run          Chief: preset runs and their status
   jobs         Dispatch: the job queue
-  work         Dispatch: the background worker for code-only pools (net, cpu, docling)
   ai           Ghost: contracts for every AI step
   sources      Contacts: the source registry
   calendar     Diary: the release calendar

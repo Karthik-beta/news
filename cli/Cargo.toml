@@ -28,7 +28,6 @@ news-proof = { path = "crates/news-proof" }
 news-rewrite = { path = "crates/news-rewrite" }
 news-press = { path = "crates/news-press" }
 news-critic = { path = "crates/news-critic" }
-news-board = { path = "crates/news-board" }
 news-ledger = { path = "crates/news-ledger" }
 news-connectors = { path = "crates/news-connectors" }
 

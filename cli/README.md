@@ -18,13 +18,13 @@ One Rust binary that gives agents, Bun code and Karthik every operation on the l
 - **Size.** Lists go under `data.items` in a deterministic order. `--limit N` (default 20, max 500), `--cursor` (pass back `data.next_cursor`) and `--fields a,b` work on every command; `truncated` is `true` when a list was cut. `news jobs claim` uses `--limit` as the number of jobs to claim (default 1) and refuses `--cursor` and `--fields`, so a caller always sees every lease it took.
 - **Text for Karthik** is rendered by code into `data.text` or `error.text`; the `/bureau` session prints it verbatim.
 - **Telemetry.** Each call writes one row to ClickHouse `news.events` (`stage = cli`, `event` = the command path such as `jobs.claim`) with `run_id` and `job_id` from `NEWS_RUN_ID` / `NEWS_JOB_ID` (and `error_class` / `attempt` on `jobs fail`, `heartbeat`, `complete` and `retry --class`), and exports its span over OTLP to `NEWS_OTEL_HTTP`; the event carries the `trace_id`. Telemetry never fails a call; `NEWS_TELEMETRY=off` turns it off.
-- **Tiers** (Bureau §6.3): R, W, G, H, recorded per command in its contract (`x-news-tier`). H-tier commands refuse to run in a Claude Code tool shell (`CLAUDECODE` set) with `gated`; this is a guardrail, the boundary is the deny rules, start tickets and approvals (§5.5).
+- **Tiers** (Bureau §6.3): R, W, G, recorded per command in its contract (`x-news-tier`). H-tier actions are Board's, sent over the Hotline (ADR 0007), so no H-tier command has a CLI form and nothing checks the environment of the calling shell. A G-tier form (`publish`, `home publish`, `eval promote`, `jobs retry` above 50 jobs, …) returns `gated` here; it runs only as the authorised step of a live run, inside the service (Chief, #10).
 - **Contracts.** `news schema <command…>` prints a command's input and output schema; `news schema` lists them. `news ai schema <A1…A12|brief>` prints an AI step's output schema. Both serve the files in [`contracts/cli/`](../contracts/cli/), embedded at build time.
 - **Numbers.** Values are stored and returned exactly as published (`value_text`, verbatim `unit`, `currency`, `scale`, `period_label`). Nothing converts currencies, units or fiscal periods.
 
 ## Stubs
 
-Commands whose subsystem is not built yet return `precondition` (exit 4) with a hint naming the issue that builds it: Contacts, Wire (with `prune`), Clerk #9 (the libraries are built; the commands follow the Bureau service, #10/#29) · Chief #10 · Diary, Roster #12 · Taster, Nose #15 · Board (`stats`) #16 · render, save, Proof #17 · Fixer, Ghost #18 · Critic, Huddle #19 · Press, home, Rewrite #20 · Errata #21. Built now: `version`, `db`, `components`, `component`, `schema`, `ai schema`, `jobs *`, `work`.
+Commands whose subsystem is not built yet return `precondition` (exit 4) with a hint naming the issue that builds it: Contacts, Wire (with `prune`), Clerk #9 (the libraries are built; the commands follow the Bureau service, #10/#29) · Chief #10 · Diary, Roster #12 · Taster, Nose #15 · Ticker (`stats`) #16 · render, save, Proof #17 · Fixer, Ghost #18 · Critic, Huddle #19 · Press, home, Rewrite #20 · Errata #21. Built now: `version`, `db`, `components`, `component`, `schema`, `ai schema`, `jobs *`.
 
 ## Crate map
 
@@ -33,27 +33,27 @@ Commands whose subsystem is not built yet return `precondition` (exit 4) with a 
 | `news` | The binary: clap tree (`src/cli.rs`), routing and stubs (`src/commands/`), the job-kind → handler binding (`src/registry.rs`), contracts embedded by `build.rs` |
 | `news-core` | Envelope, error codes and exit codes, output shaping, the job contract (`JobInput`, `JobFailure`, `ErrorClass`, `Handler`), reference tokens, tiers, the write-API key guard |
 | `news-store` | PostgreSQL connection (`search_path` = `NEWS_DB_SCHEMA`, public), embedded migrations, error mapping |
-| `news-telemetry` | Ticker: the `news.events` writer and `tracing` with the OTLP exporter |
-| `news-dispatch` | Dispatch: queue operations, kinds registry, backoff, rescuer, schedules, the `news work` loop |
+| `news-telemetry` | Ticker: the `news.events` writer, `tracing` with the OTLP exporter, and the analytics ingestion job (`traffic.pull`, a stub handler until #16) |
+| `news-dispatch` | Dispatch: queue operations, kinds registry, backoff, rescuer, schedules, and the worker loop (`worker::run`) that the Bureau service hosts |
 | `news-ledger` | Ledger rules, pure (ADR 0018): data points as published, `dp_id`, exact decimals and their style, the unit vocabulary, event keys, derived-point guards |
 | `news-connectors` | The Stringers (`Connector` trait; SEC EDGAR, FRED, BLS): request descriptions and pure, versioned parsers. README in the crate; fixtures in `tests/fixtures/` |
 | `news-contacts` | Source rows from `data/sources/*.toml`, the Contacts lint, `sync` into `sources`, the licence gate |
 | `news-wire` | The Runner (robots.txt, token buckets, conditional GET, `Retry-After`, caps; `fake::FakeTransport` for tests), the Morgue, discover/fetch, `snapshots`/`fetch_state` |
 | `news-clerk` | Rule-based classification and the taxonomy seed, candidates, storing data points (vintages, `supersedes`) and Roster step 1 entities, SimHash |
-| `news-diary`, `news-roster`, `news-taster`, `news-nose`, `news-fixer`, `news-ghost`, `news-proof`, `news-rewrite`, `news-press`, `news-chief`, `news-critic`, `news-board` | Subsystem skeletons: `ISSUE`, the job kinds they own and a stub `handle` (fails with class `bug`, "not built yet") |
+| `news-diary`, `news-roster`, `news-taster`, `news-nose`, `news-fixer`, `news-ghost`, `news-proof`, `news-rewrite`, `news-press`, `news-chief`, `news-critic` | Subsystem skeletons: `ISSUE`, the job kinds they own and a stub `handle` (fails with class `bug`, "not built yet") |
 
-Skeleton subsystem crates depend only on `news-core`; the #9 crates also use `news-ledger`, `news-connectors` and sqlx. `news` wires them together. Wire's and Clerk's job handlers still refuse with `bug` until the Bureau service gives them a context (#10, #29). A new handler replaces its crate's `handle`; a new job kind is added to `news_dispatch::KINDS` and to the owning crate's `KINDS` (a test checks both lists agree).
+The name `news-board` is free for Board, the desktop app (#29). Skeleton subsystem crates depend only on `news-core`; the #9 crates also use `news-ledger`, `news-connectors` and sqlx. `news` wires them together. Wire's and Clerk's job handlers still refuse with `bug` until the Bureau service gives them a context (#10, #29). A new handler replaces its crate's `handle`; a new job kind is added to `news_dispatch::KINDS` and to the owning crate's `KINDS` (a test checks both lists agree).
 
 ## Database and migrations
 
 - `DATABASE_URL` (from `.env`; the CLI does not read `.env` itself, so `bun run …` scripts or the shell pass it) and `NEWS_DB_SCHEMA` (default `news`). Extensions (`vector`, `pg_trgm`, `unaccent`) are installed once per database by `infra/postgres/init/`; migrations check for them.
 - `news db migrate` creates the schema if needed and applies pending migrations; `news db status` lists applied and pending ones. `bun run setup` runs the migration.
-- Files are `cli/migrations/NNNN_name.sql`, embedded in the binary. Every statement is idempotent (`create … if not exists`, seeds with `on conflict do nothing`, constraints inline). A later block changes an earlier table only with guarded forms that re-run as no-ops: `alter table … add column if not exists`, `drop column if exists`, `drop constraint if exists`, `alter column … set default` / `drop default`. A unit test refuses unguarded creates and any other `alter table`, and an integration test re-runs every file on a migrated schema and compares the catalogue. Never edit an applied migration: add a new one.
+- Files are `cli/migrations/NNNN_name.sql`, embedded in the binary. Every statement is idempotent (`create … if not exists`, seeds with `on conflict do nothing`, constraints inline). A later block changes an earlier table only with guarded forms that re-run as no-ops: `alter table … add column if not exists`, `drop column if exists`, `drop constraint if exists`, `alter column … set default` / `drop default`; a table nobody needs any more goes with `drop table if exists`, after the columns that reference it. A unit test refuses unguarded creates and any other `alter table`, and an integration test re-runs every file on a migrated schema and compares the catalogue. Never edit an applied migration: add a new one.
 - **Blocks**, so parallel PRs never collide on a number:
 
   | Block | Owner |
   | --- | --- |
-  | 0001–0099 | Core: every TD and Bureau §14 table (this PR, #5) |
+  | 0001–0099 | Core: every TD and Bureau §14 table (#5); 0009 drops `start_tickets` and `runs.ticket_id` (#30) |
   | 0100–0199 | Contacts, Wire, Clerk, Ledger (#9) |
   | 0200–0299 | Chief (#10) |
   | 0300–0399 | Diary, Roster (#12) |
@@ -68,7 +68,7 @@ Skeleton subsystem crates depend only on `news-core`; the #9 crates also use `ne
 
 ## Dispatch in short
 
-Jobs live in `jobs`, pools in `pools` (seeded per §5.7; `ai` follows `NEWS_PARALLEL` on `news db migrate`), recurring jobs in `schedules` (UTC cron, seeded disabled). Ghost uses `news jobs claim|heartbeat|complete|fail`; Karthik uses `news jobs pause|unpause` and `retry` above 50 jobs. `news work --pools net,cpu,docling` is the optional background worker (`bun run work`; `infra/windows/news-work.task.xml` starts it at log-on); it refuses `ai`, `render` and `publish` (exit 2) and forbids itself the write-API key. `bun run work` (`scripts/work.ts`) starts the debug binary `bun run setup` builds with an allow-listed environment only: `DATABASE_URL`, `NEWS_DB_SCHEMA`, `NEWS_CH_*`, `NEWS_OTEL_HTTP`, `NEWS_LOG`, `NEWS_TELEMETRY`, plus what the OS needs to start a process. Details: ADR 0003.
+Jobs live in `jobs`, pools in `pools` (seeded per §5.7; `ai` follows `NEWS_PARALLEL` on `news db migrate`), recurring jobs in `schedules` (UTC cron, seeded disabled). Ghost uses `news jobs claim|heartbeat|complete|fail`; `news jobs retry` takes a job or a class, and a class above 50 jobs is `gated` (Salvage's approved step or a Board action). Pausing and unpausing a pool are Board actions and have no CLI form. There is no `news work` command: the Bureau service hosts the worker loop (`news_dispatch::worker::run`; `WorkOptions::background` is the `net`, `cpu` and `docling` pools that run all the time, #10), and neither the loop nor any handler of those pools reads the write-API key (a sentinel test runs the loop to prove it). Details: ADR 0003.
 
 ## Component index
 
@@ -79,7 +79,7 @@ Jobs live in `jobs`, pools in `pools` (seeded per §5.7; `ai` follows `NEWS_PARA
 | Level | Command | What |
 | --- | --- | --- |
 | unit | `bun scripts/test-cli.ts unit` | In-crate tests; includes a walk of the whole command tree that every unbuilt leaf is a `precondition` stub |
-| e2e | `bun scripts/test-cli.ts e2e` | The real binary: envelope and exit-code contract, golden help snapshots, every stub, contracts against the 2020-12 meta-schema, components, the telemetry event (a fake ClickHouse), the write-key guard |
-| integration | `bun scripts/test-cli.ts integration` | `#[ignore]`d PostgreSQL tests against `news-postgres`: migrations (apply, re-run no-op), constraints, Dispatch concurrency (8 workers × 200 jobs), crash and rescue, snooze, unique keys, schedules, the `news work` sentinel. Each test makes and drops its own schema |
+| e2e | `bun scripts/test-cli.ts e2e` | The real binary: envelope and exit-code contract, golden help snapshots, every stub, contracts against the 2020-12 meta-schema, components, the telemetry event (a fake ClickHouse), that only the secrets guard names the write-API key |
+| integration | `bun scripts/test-cli.ts integration` | `#[ignore]`d PostgreSQL tests against `news-postgres`: migrations (apply, re-run no-op), constraints, Dispatch concurrency (8 workers × 200 jobs), crash and rescue, snooze, unique keys, schedules, the sentinel run of the background pools. Each test makes and drops its own schema |
 
 CI: `rust` (fmt, clippy `-D warnings`, test), `rust-postgres` (the integration level on pgvector), `cargo-deny`.

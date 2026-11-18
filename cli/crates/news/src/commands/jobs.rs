@@ -2,16 +2,16 @@
 
 use super::{Reply, database, read_json};
 use crate::cli::{Holder, JobsCmd};
-use chrono::{DateTime, Duration as ChronoDuration, Utc};
 use news_core::job::{ErrorClass, JobFailure};
-use news_core::{NewsError, NewsResult, Shape, tier};
+use news_core::{NewsError, NewsResult, Shape};
 use news_dispatch::queue::{self, Job, Lease, ListFilter};
 use news_dispatch::{STATES, is_pool, kinds};
 use serde_json::{Value, json};
 use std::fmt::Write as _;
 use std::time::Duration;
 
-/// Above this many jobs, `jobs retry --class` is Karthik's call (G or H tier, §6.4).
+/// Above this many jobs, `jobs retry --class` is not a terminal command: it runs only as Salvage's
+/// approved step (G tier) or as a Board action over the Hotline (H tier), both inside the service (§6.4).
 pub const RETRY_BATCH_LIMIT: usize = 50;
 
 pub async fn run(cmd: JobsCmd, shape: &Shape) -> NewsResult<Reply> {
@@ -40,15 +40,6 @@ pub async fn run(cmd: JobsCmd, shape: &Shape) -> NewsResult<Reply> {
         }
         JobsCmd::Retry { class, .. } => {
             class.as_deref().map(parse_class).transpose()?;
-        }
-        JobsCmd::Pause { pool, until } => {
-            check_pool(Some(pool))?;
-            parse_until(until, Utc::now())?;
-            tier::require_human("jobs pause")?;
-        }
-        JobsCmd::Unpause { pool } => {
-            check_pool(Some(pool))?;
-            tier::require_human("jobs unpause")?;
         }
         JobsCmd::Heartbeat { .. } | JobsCmd::Complete { .. } => {}
     }
@@ -151,11 +142,14 @@ pub async fn run(cmd: JobsCmd, shape: &Shape) -> NewsResult<Reply> {
                 (None, Some(c)) => {
                     let ids = queue::dead_ids(&db, parse_class(&c)?).await?;
                     if ids.len() > RETRY_BATCH_LIMIT {
-                        tier::require_human("jobs retry").map_err(|e| {
-                            e.with_details(
-                                json!({ "matched": ids.len(), "limit": RETRY_BATCH_LIMIT }),
-                            )
-                        })?;
+                        return Err(NewsError::gated(format!(
+                            "`news jobs retry --class` matched {} jobs; more than {RETRY_BATCH_LIMIT} is not a terminal command",
+                            ids.len()
+                        ))
+                        .with_hint("Salvage's approved step or Board requeues more than 50 jobs")
+                        .with_details(
+                            json!({ "matched": ids.len(), "limit": RETRY_BATCH_LIMIT }),
+                        ));
                     }
                     ids
                 }
@@ -174,15 +168,6 @@ pub async fn run(cmd: JobsCmd, shape: &Shape) -> NewsResult<Reply> {
             Ok(Reply::new(
                 json!({ "requeued": requeued, "skipped": skipped }),
             ))
-        }
-        JobsCmd::Pause { pool, until } => {
-            let until = parse_until(&until, Utc::now())?;
-            let paused = queue::pause(&db, &pool, until).await?;
-            Ok(Reply::new(json!({ "pool": pool, "paused_until": paused })))
-        }
-        JobsCmd::Unpause { pool } => {
-            queue::unpause(&db, &pool).await?;
-            Ok(Reply::new(json!({ "pool": pool, "paused_until": null })))
         }
     }
 }
@@ -253,84 +238,10 @@ fn parse_uuid(s: &str) -> NewsResult<uuid::Uuid> {
         .map_err(|_| NewsError::usage(format!("--run must be a run UUID, got {s:?}")))
 }
 
-/// RFC 3339, or `+<n>m`, `+<n>h`, `+<n>d` from `now`.
-pub fn parse_until(s: &str, now: DateTime<Utc>) -> NewsResult<DateTime<Utc>> {
-    if let Some(rel) = s.strip_prefix('+') {
-        // strip_suffix, not a byte split: a non-ASCII last character must be an error, not a panic.
-        let (num, unit_secs) = if let Some(n) = rel.strip_suffix('m') {
-            (n, 60)
-        } else if let Some(n) = rel.strip_suffix('h') {
-            (n, 3600)
-        } else if let Some(n) = rel.strip_suffix('d') {
-            (n, 86_400)
-        } else {
-            return Err(NewsError::usage(format!(
-                "bad --until {s:?}: use m, h or d"
-            )));
-        };
-        if num.is_empty() || !num.bytes().all(|b| b.is_ascii_digit()) {
-            return Err(NewsError::usage(format!("bad --until {s:?}")));
-        }
-        // Checked all the way: a huge count is a usage error, never a panic.
-        return num
-            .parse::<i64>()
-            .ok()
-            .and_then(|n| n.checked_mul(unit_secs))
-            .and_then(ChronoDuration::try_seconds)
-            .and_then(|d| now.checked_add_signed(d))
-            .ok_or_else(|| NewsError::usage(format!("--until {s:?} is out of range")));
-    }
-    DateTime::parse_from_rfc3339(s)
-        .map(|t| t.with_timezone(&Utc))
-        .map_err(|_| NewsError::usage(format!("bad --until {s:?}: RFC 3339 or +30m, +2h, +1d")))
-}
-
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use chrono::TimeZone;
-
-    #[test]
-    fn until_accepts_relative_and_absolute_times() {
-        let now = Utc.with_ymd_and_hms(2026, 11, 15, 12, 0, 0).unwrap();
-        assert_eq!(
-            parse_until("+30m", now).unwrap(),
-            now + ChronoDuration::minutes(30)
-        );
-        assert_eq!(
-            parse_until("+2h", now).unwrap(),
-            now + ChronoDuration::hours(2)
-        );
-        assert_eq!(
-            parse_until("+1d", now).unwrap(),
-            now + ChronoDuration::days(1)
-        );
-        assert_eq!(
-            parse_until("2026-11-16T06:00:00Z", now).unwrap(),
-            Utc.with_ymd_and_hms(2026, 11, 16, 6, 0, 0).unwrap()
-        );
-        for bad in ["", "+", "+5", "+5s", "tomorrow", "+xh"] {
-            assert!(parse_until(bad, now).is_err(), "{bad}");
-        }
-    }
-
-    #[test]
-    fn until_rejects_non_ascii_and_out_of_range_values_without_panicking() {
-        let now = Utc.with_ymd_and_hms(2026, 11, 15, 12, 0, 0).unwrap();
-        for bad in [
-            "+1é",
-            "+é",
-            "+9223372036854775807d",
-            "+9223372036854775807h",
-            "+9223372036854775807m",
-            "+100000000d",
-            "+-5h",
-        ] {
-            let err = parse_until(bad, now).unwrap_err();
-            assert_eq!(err.exit_code(), 2, "{bad}: {err}");
-        }
-    }
 
     #[test]
     fn unknown_pools_states_and_classes_are_usage_errors() {

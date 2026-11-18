@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://news.karthik.nz/contracts/cli/commands/jobs.retry.schema.json",
   "title": "news jobs retry",
-  "description": "Re-enqueue one finished job, or every discarded job of a class (above 50: Karthik only). Input is the command's arguments as an object; output is the envelope's data.",
+  "description": "Re-enqueue one finished job, or every discarded job of a class (above 50 jobs: gated; Salvage's approved step or Board). Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "W",
   "x-news-status": "built",
   "x-news-errors": ["usage", "not_found", "conflict", "gated"],

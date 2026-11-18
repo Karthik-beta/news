@@ -15,7 +15,6 @@
     "infra:down": "bun --no-env-file scripts/compose.ts down",
     "infra:logs": "bun --no-env-file scripts/compose.ts logs -f --tail=100",
     "clickhouse:setup": "bun scripts/clickhouse-setup.ts",
-    "work": "bun --no-env-file scripts/work.ts",
     "tokens": "bun design/tokens/build.mjs",
     "dev": "bun --filter @news/site dev",
     "build": "bun --filter '*' build",

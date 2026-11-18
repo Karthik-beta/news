@@ -151,7 +151,7 @@ pub async fn enqueue(pool: &PgPool, job: &NewJob) -> Result<Enqueued, NewsError>
 /// [`enqueue`] on a given connection or transaction.
 pub async fn enqueue_on(conn: &mut PgConnection, job: &NewJob) -> Result<Enqueued, NewsError> {
     let pool_name = match (&job.pool, kinds::spec(&job.kind)) {
-        // A registered kind runs only in its own pool: a publish job in `net` would reach `news work`.
+        // A registered kind runs only in its own pool: a publish job in `net` would reach the background worker.
         (Some(p), Some(spec)) if p != spec.pool => {
             return Err(NewsError::usage(format!(
                 "job kind {:?} runs in pool {:?}, not {p:?}",
@@ -240,7 +240,7 @@ pub struct Claimed {
 /// not skip), so the running count cannot change under us and `max_running` is never exceeded.
 ///
 /// Every claim first runs the rescuer (a cheap check when no lease has expired), so expired leases come
-/// back even when no `news work` is running: Ghost's `news jobs claim` is then the only claimer.
+/// back even when no worker is running: Ghost's `news jobs claim` is then the only claimer.
 pub async fn claim(
     db: &PgPool,
     pool_name: &str,

@@ -78,7 +78,6 @@ fn each_error_code_the_binary_can_reach_offline_exits_with_its_code() {
     std::fs::write(&bad_index, "{not json").unwrap();
     let cases: Vec<Case> = vec![
         ("usage", vec!["frobnicate"], vec![]),
-        ("usage", vec!["work", "--pools", "ai"], vec![]),
         ("usage", vec!["version", "--limit", "0"], vec![]),
         ("usage", vec!["version", "--cursor", "nope"], vec![]),
         ("not_found", vec!["schema", "no", "such", "command"], vec![]),
@@ -106,11 +105,7 @@ fn each_error_code_the_binary_can_reach_offline_exits_with_its_code() {
                 "postgres://news:x@127.0.0.1:1/news".to_owned(),
             )],
         ),
-        (
-            "gated",
-            vec!["jobs", "pause", "net", "--until", "+1h"],
-            vec![("CLAUDECODE", "1".to_owned())],
-        ),
+        // `gated` needs a database (`jobs retry --class` above 50 jobs): see the PostgreSQL tests.
     ];
     for (want, args, env) in cases {
         let mut cmd = news();

@@ -41,7 +41,6 @@ const TABLES: &[&str] = &[
     "event_weights",
     "schedules",
     "traffic_daily",
-    "start_tickets",
 ];
 
 /// Everything that defines the schema, as one sorted text: tables, columns, indexes and constraints.
@@ -192,14 +191,71 @@ async fn named_indexes_exist_with_their_definitions() {
     assert!(trgm.contains("gin_trgm_ops"), "{trgm}");
 }
 
-async fn ticket(f: &Fixture) -> i64 {
+async fn table_exists(f: &Fixture, table: &str) -> bool {
     sqlx::query_scalar(
-        "insert into start_tickets (preset, args, canonical, prompt, match, state)
-         values ('edition', '{}', '/bureau run daily', '/bureau run daily', 'grammar', 'issued') returning ticket_id",
+        "select exists (select 1 from information_schema.tables where table_schema = current_schema() and table_name = $1)",
     )
+    .bind(table)
     .fetch_one(&f.pool)
     .await
     .unwrap()
+}
+
+async fn column_exists(f: &Fixture, table: &str, column: &str) -> bool {
+    sqlx::query_scalar(
+        "select exists (select 1 from information_schema.columns
+                         where table_schema = current_schema() and table_name = $1 and column_name = $2)",
+    )
+    .bind(table)
+    .bind(column)
+    .fetch_one(&f.pool)
+    .await
+    .unwrap()
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn start_tickets_are_gone_from_an_empty_database() {
+    // ADR 0007: runs are started from Board, so there is no start ticket.
+    let f = Fixture::migrated().await;
+    assert!(!table_exists(&f, "start_tickets").await);
+    assert!(!column_exists(&f, "runs", "ticket_id").await);
+    assert!(table_exists(&f, "runs").await && table_exists(&f, "approvals").await);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn start_tickets_are_dropped_from_a_database_with_the_core_schema_of_5() {
+    // A schema as #5 left it (migrations 0001–0008, with a ticket and a run that uses it), then the
+    // current migrator: the ticket table and `runs.ticket_id` go, the run stays.
+    let f = Fixture::new().await;
+    for m in news_store::MIGRATOR.iter().filter(|m| m.version <= 8) {
+        sqlx::raw_sql(sqlx::AssertSqlSafe(m.sql.as_str().to_owned()))
+            .execute(&f.pool)
+            .await
+            .unwrap_or_else(|e| panic!("{} {}: {e}", m.version, m.description));
+    }
+    assert!(table_exists(&f, "start_tickets").await);
+    assert!(column_exists(&f, "runs", "ticket_id").await);
+    sqlx::query(
+        "with t as (
+           insert into start_tickets (preset, args, canonical, prompt, match, state)
+           values ('edition', '{}', '/bureau run daily', '/bureau run daily', 'grammar', 'consumed')
+           returning ticket_id)
+         insert into runs (run_id, short_id, preset, args, heavy, origin, ticket_id, status, config, budget,
+                           started_at, last_seen_at)
+         select gen_random_uuid(), 'r_old1', 'edition', '{}', false, 'terminal', ticket_id, 'running', '{}',
+                '{}', now(), now() from t",
+    )
+    .execute(&f.pool)
+    .await
+    .unwrap();
+
+    let report = news_store::migrate(&f.pool, &f.schema).await.unwrap();
+    assert!(report.applied.contains(&9), "{:?}", report.applied);
+    assert!(!table_exists(&f, "start_tickets").await);
+    assert!(!column_exists(&f, "runs", "ticket_id").await);
+    assert_eq!(table_count(&f, "runs").await, 1, "the run survives");
 }
 
 async fn insert_run(
@@ -209,16 +265,14 @@ async fn insert_run(
     status: &str,
     summary: Option<&str>,
 ) -> Result<(), String> {
-    let t = ticket(f).await;
     sqlx::query(
-        "insert into runs (run_id, short_id, preset, args, heavy, origin, ticket_id, status, config, budget,
+        "insert into runs (run_id, short_id, preset, args, heavy, origin, status, config, budget,
                            started_at, last_seen_at, summary)
-         values (gen_random_uuid(), 'r_' || substr(md5(random()::text), 1, 6), $1, '{}', $2, 'test', $3, $4,
-                 '{}', '{}', now(), now(), $5::jsonb)",
+         values (gen_random_uuid(), 'r_' || substr(md5(random()::text), 1, 6), $1, '{}', $2, 'test', $3,
+                 '{}', '{}', now(), now(), $4::jsonb)",
     )
     .bind(preset)
     .bind(heavy)
-    .bind(t)
     .bind(status)
     .bind(summary)
     .execute(&f.pool)
