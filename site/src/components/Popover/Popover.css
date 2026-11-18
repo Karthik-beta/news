@@ -43,6 +43,8 @@
       flip-block, --popover-below-wide, --popover-above-wide, --popover-below-scroll, --popover-above-scroll;
     margin-block: var(--space-2);
     overflow-y: auto;
+    /* When capped, Tab to the last link scrolls it clear of the edge (Firefox stopped it 1-2px short, under the border). */
+    scroll-padding-block: var(--space-4);
   }
 }
 

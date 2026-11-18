@@ -170,6 +170,34 @@ test.describe("SourceRef", () => {
     }
   });
 
+  test("a capped popover (landscape phone) scrolls inside, and its source link comes into view on screen", {
+    tag: "@interaction",
+  }, async ({ page }) => {
+    await gotoPage(page, PATH);
+    let capped = 0;
+    for (const trigger of await page.locator("button.source-ref").all()) {
+      await trigger.scrollIntoViewIfNeeded();
+      await trigger.click();
+      const panel = await panelFor(page, trigger);
+      await expect(panel).toBeVisible();
+      const scrolls = await panel.evaluate((el) => el.scrollHeight > el.clientHeight + 1);
+      if (scrolls) capped += 1;
+      const link = panel.getByRole("link", { name: "Open the source" }).last();
+      await link.focus();
+      await expect(link).toBeFocused();
+      const [lb, pb] = [await link.boundingBox(), await panel.boundingBox()];
+      const vh = page.viewportSize()?.height ?? 0;
+      expect(lb && pb, "boxes").toBeTruthy();
+      if (lb && pb) {
+        expect(lb.y, "link inside the panel (top)").toBeGreaterThanOrEqual(pb.y - 0.5);
+        expect(lb.y + lb.height, "link inside the panel (bottom)").toBeLessThanOrEqual(pb.y + pb.height + 0.5);
+        expect(lb.y + lb.height, "link on screen").toBeLessThanOrEqual(vh + 0.5);
+      }
+      await page.keyboard.press("Escape");
+    }
+    test.info().annotations.push({ type: "capped popovers", description: String(capped) });
+  });
+
   test("stand-alone figures (key-figure size) are at least 24 x 24px to tap", async ({ page }) => {
     await gotoPage(page, PATH);
     for (const name of ["percentage", "zero", "negative", "rupees"]) {

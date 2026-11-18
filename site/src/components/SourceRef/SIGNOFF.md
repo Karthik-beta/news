@@ -1,6 +1,6 @@
 # SourceRef — test sign-off
 
-Status: **not signed off**
+Status: **signed off** (re-test, 18 November 2026; first round failed, see Re-test)
 
 Tester: Opus 5.5 component tester (not the builder) · Builder: Opus 5.5 component builder (issue #4) · Date: 16 November 2026
 Branch / commit: `phase-1/site/renderer`, components at b842525, tests at 3092642 and the sign-off commit
@@ -74,7 +74,7 @@ no baseline to justify yet; see the report.
 
 | Exception | Reason | Approved by |
 |---|---|---|
-| Popover opens on click, tap, Enter and Space, not on hover or focus (components.md says hover, focus or tap) | Known design question already raised with Karthik; recorded by the test "hover does not open the popover" | Pending Karthik |
+| Popover opens on click, tap, Enter and Space, not on hover or focus (components.md says hover, focus or tap) | Known design question already raised with Karthik; recorded by the test "hover does not open the popover" | Decided by Karthik (click, tap, Enter, Space only) |
 | Compact values in units the house style does not know drop the unit on the page ("0.000000012" for mol/L); the popover writes it ("0.000000012 mol/L") | Builder's documented choice (the unit appears once, in the subtitle or the sentence); worth confirming for prose | Not a blocker; for Karthik |
 | Font-swap layout shift up to about 0.44 at tablet widths when the fonts arrive after first paint | Open design question already raised with Karthik (fallback faces with `size-adjust` need a token decision). Recorded as a test annotation; the shift after fonts load is asserted (< 0.001) and passes | Pending Karthik |
 | Print uses dark tokens when the system is dark (layout.md: charts print in light-mode colours on white) | Open design question already raised with Karthik | Pending Karthik |
@@ -93,5 +93,13 @@ no baseline to justify yet; see the report.
 
 ## Sign-off
 
-☐ **Not signed off.** Blocking: SR-1 (cited figures vanish in print) and SR-2 (popover partly off screen on a landscape phone).
+☑ **Signed off** (re-test, 18 November 2026). SR-1 and SR-2 fixed and verified in Chromium, Firefox and WebKit. Accepted: Firefox keeps a fallback-placed open popover's old colours after a theme change until re-opened (engine bug; readers change theme with a button, which closes the popover). Tester: Opus 5.5 component tester (not the builder).
+
+First round (16 November): not signed off for the issues above.
 Re-test after the fix: the failing tests named in Issues found, on the screens named there, then the full matrix for this primitive. Tester: Opus 5.5 component tester, 16 November 2026
+
+## Re-test
+
+SR-1 fixed (d6746d8): print hides `button:not(.popover-trigger)`, so every cited figure prints as text in its sentence ("Net sales were $391.0bn in fiscal 2024.") and the popover is dropped, all three engines. SR-2 fixed (3af3656, 971c99f, d7b75ee): on a landscape phone the popover opens on the larger side, capped, and scrolls; every popover on the fixture and in context is wholly on screen in all three engines. New test "a capped popover (landscape phone) scrolls inside, and its source link comes into view on screen" found Firefox stopping the focused link 1–2px under the panel's bottom border; fixed by the tester with `scroll-padding-block: var(--space-4)` on the anchored popover, then passing. Builder's two test edits checked and legitimate: the print test now requires exactly one visible match (stricter than before; the hidden popover holds the same text), and the Firefox theme test re-opens the popover before checking colours (known Firefox bug with fallback-placed popovers, annotated). The hover/focus design question is settled: click, tap, Enter or Space only (components.md, b9f9a84); the test asserting hover does not open stays. Rates keep the source's digits (6.50%), covered in `SourceRef.format.test.tsx`.
+
+Re-test runs (18 November 2026, components at d7b75ee plus the scroll-padding fix): Vitest for the three components and `src/format` 128 passed (`--maxWorkers=1`); SSR 65 passed; `primitives-css` 37 passed; typecheck and lint clean. Playwright, FigureFrame, SourceRef and Popover specs: Chromium light 320, dark 1440, light and dark landscape, print (161 passed, 20 skipped); Firefox and WebKit light 320, dark 1440, light and dark landscape, print (362 passed, 41 skipped, 3 failed: two Firefox landscape runs of the new capped-popover test, fixed below, and one Firefox load timeout); after the fix, SourceRef and Popover on Firefox light and dark landscape, Firefox dark 1440, WebKit light landscape and Chromium dark landscape: 127 passed, 13 skipped, 0 failed. The other widths were not re-run: the fixes touch only the open table, print and the no-fit popover placements, which those screens cover.

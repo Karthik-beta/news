@@ -1,6 +1,6 @@
 # Popover — test sign-off
 
-Status: **not signed off**
+Status: **signed off** (re-test, 18 November 2026; first round failed, see Re-test)
 
 Tester: Opus 5.5 component tester (not the builder) · Builder: Opus 5.5 component builder (issue #4) · Date: 16 November 2026
 Branch / commit: `phase-1/site/renderer`, components at b842525, tests at 3092642 and the sign-off commit
@@ -74,7 +74,7 @@ no baseline to justify yet; see the report.
 
 | Exception | Reason | Approved by |
 |---|---|---|
-| Opens on click, tap, Enter and Space, not hover or focus | Known design question already raised with Karthik | Pending Karthik |
+| Opens on click, tap, Enter and Space, not hover or focus | Known design question already raised with Karthik | Decided by Karthik (click, tap, Enter, Space only) |
 | On a 390px-wide phone the panel can touch the screen edge (its width is capped to the gutters, but the anchored position may start or end at the edge) | Observation, not a spec breach (max 320px wide is met); worth a margin when SR-2 is fixed | Not a blocker |
 | Font-swap layout shift up to about 0.44 at tablet widths when the fonts arrive after first paint | Open design question already raised with Karthik (fallback faces with `size-adjust` need a token decision). Recorded as a test annotation; the shift after fonts load is asserted (< 0.001) and passes | Pending Karthik |
 | Print uses dark tokens when the system is dark (layout.md: charts print in light-mode colours on white) | Open design question already raised with Karthik | Pending Karthik |
@@ -92,5 +92,13 @@ no baseline to justify yet; see the report.
 
 ## Sign-off
 
-☐ **Not signed off.** Blocking: SR-1 (the trigger, and with it the cited figure or term, is hidden in print) and SR-2 (placement off screen on a landscape phone). SR-1 comes from the print rules in `src/styles/base.css` hiding every button, which hides Popover's trigger; SR-2 is Popover.css's anchor positioning. See SourceRef's sign-off for the full defect reports.
+☑ **Signed off** (re-test, 18 November 2026). SR-1 and SR-2 fixed and verified in Chromium, Firefox and WebKit. Accepted: the Firefox theme-change colour bug noted in SourceRef's sign-off. Tester: Opus 5.5 component tester (not the builder).
+
+First round (16 November): not signed off for the issues above.
 Re-test after the fix: the failing tests named in Issues found, on the screens named there, then the full matrix for this primitive. Tester: Opus 5.5 component tester, 16 November 2026
+
+## Re-test
+
+SR-1 and SR-2 fixed (see SourceRef's sign-off): triggers print as plain text; five placements, the last two capped and scrolling, so the panel is wholly on screen on a landscape phone in all three engines. The capped panel is `tabIndex=-1` so Firefox does not add a Tab stop; Tab still reaches "Open the source", and with the tester's `scroll-padding-block` it scrolls fully into view. Opening is click, tap, Enter or Space only (decided; no hover or focus opening), and the component ships 0 KB JS.
+
+Re-test runs (18 November 2026, components at d7b75ee plus the scroll-padding fix): Vitest for the three components and `src/format` 128 passed (`--maxWorkers=1`); SSR 65 passed; `primitives-css` 37 passed; typecheck and lint clean. Playwright, FigureFrame, SourceRef and Popover specs: Chromium light 320, dark 1440, light and dark landscape, print (161 passed, 20 skipped); Firefox and WebKit light 320, dark 1440, light and dark landscape, print (362 passed, 41 skipped, 3 failed: two Firefox landscape runs of the new capped-popover test, fixed below, and one Firefox load timeout); after the fix, SourceRef and Popover on Firefox light and dark landscape, Firefox dark 1440, WebKit light landscape and Chromium dark landscape: 127 passed, 13 skipped, 0 failed. The other widths were not re-run: the fixes touch only the open table, print and the no-fit popover placements, which those screens cover.

@@ -1,6 +1,6 @@
 # FigureFrame — test sign-off
 
-Status: **not signed off**
+Status: **signed off** (re-test, 18 November 2026; first round failed, see Re-test)
 
 Tester: Opus 5.5 component tester (not the builder) · Builder: Opus 5.5 component builder (issue #4) · Date: 16 November 2026
 Branch / commit: `phase-1/site/renderer`, components at b842525, tests at 3092642 and the sign-off commit
@@ -89,5 +89,13 @@ no baseline to justify yet; see the report.
 
 ## Sign-off
 
-☐ **Not signed off.** Blocking: FF-1 (a wide data table pushes the page sideways at 320–768px and on a landscape phone).
+☑ **Signed off** (re-test, 18 November 2026). FF-1 fixed and verified in Chromium, Firefox and WebKit. Tester: Opus 5.5 component tester (not the builder).
+
+First round (16 November): not signed off for the issues above.
 Re-test after the fix: the failing tests named in Issues found, on the screens named there, then the full matrix for this primitive. Tester: Opus 5.5 component tester, 16 November 2026
+
+## Re-test
+
+FF-1 fixed (572170e): the open table is `min-width: 0` and scrolls in a focusable, named region. "a wide data table scrolls inside the frame, never the page" passes in all three engines; the box scrolls 876–877px of table in 288px (320 wide) and 720px (1440 and landscape), no sideways page scroll; axe passes with every table open.
+
+Re-test runs (18 November 2026, components at d7b75ee plus the scroll-padding fix): Vitest for the three components and `src/format` 128 passed (`--maxWorkers=1`); SSR 65 passed; `primitives-css` 37 passed; typecheck and lint clean. Playwright, FigureFrame, SourceRef and Popover specs: Chromium light 320, dark 1440, light and dark landscape, print (161 passed, 20 skipped); Firefox and WebKit light 320, dark 1440, light and dark landscape, print (362 passed, 41 skipped, 3 failed: two Firefox landscape runs of the new capped-popover test, fixed below, and one Firefox load timeout); after the fix, SourceRef and Popover on Firefox light and dark landscape, Firefox dark 1440, WebKit light landscape and Chromium dark landscape: 127 passed, 13 skipped, 0 failed. The other widths were not re-run: the fixes touch only the open table, print and the no-fit popover placements, which those screens cover.
