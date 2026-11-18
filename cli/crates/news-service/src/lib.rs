@@ -46,15 +46,15 @@ impl State {
 }
 
 /// `news run status` in a terminal: the service's state from a `service.ping` with a 300 ms timeout,
-/// `down` when there is no answer, or when the pipe's server is not this `news.exe`.
+/// `down` when there is no answer, or when the pipe's server is not the installed `news.exe`.
 pub async fn ping_state() -> ServiceState {
     #[cfg(windows)]
     {
         let attempt = async {
             let mut client = news_win::connect_client(news_hotline::PIPE_NAME).ok()?;
-            let me = std::env::current_exe().ok()?;
+            let installed = news_win::install_paths().ok()?.exe;
             let server = news_win::server_image(&client).ok()?;
-            if !news_win::same_image(&server, &me.to_string_lossy()) {
+            if !news_win::same_image(&server, &installed.to_string_lossy()) {
                 return None;
             }
             let env = news_hotline::call(

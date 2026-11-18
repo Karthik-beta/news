@@ -289,7 +289,9 @@ async fn board_starts_asks_for_changes_approves_and_cancels_runs_through_the_ser
 #[tokio::test(flavor = "multi_thread")]
 #[ignore = "needs Postgres"]
 async fn an_update_waits_for_the_safe_point_then_swaps_the_binary_and_asks_for_a_restart() {
-    use news_service::update::{UpdateGate, finish, in_flight, staged_path};
+    use news_service::update::{
+        UpdateGate, finish, hash_path, in_flight, record_staged_hash, staged_path,
+    };
     let f = Fixture::migrated().await;
     // A live run with an AI call in flight.
     let chief = Chief::builder(f.pool.clone(), Arc::new(SystemClock))
@@ -325,6 +327,8 @@ async fn an_update_waits_for_the_safe_point_then_swaps_the_binary_and_asks_for_a
     let exe = dir.join("news.exe");
     std::fs::write(&exe, "old build").unwrap();
     std::fs::write(staged_path(&exe), "new build").unwrap();
+    // `news service stage` records the hash; `finish` checks it at the safe point.
+    record_staged_hash(&staged_path(&exe)).unwrap();
     let gate = Arc::new(UpdateGate::default());
     assert!(gate.begin());
     assert!(!gate.allows_claim("ai"), "no new AI claim while updating");
@@ -350,6 +354,30 @@ async fn an_update_waits_for_the_safe_point_then_swaps_the_binary_and_asks_for_a
         .unwrap()
         .unwrap();
     assert!(gate.restart_requested());
+    assert_eq!(std::fs::read_to_string(&exe).unwrap(), "new build");
+    assert!(
+        !hash_path(&staged_path(&exe)).exists(),
+        "the hash is used once"
+    );
+
+    // Another staged build that changed after it was staged: refused at the safe point, nothing
+    // swapped, and the gate reopens claims.
+    std::fs::write(staged_path(&exe), "second build").unwrap();
+    record_staged_hash(&staged_path(&exe)).unwrap();
+    std::fs::write(staged_path(&exe), "tampered build").unwrap();
+    let gate = Arc::new(UpdateGate::default());
+    assert!(gate.begin());
+    let e = finish(
+        &f.pool,
+        &gate,
+        &exe,
+        &staged_path(&exe),
+        Duration::from_millis(20),
+    )
+    .await
+    .unwrap_err();
+    assert!(e.message.contains("does not match"), "{}", e.message);
+    assert!(!gate.updating() && !gate.restart_requested());
     assert_eq!(std::fs::read_to_string(&exe).unwrap(), "new build");
     assert_eq!(
         std::fs::read_to_string(dir.join("news.exe.old")).unwrap(),

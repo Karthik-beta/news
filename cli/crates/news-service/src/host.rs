@@ -325,7 +325,12 @@ mod hotline {
     ) -> std::io::Result<()> {
         let sid = news_win::current_user_sid()?;
         let sddl = news_win::sddl_for(&sid);
-        let me = std::env::current_exe()?.to_string_lossy().into_owned();
+        // A client must be the installed, admin-only binary (ADR 0007 decision 12), never a build
+        // under the user's own folders, even when this service was started from one.
+        let me = news_win::install_paths()?
+            .exe
+            .to_string_lossy()
+            .into_owned();
         let first = news_win::create_pipe(pipe, &sddl, true)?;
         let pipe = pipe.to_owned();
         tokio::spawn(async move {

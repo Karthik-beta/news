@@ -142,6 +142,9 @@ pub async fn service(cmd: ServiceCmd) -> NewsResult<Reply> {
         ServiceCmd::Uninstall { elevated } => {
             Ok(Reply::new(news_service::install::uninstall(elevated)?))
         }
+        ServiceCmd::Stage { path, elevated } => {
+            Ok(Reply::new(news_service::install::stage(&path, elevated)?))
+        }
         ServiceCmd::Start => Ok(Reply::new(news_service::install::start()?)),
         ServiceCmd::Stop => Ok(Reply::new(news_service::install::stop()?)),
         ServiceCmd::Status => Ok(Reply::new(news_service::install::status()?)),

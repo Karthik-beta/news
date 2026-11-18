@@ -72,6 +72,8 @@ eframe = { version = "=0.37.0", default-features = false, features = ["glow", "d
 tauri-winrt-notification = "=0.8.1"
 windows-service = "=0.8.1"
 unicode-normalization = "0.1"
+# Wipes the service password (news-win) when it is dropped.
+zeroize = "1.9"
 windows-sys = { version = "0.61", features = [
     "Win32_Foundation",
     "Win32_Security",
@@ -82,6 +84,7 @@ windows-sys = { version = "0.61", features = [
     "Win32_UI_Shell",
     "Win32_UI_WindowsAndMessaging",
     "Win32_System_Console",
+    "Win32_System_Com",
     "Win32_System_Registry",
     "Win32_System_Services",
     "Win32_Security_Credentials",

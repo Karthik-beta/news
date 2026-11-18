@@ -82,16 +82,21 @@ impl Bureau {
     /// `service.update`: see [`crate::update`].
     async fn start_update(&self) -> Result<Value, NewsError> {
         let core = self.core()?;
-        let exe = std::env::current_exe()
-            .map_err(|e| NewsError::internal(format!("cannot find the installed binary: {e}")))?;
-        let staged = update::staged_path(&exe);
-        if std::fs::metadata(&staged).map_or(0, |m| m.len()) == 0 {
+        let paths = news_win::install_paths()
+            .map_err(|e| NewsError::internal(format!("cannot find the install folder: {e}")))?;
+        let running = std::env::current_exe()
+            .map_err(|e| NewsError::internal(format!("cannot find this binary: {e}")))?;
+        if !news_win::same_image(&running.to_string_lossy(), &paths.exe.to_string_lossy()) {
             return Err(NewsError::precondition(format!(
-                "no staged build at {}",
-                staged.display()
+                "this service runs {}, not the installed {}: only the installed service updates itself",
+                running.display(),
+                paths.exe.display()
             ))
-            .with_hint("build news.exe and copy it next to the installed one as news.exe.new"));
+            .with_hint("run `news service install` (asks for administrator)"));
         }
+        let (exe, staged) = (paths.exe, paths.staged);
+        // Refused when the staged build has no recorded hash or does not match it.
+        update::verify_staged(&staged)?;
         let waiting = update::in_flight(&core.db).await?;
         if self.update.begin() {
             let (gate, log, bus, db) = (

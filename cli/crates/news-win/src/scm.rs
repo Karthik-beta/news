@@ -27,10 +27,26 @@ fn manager(access: ServiceManagerAccess) -> io::Result<ServiceManager> {
     ServiceManager::local_computer(None::<&str>, access).map_err(io_err)
 }
 
+/// The only privilege the service keeps (`SERVICE_CONFIG_REQUIRED_PRIVILEGES_INFO`): the SCM removes
+/// every other one from its token, and from the processes it starts. The Hotline, Job Objects, reading
+/// a client's token and image, spawning `claude` and `docker`, and the update's renames need none.
+pub const REQUIRED_PRIVILEGES: &[&str] = &["SeChangeNotifyPrivilege"];
+
 /// Create the service, or, if it exists, update its configuration (so `install` also changes the
 /// password after Karthik changes his Windows password). Delayed automatic start; restart after 5 s,
-/// then 60 s, also when the service exits with an error code of its own (the update restart).
-pub fn install(spec: &ServiceSpec, password: Option<&str>) -> io::Result<()> {
+/// then 60 s, also when the service exits with an error code of its own (the update restart); only
+/// [`REQUIRED_PRIVILEGES`].
+///
+/// `password` is NUL-terminated UTF-16. It never goes through the `windows-service` crate (which
+/// would copy it into buffers of its own): the service is created or changed without one, then this
+/// function passes the caller's buffer to `ChangeServiceConfigW` itself.
+pub fn install(spec: &ServiceSpec, password: Option<&[u16]>) -> io::Result<()> {
+    if password.is_some_and(|p| p.last() != Some(&0)) {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "the password must be NUL-terminated",
+        ));
+    }
     let m = manager(ServiceManagerAccess::CONNECT | ServiceManagerAccess::CREATE_SERVICE)?;
     let info = ServiceInfo {
         name: spec.name.clone().into(),
@@ -42,7 +58,8 @@ pub fn install(spec: &ServiceSpec, password: Option<&str>) -> io::Result<()> {
         launch_arguments: spec.args.iter().map(OsString::from).collect(),
         dependencies: vec![],
         account_name: Some(spec.account.clone().into()),
-        account_password: password.map(OsString::from),
+        // NULL: the password is set below, or left as it is.
+        account_password: None,
     };
     let access = ServiceAccess::CHANGE_CONFIG | ServiceAccess::QUERY_STATUS;
     let svc = match m.open_service(&spec.name, access) {
@@ -52,6 +69,10 @@ pub fn install(spec: &ServiceSpec, password: Option<&str>) -> io::Result<()> {
         }
         Err(_) => m.create_service(&info, access).map_err(io_err)?,
     };
+    if let Some(p) = password {
+        set_password(svc.raw_handle(), &spec.account, p)?;
+    }
+    set_required_privileges(svc.raw_handle(), REQUIRED_PRIVILEGES)?;
     svc.set_description(&spec.description).map_err(io_err)?;
     svc.set_delayed_auto_start(true).map_err(io_err)?;
     svc.update_failure_actions(ServiceFailureActions {
@@ -68,6 +89,72 @@ pub fn install(spec: &ServiceSpec, password: Option<&str>) -> io::Result<()> {
     svc.set_failure_actions_on_non_crash_failures(true)
         .map_err(io_err)?;
     Ok(())
+}
+
+fn wide(s: &str) -> Vec<u16> {
+    s.encode_utf16().chain(Some(0)).collect()
+}
+
+/// Set the log-on account's password from the caller's NUL-terminated buffer, changing nothing else.
+fn set_password(
+    svc: windows_sys::Win32::System::Services::SC_HANDLE,
+    account: &str,
+    password: &[u16],
+) -> io::Result<()> {
+    use windows_sys::Win32::System::Services::{ChangeServiceConfigW, SERVICE_NO_CHANGE};
+    let account = wide(account);
+    // SAFETY: `svc` is open with CHANGE_CONFIG; the strings are NUL-terminated and outlive the call;
+    // every other field is "no change" (NULL or SERVICE_NO_CHANGE).
+    let ok = unsafe {
+        ChangeServiceConfigW(
+            svc,
+            SERVICE_NO_CHANGE,
+            SERVICE_NO_CHANGE,
+            SERVICE_NO_CHANGE,
+            std::ptr::null(),
+            std::ptr::null(),
+            std::ptr::null_mut(),
+            std::ptr::null(),
+            account.as_ptr(),
+            password.as_ptr(),
+            std::ptr::null(),
+        )
+    };
+    if ok == 0 {
+        Err(io::Error::last_os_error())
+    } else {
+        Ok(())
+    }
+}
+
+/// `SERVICE_CONFIG_REQUIRED_PRIVILEGES_INFO`: the privileges the service's token keeps.
+fn set_required_privileges(
+    svc: windows_sys::Win32::System::Services::SC_HANDLE,
+    privileges: &[&str],
+) -> io::Result<()> {
+    use windows_sys::Win32::System::Services::{
+        ChangeServiceConfig2W, SERVICE_CONFIG_REQUIRED_PRIVILEGES_INFO,
+        SERVICE_REQUIRED_PRIVILEGES_INFOW,
+    };
+    // A multi-string: each name NUL-terminated, then one more NUL.
+    let mut multi: Vec<u16> = privileges.iter().flat_map(|p| wide(p)).collect();
+    multi.push(0);
+    let info = SERVICE_REQUIRED_PRIVILEGES_INFOW {
+        pmszRequiredPrivileges: multi.as_mut_ptr(),
+    };
+    // SAFETY: `svc` is open with CHANGE_CONFIG; `info` points at `multi`, alive for the call.
+    let ok = unsafe {
+        ChangeServiceConfig2W(
+            svc,
+            SERVICE_CONFIG_REQUIRED_PRIVILEGES_INFO,
+            std::ptr::from_ref(&info).cast(),
+        )
+    };
+    if ok == 0 {
+        Err(io::Error::last_os_error())
+    } else {
+        Ok(())
+    }
 }
 
 fn restart(delay: Duration) -> ServiceAction {

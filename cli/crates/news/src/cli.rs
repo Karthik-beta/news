@@ -214,6 +214,15 @@ pub enum ServiceCmd {
         #[arg(long, hide = true)]
         elevated: bool,
     },
+    /// Stage a new build for `service.update`: copies it into the install folder and records its
+    /// SHA-256 (asks for administrator)
+    Stage {
+        /// The new news.exe
+        path: std::path::PathBuf,
+        /// Set by the elevated re-launch
+        #[arg(long, hide = true)]
+        elevated: bool,
+    },
     /// Start the installed service
     Start,
     /// Stop the installed service

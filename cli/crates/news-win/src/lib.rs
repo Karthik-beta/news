@@ -38,6 +38,52 @@ pub fn same_image(a: &str, b: &str) -> bool {
 /// The service's name in the SCM.
 pub const SERVICE_NAME: &str = "NewsBureau";
 
+/// The installed binary and its staging files: one folder under Program Files that only
+/// administrators (and SYSTEM) can write, so no build step or agent running as Karthik can change the
+/// binary the service runs (ADR 0007 decision 12).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InstallPaths {
+    /// `%ProgramFiles%\News`
+    pub dir: std::path::PathBuf,
+    /// `news.exe`: what the SCM, Board's log-on entry and the Hotline's image check use.
+    pub exe: std::path::PathBuf,
+    /// `news.exe.new`: a build staged by `news service stage`.
+    pub staged: std::path::PathBuf,
+    /// `news.exe.new.sha256`: the staged build's SHA-256, written by the same elevated step.
+    pub staged_hash: std::path::PathBuf,
+}
+
+impl InstallPaths {
+    pub fn under(program_files: &std::path::Path) -> Self {
+        let dir = program_files.join("News");
+        Self {
+            exe: dir.join("news.exe"),
+            staged: dir.join("news.exe.new"),
+            staged_hash: dir.join("news.exe.new.sha256"),
+            dir,
+        }
+    }
+}
+
+/// A user account's SID string, `^S-1-5-21(-\d{1,10}){4}$`: a local, Microsoft or domain account.
+/// Anything else (a well-known SID, an SDDL fragment) is refused before it reaches an access list.
+pub fn is_user_sid(s: &str) -> bool {
+    let Some(rest) = s.strip_prefix("S-1-5-21-") else {
+        return false;
+    };
+    let parts: Vec<&str> = rest.split('-').collect();
+    parts.len() == 4
+        && parts
+            .iter()
+            .all(|p| (1..=10).contains(&p.len()) && p.bytes().all(|b| b.is_ascii_digit()))
+}
+
+/// An account name that can go on the elevated command line and to `LookupAccountNameW`: not empty,
+/// at most 256 characters, no `"` and no control characters.
+pub fn is_clean_account(s: &str) -> bool {
+    !s.is_empty() && s.chars().count() <= 256 && !s.chars().any(|c| c == '"' || c.is_control())
+}
+
 /// What `news service install` registers with the SCM.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ServiceSpec {
@@ -97,7 +143,7 @@ pub mod scm {
     fn unsupported<T>() -> io::Result<T> {
         Err(io::Error::new(io::ErrorKind::Unsupported, "Windows only"))
     }
-    pub fn install(_spec: &ServiceSpec, _password: Option<&str>) -> io::Result<()> {
+    pub fn install(_spec: &ServiceSpec, _password: Option<&[u16]>) -> io::Result<()> {
         unsupported()
     }
     pub fn uninstall(_name: &str) -> io::Result<()> {
@@ -164,7 +210,16 @@ mod stub {
     pub fn cred_delete(_target: &str) -> io::Result<()> {
         unsupported()
     }
-    pub fn read_password(_prompt: &str) -> io::Result<String> {
+    pub fn read_password(_prompt: &str) -> io::Result<zeroize::Zeroizing<Vec<u16>>> {
+        unsupported()
+    }
+    pub fn install_paths() -> io::Result<crate::InstallPaths> {
+        unsupported()
+    }
+    pub fn make_admin_only(_path: &std::path::Path, _dir: bool) -> io::Result<()> {
+        unsupported()
+    }
+    pub fn account_sid(_account: &str) -> io::Result<String> {
         unsupported()
     }
     pub fn is_elevated() -> bool {
@@ -202,6 +257,63 @@ mod tests {
             "D:P(A;;GA;;;S-1-5-21-1-2-3-1001)"
         );
         assert!(same_image(r"C:\Bin\news.exe", r"c:\bin\NEWS.EXE"));
+    }
+
+    #[test]
+    fn only_a_user_account_sid_is_accepted() {
+        for good in [
+            "S-1-5-21-1-2-3-1001",
+            "S-1-5-21-3623811015-3361044348-30300820-1013",
+            "S-1-5-21-0-0-0-0",
+        ] {
+            assert!(is_user_sid(good), "{good}");
+        }
+        for bad in [
+            "",
+            "S-1-5-18",
+            "S-1-5-32-544",
+            "S-1-12-1-1-2-3-4",
+            "S-1-5-21-1-2-3",
+            "S-1-5-21-1-2-3-4-5",
+            "S-1-5-21-1-2-3-12345678901",
+            "S-1-5-21-1-2-3-",
+            "S-1-5-21-1-2-3-+1",
+            "S-1-5-21-1-2-3-1001)(A;;GA;;;WD)",
+            "S-1-5-21-1-2-3-1001\n",
+            "s-1-5-21-1-2-3-1001",
+            " S-1-5-21-1-2-3-1001",
+            "S-1-5-21-\u{661}-2-3-4",
+        ] {
+            assert!(!is_user_sid(bad), "{bad:?}");
+        }
+    }
+
+    #[test]
+    fn an_account_with_a_quote_or_a_control_character_is_refused() {
+        assert!(is_clean_account(r".\Admin"));
+        assert!(is_clean_account(r"CORP\Karthik P"));
+        for bad in [
+            "",
+            "a\"b",
+            "Admin\" --sid \"S-1-5-18",
+            "a\nb",
+            "a\u{0}",
+            "a\tb",
+            "a\u{7f}",
+        ] {
+            assert!(!is_clean_account(bad), "{bad:?}");
+        }
+        assert!(!is_clean_account(&"a".repeat(257)));
+    }
+
+    #[test]
+    fn the_installed_files_share_one_folder() {
+        let pf = std::path::Path::new(r"C:\Program Files");
+        let p = InstallPaths::under(pf);
+        assert_eq!(p.dir, pf.join("News"));
+        assert_eq!(p.exe, p.dir.join("news.exe"));
+        assert_eq!(p.staged, p.dir.join("news.exe.new"));
+        assert_eq!(p.staged_hash, p.dir.join("news.exe.new.sha256"));
     }
 
     #[cfg(not(windows))]

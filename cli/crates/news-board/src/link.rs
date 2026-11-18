@@ -48,10 +48,12 @@ impl Connect for PipeConnect {
                 }
             }
             let client = client.ok_or("The Hotline is busy.")?;
-            let me = std::env::current_exe().map_err(|e| e.to_string())?;
+            let installed = news_win::install_paths()
+                .map_err(|e| format!("Cannot find the install folder: {e}"))?
+                .exe;
             let server = news_win::server_image(&client)
                 .map_err(|e| format!("Cannot identify the Hotline's server: {e}"))?;
-            if !news_win::same_image(&server, &me.to_string_lossy()) {
+            if !news_win::same_image(&server, &installed.to_string_lossy()) {
                 return Err(
                     "Something else is serving the Hotline: it is not the installed news.exe. \
                      Board sent nothing."

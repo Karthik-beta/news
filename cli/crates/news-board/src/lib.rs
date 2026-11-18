@@ -43,18 +43,20 @@ pub fn run(argv: &[String]) -> i32 {
 }
 
 fn autostart(a: Autostart) -> i32 {
-    let exe = match std::env::current_exe() {
-        Ok(e) => e,
-        Err(e) => {
-            eprintln!("cannot find news.exe: {e}");
-            return 1;
-        }
-    };
     let result = match a {
-        Autostart::On => {
-            news_win::set_logon_entry(Some(&format!("\"{}\" board --minimized", exe.display())))
-                .map(|()| "Board will open minimised when you log on.".to_owned())
-        }
+        // The log-on entry starts the installed, admin-only binary, never a build in a user folder.
+        Autostart::On => match news_win::install_paths() {
+            Ok(p) if p.exe.is_file() => news_win::set_logon_entry(Some(&format!(
+                "\"{}\" board --minimized",
+                p.exe.display()
+            )))
+            .map(|()| "Board will open minimised when you log on.".to_owned()),
+            Ok(p) => Err(std::io::Error::other(format!(
+                "{} is not installed: run `news service install` first",
+                p.exe.display()
+            ))),
+            Err(e) => Err(e),
+        },
         Autostart::Off => {
             news_win::set_logon_entry(None).map(|()| "Board's log-on entry is removed.".to_owned())
         }

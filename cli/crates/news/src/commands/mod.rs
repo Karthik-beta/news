@@ -117,6 +117,7 @@ pub const BUILT: &[&str] = &[
     "service.run",
     "service.install",
     "service.uninstall",
+    "service.stage",
     "service.start",
     "service.stop",
     "service.status",

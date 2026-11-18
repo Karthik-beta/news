@@ -2917,6 +2917,7 @@ dependencies = [
  "news-store",
  "news-win",
  "serde_json",
+ "sha2 0.10.9",
  "sqlx",
  "tokio",
  "tracing",
@@ -2979,6 +2980,7 @@ dependencies = [
  "tokio",
  "windows-service",
  "windows-sys 0.61.2",
+ "zeroize",
 ]
 
 [[package]]
