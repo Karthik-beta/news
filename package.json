@@ -31,5 +31,8 @@
     "@biomejs/biome": "^2.6.7",
     "@types/bun": "^1.4.4",
     "typescript": "^6.0.3"
+  },
+  "overrides": {
+    "zod": "4.6.7"
   }
 }
