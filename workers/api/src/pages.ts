@@ -255,11 +255,14 @@ function newEntities(meta: PageMeta, previous: PageRecord | undefined, lang: str
   return [...byId.values()];
 }
 
-/** Unconditional writes in batches of 25 (one subrequest per batch), each started only before the lock's deadline. */
+/**
+ * Unconditional writes in batches of 25 (one subrequest per batch), each started only before the lock's deadline; the
+ * table gets the deadline too, so no retry of unprocessed writes starts after it.
+ */
 async function writeBatches(table: Table, fence: Fence, ops: BatchOp[]): Promise<void> {
   for (let i = 0; i < ops.length; i += BATCH_WRITE_MAX) {
     fence.check();
-    await table.batchWrite(ops.slice(i, i + BATCH_WRITE_MAX));
+    await table.batchWrite(ops.slice(i, i + BATCH_WRITE_MAX), fence.batchOptions());
   }
 }
 
@@ -372,12 +375,14 @@ export function cleanupFor(
 function affectedUrls(deps: Deps, page: Pick<PageRecord, "path" | "hubs" | "files" | "cleanup">): string[] {
   const hubs = unique(page.hubs, page.cleanup?.hubs ?? []);
   const files = unique(page.files, page.cleanup?.files ?? []);
-  return [
-    ...pageFileUrls(deps.siteOrigin, page.path, files),
-    ...hubs.map((h) => absolute(deps.siteOrigin, hubPath(h))),
-    absolute(deps.siteOrigin, HOME_PATH),
-  ];
+  return [...pageFileUrls(deps.siteOrigin, page.path, files), ...listUrls(deps, hubs)];
 }
+
+/** The pages that list pages: the given hubs and the home page. */
+const listUrls = (deps: Deps, hubs: string[]) => [
+  ...hubs.map((h) => absolute(deps.siteOrigin, hubPath(h))),
+  absolute(deps.siteOrigin, HOME_PATH),
+];
 
 /** The context of a direct call (tests): no page lock, so only the storage timeouts apply. */
 const unlocked = (deps: Deps): OpContext => ({
@@ -587,6 +592,23 @@ export async function executeWithdraw(
       throw e;
     }
     page = withdrawn;
+  } else if (ctx.requestId && !prepared.committed) {
+    // Already withdrawn (by another request): record this request's result as well, so a retry of it after a later
+    // version went live finds it and only purges, instead of withdrawing that version. The withdrawn LATEST is
+    // rewritten unchanged, which checks in the same transaction that it is still this withdrawn version.
+    try {
+      await fence.put(table, page as unknown as Doc, and(eq("version", page.version), eq("status", "withdrawn")), [
+        resultItem(ctx, "withdraw", deps.now(), {
+          version: page.version,
+          page_id: page.page_id,
+          index_status: page.index_status,
+        }) as unknown as Doc,
+      ]);
+    } catch (e) {
+      if (e instanceof ConditionFailedError)
+        throw new ApiError("version_conflict", "the page changed; read it again and retry");
+      throw e;
+    }
   }
   const gone = page;
   const removed = {
@@ -595,16 +617,19 @@ export async function executeWithdraw(
   };
   fence.check();
   await fence.bounded("search remove", deps.search.remove(gone));
-  // The public files go first: a withdrawn page must stop being served, even if a hub batch fails below.
+  // The public files go first and are purged at once: a withdrawn page must stop being served, even if a hub batch
+  // fails below.
   fence.check();
   await fence.bounded("R2 delete", deletePageFiles(deps.bucket(), gone.path, removed.files));
   fence.check();
-  const purged = await deps.purger.purge(affectedUrls(deps, { ...gone, cleanup: removed }));
+  const purgedFiles = await deps.purger.purge(pageFileUrls(deps.siteOrigin, gone.path, removed.files));
   await writeBatches(
     table,
     fence,
     removed.hubs.map((h) => ({ delete: hubKey(gone, h) })),
   );
+  // The hubs and the home page are purged only after their entries are gone, so none is cached still listing the page.
+  const purged = [...purgedFiles, ...(await deps.purger.purge(listUrls(deps, removed.hubs)))];
   return {
     status: 200,
     body: {

@@ -122,8 +122,9 @@ export class QueryTooLongError extends RangeError {
  */
 export function toFtsQuery(text: string): string | null {
   // No normalisation here: indexed text is stored as written, so the query is matched as written too (FTS5's
-  // unicode61 tokenizer folds case and diacritics on both sides).
-  const words = text.match(/[\p{L}\p{N}]+/gu) ?? [];
+  // unicode61 tokenizer folds case and diacritics on both sides). Combining marks stay inside their word, as unicode61
+  // keeps them ("naïve", Devanagari vowel signs); a mark with no letter before it is dropped.
+  const words = text.match(/[\p{L}\p{N}][\p{L}\p{N}\p{M}]*/gu) ?? [];
   if (words.length > MAX_TERMS) throw new QueryTooLongError();
   if (words.length === 0) return null;
   const last = words.length - 1;

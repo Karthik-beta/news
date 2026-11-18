@@ -1,7 +1,8 @@
 // Edge cache for tool results (the Cache API, per Cloudflare location). Identical calls within a short window are
 // answered without touching DynamoDB, R2 or D1, so repeated or scripted calls cannot spend the publishing table's
-// read units. "Not found" answers are cached too; "being updated, try again" is not. Results may be up to the TTL
-// old: a published update or a withdrawal reaches MCP clients within a minute (five for the category tree).
+// read units. "Not found" answers are cached too; "being updated, try again" only for RETRY_LATER_TTL seconds, so a
+// burst of calls during a publish costs one read, and a retry a few seconds later reads again. Results may be up to
+// the TTL old: a published update or a withdrawal reaches MCP clients within a minute (five for the category tree).
 import { sha256Hex } from "@news/worker-shared/crypto";
 import { RetryLaterError, ToolError, type ToolOutput } from "./tools";
 
@@ -12,6 +13,9 @@ export const TTL_SECONDS: Record<string, number> = {
   get_entity: 60,
   list_categories: 300,
 };
+
+/** Seconds a "being updated, try again" answer is cached: about as long as the publish it reports. */
+export const RETRY_LATER_TTL = 5;
 
 export type Outcome = { ok: true; out: ToolOutput } | { ok: false; message: string; retryLater?: true };
 
@@ -52,12 +56,12 @@ export async function cachedRun(
   const hit = await cache.match(key).catch(() => undefined);
   if (hit) return (await hit.json()) as Outcome;
   const outcome = await execute();
-  if (!outcome.ok && outcome.retryLater) return outcome;
+  const maxAge = !outcome.ok && outcome.retryLater ? RETRY_LATER_TTL : ttl;
   await cache
     .put(
       key,
       new Response(JSON.stringify(outcome), {
-        headers: { "content-type": "application/json", "cache-control": `public, max-age=${ttl}` },
+        headers: { "content-type": "application/json", "cache-control": `public, max-age=${maxAge}` },
       }),
     )
     .catch(() => {});

@@ -5,6 +5,7 @@ import { sha256Hex } from "@news/worker-shared/crypto";
 import { OutcomeUnknownError, SubrequestLimitError } from "@news/worker-shared/dynamo/table";
 import { curationPages, makeBundle, makeCuration, makeMeta } from "@news/worker-shared/testing/fixtures";
 import { describe, expect, it } from "vitest";
+import { DEADLINE_MS } from "./lock";
 import { executeIndex } from "./pages";
 import { expectItemsValid, harness, ORIGIN } from "./testing";
 
@@ -143,6 +144,62 @@ describe("a withdrawal retry replays what it committed", () => {
     expect(h.bucket.objects.size).toBeGreaterThan(0);
     expect(h.search.rows.has("test-page")).toBe(true);
     expectItemsValid(h.table.dump());
+  });
+
+  it("a withdrawal of an already-withdrawn page records its result too: a late retry never withdraws v2", async () => {
+    const h = harness();
+    await published(h);
+    const body = { reason: "wrong figure" };
+    expect((await h.call("POST", "/v1/pages/test-page/withdraw", { body, key: "withdraw-first-1" })).status).toBe(200);
+    const put = h.table.put.bind(h.table);
+    h.table.put = async (item, cond) => {
+      if (String(item.PK).startsWith("IDEM#") && item.state === "done") throw new Error("lost (test)");
+      return put(item, cond);
+    };
+    const second = await h.call("POST", "/v1/pages/test-page/withdraw", { body, key: "withdraw-again-1" });
+    expect(second.status).toBe(200);
+    h.table.put = put;
+    const v2 = await makeBundle(makeMeta({ version: 2 }));
+    expect((await h.call("PUT", "/v1/pages/test-page", { body: v2 })).status).toBe(200);
+    h.setNow("2026-11-12T10:05:00Z");
+    const retry = await h.call("POST", "/v1/pages/test-page/withdraw", { body, key: "withdraw-again-1" });
+    expect(retry.status).toBe(200);
+    expect(await retry.json()).toMatchObject({ version: 1, status: "withdrawn" });
+    expect(latest(h)).toMatchObject({ status: "published", version: 2 });
+    expect(h.search.rows.has("test-page")).toBe(true);
+    expectItemsValid(h.table.dump());
+  });
+});
+
+describe("a withdrawal purges the hubs only after their entries are gone", () => {
+  it("the hub and home URLs are purged after the last hub entry is deleted, the page's files before", async () => {
+    const h = harness();
+    await published(h);
+    const events: string[] = [];
+    const batchWrite = h.table.batchWrite.bind(h.table);
+    h.table.batchWrite = async (ops, options) => {
+      await batchWrite(ops, options);
+      if (ops.some((op) => "delete" in op && op.delete.PK.startsWith("HUB#"))) events.push("hub delete");
+    };
+    const purge = h.purger.purge.bind(h.purger);
+    h.purger.purge = async (urls) => {
+      events.push(...urls.map((u) => `purge ${u}`));
+      return purge(urls);
+    };
+    const res = await h.call("POST", "/v1/pages/test-page/withdraw", { body: { reason: "wrong figure" } });
+    expect(res.status).toBe(200);
+    const at = (e: string) => events.indexOf(e);
+    const lastHubDelete = events.lastIndexOf("hub delete");
+    expect(at(`purge ${ORIGIN}/2026/11/test-page/index.html`)).toBeLessThan(lastHubDelete);
+    for (const url of [
+      `${ORIGIN}/latest`,
+      `${ORIGIN}/economy/inflation`,
+      `${ORIGIN}/region/north-america`,
+      `${ORIGIN}/`,
+    ])
+      expect(at(`purge ${url}`), url).toBeGreaterThan(lastHubDelete);
+    const { purged } = (await res.json()) as { purged: string[] };
+    expect(purged).toEqual(expect.arrayContaining([`${ORIGIN}/2026/11/test-page/index.html`, `${ORIGIN}/latest`]));
   });
 });
 
@@ -574,6 +631,21 @@ describe("one page, one writer at a time", () => {
     expect((await h.call("PUT", "/v1/pages/test-page", { body: v2, key: "late-0001" })).status).toBe(200);
   });
 
+  it("every batch write gets the lock's deadline, so DynamoDB retries of unprocessed writes stop there", async () => {
+    const h = harness();
+    const deadlines: (number | undefined)[] = [];
+    const batchWrite = h.table.batchWrite.bind(h.table);
+    h.table.batchWrite = async (ops, options) => {
+      deadlines.push(options?.deadline);
+      return batchWrite(ops, options);
+    };
+    await published(h);
+    expect((await h.call("POST", "/v1/pages/test-page/withdraw", { body: { reason: "gone" } })).status).toBe(200);
+    // The harness clock stands still at 10:00:00, when the lock was taken: deadline = lock time + DEADLINE_MS.
+    expect(deadlines.length).toBeGreaterThanOrEqual(2);
+    expect(new Set(deadlines)).toEqual(new Set([Date.parse("2026-11-12T10:00:00Z") + DEADLINE_MS]));
+  });
+
   it("a request whose lock was taken over cannot move LATEST, and leaves the new holder's lock alone", async () => {
     const h = harness();
     await published(h);
@@ -674,6 +746,30 @@ describe("one request stays inside the free plan's 50 external subrequests", () 
     const withdraw = () => h.call("POST", "/v1/pages/test-page/withdraw", { body: { reason: "wrong" } });
     expect(await subrequests(h, withdraw)).toBeLessThanOrEqual(45);
     expect(items(h, "HUB#")).toEqual([]);
+  });
+
+  it("a publish that would need more than 45 is refused with meta.too_many_writes (400) and writes nothing", async () => {
+    const h = harness();
+    expect((await h.call("PUT", "/v1/pages/test-page", { body: await makeBundle(maxMeta(1, "x")) })).status).toBe(200);
+    // Three later versions that never committed, each listing 100 hubs of its own: their clean-up is this publish's.
+    const live = latest(h) as Record<string, never>;
+    for (const v of [2, 3, 4])
+      h.table.seed({
+        ...live,
+        SK: `V#00000${v}` as never,
+        version: v as never,
+        hubs: Array.from({ length: 100 }, (_, i) => `cat/old${v}-${i}`) as never,
+      });
+    const writes = h.writeCount();
+    const res = await h.call("PUT", "/v1/pages/test-page", { body: await makeBundle(maxMeta(5, "y")) });
+    expect(res.status).toBe(400);
+    const { error } = (await res.json()) as { error: { code: string; details: { code: string }[] } };
+    expect(error.code).toBe("invalid_meta");
+    expect(error.details.map((d) => d.code)).toEqual(["meta.too_many_writes"]);
+    // Only the page lock was taken and given back.
+    expect(h.table.writes.slice(-2).flatMap((c) => c.keys.map((k) => k.SK))).toEqual(["LOCK", "LOCK"]);
+    expect(h.writeCount() - writes).toBe(2);
+    expect(latest(h)).toMatchObject({ version: 1 });
   });
 });
 
