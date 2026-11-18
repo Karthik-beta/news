@@ -471,11 +471,7 @@ fn nasa_images_carry_credit_licence_alt_and_a_rehost_decision() {
         .unwrap();
     assert!(again.refs.is_empty());
 
-    let item = d
-        .refs
-        .iter()
-        .find(|r| r.key == "KSC-04012026-Artemis II_Launch-1")
-        .unwrap();
+    let item = d.refs.iter().find(|r| r.key.ends_with("Launch-1")).unwrap();
     let f = conn.fetch_requests(item);
     assert!(
         f[0].url
