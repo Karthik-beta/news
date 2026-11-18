@@ -1,0 +1,33 @@
+# Contacts row for the BLS Public Data API v2 (Bureau Design §3.1).
+source_id = "bls"
+name = "BLS Public Data API"
+publisher = "U.S. Bureau of Labor Statistics"
+connector = "bls"
+base_url = "https://api.bls.gov/publicAPI/v2/"
+source_tier = 1
+# BLS data are in the public domain (BLS "Linking and Copyright Information").
+licence = "public-domain"
+attribution = "Source: U.S. Bureau of Labor Statistics."
+redistribution = true
+image_policy = "none"
+rate_per_sec = 0.5
+# v2 with a free key: 500 queries/day, 50 series/query, 50 requests per 10 seconds [22].
+documented_rate_per_sec = 5.0
+documented_limit = "Free key; 500 queries/day, 50 series/query; 50 requests per 10 s [22]"
+max_concurrency = 1
+daily_quota = 400
+documented_daily_quota = 500
+auth_env = "BLS_API_KEY"
+# api.bls.gov/robots.txt is "User-agent: * / Disallow: /" (recorded 16 Nov 2026), which would refuse
+# the documented API itself. The API exists for programmatic use under its own limits, so robots.txt is
+# not applied to the API prefix below; every other BLS host and path still obeys robots.txt.
+# POLICY DECISION PENDING: Karthik must approve this exemption before BLS runs unattended (#9 PR).
+robots_respect = true
+robots_exempt = ["https://api.bls.gov/publicAPI/"]
+requires_contact_email = false
+regions = ["us"]
+categories = ["economy"]
+# BLS's ICS calendar refuses automated clients (403), so release dates come from Diary's seed (#12).
+calendar_kind = "ics"
+enabled = true
+notes = "Discovery: latest row per tracked series (no change feed). No vintages: a changed value is stored as a new vintage."

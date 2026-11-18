@@ -146,7 +146,9 @@ pub fn check_output(args: &[&str], env: &serde_json::Value) {
     let mut schema: serde_json::Value =
         serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
     schema["$ref"] = serde_json::json!("#/$defs/output");
-    let validator = jsonschema::draft202012::new(&schema)
+    let validator = jsonschema::draft202012::options()
+        .with_retriever(RepoContracts)
+        .build(&schema)
         .unwrap_or_else(|e| panic!("{name}: the contract does not compile: {e}"));
     let errors: Vec<String> = validator
         .iter_errors(&env["data"])
@@ -156,6 +158,26 @@ pub fn check_output(args: &[&str], env: &serde_json::Value) {
         errors.is_empty(),
         "{name}: data breaks $defs.output: {errors:?}\n{env}"
     );
+}
+
+/// Resolves `https://news.karthik.nz/contracts/…` to the files in the repository, so CLI contracts
+/// that `$ref` the Hotline's outputs compile.
+pub struct RepoContracts;
+
+impl jsonschema::Retrieve for RepoContracts {
+    fn retrieve(
+        &self,
+        uri: &jsonschema::Uri<String>,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error + Send + Sync>> {
+        let rel = uri
+            .as_str()
+            .strip_prefix("https://news.karthik.nz/contracts/")
+            .ok_or("not a News contract")?;
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../contracts")
+            .join(rel);
+        Ok(serde_json::from_str(&std::fs::read_to_string(path)?)?)
+    }
 }
 
 impl Drop for Fixture {

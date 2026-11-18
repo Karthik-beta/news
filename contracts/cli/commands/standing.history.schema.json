@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/standing.history.schema.json",
+  "title": "news standing history",
+  "description": "Settings versions, newest first, or those that changed a key. Runs in this process against PostgreSQL through the function the Hotline handler calls, so the data is the Hotline command's output (ADR 0008 §11).",
+  "x-news-tier": "R",
+  "x-news-status": "built",
+  "x-news-errors": ["precondition", "upstream_unavailable"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "output": {
+      "$ref": "../../hotline/commands/standing.history.schema.json#/$defs/output"
+    }
+  }
+}

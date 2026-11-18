@@ -25,7 +25,9 @@ Commands:
   prune        Delete working files for published items
   stats        Run and coverage summary
   home         Home page curation (Frontpage)
-  run          Chief: preset runs and their status
+  run          Chief: preset runs and their status (read-only; Board starts and controls runs)
+  standing     Standing: Karthik's versioned settings (read-only; Board changes them)
+  service      The Bureau service
   jobs         Dispatch: the job queue
   ai           Ghost: contracts for every AI step
   sources      Contacts: the source registry

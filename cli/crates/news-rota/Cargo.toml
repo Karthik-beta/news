@@ -1,0 +1,22 @@
+[package]
+name = "news-rota"
+description = "Rota, the scheduler (ADR 0008 §7): preset schedules from Standing, missed slots, the late limit, quiet hours and the quota guard."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+news-core = { workspace = true }
+news-store = { workspace = true }
+news-standing = { workspace = true }
+news-chief = { workspace = true }
+news-dispatch = { workspace = true }
+chrono = { workspace = true }
+chrono-tz = { workspace = true }
+serde_json = { workspace = true }
+sqlx = { workspace = true }
+tracing = { workspace = true }
+
+[lints]
+workspace = true

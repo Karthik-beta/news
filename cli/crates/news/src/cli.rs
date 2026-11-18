@@ -90,9 +90,15 @@ pub enum Command {
     Home(HomeCmd),
 
     // --- Bureau command groups -----------------------------------------------------------------
-    /// Chief: preset runs and their status
+    /// Chief: preset runs and their status (read-only; Board starts and controls runs)
     #[command(subcommand)]
     Run(RunCmd),
+    /// Standing: Karthik's versioned settings (read-only; Board changes them)
+    #[command(subcommand)]
+    Standing(StandingCmd),
+    /// The Bureau service
+    #[command(subcommand)]
+    Service(ServiceCmd),
     /// Dispatch: the job queue
     #[command(subcommand)]
     Jobs(JobsCmd),
@@ -160,10 +166,30 @@ pub enum RunCmd {
     Presets,
     /// The status board, or one run
     Status { run: Option<String> },
+    /// The Lineup: heavy runs waiting for the slot
+    Lineup,
     /// Recent runs
     List {
         #[arg(long)]
         active: bool,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+pub enum StandingCmd {
+    /// Current settings with their defaults, or those under a key prefix
+    Show { key: Option<String> },
+    /// Settings versions, newest first, or those that changed a key
+    History { key: Option<String> },
+}
+
+#[derive(Subcommand, Debug)]
+pub enum ServiceCmd {
+    /// Run the Bureau service in this console until Ctrl-C
+    Run {
+        /// Console mode (the only mode until #29 registers the service)
+        #[arg(long)]
+        console: bool,
     },
 }
 

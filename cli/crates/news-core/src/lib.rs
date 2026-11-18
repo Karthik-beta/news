@@ -2,8 +2,10 @@
 //! exit codes, output shaping (`--limit`, `--fields`, `--cursor`), the job contract every subsystem
 //! handler implements, permission tiers and the write-API key guard.
 //!
-//! Nothing here touches the database, the network or the clock, so all of it is unit-tested.
+//! Nothing here touches the database or the network, and only `clock::SystemClock` reads the time, so
+//! all of it is unit-tested.
 
+pub mod clock;
 pub mod envelope;
 pub mod error;
 pub mod job;
