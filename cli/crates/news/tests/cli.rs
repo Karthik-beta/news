@@ -378,17 +378,26 @@ fn missing_required_arguments_are_usage_errors() {
 #[test]
 fn non_utf8_argument_is_rejected_without_a_panic() {
     #[cfg(unix)]
-    {
+    let bad: std::ffi::OsString = {
         use std::os::unix::ffi::OsStrExt;
-        let bad = std::ffi::OsStr::from_bytes(&[0xff, 0xfe]);
-        let assert = news().arg(bad).assert().code(2);
+        std::ffi::OsStr::from_bytes(&[0xff, 0xfe]).to_owned()
+    };
+    // An unpaired surrogate is the Windows form of an argument that is not Unicode.
+    #[cfg(windows)]
+    let bad: std::ffi::OsString = {
+        use std::os::windows::ffi::OsStringExt;
+        std::ffi::OsString::from_wide(&[0xD800])
+    };
+    // In the subcommand's place, and after `board` (which `main` handles before clap).
+    let board = std::ffi::OsString::from("board");
+    for args in [vec![&bad], vec![&board, &bad]] {
+        let assert = news().args(&args).assert().code(2);
         let stderr = String::from_utf8_lossy(&assert.get_output().stderr).into_owned();
         assert!(
             !stderr.contains("panicked"),
-            "panic on invalid UTF-8: {stderr}"
+            "panic on a non-Unicode argument {args:?}: {stderr}"
         );
     }
-    // Windows arguments are UTF-16 and round-trip lossily; the Unix case above is the real check.
 }
 
 // --- Output hygiene -----------------------------------------------------------------------
