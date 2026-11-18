@@ -1,4 +1,4 @@
-//! OpenAlex (papers family). CC0 metadata. No key needed at the registry's rate.
+//! OpenAlex (papers family). CC0 metadata. Needs a free key (`OPENALEX_API_KEY`, added by the Runner): shipped disabled.
 //!
 //! `Cx::tracked("openalex")` lists OpenAlex `filter` expressions (`primary_topic.field.id:20`).
 //! Discovery lists works published since the cursor date, per filter, newest first; fetch reads one
@@ -93,7 +93,7 @@ impl Connector for OpenAlex {
                     .get(f)
                     .and_then(|d| date(d))
                     .unwrap_or(cx.today - chrono::Duration::days(FIRST_LOOKBACK));
-                Request::json(list_url(f, since))
+                Request::json(list_url(f, since)).with_secret("api_key", "OPENALEX_API_KEY")
             })
             .collect()
     }
@@ -151,10 +151,10 @@ impl Connector for OpenAlex {
     }
 
     fn fetch_requests(&self, item: &ItemRef) -> Vec<Request> {
-        vec![Request::json(format!(
-            "{BASE}/{}?select={FIELDS}",
-            item.key
-        ))]
+        vec![
+            Request::json(format!("{BASE}/{}?select={FIELDS}", item.key))
+                .with_secret("api_key", "OPENALEX_API_KEY"),
+        ]
     }
 
     fn parse(&self, item: &ItemRef, snaps: &[Snapshot]) -> Result<Parsed, ParseError> {

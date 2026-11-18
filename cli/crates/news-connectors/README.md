@@ -14,11 +14,11 @@ One `Connector` per source (Bureau Design §3.2), named by `sources.connector`. 
 | `bea` (needs `BEA_API_KEY`; disabled, synthetic fixtures) | Probe (`Year=LAST5`) | `Year=LAST10` | `DataValue` text with commas kept, `CL_UNIT`, `UNIT_MULT` as stated, `UTCProductionTime` | `macro:us.gdp:<YYYY-Qn>` |
 | `cb-fed`, `cb-ecb`, `cb-boe`, `cb-boc`, `cb-rba` | The bank's press feed, titles matched to statement wording | The statement page | Candidate only (no numbers extracted) | `policy:<bank>:<decision date>` |
 | `nasa` | Image search per tracked term | Lookup by `nasa_id` | `ImageRef` (URL, credit, licence, alt, `rehost` only for NASA-credited images) | none |
-| `openalex`, `crossref`, `arxiv` (OAI-PMH) | Works since the cursor date per tracked filter or set | One work or record | Paper candidate | `paper:doi:<doi>`, `paper:arxiv:<id>` |
+| `openalex` (key, disabled), `crossref` (contact e-mail, disabled), `arxiv` (OAI-PMH) | Works since the cursor date per tracked filter or set | One work or record | Paper candidate | `paper:doi:<doi>`, `paper:arxiv:<id>` |
 
 Not built, and why: **StatCan WDS** (the host answers automated requests with 403), **IMF DataMapper** (bot protection answers 403 on some requests, and no unit is given with the values), **BoJ** and **RBI** (their sites refuse automated access), **arXiv query API** (its robots.txt disallows everything; OAI-PMH is used instead), **BIS**. See ADR 0009.
 
-The statistics Stringers share `stat.rs` (catalogue, probe, history); the SDMX reader is `sdmx.rs`, RSS and Atom are `feed.rs`. What a deployment follows is `Cx::tracked(<connector id>)`.
+OpenAlex needs a free key (`OPENALEX_API_KEY`, added by the Runner) and ships disabled; without one the API gives each IP address a tiny shared daily budget. The statistics Stringers share `stat.rs` (catalogue, probe, history); the SDMX reader is `sdmx.rs`, RSS and Atom are `feed.rs`. What a deployment follows is `Cx::tracked(<connector id>)`.
 
 ## The contract
 

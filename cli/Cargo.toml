@@ -64,6 +64,7 @@ tracing = "0.1"
 tracing-opentelemetry = { version = "0.32", default-features = false }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["std", "fmt", "env-filter", "registry"] }
 uuid = { version = "1", features = ["v4", "serde"] }
+unicode-normalization = "0.1"
 windows-sys = { version = "0.61", features = [
     "Win32_Foundation",
     "Win32_Security",

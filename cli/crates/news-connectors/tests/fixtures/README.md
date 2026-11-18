@@ -21,7 +21,7 @@ Tests never touch the network (`news-wire/tests/no_network.rs` enforces it). Eac
 | `worldbank/GDP.USA-*.json` | `api.worldbank.org/v2/country/USA/indicator/NY.GDP.MKTP.CD?format=json&mrv=1\|5` | World Bank, CC BY 4.0 |
 | `ons/dataset-cpih01.json`, `ons/observations-cpih01.json` | `api.beta.ons.gov.uk/v1/datasets/cpih01` and its version 67 observations, trimmed to 8 of 457 | OGL v3.0 |
 | `nasa/search-artemis.json` (3 of 20 hits), `nasa/item-*.json` | `images-api.nasa.gov/search?q=artemis…` and `?nasa_id=…` | NASA media guidelines |
-| `openalex/list-field20.json` (3 of 25), `openalex/work-W7234566083.json` | `api.openalex.org/works…` | CC0 metadata |
+| `openalex/list-field20.json` (3 of 25), `openalex/work-W7234566083.json` | `api.openalex.org/works…`, recorded without a key (OpenAlex answers keyless requests from a small shared daily budget; the Stringer adds a free key, `OPENALEX_API_KEY`, and ships disabled) | CC0 metadata |
 | `crossref/list.json` (3 of 25), `crossref/work-10.1007_s00408-021-00426-w.json` (reference list removed) | `api.crossref.org/works…` | CC0 metadata |
 | `arxiv/list-econ.xml` (3 of the records), `arxiv/record-2112.14514.xml` | `oaipmh.arxiv.org/oai?verb=ListRecords\|GetRecord…` | CC0 metadata |
 | `centralbank/*-feed.xml` | Fed `press_monetary.xml`, ECB `rss/press.html`, BoE `rss/news`, BoC press-release feed, RBA media-release feed | Publishers' terms; used for tests only |

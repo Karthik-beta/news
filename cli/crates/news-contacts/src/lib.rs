@@ -363,9 +363,25 @@ mod tests {
         assert_eq!(
             ids,
             vec![
-                "abs", "arxiv", "bea", "bls", "cb-boc", "cb-boe", "cb-ecb", "cb-fed", "cb-rba",
-                "crossref", "ecb", "eurostat", "fred", "nasa", "oecd", "ons", "openalex",
-                "sec-edgar", "worldbank"
+                "abs",
+                "arxiv",
+                "bea",
+                "bls",
+                "cb-boc",
+                "cb-boe",
+                "cb-ecb",
+                "cb-fed",
+                "cb-rba",
+                "crossref",
+                "ecb",
+                "eurostat",
+                "fred",
+                "nasa",
+                "oecd",
+                "ons",
+                "openalex",
+                "sec-edgar",
+                "worldbank"
             ]
         );
         assert_eq!(lint(&sources), vec![]);
@@ -376,7 +392,7 @@ mod tests {
             .filter(|s| !s.enabled)
             .map(|s| s.source_id.as_str())
             .collect();
-        assert_eq!(disabled, vec!["bea", "crossref", "sec-edgar"]);
+        assert_eq!(disabled, vec!["bea", "crossref", "openalex", "sec-edgar"]);
         // The 3-second arXiv pacing and the OECD hourly budget are stricter in the registry.
         let rate = |id: &str| {
             sources
@@ -385,10 +401,20 @@ mod tests {
                 .map(|s| s.rate_per_sec)
                 .unwrap()
         };
-        assert!(1.0 / rate("arxiv") >= 3.0, "one arXiv request every 3 s at most");
-        assert!(rate("oecd") * 3600.0 <= 60.0, "OECD: at most 60 requests an hour");
+        assert!(
+            1.0 / rate("arxiv") >= 3.0,
+            "one arXiv request every 3 s at most"
+        );
+        assert!(
+            rate("oecd") * 3600.0 <= 60.0,
+            "OECD: at most 60 requests an hour"
+        );
         assert_eq!(
-            sources.iter().find(|s| s.source_id == "arxiv").unwrap().max_concurrency,
+            sources
+                .iter()
+                .find(|s| s.source_id == "arxiv")
+                .unwrap()
+                .max_concurrency,
             1
         );
         // Every built connector has a Contacts row.
