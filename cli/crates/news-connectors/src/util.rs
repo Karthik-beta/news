@@ -33,6 +33,41 @@ pub fn day_vintage(d: NaiveDate) -> DateTime<Utc> {
         .unwrap_or(DateTime::<Utc>::MIN_UTC)
 }
 
+/// Lower-case hex of a SHA-256, for cursors.
+pub fn sha_hex(sha: &[u8; 32]) -> String {
+    use std::fmt::Write;
+    sha.iter().fold(String::with_capacity(64), |mut s, b| {
+        let _ = write!(s, "{b:02x}");
+        s
+    })
+}
+
+/// The leading `YYYY-MM-DD` of an ISO timestamp.
+pub fn date_prefix(s: &str) -> Option<NaiveDate> {
+    s.get(..10).and_then(date)
+}
+
+/// A period label as a calendar period: `2026-10`, `2026-Q3`, `2026` or `2026-10-16` to its first and
+/// last day. Date arithmetic for the period the source names; the source's label stays verbatim.
+pub fn period_from_label(label: &str) -> Option<(NaiveDate, NaiveDate)> {
+    let (y, rest) = label
+        .split_once('-')
+        .map_or((label, None), |(y, r)| (y, Some(r)));
+    let year: i32 = y.parse().ok().filter(|_| y.len() == 4)?;
+    match rest {
+        None => months_bounds(year, 1, 12),
+        Some(r) if r.len() == 2 && r.starts_with('Q') => {
+            let q: u32 = r[1..].parse().ok().filter(|q| (1..=4).contains(q))?;
+            months_bounds(year, (q - 1) * 3 + 1, q * 3)
+        }
+        Some(r) if r.len() == 2 => month_bounds(year, r.parse().ok()?),
+        Some(_) => {
+            let d = date(label)?;
+            Some((d, d))
+        }
+    }
+}
+
 pub fn shape(locator: impl Into<String>, e: impl std::fmt::Display) -> ParseError {
     ParseError::new(ParseErrorKind::Shape, locator, e.to_string())
 }

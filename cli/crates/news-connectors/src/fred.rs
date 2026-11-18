@@ -242,6 +242,7 @@ impl Connector for Fred {
                         title: format!("FRED release {} ({})", rd.release_id, s.id),
                         expected_day: day,
                         expected_at: None,
+                        window_days: 0,
                         precision: "day".into(),
                         origin: "api".into(),
                     });

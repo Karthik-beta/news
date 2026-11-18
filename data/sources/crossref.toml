@@ -1,0 +1,21 @@
+# Contacts row for Crossref REST API (Bureau Design §3.1). Loaded by `news sources sync`; the Contacts lint checks it in CI.
+source_id = "crossref"
+name = "Crossref REST API"
+publisher = "Crossref"
+connector = "crossref"
+base_url = "https://api.crossref.org/"
+source_tier = 3
+licence = "custom"
+attribution = "Source: Crossref."
+redistribution = true
+image_policy = "none"
+rate_per_sec = 3
+documented_rate_per_sec = 10
+documented_limit = "Polite pool (contact e-mail in the User-Agent): 10 requests/s, 3 concurrent (Bureau §3.1)"
+max_concurrency = 2
+robots_respect = true
+requires_contact_email = true
+regions = ["global"]
+categories = ["science"]
+enabled = false
+notes = "Off until NEWS_CONTACT_EMAIL is set: the Runner then adds it to the User-Agent (polite pool). Bibliographic metadata is CC0."

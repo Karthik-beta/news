@@ -1,0 +1,23 @@
+# Contacts row for BEA API (Bureau Design §3.1). Loaded by `news sources sync`; the Contacts lint checks it in CI.
+source_id = "bea"
+name = "BEA API"
+publisher = "U.S. Bureau of Economic Analysis"
+connector = "bea"
+base_url = "https://apps.bea.gov/api/"
+source_tier = 1
+licence = "public-domain"
+attribution = "Source: U.S. Bureau of Economic Analysis."
+redistribution = true
+image_policy = "none"
+rate_per_sec = 0.5
+documented_rate_per_sec = 1.6667
+documented_limit = "Free key; 100 requests/min, 100 MB/min, 30 errors/min (BEA user guide, from a search snippet; unverified)"
+max_concurrency = 1
+auth_env = "BEA_API_KEY"
+robots_respect = true
+requires_contact_email = false
+regions = ["us"]
+categories = ["economy"]
+calendar_kind = "ics"
+enabled = false
+notes = "Off until Karthik adds BEA_API_KEY and records real fixtures (fixtures are synthetic: tests/fixtures/README.md). Year=LAST5 / LAST10 are unverified until recorded with a key. Release calendar: BEA ICS, synced by Diary."

@@ -26,6 +26,8 @@ mod board;
 mod chief;
 #[path = "postgres/cli_db.rs"]
 mod cli_db;
+#[path = "postgres/diary_roster.rs"]
+mod diary_roster;
 #[path = "postgres/dispatch.rs"]
 mod dispatch;
 #[path = "postgres/fixture.rs"]

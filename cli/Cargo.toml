@@ -48,6 +48,7 @@ croner = "3"
 fastrand = "2"
 httpdate = "1"
 proptest = "1"
+roxmltree = "0.21"
 sha2 = "0.10"
 toml = { version = "0.9", default-features = false, features = ["parse", "serde"] }
 zstd = { version = "0.13", default-features = false }
@@ -70,6 +71,7 @@ egui = { version = "=0.37.0", default-features = false, features = ["default_fon
 eframe = { version = "=0.37.0", default-features = false, features = ["glow", "default_fonts", "accesskit"] }
 tauri-winrt-notification = "=0.8.1"
 windows-service = "=0.8.1"
+unicode-normalization = "0.1"
 windows-sys = { version = "0.61", features = [
     "Win32_Foundation",
     "Win32_Security",

@@ -1,0 +1,21 @@
+# Contacts row for ECB Data Portal (Bureau Design §3.1). Loaded by `news sources sync`; the Contacts lint checks it in CI.
+source_id = "ecb"
+name = "ECB Data Portal"
+publisher = "European Central Bank"
+connector = "ecb"
+base_url = "https://data-api.ecb.europa.eu/service/data/"
+source_tier = 1
+licence = "custom"
+attribution = "Source: European Central Bank, ECB Data Portal."
+redistribution = false
+image_policy = "none"
+rate_per_sec = 0.5
+documented_rate_per_sec = 2
+documented_limit = "No published request limit; the portal asks for fair use (unverified: no official figure found, 18 Nov 2026)"
+max_concurrency = 1
+robots_respect = true
+requires_contact_email = false
+regions = ["eu"]
+categories = ["economy"]
+enabled = true
+notes = "SDMX 2.1 REST, JSON. Terms not read in full: treated as link-and-summarise (redistribution false) until Karthik confirms the reuse notice. Discovery: lastNObservations=1 probe per followed series (hash comparison)."
