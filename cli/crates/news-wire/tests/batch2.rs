@@ -174,14 +174,14 @@ async fn ecb_golden_pass_from_the_registry_row() {
         vec![Reply::ok("text/plain", "# robots.txt\n")],
     );
     fake.route(
-        "https://data-api.ecb.europa.eu/service/data/FM/B.U2.EUR.4F.KR.MRR_FR.LEV?lastNObservations=1",
+        "https://data-api.ecb.europa.eu/service/data/FM/B.U2.EUR.4F.KR.MRR_FR.LEV?lastNObservations=1&format=jsondata",
         vec![Reply::ok(
             "application/vnd.sdmx.data+json;version=1.0.0-wd",
             fixture("ecb/FM.MRR-probe.json"),
         )],
     );
     fake.route(
-        "https://data-api.ecb.europa.eu/service/data/FM/B.U2.EUR.4F.KR.MRR_FR.LEV?lastNObservations=12",
+        "https://data-api.ecb.europa.eu/service/data/FM/B.U2.EUR.4F.KR.MRR_FR.LEV?lastNObservations=12&format=jsondata",
         vec![Reply::ok(
             "application/vnd.sdmx.data+json;version=1.0.0-wd",
             fixture("ecb/FM.MRR-history.json"),

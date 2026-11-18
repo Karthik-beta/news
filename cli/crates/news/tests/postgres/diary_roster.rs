@@ -73,7 +73,7 @@ async fn calendar_sync_is_idempotent_and_never_moves_a_captured_event() {
             .await
             .unwrap()
     );
-    let mut shifted = entries.clone();
+    let mut shifted = moved.clone();
     shifted[2].expected_day = d(2026, 11, 30);
     let fourth = store::upsert(&f.pool, &shifted).await.unwrap();
     assert_eq!((fourth.created, fourth.updated), (0, 0));
@@ -454,10 +454,13 @@ async fn golden_news_calendar() {
     let (env, code, _, _) = super::fixture::call(&mut cmd, &["calendar", "sync"]);
     assert_eq!(code, 0, "{env}");
     let created = env["data"]["created"].as_u64().unwrap();
-    assert!(
-        created >= 1 && env["data"]["events"].as_u64().unwrap() >= created,
-        "{env}"
-    );
+    // The seed file runs to 16 Dec 2027: after that nothing in it is upcoming.
+    if Utc::now().date_naive() <= d(2027, 12, 16) {
+        assert!(
+            created >= 1 && env["data"]["events"].as_u64().unwrap() >= created,
+            "{env}"
+        );
+    }
     assert!(
         env["warnings"]
             .as_array()
