@@ -324,12 +324,17 @@ mod tests {
     }
 
     #[test]
-    fn migrations_are_numbered_in_the_core_block_and_ascending() {
+    fn migrations_are_numbered_in_their_blocks_and_ascending() {
+        // Blocks of 100 per owner (cli/README.md): 0001–0099 core, 0100–0199 #9, 0200–0299 #10, …
         let versions = known_versions();
         assert!(!versions.is_empty());
         assert!(versions.windows(2).all(|w| w[0] < w[1]));
         assert!(
-            versions.iter().all(|v| (1..=99).contains(v)),
+            versions.iter().any(|v| (1..=99).contains(v)),
+            "{versions:?}"
+        );
+        assert!(
+            versions.iter().all(|v| (1..=999).contains(v)),
             "{versions:?}"
         );
     }
