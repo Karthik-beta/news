@@ -28,9 +28,12 @@ __pycache__/
 # Local databases and data volumes
 *.sqlite
 *.sqlite3
-# Only the root data/ is local; Contacts source rows (data/sources/<id>.toml) are reviewed like code.
+# Only the root data/ is local; Contacts source rows (data/sources/<id>.toml), the Diary seed file
+# (data/calendar/) and the Roster seed lists (data/roster/) are reviewed like code.
 /data/*
 !/data/sources/
+!/data/calendar/
+!/data/roster/
 
 # Claude Code local files
 .claude/settings.local.json

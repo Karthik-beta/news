@@ -1,6 +1,6 @@
 [package]
 name = "news-diary"
-description = "Diary, the release calendar. Skeleton with handler stubs; built in #12."
+description = "Diary, the release calendar (Bureau §3.3): ICS, HTML and seed-file calendars, derived earnings windows, the pre-warm and capture schedule, and the calendar_events store."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,6 +8,13 @@ publish.workspace = true
 
 [dependencies]
 news-core = { workspace = true }
+news-connectors = { workspace = true }
+news-ledger = { workspace = true }
+chrono = { workspace = true }
+serde = { workspace = true }
+sqlx = { workspace = true }
+thiserror = { workspace = true }
+toml = { workspace = true }
 
 [lints]
 workspace = true
