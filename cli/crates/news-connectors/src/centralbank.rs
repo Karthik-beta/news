@@ -34,6 +34,9 @@ pub struct Bank {
     pub feed: &'static str,
     /// Lower-case title fragments that mark a monetary-policy statement.
     pub statements: &'static [&'static str],
+    /// When not empty, the title must also contain one of these decision verbs: a notice *about*
+    /// the policy rate (a published schedule) is not a decision.
+    pub verbs: &'static [&'static str],
 }
 
 pub static BANKS: [Bank; 5] = [
@@ -43,6 +46,7 @@ pub static BANKS: [Bank; 5] = [
         name: "Federal Reserve",
         feed: "https://www.federalreserve.gov/feeds/press_monetary.xml",
         statements: &["fomc statement"],
+        verbs: &[],
     },
     Bank {
         id: "cb-ecb",
@@ -50,6 +54,7 @@ pub static BANKS: [Bank; 5] = [
         name: "European Central Bank",
         feed: "https://www.ecb.europa.eu/rss/press.html",
         statements: &["monetary policy decisions"],
+        verbs: &[],
     },
     Bank {
         id: "cb-boe",
@@ -57,13 +62,24 @@ pub static BANKS: [Bank; 5] = [
         name: "Bank of England",
         feed: "https://www.bankofengland.co.uk/rss/news",
         statements: &["monetary policy summary"],
+        verbs: &[],
     },
     Bank {
         id: "cb-boc",
         key: "boc",
         name: "Bank of Canada",
         feed: "https://www.bankofcanada.ca/content_type/press-releases/feed/",
-        statements: &["the policy rate", "policy interest rate"],
+        statements: &["policy rate", "policy interest rate"],
+        verbs: &[
+            "maintains",
+            "holds",
+            "keeps",
+            "raises",
+            "increases",
+            "lowers",
+            "reduces",
+            "cuts",
+        ],
     },
     Bank {
         id: "cb-rba",
@@ -71,6 +87,7 @@ pub static BANKS: [Bank; 5] = [
         name: "Reserve Bank of Australia",
         feed: "https://www.rba.gov.au/rss/rss-cb-media-releases.xml",
         statements: &["statement by the monetary policy board"],
+        verbs: &[],
     },
 ];
 
@@ -82,6 +99,7 @@ impl Bank {
     fn is_statement(&self, title: &str) -> bool {
         let t = title.to_lowercase();
         self.statements.iter().any(|s| t.contains(s))
+            && (self.verbs.is_empty() || self.verbs.iter().any(|v| t.contains(v)))
     }
 }
 

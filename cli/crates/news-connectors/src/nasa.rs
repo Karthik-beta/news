@@ -185,7 +185,7 @@ impl Connector for Nasa {
             .max_by_key(|l| l.width.unwrap_or(0))
             .ok_or_else(|| shape("$.links", "no web-sized image rendition"))?;
         let credit = d.photographer.clone().filter(|c| !c.trim().is_empty());
-        let rehost = credit.as_deref().is_some_and(|c| c.starts_with("NASA"));
+        let rehost = credit.as_deref().is_some_and(|c| c.starts_with("NASA/"));
         let alt = d
             .description_508
             .clone()

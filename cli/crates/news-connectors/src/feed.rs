@@ -32,6 +32,8 @@ fn text<'a>(n: roxmltree::Node<'a, 'a>, name: &str) -> Option<String> {
 fn when(s: &str) -> Option<DateTime<Utc>> {
     DateTime::parse_from_rfc2822(s)
         .or_else(|_| DateTime::parse_from_rfc3339(s))
+        // RDF feeds (the RBA's) may leave out the seconds: 2026-11-06T10:45+11:00.
+        .or_else(|_| DateTime::parse_from_str(s, "%Y-%m-%dT%H:%M%:z"))
         .ok()
         .map(|d| d.with_timezone(&Utc))
         .or_else(|| {

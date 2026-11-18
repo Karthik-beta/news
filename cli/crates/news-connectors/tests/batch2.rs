@@ -729,14 +729,10 @@ fn fed_statements_get_policy_keys_from_their_publication_day() {
 #[test]
 fn boe_and_boc_statements_are_found_by_their_own_wording() {
     let boe = bank_items("cb-boe");
+    assert!(!boe.is_empty());
     assert!(
         boe.iter()
             .any(|r| r.event_key_hint.as_deref() == Some("policy:boe:2026-11-05"))
-            || boe.iter().all(|r| r
-                .event_key_hint
-                .as_deref()
-                .unwrap()
-                .starts_with("policy:boe:"))
     );
     assert!(boe.iter().all(|r| {
         r.title
@@ -750,6 +746,12 @@ fn boe_and_boc_statements_are_found_by_their_own_wording() {
         .find(|r| r.url.contains("fad-press-release-2026-10-28"))
         .unwrap();
     assert_eq!(oct.event_key_hint.as_deref(), Some("policy:boc:2026-10-28"));
+    // The 2027 schedule notice mentions "policy interest rate" but announces no decision.
+    assert!(boc.iter().all(|r| !r.url.contains("2027-schedule")));
+    assert!(
+        boc.iter()
+            .all(|r| !r.title.as_deref().unwrap().contains("schedule"))
+    );
     let conn = connector("cb-boc").unwrap();
     let f = conn.fetch_requests(oct);
     let p = conn
@@ -840,4 +842,70 @@ fn every_built_connector_is_registered_once() {
         nasa::ID,
     );
     let _ = (oecd::ID, ons::ID, openalex::ID, worldbank::ID);
+}
+
+#[test]
+fn boc_decision_verbs_are_matched_and_the_schedule_notice_is_not() {
+    let conn = connector("cb-boc").unwrap();
+    let feed = r#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://purl.org/rss/1.0/" xmlns:dc="http://purl.org/dc/elements/1.1/">
+      <item><title>Bank of Canada reduces policy rate by 25 basis points to 2%</title><link>https://www.bankofcanada.ca/a/</link><dc:date>2026-12-09T09:45:00+00:00</dc:date></item>
+      <item><title>Bank of Canada publishes its 2027 schedule for policy interest rate announcements and other major publications</title><link>https://www.bankofcanada.ca/b/</link><dc:date>2026-07-27T09:00:00+00:00</dc:date></item>
+      <item><title>Bank of Canada holds policy interest rate at 2%</title><link>https://www.bankofcanada.ca/c/</link><dc:date>2027-01-28T09:45:00+00:00</dc:date></item>
+    </rdf:RDF>"#;
+    let url = centralbank::bank("cb-boc").unwrap().feed;
+    let d = conn
+        .parse_discovery(&cx(&[]), None, &[snap(url, feed.as_bytes().to_vec())])
+        .unwrap();
+    let keys: Vec<_> = d
+        .refs
+        .iter()
+        .map(|r| r.event_key_hint.as_deref().unwrap())
+        .collect();
+    assert_eq!(keys, ["policy:boc:2026-12-09", "policy:boc:2027-01-28"]);
+}
+
+#[test]
+fn rba_dates_without_seconds_are_read_and_the_decision_is_found() {
+    // The RBA's RDF feed writes dc:date as 2026-11-06T10:45+11:00 (no seconds).
+    let conn = connector("cb-rba").unwrap();
+    let feed = r#"<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://purl.org/rss/1.0/" xmlns:dc="http://purl.org/dc/elements/1.1/">
+      <item><title>Statement by the Monetary Policy Board: Monetary Policy Decision</title><link>https://www.rba.gov.au/media-releases/2026/mr-26-32.html</link><dc:date>2026-11-03T14:30+11:00</dc:date></item>
+    </rdf:RDF>"#;
+    let url = centralbank::bank("cb-rba").unwrap().feed;
+    let d = conn
+        .parse_discovery(&cx(&[]), None, &[snap(url, feed.as_bytes().to_vec())])
+        .unwrap();
+    assert_eq!(d.refs.len(), 1);
+    assert_eq!(
+        d.refs[0].event_key_hint.as_deref(),
+        Some("policy:rba:2026-11-03")
+    );
+    // The recorded feed's own entries now carry dates too (a non-statement is still skipped).
+    assert!(bank_items("cb-rba").is_empty());
+}
+
+#[test]
+fn only_a_nasa_slash_credit_is_rehosted() {
+    let conn = connector("nasa").unwrap();
+    let c = cx(&[("nasa", &["artemis"])]);
+    let url = conn.discovery_requests(&c, None)[0].url.clone();
+    let d = conn
+        .parse_discovery(&c, None, &[snap(&url, fixture("nasa/search-artemis.json"))])
+        .unwrap();
+    let item = d.refs.iter().find(|r| r.key.ends_with("Launch-1")).unwrap();
+    let f = conn.fetch_requests(item);
+    let text =
+        String::from_utf8(fixture("nasa/item-KSC-04012026-Artemis II_Launch-1.json")).unwrap();
+    for (credit, rehost) in [
+        ("NASA/Brandon Hancock", true),
+        ("NASA, ESA, CSA, STScI", false),
+        ("NASA and J. Doe (Univ.)", false),
+        ("NASAStock", false),
+    ] {
+        let edited = text.replace("NASA/Brandon Hancock", credit);
+        let p = conn
+            .parse(item, &[snap(&f[0].url, edited.into_bytes())])
+            .unwrap();
+        assert_eq!(p.images[0].rehost, rehost, "{credit}");
+    }
 }
