@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/run.cancel.schema.json",
+  "title": "news run cancel",
+  "description": "Cancel a run; writes the Wrap. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "H",
+  "x-news-status": "stub until #10",
+  "x-news-errors": ["gated"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "run": {
+          "type": "string",
+          "description": "Run id or short id (r_…)"
+        }
+      },
+      "required": ["run"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "cancelled": {
+          "type": "boolean"
+        },
+        "wrap": {
+          "type": "object"
+        }
+      },
+      "required": ["cancelled", "wrap"],
+      "additionalProperties": false
+    }
+  }
+}

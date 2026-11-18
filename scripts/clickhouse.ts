@@ -25,6 +25,21 @@ export function dockerExecArgs(container: string): string[] {
   return ["exec", "-i", container, "clickhouse-client", "--multiquery"];
 }
 
+/**
+ * Split a SQL file into statements for the HTTP interface, which takes one statement per request.
+ * Drops `--` comment lines and blank statements; splits on a `;` that ends a line (the files in
+ * infra/clickhouse never put `;` inside a string or mid-line).
+ */
+export function splitStatements(sql: string): string[] {
+  return sql
+    .split("\n")
+    .filter((l) => !l.trimStart().startsWith("--"))
+    .join("\n")
+    .split(/;[ \t]*$/m)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 /** Run the rendered SQL in the container. The SQL (and so the password) goes on stdin, never in argv. */
 export function applyAccess(container: string, sql: string, runner: typeof run = run) {
   return runner("docker", dockerExecArgs(container), { input: sql });

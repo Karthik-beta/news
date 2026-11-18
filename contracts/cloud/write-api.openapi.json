@@ -1,0 +1,329 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "News write API",
+    "version": "1.0.0",
+    "description": "The api Worker (workers/api). Used by `news publish`, `news home publish`, `news home rollback` and `news corrections pull` on the laptop, plus the public report intake. Every route except /health and POST|OPTIONS /v1/reports needs `Authorization: Bearer <NEWS_WRITE_API_KEY>` (ADR 0006). Every write needs an `Idempotency-Key`: a replay with the same key and body returns the first response unchanged (header `Idempotent-Replayed: true`) and writes nothing; the same key with a different body is 409 idempotency_key_reused. Request bodies are JSON (`application/json`, UTF-8); anything else is 400 unsupported_content_type. Bodies over the route's limit are 413 payload_too_large. Errors always use the Error schema; its `code` list is the contract."
+  },
+  "servers": [{ "url": "https://api.news.karthik.nz", "description": "Production (host to be confirmed in #21)" }],
+  "security": [{ "writeKey": [] }],
+  "paths": {
+    "/health": {
+      "get": {
+        "security": [],
+        "summary": "Liveness",
+        "responses": {
+          "200": { "description": "Running", "content": { "application/json": { "schema": { "type": "object" } } } }
+        }
+      }
+    },
+    "/v1/pages/{page_id}": {
+      "put": {
+        "summary": "Publish or update a page bundle",
+        "description": "Validates the bundle (schema, file hashes and sizes, bundle_sha256, meta.json against meta.v1), then writes the R2 files under the page path, PAGE#/V#<n>, HUB# entries (latest, categories with parents, entities, region), ENT# records and the D1 search row, moves PAGE#/LATEST last, then removes the hub entries and files the previous version had and this one dropped, and purges the page's files, its hubs (old and new) and the home page. Refused before anything is written: an older version, a reused version number with other content, a URL change (409), and re-sending the version of a withdrawn page (409 page_withdrawn; a higher version publishes it again). One operation per page at a time: another one running gives 409 page_busy. A retry with the same key after any failure finishes the job. Body limit 1 MiB.",
+        "parameters": [
+          { "$ref": "#/components/parameters/pageId" },
+          { "$ref": "#/components/parameters/idempotencyKey" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/putPageRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Published",
+            "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/putPageResponse" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "413": { "$ref": "#/components/responses/TooLarge" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" },
+          "502": { "$ref": "#/components/responses/PurgeFailed" },
+          "503": { "$ref": "#/components/responses/Unavailable" }
+        }
+      }
+    },
+    "/v1/pages/{page_id}/withdraw": {
+      "post": {
+        "summary": "Withdraw a page",
+        "description": "Marks PAGE#/LATEST withdrawn (versions are kept), deletes its hub entries, its search row and its public R2 files, and purges. Those steps run again on every call, so a retry after a failure (or withdrawing again) finishes a withdrawal; the first reason and time are kept.",
+        "parameters": [
+          { "$ref": "#/components/parameters/pageId" },
+          { "$ref": "#/components/parameters/idempotencyKey" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/withdrawRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Withdrawn",
+            "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/pageOpResponse" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "413": { "$ref": "#/components/responses/TooLarge" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" },
+          "502": { "$ref": "#/components/responses/PurgeFailed" },
+          "503": { "$ref": "#/components/responses/Unavailable" }
+        }
+      }
+    },
+    "/v1/pages/{page_id}/index": {
+      "post": {
+        "summary": "Set a page's index status (index promotion)",
+        "description": "Updates index_status on PAGE#/LATEST, its hub entries and its search row, and purges the page's URL. 409 page_withdrawn for a withdrawn page.",
+        "parameters": [
+          { "$ref": "#/components/parameters/pageId" },
+          { "$ref": "#/components/parameters/idempotencyKey" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/indexRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/pageOpResponse" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "413": { "$ref": "#/components/responses/TooLarge" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" },
+          "502": { "$ref": "#/components/responses/PurgeFailed" },
+          "503": { "$ref": "#/components/responses/Unavailable" }
+        }
+      }
+    },
+    "/v1/home/curation": {
+      "put": {
+        "summary": "Publish a home curation",
+        "description": "Validates against curation.v1, runs the home checks again on the live page records (ADR 0005), writes HOME#CURATION/V#<n> and moves LATEST in one transaction, then purges exactly the home page and the region views. Rejections are 400 invalid_curation with one detail per failed rule. Body limit 64 KiB.",
+        "parameters": [{ "$ref": "#/components/parameters/idempotencyKey" }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "curation.v1.schema.json" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Live",
+            "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/curationResponse" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "413": { "$ref": "#/components/responses/TooLarge" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" },
+          "502": { "$ref": "#/components/responses/PurgeFailed" },
+          "503": { "$ref": "#/components/responses/Unavailable" }
+        }
+      }
+    },
+    "/v1/home/curation/rollback": {
+      "post": {
+        "summary": "Make an earlier curation version live",
+        "description": "Copies HOME#CURATION/V#<version> to LATEST and purges exactly the home page and the region views. Versions are never renumbered: the next publish continues after the newest version.",
+        "parameters": [{ "$ref": "#/components/parameters/idempotencyKey" }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/rollbackRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Rolled back",
+            "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/curationResponse" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "413": { "$ref": "#/components/responses/TooLarge" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" },
+          "502": { "$ref": "#/components/responses/PurgeFailed" },
+          "503": { "$ref": "#/components/responses/Unavailable" }
+        }
+      }
+    },
+    "/v1/taxonomy": {
+      "put": {
+        "summary": "Add or update category nodes",
+        "parameters": [{ "$ref": "#/components/parameters/idempotencyKey" }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/taxonomyRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Written",
+            "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/countResponse" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "413": { "$ref": "#/components/responses/TooLarge" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" },
+          "502": { "$ref": "#/components/responses/PurgeFailed" },
+          "503": { "$ref": "#/components/responses/Unavailable" }
+        }
+      }
+    },
+    "/v1/redirects": {
+      "put": {
+        "summary": "Add or update redirects (renamed hubs)",
+        "parameters": [{ "$ref": "#/components/parameters/idempotencyKey" }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/redirectsRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Written",
+            "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/countResponse" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "413": { "$ref": "#/components/responses/TooLarge" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" },
+          "502": { "$ref": "#/components/responses/PurgeFailed" },
+          "503": { "$ref": "#/components/responses/Unavailable" }
+        }
+      }
+    },
+    "/v1/reports": {
+      "get": {
+        "summary": "Reader error reports, in order of receipt (Errata: `news corrections pull`)",
+        "parameters": [
+          {
+            "name": "after",
+            "in": "query",
+            "description": "A UTC timestamp or a previous next_after. Default: 30 days ago. Reports older than the retention window (180 days) are gone.",
+            "schema": { "$ref": "write-api.schema.json#/$defs/reportsCursor" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 200, "default": 100 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reports",
+            "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/reportsResponse" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      },
+      "post": {
+        "security": [],
+        "summary": "Public report intake (the page's error form)",
+        "description": "No key. Accepted from the site's origin or from clients that send no Origin; other origins get 403. Rate limits: 5 a minute per client IP and 60 a minute per Cloudflare location, then a site-wide daily cap (NEWS_REPORT_DAILY_CAP, default 200; 429 with Retry-After until midnight UTC). Body limit 8 KiB (413); text at most 4,000 bytes. A filled `website` honeypot gets the same 202 and stores nothing. Stores the report text, the page, the optional where and e-mail in the reports D1 database; never the IP address or other request details. Records expire after 180 days. Report text is untrusted input.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "report.schema.json#/$defs/intake" } } }
+        },
+        "responses": {
+          "202": {
+            "description": "Received",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object", "properties": { "status": { "const": "received" } } }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "413": { "$ref": "#/components/responses/TooLarge" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      },
+      "options": {
+        "security": [],
+        "summary": "CORS preflight; allows the site's origin only",
+        "responses": { "204": { "description": "Preflight answer" } }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "writeKey": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "The one write key (NEWS_WRITE_API_KEY, at least 32 characters), compared in constant time. Failed attempts are rate-limited per client (10 a minute); a limited client is refused before any key comparison until its minute is up."
+      }
+    },
+    "parameters": {
+      "pageId": {
+        "name": "page_id",
+        "in": "path",
+        "required": true,
+        "schema": { "$ref": "common.schema.json#/$defs/pageId" }
+      },
+      "idempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "description": "8–255 characters of A–Z a–z 0–9 : . _ -. For a page: '<page_id>:<version>:<bundle_sha256>' (Bureau Design 5.8). Kept 7 days.",
+        "schema": { "type": "string", "pattern": "^[A-Za-z0-9:._-]{8,255}$" }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "unsupported_content_type, invalid_json, invalid_request, invalid_meta, invalid_bundle, invalid_curation, unknown_page, idempotency_key_required or idempotency_key_invalid",
+        "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/error" } } }
+      },
+      "Unauthorized": {
+        "description": "unauthorized",
+        "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/error" } } }
+      },
+      "Forbidden": {
+        "description": "forbidden",
+        "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/error" } } }
+      },
+      "NotFound": {
+        "description": "not_found",
+        "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/error" } } }
+      },
+      "Conflict": {
+        "description": "idempotency_key_reused, idempotency_in_progress, version_conflict, path_conflict, page_withdrawn or page_busy (Retry-After: 5)",
+        "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/error" } } }
+      },
+      "TooLarge": {
+        "description": "payload_too_large",
+        "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/error" } } }
+      },
+      "RateLimited": {
+        "description": "rate_limited (Retry-After: 60)",
+        "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/error" } } }
+      },
+      "ServerError": {
+        "description": "internal or not_configured",
+        "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/error" } } }
+      },
+      "PurgeFailed": {
+        "description": "purge_failed: the data was written but the cache purge failed; retry with the same Idempotency-Key",
+        "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/error" } } }
+      },
+      "Unavailable": {
+        "description": "throttled: DynamoDB capacity used up (Retry-After: 2); lock_expired: the page operation ran out of time on its page lock and stopped before its next write (Retry-After: 5); or outcome_unknown: a write got no answer and may have been applied (Retry-After: 120; the key and page lock stay held until then). Retry with the same Idempotency-Key.",
+        "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/error" } } }
+      }
+    }
+  }
+}

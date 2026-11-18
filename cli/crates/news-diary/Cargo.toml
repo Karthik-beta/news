@@ -1,0 +1,13 @@
+[package]
+name = "news-diary"
+description = "Diary, the release calendar. Skeleton with handler stubs; built in #12."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+news-core = { workspace = true }
+
+[lints]
+workspace = true

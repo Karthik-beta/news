@@ -2,7 +2,7 @@
 // 1. Creates .env from .env.example with generated local passwords (never overwrites an existing value).
 // 2. Starts PostgreSQL + pgvector, the OTel Collector and DynamoDB Local (for the Worker tests).
 // 3. Creates the isolated `news` database and user in the shared ClickHouse.
-// 4. Installs JS dependencies, syncs design tokens, builds the Rust CLI.
+// 4. Installs JS dependencies, syncs design tokens, builds the Rust CLI, applies migrations, enables the git hooks.
 // 5. Runs the doctor with the end-to-end telemetry check.
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
@@ -67,4 +67,7 @@ step("ClickHouse news database and user", "bun", ["scripts/clickhouse-setup.ts"]
 step("install JS dependencies", "bun", ["install"]);
 step("sync design tokens", "bun", ["site/scripts/sync-tokens.ts"]);
 step("build the Rust CLI", "cargo", ["build"], join(root, "cli"));
+step("PostgreSQL migrations (news db migrate)", join(root, "cli/target/debug/news"), ["db", "migrate"]);
+// The local gitleaks pre-commit hook (.githooks/pre-commit); it skips with a note when gitleaks is not installed.
+step("git hooks (gitleaks pre-commit)", "git", ["config", "core.hooksPath", ".githooks"]);
 step("doctor (with end-to-end telemetry check)", "bun", ["scripts/doctor.ts", "--e2e"]);

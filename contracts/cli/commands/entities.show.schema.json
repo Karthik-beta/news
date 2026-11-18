@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/entities.show.schema.json",
+  "title": "news entities show",
+  "description": "One entity. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "R",
+  "x-news-status": "stub until #12",
+  "x-news-errors": ["not_found"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "entity": {
+          "type": "string"
+        }
+      },
+      "required": ["entity"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "entity_id": {
+          "type": "integer"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "ids": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "scheme": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              }
+            },
+            "required": ["scheme", "value"],
+            "additionalProperties": false
+          }
+        },
+        "aliases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": ["entity_id", "kind", "name", "ids", "aliases"],
+      "additionalProperties": false
+    }
+  }
+}

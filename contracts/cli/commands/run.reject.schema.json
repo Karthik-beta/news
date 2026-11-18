@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/run.reject.schema.json",
+  "title": "news run reject",
+  "description": "Reject at the open gate. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "H",
+  "x-news-status": "stub until #10",
+  "x-news-errors": ["precondition", "gated"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "run": {
+          "type": "string",
+          "description": "Run id or short id (r_…)"
+        },
+        "gate": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "decision": {
+          "enum": ["approved", "changes", "rejected"]
+        },
+        "round": {
+          "type": "integer"
+        },
+        "subject_sha": {
+          "type": "string"
+        }
+      },
+      "required": ["decision", "round", "subject_sha"],
+      "additionalProperties": false
+    }
+  }
+}

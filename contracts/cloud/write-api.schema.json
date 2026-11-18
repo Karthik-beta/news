@@ -1,0 +1,227 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cloud/write-api.schema.json",
+  "title": "Write API request and response bodies",
+  "description": "JSON Schemas for the bodies of the write API (write-api.openapi.json). Every body is validated by precompiled validators in workers/shared before anything is written.",
+  "$defs": {
+    "putPageRequest": {
+      "description": "A whole page bundle. Files are UTF-8 text keyed by their manifest path; every manifest file must be present and match its SHA-256 and size.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["manifest", "files"],
+      "properties": {
+        "manifest": { "$ref": "../bundle/manifest.schema.json" },
+        "files": {
+          "type": "object",
+          "minProperties": 6,
+          "maxProperties": 64,
+          "propertyNames": {
+            "pattern": "^(?:index\\.html|index\\.md|data\\.json|sources\\.json|meta\\.json|page\\.oui|charts/[a-z0-9][a-z0-9-]{0,63}\\.csv)$"
+          },
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+    "putPageResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["page_id", "version", "url", "status", "purged"],
+      "properties": {
+        "page_id": { "$ref": "common.schema.json#/$defs/pageId" },
+        "version": { "type": "integer" },
+        "url": { "type": "string" },
+        "status": { "const": "published" },
+        "purged": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "withdrawRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reason"],
+      "properties": {
+        "reason": { "type": "string", "minLength": 3, "maxLength": 300 }
+      }
+    },
+    "indexRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["index_status"],
+      "properties": {
+        "index_status": { "$ref": "common.schema.json#/$defs/indexStatus" }
+      }
+    },
+    "pageOpResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["page_id", "version", "status", "index_status", "purged"],
+      "properties": {
+        "page_id": { "$ref": "common.schema.json#/$defs/pageId" },
+        "version": { "type": "integer" },
+        "status": { "type": "string", "enum": ["published", "withdrawn"] },
+        "index_status": { "$ref": "common.schema.json#/$defs/indexStatus" },
+        "purged": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "rollbackRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version"],
+      "properties": {
+        "version": { "type": "integer", "minimum": 1, "maximum": 999999 }
+      }
+    },
+    "curationResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "live_version", "purged"],
+      "properties": {
+        "version": { "type": "integer" },
+        "live_version": { "type": "integer" },
+        "purged": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "taxonomyRequest": {
+      "description": "Adds or updates taxonomy nodes. Categories are data, not code (TD, Taxonomy). Renames are a new node plus a redirect.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodes"],
+      "properties": {
+        "nodes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "items": { "$ref": "#/$defs/taxonomyNode" }
+        }
+      }
+    },
+    "taxonomyNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "parent", "order", "lang"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/categorySlug" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "parent": {
+          "oneOf": [{ "$ref": "common.schema.json#/$defs/categorySlug" }, { "type": "null" }]
+        },
+        "order": { "type": "integer", "minimum": 0, "maximum": 10000 },
+        "lang": { "$ref": "common.schema.json#/$defs/lang" }
+      }
+    },
+    "redirectsRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["redirects"],
+      "properties": {
+        "redirects": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["from", "to", "status"],
+            "properties": {
+              "from": { "$ref": "#/$defs/sitePath" },
+              "to": { "$ref": "#/$defs/sitePath" },
+              "status": { "type": "integer", "enum": [301, 308] }
+            }
+          }
+        }
+      }
+    },
+    "sitePath": {
+      "description": "A path on the site: starts with '/', no query, no fragment, no '..', no '#'.",
+      "type": "string",
+      "maxLength": 300,
+      "pattern": "^/(?:[a-z0-9_-]+(?:\\.[a-z0-9_-]+)*(?:/[a-z0-9_-]+(?:\\.[a-z0-9_-]+)*)*/?)?$"
+    },
+    "countResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["written", "purged"],
+      "properties": {
+        "written": { "type": "integer" },
+        "purged": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "reportsResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reports", "next_after"],
+      "properties": {
+        "reports": { "type": "array", "items": { "$ref": "report.schema.json#/$defs/record" } },
+        "next_after": {
+          "description": "Pass as `after` to continue; null when every report up to now has been returned. Reports received in the last 60 seconds are left for a later pull, so a report still being written never falls behind next_after.",
+          "oneOf": [{ "$ref": "#/$defs/reportsCursor" }, { "type": "null" }]
+        }
+      }
+    },
+    "reportsCursor": {
+      "description": "A UTC timestamp (reports received at or after it; any number of fractional digits, compared as a time) or a previous `next_after` (reports after that one). Never looks back more than 180 days, the retention.",
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,3})?Z(?:#r_[0-9a-f]{32})?$"
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["error"],
+      "properties": {
+        "error": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code", "message"],
+          "properties": {
+            "code": {
+              "type": "string",
+              "enum": [
+                "unauthorized",
+                "forbidden",
+                "not_found",
+                "method_not_allowed",
+                "unsupported_content_type",
+                "invalid_json",
+                "invalid_request",
+                "invalid_meta",
+                "invalid_bundle",
+                "invalid_curation",
+                "idempotency_key_required",
+                "idempotency_key_invalid",
+                "idempotency_key_reused",
+                "idempotency_in_progress",
+                "version_conflict",
+                "path_conflict",
+                "unknown_page",
+                "page_withdrawn",
+                "page_busy",
+                "lock_expired",
+                "purge_failed",
+                "not_configured",
+                "payload_too_large",
+                "rate_limited",
+                "throttled",
+                "outcome_unknown",
+                "internal"
+              ]
+            },
+            "message": { "type": "string" },
+            "details": {
+              "type": "array",
+              "maxItems": 50,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["code", "message"],
+                "properties": {
+                  "code": { "type": "string" },
+                  "message": { "type": "string" },
+                  "path": { "type": "string" }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

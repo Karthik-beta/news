@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/hotline/commands/subscribe.schema.json",
+  "title": "Hotline subscribe",
+  "description": "Turn this connection into an event stream (`event.schema.json`). The reply carries the current seq; afterwards the server only sends events. Input is the request's args; output is the reply envelope's data.",
+  "x-news-tier": "R",
+  "x-hotline-from": ["board", "terminal"],
+  "x-news-status": "#10",
+  "x-news-cli": null,
+  "x-news-errors": ["usage"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "topics": {
+          "type": "array",
+          "items": {
+            "$ref": "../common.schema.json#/$defs/topic"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": ["topics"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "topics": {
+          "type": "array",
+          "items": {
+            "$ref": "../common.schema.json#/$defs/topic"
+          }
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": ["topics", "seq"],
+      "additionalProperties": false
+    }
+  }
+}

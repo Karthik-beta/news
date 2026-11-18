@@ -220,7 +220,7 @@ Trust rests on three things: the author's real identity on a personal domain, a 
 
 - **Authorship.** Every page states plainly how it was made: built with Claude (AI), checked automatically, run by Karthik, with a link to the author's main site.
 - **Methodology page.** Explains the process (public sources → code fetches and parses data → Claude writes the page → automated checks and sample checks → publish), the source rules, the no-conversion policy for units and periods, and the licence.
-- **Numbers come from data, not the AI.** Pages reference figures by ID and code fills in the values from the source data.
+- **Numbers come from data, not the AI.** Pages reference figures by ID and code fills in the values from the source data. Some figures, such as a change from a year earlier or a share of a total, are calculated by News from the source's own figures, only between like-for-like values (same unit, currency, scale and comparable periods), and are labelled "Calculated by News from …" with the formula recorded (Bureau design, decision D5). The methodology page says so.
 - **Report an error.** A small link on every page opens a short form. When something is fixed, the page shows "Updated on …".
 - **Accuracy note.** A brief, low-key note in the footer and methodology page: content is built from public sources with AI and may contain errors; check the linked source.
 - **Disclaimers.** "Not investment advice" on finance and economy pages; "Not medical advice" on health-related science pages.
@@ -228,17 +228,17 @@ Trust rests on three things: the author's real identity on a personal domain, a 
 
 ## Content production
 
-Pages are produced at scale by Claude Code agents on the author's laptop, started by a prompt (manually, or by a local scheduler). The author's prompt is the approval step; there is no per-page manual review.
+Pages are produced at scale by Claude Code agents (`claude -p`) on the author's laptop, by the local system called Bureau ([Bureau design](News%20—%20Bureau%20Design.md)). Bureau runs as an always-on Windows service, and the author controls it from **Board**, a desktop app: starting runs, answering approvals, setting schedules and settings, and watching analytics ([ADR 0007](docs/adr/0007-bureau-service-and-board.md)). Runs that call a model start only from the author: a Start in Board, or a schedule he set in Board, which counts as his approval to start. The main run is the Edition, 2–3 times a day. Background jobs (release-calendar sync, capture of releases at their scheduled time, source discovery) run all the time and call no model. The author's Start or schedule is the approval step; there is no per-page manual review. Scheduled runs publish only pages that pass every automated check, and workflows with an approval stop wait for the author in Board.
 
 ### How a run works
 
-1. The author prompts Claude Code to run a batch. `NEWS_TARGET_PAGES` (default 100) suggests how many pages to make; it is not a hard limit.
-2. A designed content system discovers, scores, clusters and selects items breadth-first across categories, regions and page types.
+1. A run starts from a schedule the author set in Board, or when he presses Start. `NEWS_TARGET_PAGES` (default 100, a setting) suggests how many pages to make; it is not a hard limit.
+2. A designed content system discovers, scores, clusters and selects items breadth-first across categories, regions and page types. Scheduled releases are captured on time by code from the official release calendars, so they are ready when the run starts.
 3. Code fetches and parses all source data (APIs, XBRL, PDFs) before any AI sees it, and builds a compact brief per item.
 4. Claude writes each page: Sonnet 5.5 for layout and text, Haiku 5.5 for lighter tasks. Each page is a small, separate call to keep token use low.
 5. Code renders the page, runs automated checks, and Haiku spot-checks a sample.
 6. Code publishes the page, updates hubs and search, and applies the daily indexing budget.
-7. Local working files are pruned; the knowledge graph, ledger and telemetry are kept.
+7. Local working files are pruned; the knowledge graph, ledger and telemetry are kept, and the raw source files behind every figure are kept for a retention period so each figure stays provable (Bureau design, decision D7).
 
 ### Cadence and volume
 
@@ -250,10 +250,10 @@ Pages are produced at scale by Claude Code agents on the author's laptop, starte
 
 The home page is curated, not just a feed of the newest pages.
 
-- **When:** every 2–3 days the author runs a preset curation workflow in Claude Code (one command). There is no fixed schedule; if a run is missed, the last curation stays live.
+- **When:** every 2–3 days, on a schedule the author sets in Board, or when he starts the Frontpage workflow from Board. If a curation is missed, the last one stays live.
 - **What the agent decides:** the lead story, the two side stories, which sections appear and in what order, the 3–4 stories in each section, and which existing key figure or mini chart each story shows. It picks for importance, freshness and breadth across categories, regions and page types, with Tier 1 pages first.
 - **What it never does:** write new headlines, summaries or commentary. Every story on the home page uses its own page's fly title, headline, summary and figures, so the home page carries the same citations and wording as the page itself.
-- **Approval:** the workflow checks the curation automatically, shows the author a local preview, and publishes only after the author approves it in the session. Every published curation is versioned and can be rolled back.
+- **Approval:** the workflow checks the curation automatically, shows the author a local preview in Board, and publishes only after the author approves it there (he can also ask for changes with a note, or reject it). Every published curation is versioned and can be rolled back from Board.
 - **Server side, no rebuild:** the curation is stored as data in the cloud database. The home page is rendered on request from that data and cached at the edge; publishing a curation only stores the new version and clears the home page cache. Nothing is rebuilt or redeployed.
 - **Between curations:** curated slots stay as chosen. The "Latest" list updates on every publish. If a curated page is withdrawn, its slot is filled automatically from the best recent pages. The region filter shows the curated stories for that region, topped up with its latest pages.
 
@@ -266,9 +266,9 @@ Page-type skills, a brand skill and a component library built with Opus 5.5 keep
 The full design is in News — Technical Design. In short:
 
 - **All work and all AI run on the author's laptop:** fetching, parsing, Claude agents, rendering, telemetry. The cloud only stores and serves pages and runs no AI.
-- **Local stack:** a Rust `news` CLI for CPU-heavy work, Bun and Astro for rendering, PostgreSQL with pgvector for the queue and knowledge graph, and the existing ClickHouse (separate database) for telemetry.
+- **Local stack:** one Rust `news` binary that is the CLI for CPU-heavy work, the always-on Bureau service and Board, the author's desktop app for control and analytics; Bun and Astro for rendering; PostgreSQL with pgvector for the queue and knowledge graph; and the existing ClickHouse (separate database) for telemetry.
 - **Cloud:** Cloudflare R2 serves article pages as static files; AWS DynamoDB is the database of record; Cloudflare D1 holds the search index; Cloudflare Workers run the dynamic pages (home, hubs, latest, categories), the write API, search and the MCP v2 server.
-- **No site rebuilds:** each page is rendered on the laptop and uploaded on its own; dynamic pages are cached at the edge for hours or days and refreshed only where a new page affects them. The home page's curation is data, published by the curation workflow and read by the home page at request time.
+- **No site rebuilds:** each page is rendered on the laptop and uploaded on its own; dynamic pages are cached at the edge for hours or days and refreshed only where a new page affects them. The home page's curation is data, published by the Frontpage workflow and read by the home page at request time.
 - **Free tiers only**, with paid upgrades considered only when the site grows.
 
 ## Distribution
@@ -326,7 +326,7 @@ Phases run in order with no fixed dates; each starts when the previous one's exi
 1. **Phase 0 — Foundations.** Local services (PostgreSQL, OTel Collector, ClickHouse database), Cloudflare and AWS accounts with budget alarms, and a spike proving OpenUI pages render to static HTML.
    - Exit: one page rendered end to end and events reaching ClickHouse.
 2. **Phase 1 — Design and components.** Agree the design direction with the author (using the `frontend-design` skill), then build the component library with Opus 5.5.
-3. **Phase 2 — Content system and tooling.** Design the content system with Opus 5.5; build the Rust `news` CLI, first source connectors, orchestration (including the home page curation workflow) and telemetry.
+3. **Phase 2 — Content system and tooling.** Design the content system with Opus 5.5; build the Rust `news` CLI, the Bureau service and Board (early, so every later feature lands in Board), first source connectors, orchestration (including the home page curation workflow) and telemetry.
 4. **Phase 3 — Launch (v1).** Cloud services live (static pages, dynamic hubs, curated dynamic home page, search, MCP v2, Report an error, analytics); first runs at a low indexing budget.
    - Exit: site live on `news.karthik.nz`, runs producing 100+ pages each, and the home page curated at least once through the workflow.
 5. **Phase 4 — Scale.** Raise volume and indexing budget using telemetry and Search Console; bulk dumps; email newsletter (free tier); social sharing.
@@ -340,14 +340,15 @@ Phases run in order with no fixed dates; each starts when the previous one's exi
 | --- | --- | --- |
 | Search engines treat the volume as scaled content | Domain reputation harmed | Separate publishing from indexing; low indexing budget raised gradually; unique data and visuals on every page |
 | Wrong figure published (units, period, sign, wrong data field) | Errors carry the author's name | Numbers filled from source data by code; automated checks on every page; Haiku sample checks; Report an error and "Updated on" |
-| Free-tier limits reached | Search fails for the day, throttled writes, or billing | Static pages bypass compute; edge caching; sharded search; budget alarms; usage tracked in the local dashboard |
+| Free-tier limits reached | Search fails for the day, throttled writes, or billing | Static pages bypass compute; edge caching; sharded search; budget alarms; usage tracked in Board |
 | OpenUI cannot render on the server | Pages harder for search engines and AI to read | Early spike in Phase 0; fallback plan before building the library |
 | Free public APIs change or go offline | Fetch failures | One connector per source; failures logged and retried |
 | Hotlinked images break or are blocked | Missing visuals | Allow-listed sources; placeholder with alt text and credit; periodic link check |
 | Unclear licence for some sources | Redistribution risk | Licence in the source registry; link and summarise instead of republishing data |
-| Claude usage limits on large runs | Smaller runs | Lean prompts, cached instructions, small briefs; runs resume where they stopped |
+| Claude usage limits on large runs | Smaller runs | Lean prompts, cached instructions, small briefs; runs pause at the limit and resume on their own when it resets; a Bureau token cap and reserve keep quota for the author's other work |
+| Scheduled runs publish without the author watching | A bad batch goes live | Only pages that pass every automated check publish; sample checks; plan review can be switched on per schedule; pages can be withdrawn or corrected from Board |
 | Hobby priority drops | Site goes stale | Static pages stay online; pages archived in the Internet Archive |
-| Home curation is skipped for a while | Home page looks dated | "Latest" list keeps updating on every publish; withdrawn pages are replaced automatically; the local dashboard flags a curation older than 4 days |
+| Home curation is skipped for a while | Home page looks dated | "Latest" list keeps updating on every publish; withdrawn pages are replaced automatically; Frontpage can run on a schedule; Board flags a curation older than 4 days |
 
 ### Open questions
 

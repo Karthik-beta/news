@@ -1,0 +1,31 @@
+---
+source: crates/news/tests/cli.rs
+expression: "stdout_of(&[\"run\", \"--help\"])"
+---
+Chief: preset runs behind /bureau
+
+Usage: news run [OPTIONS] <COMMAND>
+
+Commands:
+  presets      The preset catalogue
+  intent       Map what Karthik typed after /bureau to an action
+  start        Start a preset (needs an issued start ticket)
+  next         Advance a run to its next stop
+  status       The status board, or one run
+  approve      Approve the open gate (H tier)
+  changes      Ask for changes at the open gate (H tier)
+  reject       Reject at the open gate (H tier)
+  resume       Resume a paused or stalled run
+  pause        Pause a run at the next step boundary
+  submit       Submit a session step's result
+  cancel       Cancel a run (H tier)
+  hook-prompt  The UserPromptSubmit hook (H tier)
+  ticket       Issue a start ticket from a terminal (H tier)
+  list         Recent runs
+  help         Print this message or the help of the given subcommand(s)
+
+Options:
+      --limit <N>        Return at most N list items (default 20; `jobs claim`: how many to claim, default 1)
+      --fields <A,B>     Keep only these keys of each item, comma-separated
+      --cursor <CURSOR>  Continue a truncated list from its next_cursor
+  -h, --help             Print help

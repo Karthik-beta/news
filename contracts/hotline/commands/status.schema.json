@@ -1,0 +1,613 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/hotline/commands/status.schema.json",
+  "title": "Hotline status",
+  "description": "The status board (Bureau §8.1): running, waiting for Karthik, queued, due, problems and the next action, plus code-rendered `text`. Built from PostgreSQL with no network calls; `news run status` returns the same object in-process. Input is the request's args; output is the reply envelope's data.",
+  "x-news-tier": "R",
+  "x-hotline-from": ["board", "terminal"],
+  "x-news-status": "#10",
+  "x-news-cli": "news run status",
+  "x-news-errors": ["upstream_unavailable"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "as_of": {
+          "$ref": "../common.schema.json#/$defs/timestamp"
+        },
+        "time_zone": {
+          "type": "string"
+        },
+        "service": {
+          "type": "object",
+          "properties": {
+            "state": {
+              "enum": ["starting", "waiting_for_database", "recovering", "up", "stopping", "down"]
+            },
+            "settings_version": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": ["state", "settings_version"],
+          "additionalProperties": false
+        },
+        "heavy_slot": {
+          "$ref": "../common.schema.json#/$defs/heavySlot"
+        },
+        "running": {
+          "type": "array",
+          "items": {
+            "$ref": "../common.schema.json#/$defs/runSummary"
+          }
+        },
+        "waiting": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/waitingItem"
+          }
+        },
+        "queued": {
+          "type": "array",
+          "items": {
+            "$ref": "../common.schema.json#/$defs/lineupEntry"
+          }
+        },
+        "due": {
+          "$ref": "#/$defs/due"
+        },
+        "problems": {
+          "$ref": "#/$defs/problems"
+        },
+        "next": {
+          "$ref": "#/$defs/next"
+        },
+        "text": {
+          "$ref": "../common.schema.json#/$defs/text"
+        }
+      },
+      "required": [
+        "as_of",
+        "time_zone",
+        "service",
+        "heavy_slot",
+        "running",
+        "waiting",
+        "queued",
+        "due",
+        "problems",
+        "next",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "waitingItem": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": ["gate", "form", "paused"]
+        },
+        "run_id": {
+          "$ref": "../common.schema.json#/$defs/uuid"
+        },
+        "short_id": {
+          "$ref": "../common.schema.json#/$defs/shortId"
+        },
+        "preset": {
+          "$ref": "../common.schema.json#/$defs/presetId"
+        },
+        "since": {
+          "$ref": "../common.schema.json#/$defs/timestamp"
+        },
+        "summary": {
+          "$ref": "../common.schema.json#/$defs/summary"
+        },
+        "gate": {
+          "anyOf": [
+            {
+              "$ref": "../common.schema.json#/$defs/gateOpen"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "paused_reason": {
+          "anyOf": [
+            {
+              "$ref": "../common.schema.json#/$defs/pausedReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "resume_at": {
+          "anyOf": [
+            {
+              "$ref": "../common.schema.json#/$defs/timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "$ref": "../common.schema.json#/$defs/hAction"
+          },
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "kind",
+        "run_id",
+        "short_id",
+        "preset",
+        "since",
+        "summary",
+        "gate",
+        "paused_reason",
+        "resume_at",
+        "actions"
+      ],
+      "additionalProperties": false
+    },
+    "dueState": {
+      "enum": ["not_due", "due", "stale"]
+    },
+    "cadence": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "last_run": {
+              "anyOf": [
+                {
+                  "$ref": "../common.schema.json#/$defs/shortId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "age_days": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "every_days": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "state": {
+              "$ref": "#/$defs/dueState"
+            }
+          },
+          "required": ["last_run", "age_days", "every_days", "state"],
+          "additionalProperties": false
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "due": {
+      "type": "object",
+      "properties": {
+        "schedules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "schedule_key": {
+                "$ref": "../common.schema.json#/$defs/scheduleKey"
+              },
+              "preset": {
+                "$ref": "../common.schema.json#/$defs/presetId"
+              },
+              "next_at": {
+                "$ref": "../common.schema.json#/$defs/timestamp"
+              }
+            },
+            "required": ["schedule_key", "preset", "next_at"],
+            "additionalProperties": false
+          }
+        },
+        "diary": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "event_key": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "expected_at": {
+                "$ref": "../common.schema.json#/$defs/timestamp"
+              },
+              "status": {
+                "enum": ["expected", "captured", "late"]
+              },
+              "story_id": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "score": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "tier": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": ["event_key", "title", "expected_at", "status", "story_id", "score", "tier"],
+            "additionalProperties": false
+          }
+        },
+        "stories_waiting": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "total": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "tier1": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "last_edition": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "run_id": {
+                          "$ref": "../common.schema.json#/$defs/uuid"
+                        },
+                        "short_id": {
+                          "$ref": "../common.schema.json#/$defs/shortId"
+                        },
+                        "finished_at": {
+                          "$ref": "../common.schema.json#/$defs/timestamp"
+                        }
+                      },
+                      "required": ["run_id", "short_id", "finished_at"],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": ["total", "tier1", "last_edition"],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "frontpage": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "version": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "age_days": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "due_after_days": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "stale_after_days": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "state": {
+                  "$ref": "#/$defs/dueState"
+                }
+              },
+              "required": ["version", "age_days", "due_after_days", "stale_after_days", "state"],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "huddle": {
+          "$ref": "#/$defs/cadence"
+        },
+        "rollcall": {
+          "$ref": "#/$defs/cadence"
+        }
+      },
+      "required": ["schedules", "diary", "stories_waiting", "frontpage", "huddle", "rollcall"],
+      "additionalProperties": false
+    },
+    "problems": {
+      "type": "object",
+      "properties": {
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "source_id": {
+                "type": "string"
+              },
+              "health": {
+                "enum": ["amber", "red"]
+              },
+              "reason": {
+                "type": "string"
+              },
+              "since": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "sitrep": {
+                "anyOf": [
+                  {
+                    "$ref": "../common.schema.json#/$defs/shortId"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": ["source_id", "health", "reason", "since", "sitrep"],
+            "additionalProperties": false
+          }
+        },
+        "dead_jobs": {
+          "type": "object",
+          "properties": {
+            "total": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "by_class": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "since_salvage": {
+              "anyOf": [
+                {
+                  "$ref": "../common.schema.json#/$defs/shortId"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": ["total", "by_class", "since_salvage"],
+          "additionalProperties": false
+        },
+        "failed_runs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "run_id": {
+                "$ref": "../common.schema.json#/$defs/uuid"
+              },
+              "short_id": {
+                "$ref": "../common.schema.json#/$defs/shortId"
+              },
+              "preset": {
+                "$ref": "../common.schema.json#/$defs/presetId"
+              },
+              "status": {
+                "enum": ["failed", "skipped"]
+              },
+              "finished_at": {
+                "$ref": "../common.schema.json#/$defs/timestamp"
+              },
+              "reason": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": ["run_id", "short_id", "preset", "status", "finished_at", "reason"],
+            "additionalProperties": false
+          }
+        },
+        "refused_control": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "at": {
+                "$ref": "../common.schema.json#/$defs/timestamp"
+              },
+              "cmd": {
+                "type": "string"
+              },
+              "refusal": {
+                "enum": ["wrong_user", "low_integrity", "in_ai_job", "not_our_image", "not_board"]
+              },
+              "pid": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "image": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "run_id": {
+                "anyOf": [
+                  {
+                    "$ref": "../common.schema.json#/$defs/uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": ["at", "cmd", "refusal", "pid", "image", "run_id"],
+            "additionalProperties": false
+          }
+        },
+        "usage": {
+          "$ref": "../common.schema.json#/$defs/usage"
+        }
+      },
+      "required": ["sources", "dead_jobs", "failed_runs", "refused_control", "usage"],
+      "additionalProperties": false
+    },
+    "next": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "enum": ["run.start", "run.pause", "run.resume", "open.run", "open.form", "none"]
+        },
+        "preset": {
+          "anyOf": [
+            {
+              "$ref": "../common.schema.json#/$defs/presetId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "run_id": {
+          "anyOf": [
+            {
+              "$ref": "../common.schema.json#/$defs/uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "short_id": {
+          "anyOf": [
+            {
+              "$ref": "../common.schema.json#/$defs/shortId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "args": {
+          "anyOf": [
+            {
+              "$ref": "../common.schema.json#/$defs/presetArgs"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rule": {
+          "enum": [
+            "stalled_heavy",
+            "tier1_waiting",
+            "gate_open",
+            "diary_source_red",
+            "curation_stale",
+            "stories_waiting",
+            "dead_jobs",
+            "deferred_revisions",
+            "huddle_questions",
+            "frontpage_due",
+            "rollcall_due",
+            "nothing_due"
+          ],
+          "description": "The first matching next-action rule (Bureau §8.1)"
+        },
+        "reason": {
+          "$ref": "../common.schema.json#/$defs/text"
+        }
+      },
+      "required": ["action", "preset", "run_id", "short_id", "args", "rule", "reason"],
+      "additionalProperties": false
+    }
+  }
+}

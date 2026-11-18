@@ -120,7 +120,7 @@ The fixed base from the PRD appears on every article page: fly title, headline, 
 └─────────────────────────────────────────────────────────────┘
 ```
 
-- **The home page is curated and dynamic.** A curation agent chooses the lead, the two side stories, which sections appear (3–5), their order, and the 3–4 stories in each, every 2–3 days, through the `curate-home` workflow (Technical Design, "Home page curation"). The page is rendered on the server from the stored curation; nothing is rebuilt.
+- **The home page is curated and dynamic.** A curation agent chooses the lead, the two side stories, which sections appear (3–5), their order, and the 3–4 stories in each, every 2–3 days, through the Frontpage preset, which runs on Karthik's schedule or from Board and waits for his approval in Board (Technical Design, "Home page curation"). The page is rendered on the server from the stored curation; nothing is rebuilt.
 - **Curated stories use their page's own words.** Fly title, headline, summary and figures come from the page record, so an updated page updates its home slot. The curator only chooses which existing key figure or mini chart a slot shows.
 - **Latest list:** an automatic strip of the newest 8–10 pages under the lead block, updated on every publish so the page stays fresh between curations. Each entry: time or date (Fira 13, ink-3), fly title and headline on one line, wrapping on phones. A link to the full "Latest" page ends the strip.
 - Lead block: two columns at 1.7fr / 1fr from 820px; stacked below.

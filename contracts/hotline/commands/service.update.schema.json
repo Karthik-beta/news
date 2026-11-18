@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/hotline/commands/service.update.schema.json",
+  "title": "Hotline service.update",
+  "description": "Wait for a safe point (no AI call or publish in flight), swap the binary, restart; live runs resume from PostgreSQL (ADR 0007 decision 12). Handler and final arguments are #29's; #10 answers precondition. Input is the request's args; output is the reply envelope's data.",
+  "x-news-tier": "H",
+  "x-hotline-from": ["board"],
+  "x-news-status": "#29",
+  "x-news-cli": null,
+  "x-news-errors": ["precondition", "gated", "upstream_unavailable"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "enum": ["waiting_for_safe_point", "restarting"]
+        },
+        "waiting_on": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "enum": ["ai_call", "publish"]
+              },
+              "run_id": {
+                "$ref": "../common.schema.json#/$defs/uuid"
+              },
+              "short_id": {
+                "$ref": "../common.schema.json#/$defs/shortId"
+              },
+              "job_id": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "required": ["kind", "run_id", "short_id", "job_id"],
+            "additionalProperties": false
+          }
+        },
+        "text": {
+          "$ref": "../common.schema.json#/$defs/text"
+        }
+      },
+      "required": ["state", "waiting_on", "text"],
+      "additionalProperties": false
+    }
+  }
+}
