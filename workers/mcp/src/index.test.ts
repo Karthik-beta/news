@@ -2,6 +2,7 @@
 // stateless), tools/list and tools/call; header and _meta validation; transport rules; read-only tools; size caps.
 import { exports } from "cloudflare:workers";
 import type { DynamoTable } from "@news/worker-shared/dynamo/client";
+import { makePageRecord } from "@news/worker-shared/testing/fixtures";
 import { schemas } from "@news/worker-shared/validate";
 import { describe, expect, it } from "vitest";
 import { depsFromEnv } from "./deps";
@@ -306,15 +307,57 @@ describe("tools/call", () => {
     }
   });
 
-  it("does not cache 'being updated': the next call reads again and gets the content", async () => {
-    const stored = new Map<string, string>();
+  it("search and entity lists re-check their filter against the live record, not the search row or hub entry", async () => {
+    const h = harness();
+    // A publish that wrote its search row and hub entries, then failed before its commit: the live record (v1) has
+    // another region, type, category and entity than what the search row and the country:US hub say.
+    const live = h.table.dump().find((i) => i.PK === "PAGE#us-cpi-october" && i.SK === "LATEST") as Record<
+      string,
+      never
+    >;
+    h.table.seed({
+      ...live,
+      region: "europe" as never,
+      page_type: "company" as never,
+      categories: ["technology"] as never,
+      entities: [{ id: "company:acme", name: "Acme", kind: "company" }] as never,
+    });
+    const results = async (args: Record<string, unknown>) =>
+      (await body(await callTool(h.deps, "search_pages", { query: "inflation", ...args }))).result?.structuredContent
+        .results as Loose[];
+    expect(await results({})).toHaveLength(1);
+    for (const filter of [{ region: "north-america" }, { page_type: "macro" }, { category: "economy" }])
+      expect(await results(filter), JSON.stringify(filter)).toEqual([]);
+    expect(await results({ category: "technology" })).toHaveLength(1);
+    const entity = await body(await callTool(h.deps, "get_entity", { entity_id: "country:US" }));
+    expect(entity.result?.structuredContent.pages).toEqual([]);
+  });
+
+  it("search fills its limit when hits without a published live record are dropped", async () => {
+    const h = harness();
+    const row = h.d1.rows[0] as Record<string, unknown>;
+    const second = makePageRecord({ id: "us-cpi-september", title: "US inflation in September" });
+    h.table.seed(second as never);
+    h.d1.rows.unshift({ ...row, page_id: "ghost-page", path: "/2026/11/ghost-page", title: "Ghost" });
+    h.d1.rows.push({ ...row, page_id: second.page_id, path: second.path, title: second.title });
+    const search = await body(await callTool(h.deps, "search_pages", { query: "inflation", limit: 2 }));
+    expect(search.result?.structuredContent.results.map((p: Loose) => p.page_id)).toEqual([
+      "us-cpi-october",
+      "us-cpi-september",
+    ]);
+    const one = await body(await callTool(h.deps, "search_pages", { query: "inflation", limit: 1 }));
+    expect(one.result?.structuredContent.results).toHaveLength(1);
+  });
+
+  it("caches 'being updated' for a few seconds only: after that the next call reads again and gets the content", async () => {
+    const stored = new Map<string, { body: string; cacheControl: string | null }>();
     const cache = {
       async match(key: string) {
         const hit = stored.get(key);
-        return hit ? new Response(hit) : undefined;
+        return hit ? new Response(hit.body) : undefined;
       },
       async put(key: string, res: Response) {
-        stored.set(key, await res.text());
+        stored.set(key, { body: await res.text(), cacheControl: res.headers.get("cache-control") });
       },
     } as unknown as Cache;
     const h = harness({ cache });
@@ -322,7 +365,8 @@ describe("tools/call", () => {
     await h.bucket.put("2026/11/us-cpi-october/index.md", "# Version two\n", v2);
     const busy = await body(await callTool(h.deps, "get_page", { page_id: "us-cpi-october" }));
     expect(busy.result?.content[0].text).toMatch(/being updated/);
-    expect(stored.size).toBe(0);
+    expect([...stored.values()].map((v) => v.cacheControl)).toEqual(["public, max-age=5"]);
+    stored.clear(); // the entry expires
     const live = h.table.dump().find((i) => i.PK === "PAGE#us-cpi-october" && i.SK === "LATEST") as Record<
       string,
       never

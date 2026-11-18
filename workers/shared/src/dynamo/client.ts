@@ -6,6 +6,7 @@ import { type Cond, compile } from "./conditions";
 import {
   BATCH_WRITE_MAX,
   type BatchOp,
+  type BatchWriteOptions,
   ConditionFailedError,
   type Doc,
   DynamoError,
@@ -232,7 +233,10 @@ export class DynamoTable implements Table {
     };
   }
 
-  async batchWrite(ops: BatchOp[]): Promise<void> {
+  async batchWrite(ops: BatchOp[], options: BatchWriteOptions = {}): Promise<void> {
+    const { deadline, now = Date.now } = options;
+    // A page operation's writes must all start before its lock's deadline, so none lands after the lease (ADR 0004).
+    const pastDeadline = () => deadline !== undefined && now() > deadline;
     for (let i = 0; i < ops.length; i += BATCH_WRITE_MAX) {
       let requests: unknown[] = ops
         .slice(i, i + BATCH_WRITE_MAX)
@@ -241,6 +245,7 @@ export class DynamoTable implements Table {
         );
       // Unprocessed writes come back when capacity runs short; retry them twice, then give up as throttled.
       for (let attempt = 0; ; attempt++) {
+        if (pastDeadline()) throw new ThrottledError("batch write not started: past the caller's deadline");
         const res = await this.#call<{ UnprocessedItems?: Record<string, unknown[]> }>("BatchWriteItem", {
           RequestItems: { [this.table]: requests },
         });

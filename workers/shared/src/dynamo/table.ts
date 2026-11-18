@@ -53,9 +53,17 @@ export interface Table {
   transact(ops: TransactOp[]): Promise<void>;
   /**
    * Unconditional puts and deletes, BATCH_WRITE_MAX per call (one subrequest each), not atomic. Keys within one call
-   * must differ. Writes DynamoDB leaves unprocessed are retried twice, then the batch fails as ThrottledError.
+   * must differ. Writes DynamoDB leaves unprocessed are retried twice, then the batch fails as ThrottledError. No call
+   * starts after `deadline`: then the batch fails as ThrottledError at once.
    */
-  batchWrite(ops: BatchOp[]): Promise<void>;
+  batchWrite(ops: BatchOp[], options?: BatchWriteOptions): Promise<void>;
+}
+
+export interface BatchWriteOptions {
+  /** Epoch ms on `now`'s clock: no call, first or retry, starts later. A page operation passes its lock's deadline. */
+  deadline?: number;
+  /** The clock the deadline is on (epoch ms). Default Date.now. */
+  now?: () => number;
 }
 
 export class ConditionFailedError extends Error {
