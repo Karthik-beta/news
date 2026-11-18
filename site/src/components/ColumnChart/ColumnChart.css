@@ -24,7 +24,7 @@
 .column-chart__fill {
   position: absolute;
   inset-inline: 0;
-  background: var(--chart-mark);
+  background-color: var(--chart-mark);
   forced-color-adjust: none;
   print-color-adjust: exact;
 }

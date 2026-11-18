@@ -135,7 +135,8 @@ export function checkProps(root: ElementNode, library: Library): void {
     const result = schema?.safeParse(node.props);
     if (result && !result.success) {
       for (const issue of result.error?.issues ?? []) {
-        if (issue.path[0] === "children") continue; // child elements are checked on their own
+        // Child elements are checked on their own; the number of children (KeyFigures' 2-4) is checked here.
+        if (issue.path[0] === "children" && issue.path.length > 1) continue;
         problems.push(`${node.statementId ?? node.typeName}.${issue.path.join(".")}: ${issue.message}`);
       }
     }
