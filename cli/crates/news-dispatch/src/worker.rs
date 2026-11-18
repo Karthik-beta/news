@@ -24,7 +24,103 @@ use uuid::Uuid;
 /// Finds the handler for a job kind.
 pub type Resolver = fn(&str) -> Option<Handler>;
 
-#[derive(Debug, Clone)]
+/// Asked before every claim of a pool; `false` skips that pool this round (the quota guard's
+/// `AiClaimHook` for `ai`, ADR 0008 §7.3).
+pub type PreClaim = Arc<dyn Fn(&str) -> bool + Send + Sync>;
+
+/// One running job's handle: which run it belongs to, since when, and its cancel switch.
+struct Active {
+    run_id: Option<Uuid>,
+    since: chrono::DateTime<chrono::Utc>,
+    cancel: tokio_util::sync::CancellationToken,
+}
+
+/// The jobs this process is running, by job id. Chief stops a run's work through it (ADR 0008 §4.1
+/// step 2b): cancel every task of the run, then wait until each has returned.
+#[derive(Clone, Default)]
+pub struct ActiveJobs(Arc<std::sync::Mutex<std::collections::HashMap<i64, Active>>>);
+
+impl std::fmt::Debug for ActiveJobs {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ActiveJobs")
+            .field("jobs", &self.len())
+            .finish()
+    }
+}
+
+impl ActiveJobs {
+    fn lock(&self) -> std::sync::MutexGuard<'_, std::collections::HashMap<i64, Active>> {
+        self.0.lock().unwrap_or_else(|p| p.into_inner())
+    }
+
+    pub fn len(&self) -> usize {
+        self.lock().len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    fn insert(&self, job_id: i64, run_id: Option<Uuid>) -> tokio_util::sync::CancellationToken {
+        let cancel = tokio_util::sync::CancellationToken::new();
+        self.lock().insert(
+            job_id,
+            Active {
+                run_id,
+                since: chrono::Utc::now(),
+                cancel: cancel.clone(),
+            },
+        );
+        cancel
+    }
+
+    fn remove(&self, job_id: i64) {
+        self.lock().remove(&job_id);
+    }
+
+    /// Job ids of `run` still running here, and since when the oldest has run.
+    pub fn of_run(&self, run: Uuid) -> (Vec<i64>, Option<chrono::DateTime<chrono::Utc>>) {
+        let g = self.lock();
+        let mut ids: Vec<i64> = g
+            .iter()
+            .filter(|(_, a)| a.run_id == Some(run))
+            .map(|(id, _)| *id)
+            .collect();
+        ids.sort_unstable();
+        let oldest = g
+            .values()
+            .filter(|a| a.run_id == Some(run))
+            .map(|a| a.since)
+            .min();
+        (ids, oldest)
+    }
+
+    /// Cancel every task of `run`, or every task with `None`.
+    pub fn cancel(&self, run: Option<Uuid>) {
+        for a in self.lock().values() {
+            if run.is_none() || a.run_id == run {
+                a.cancel.cancel();
+            }
+        }
+    }
+
+    /// Wait, with no timeout, until no task of `run` (or none at all) is left.
+    pub async fn wait_idle(&self, run: Option<Uuid>) {
+        loop {
+            let left = self
+                .lock()
+                .values()
+                .filter(|a| run.is_none() || a.run_id == run)
+                .count();
+            if left == 0 {
+                return;
+            }
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+    }
+}
+
+#[derive(Clone)]
 pub struct WorkOptions {
     pub pools: Vec<String>,
     pub worker_id: String,
@@ -38,6 +134,23 @@ pub struct WorkOptions {
     pub once: bool,
     /// Jobs claimed per pool per round.
     pub batch: i64,
+    /// The running jobs, shared with Chief so it can stop a run's work.
+    pub active: ActiveJobs,
+    /// Asked before each pool's claim.
+    pub pre_claim: Option<PreClaim>,
+    /// Run the rescuer and the code schedules in this loop (off when the service runs them itself).
+    pub maintenance: bool,
+}
+
+impl std::fmt::Debug for WorkOptions {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("WorkOptions")
+            .field("pools", &self.pools)
+            .field("worker_id", &self.worker_id)
+            .field("batch", &self.batch)
+            .field("pre_claim", &self.pre_claim.is_some())
+            .finish_non_exhaustive()
+    }
 }
 
 impl WorkOptions {
@@ -61,6 +174,9 @@ impl WorkOptions {
             max_duration: None,
             once: false,
             batch: 16,
+            active: ActiveJobs::default(),
+            pre_claim: None,
+            maintenance: true,
         }
     }
 }
@@ -96,17 +212,30 @@ pub async fn run(
     tokio::pin!(shutdown);
 
     loop {
-        if last_maintenance.is_none_or(|t| t.elapsed() >= opts.maintenance_every) {
+        if opts.maintenance
+            && last_maintenance.is_none_or(|t| t.elapsed() >= opts.maintenance_every)
+        {
             maintenance(&db, &mut report).await;
             last_maintenance = Some(Instant::now());
         }
         for pool in &opts.pools {
+            if opts.pre_claim.as_ref().is_some_and(|hook| !hook(pool)) {
+                continue;
+            }
             let lease = kinds::pool_lease(pool);
             match queue::claim(&db, pool, opts.batch, lease, &opts.worker_id).await {
                 Ok(c) => {
                     for job in c.jobs {
                         report.claimed += 1;
-                        tasks.spawn(run_one(db.clone(), job, resolve, opts.worker_id.clone()));
+                        let cancel = opts.active.insert(job.job_id, job.run_id);
+                        let active = opts.active.clone();
+                        let (db, worker) = (db.clone(), opts.worker_id.clone());
+                        tasks.spawn(async move {
+                            let job_id = job.job_id;
+                            let out = run_one(db, job, resolve, worker, cancel).await;
+                            active.remove(job_id);
+                            out
+                        });
                     }
                 }
                 Err(e) => tracing::warn!(pool = %pool, error = %e, "claim failed"),
@@ -196,7 +325,13 @@ impl LeaseCheck for DbLease {
 /// Run one claimed job: the handler in its own task (so a panic becomes a `bug` failure, not a stuck
 /// lease), a heartbeat every lease/3, then complete or fail. The handler is cancelled as soon as the
 /// lease is known to be lost: a failed or stalled heartbeat, or an `ensure_lease` that finds it gone.
-async fn run_one(db: PgPool, job: Job, resolve: Resolver, worker: String) -> Outcome {
+async fn run_one(
+    db: PgPool,
+    job: Job,
+    resolve: Resolver,
+    worker: String,
+    cancel: tokio_util::sync::CancellationToken,
+) -> Outcome {
     let spec = kinds::spec(&job.kind);
     let lease = Duration::from_secs(u64::from(spec.map_or(120, |s| s.lease_secs)));
     // A registered kind runs only in its own pool. Enqueue enforces it; a row that got into another
@@ -239,6 +374,14 @@ async fn run_one(db: PgPool, job: Job, resolve: Resolver, worker: String) -> Out
     let joined = loop {
         tokio::select! {
             r = &mut handle => break r,
+            () = cancel.cancelled() => {
+                // Chief is stopping this job's run (pause `now`, cancel, or a lost singleton lock): stop
+                // the handler and wait for it; Chief then revokes the lease, so nothing is recorded.
+                tracing::warn!(job_id = job.job_id, "run stopping; handler cancelled");
+                handle.abort();
+                let _ = (&mut handle).await;
+                return Outcome::Lost;
+            }
             () = wake.notified() => {
                 tracing::warn!(job_id = job.job_id, "lease lost; handler cancelled");
                 handle.abort();

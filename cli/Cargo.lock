@@ -280,6 +280,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "chrono-tz"
+version = "0.10.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a6139a8597ed92cf816dfb33f5dd6cf0bb93a6adc938f11039f371bc5bcd26c3"
+dependencies = [
+ "chrono",
+ "phf 0.12.1",
+]
+
+[[package]]
 name = "clap"
 version = "4.6.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1346,11 +1356,15 @@ dependencies = [
  "news-dispatch",
  "news-fixer",
  "news-ghost",
+ "news-hotline",
  "news-nose",
  "news-press",
  "news-proof",
  "news-rewrite",
  "news-roster",
+ "news-rota",
+ "news-service",
+ "news-standing",
  "news-store",
  "news-taster",
  "news-telemetry",
@@ -1369,7 +1383,18 @@ dependencies = [
 name = "news-chief"
 version = "0.0.1"
 dependencies = [
+ "chrono",
+ "chrono-tz",
  "news-core",
+ "news-dispatch",
+ "news-standing",
+ "news-store",
+ "serde_json",
+ "sha2 0.10.9",
+ "sqlx",
+ "tokio",
+ "tracing",
+ "uuid",
 ]
 
 [[package]]
@@ -1390,6 +1415,7 @@ dependencies = [
 name = "news-core"
 version = "0.0.1"
 dependencies = [
+ "chrono",
  "serde",
  "serde_json",
  "thiserror",
@@ -1423,6 +1449,7 @@ dependencies = [
  "serde_json",
  "sqlx",
  "tokio",
+ "tokio-util",
  "tracing",
  "uuid",
 ]
@@ -1439,6 +1466,20 @@ name = "news-ghost"
 version = "0.0.1"
 dependencies = [
  "news-core",
+]
+
+[[package]]
+name = "news-hotline"
+version = "0.0.1"
+dependencies = [
+ "chrono",
+ "jsonschema",
+ "news-core",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "uuid",
 ]
 
 [[package]]
@@ -1477,6 +1518,57 @@ dependencies = [
 ]
 
 [[package]]
+name = "news-rota"
+version = "0.0.1"
+dependencies = [
+ "chrono",
+ "chrono-tz",
+ "news-chief",
+ "news-core",
+ "news-dispatch",
+ "news-standing",
+ "news-store",
+ "serde_json",
+ "sqlx",
+ "tracing",
+]
+
+[[package]]
+name = "news-service"
+version = "0.0.1"
+dependencies = [
+ "chrono",
+ "news-chief",
+ "news-core",
+ "news-dispatch",
+ "news-hotline",
+ "news-rota",
+ "news-standing",
+ "news-store",
+ "news-win",
+ "serde_json",
+ "sqlx",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "news-standing"
+version = "0.0.1"
+dependencies = [
+ "chrono",
+ "chrono-tz",
+ "croner",
+ "iana-time-zone",
+ "news-core",
+ "news-store",
+ "serde",
+ "serde_json",
+ "sqlx",
+]
+
+[[package]]
 name = "news-store"
 version = "0.0.1"
 dependencies = [
@@ -1508,6 +1600,14 @@ dependencies = [
  "tracing",
  "tracing-opentelemetry",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "news-win"
+version = "0.0.1"
+dependencies = [
+ "tokio",
+ "windows-sys",
 ]
 
 [[package]]
@@ -1744,12 +1844,30 @@ checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
 
 [[package]]
 name = "phf"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "913273894cec178f401a31ec4b656318d95473527be05c0752cc41cdc32be8b7"
+dependencies = [
+ "phf_shared 0.12.1",
+]
+
+[[package]]
+name = "phf"
 version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c1562dc717473dbaa4c1f85a36410e03c047b2e7df7f45ee938fbef64ae7fadf"
 dependencies = [
- "phf_shared",
+ "phf_shared 0.13.1",
  "serde",
+]
+
+[[package]]
+name = "phf_shared"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "06005508882fb681fd97892ecff4b7fd0fee13ef1aa569f8695dae7ab9099981"
+dependencies = [
+ "siphasher",
 ]
 
 [[package]]
@@ -2674,7 +2792,7 @@ dependencies = [
  "log",
  "parking_lot",
  "percent-encoding",
- "phf",
+ "phf 0.13.1",
  "pin-project-lite",
  "postgres-protocol",
  "postgres-types",

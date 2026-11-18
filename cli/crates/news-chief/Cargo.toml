@@ -1,6 +1,6 @@
 [package]
 name = "news-chief"
-description = "Chief, the preset engine behind /bureau. Skeleton with handler stubs; built in #10."
+description = "Chief, the run engine in the Bureau service: presets, the run state machine, the Lineup, gates, authorize() and the Wrap."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,6 +8,17 @@ publish.workspace = true
 
 [dependencies]
 news-core = { workspace = true }
+news-store = { workspace = true }
+news-dispatch = { workspace = true }
+news-standing = { workspace = true }
+chrono = { workspace = true }
+chrono-tz = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+sqlx = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true }
 
 [lints]
 workspace = true
