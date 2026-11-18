@@ -55,9 +55,9 @@ pub const KINDS: [KindSpec; 22] = [
     k("work.prune", "cpu", CODE, "wire"),
 ];
 
-/// Kinds added for schedules beyond §5.4: the analytics pull (§8.14), owned by Board (#16) per the TD's
-/// telemetry section (cloud analytics pulled through their APIs).
-pub const EXTRA_KINDS: [KindSpec; 1] = [k("traffic.pull", "net", CODE, "board")];
+/// Kinds added for schedules beyond §5.4: the analytics pull (§8.14), owned by Ticker (`news-telemetry`,
+/// #16) per the TD's telemetry section (cloud analytics pulled through their APIs).
+pub const EXTRA_KINDS: [KindSpec; 1] = [k("traffic.pull", "net", CODE, "telemetry")];
 
 pub fn spec(kind: &str) -> Option<&'static KindSpec> {
     KINDS
@@ -109,7 +109,7 @@ mod tests {
     #[test]
     fn publishing_kinds_never_run_in_work_pools() {
         for s in all().filter(|s| s.owner == "press") {
-            assert!(!crate::WORK_POOLS.contains(&s.pool), "{}", s.kind);
+            assert!(!crate::BACKGROUND_POOLS.contains(&s.pool), "{}", s.kind);
         }
     }
 }

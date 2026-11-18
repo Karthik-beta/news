@@ -72,7 +72,6 @@ impl Fixture {
             .env_remove("NEWS_CH_HTTP")
             .env_remove("NEWS_OTEL_HTTP")
             .env_remove("NEWS_LOG")
-            .env_remove("CLAUDECODE")
             .env_remove("NEWS_WRITE_API_KEY")
             .env("NO_COLOR", "1");
         cmd

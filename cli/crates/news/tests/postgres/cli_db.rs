@@ -141,11 +141,7 @@ async fn a_missing_schema_is_refused_instead_of_falling_back_to_public() {
         .execute(&f.pool)
         .await
         .unwrap();
-    for args in [
-        vec!["jobs", "list"],
-        vec!["jobs", "retry", "1"],
-        vec!["work", "--once"],
-    ] {
+    for args in [vec!["jobs", "list"], vec!["jobs", "retry", "1"]] {
         let (env, code, _, _) = f.call(&args);
         assert_eq!(code, 4, "{args:?}: {env}");
         assert_eq!(env["error"]["code"], "precondition", "{args:?}");

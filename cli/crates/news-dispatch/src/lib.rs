@@ -3,7 +3,8 @@
 //! A small custom queue on PostgreSQL with River's semantics: unique jobs, states, attempt-based
 //! full-jitter backoff, snooze without spending an attempt, and a rescuer for stuck jobs. A claim locks
 //! the pool's row `FOR UPDATE` before taking jobs with `SKIP LOCKED`, so `max_running` is exact under
-//! any number of concurrent workers. ADR: `docs/adr/0003-dispatch-job-engine.md`.
+//! any number of concurrent workers. The worker loop is [`worker::run`], a library entry point that the
+//! Bureau service hosts (there is no `news work` command). ADR: `docs/adr/0003-dispatch-job-engine.md`.
 
 pub mod backoff;
 pub mod kinds;
@@ -17,9 +18,10 @@ pub use queue::{Claimed, Enqueued, Job, NewJob};
 /// Pools, in the order of §5.7.
 pub const POOLS: [&str; 6] = ["net", "cpu", "docling", "render", "ai", "publish"];
 
-/// Pools `news work` may run. `ai`, `render` and `publish` are driven only inside preset runs (Ghost,
-/// the renderer, Press), so the background worker never needs the write-API key (§5.6, §9.3).
-pub const WORK_POOLS: [&str; 3] = ["net", "cpu", "docling"];
+/// The background pools: the ones the Bureau service's worker runs all the time (ADR 0007).
+/// `ai`, `render` and `publish` jobs exist only inside a live run (Ghost, the renderer, Press), so the
+/// always-on worker never claims them and never needs the write-API key (§5.6, §9.3).
+pub const BACKGROUND_POOLS: [&str; 3] = ["net", "cpu", "docling"];
 
 /// Advisory lock held by the rescuer (§5.4). Taken as the pair `(42, hashtext(current_schema()))`, so
 /// queues in different schemas (the test schemas) never keep each other's rescuer out.

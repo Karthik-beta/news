@@ -1337,7 +1337,6 @@ dependencies = [
  "clap",
  "insta",
  "jsonschema",
- "news-board",
  "news-chief",
  "news-clerk",
  "news-contacts",
@@ -1364,13 +1363,6 @@ dependencies = [
  "tokio",
  "tracing",
  "uuid",
-]
-
-[[package]]
-name = "news-board"
-version = "0.0.1"
-dependencies = [
- "news-core",
 ]
 
 [[package]]
@@ -1506,6 +1498,7 @@ name = "news-telemetry"
 version = "0.0.1"
 dependencies = [
  "chrono",
+ "news-core",
  "opentelemetry",
  "opentelemetry-otlp",
  "opentelemetry_sdk",

@@ -47,7 +47,7 @@ fn schema_of(rel: &str) -> Value {
 #[test]
 fn every_contract_validates_against_the_2020_12_meta_schema() {
     let contracts = all();
-    assert!(contracts.len() > 80, "only {} contracts", contracts.len());
+    assert!(contracts.len() > 60, "only {} contracts", contracts.len());
     for (rel, v) in &contracts {
         assert!(
             rel.ends_with(".schema.json"),

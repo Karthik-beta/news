@@ -5,13 +5,34 @@
 //! * [`init_tracing`]: logs to stderr (never stdout, which carries only the envelope), filtered by
 //!   `NEWS_LOG` (default `warn`), plus spans exported over OTLP/HTTP to `NEWS_OTEL_HTTP` when set.
 //!
+//! * [`KINDS`] and [`handle`]: the analytics ingestion job, the daily Cloudflare Web Analytics pull
+//!   into `traffic_daily` (`traffic.pull`; TD "Event sources": cloud usage pulled through their APIs).
+//!   Ticker owns it; it was Board's until the name `news-board` went to the desktop app (#29).
+//!
 //! Telemetry never fails a command: when ClickHouse or the collector is down, the call still succeeds
 //! and the problem is logged at `debug`. `NEWS_TELEMETRY=off` turns both off.
+//!
+//! The job handler is a skeleton: it is built in #16 and fails with class `bug` ("not built yet")
+//! until then, so the Dispatch registry is complete.
 
 use chrono::{DateTime, Utc};
+use news_core::job::{Handler, JobFailure, JobFuture, JobInput};
 use serde::Serialize;
 use serde_json::Value;
 use std::time::Duration;
+
+/// The issue that builds this subsystem (Ticker's data jobs and Board's Analytics screen).
+pub const ISSUE: &str = "#16";
+
+/// Job kinds this subsystem handles (see `news_dispatch::EXTRA_KINDS`).
+pub const KINDS: &[&str] = &["traffic.pull"];
+
+/// Run one job.
+pub fn handle(input: JobInput) -> JobFuture {
+    Box::pin(async move { Err(JobFailure::not_built(&input.kind, ISSUE)) })
+}
+
+pub const HANDLER: Handler = handle;
 
 pub const RUN_ID_VAR: &str = "NEWS_RUN_ID";
 pub const JOB_ID_VAR: &str = "NEWS_JOB_ID";

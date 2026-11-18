@@ -5,7 +5,6 @@ mod components;
 mod db;
 mod jobs;
 mod schema;
-mod work;
 
 use crate::cli::*;
 use news_core::shape::DEFAULT_LIMIT;
@@ -51,7 +50,6 @@ pub async fn run(cli: Cli, path: &str, shape: &Shape) -> NewsResult<Reply> {
         C::Component { component_type } => components::show(&component_type),
         C::Schema { command } => schema::command(&command),
         C::Jobs(cmd) => jobs::run(cmd, shape).await,
-        C::Work(args) => work::run(args).await,
         C::Ai(AiCmd::Schema { step }) => schema::ai(&step),
 
         // Not built yet: each names the issue that builds its subsystem.
@@ -64,7 +62,7 @@ pub async fn run(cli: Cli, path: &str, shape: &Shape) -> NewsResult<Reply> {
         C::Related { .. } | C::Entities(_) => stub(path, news_roster::ISSUE),
         C::Stories(_) => stub(path, news_taster::ISSUE),
         C::Plan { .. } | C::Scores(_) => stub(path, news_nose::ISSUE),
-        C::Stats => stub(path, news_board::ISSUE),
+        C::Stats => stub(path, news_telemetry::ISSUE),
         C::Save { .. } | C::Render { .. } | C::Check { .. } => stub(path, news_proof::ISSUE),
         C::Brief { .. } => stub(path, news_fixer::ISSUE),
         C::Ai(_) => stub(path, news_ghost::ISSUE),
@@ -91,9 +89,6 @@ pub const BUILT: &[&str] = &[
     "jobs.complete",
     "jobs.fail",
     "jobs.retry",
-    "jobs.pause",
-    "jobs.unpause",
-    "work",
     "ai.schema",
 ];
 

@@ -1,0 +1,22 @@
+---
+source: crates/news/tests/cli.rs
+expression: "stdout_of(&[group, \"--help\"])"
+---
+Home page curation (Frontpage)
+
+Usage: news home [OPTIONS] <COMMAND>
+
+Commands:
+  candidates  Pages eligible for the home page
+  save        Store a draft curation
+  check       Code checks on a draft curation
+  preview     Render the home page locally with a draft
+  publish     Publish an approved curation (G tier)
+  show        The live curation and its age
+  help        Print this message or the help of the given subcommand(s)
+
+Options:
+      --limit <N>        Return at most N list items (default 20; `jobs claim`: how many to claim, default 1)
+      --fields <A,B>     Keep only these keys of each item, comma-separated
+      --cursor <CURSOR>  Continue a truncated list from its next_cursor
+  -h, --help             Print help
