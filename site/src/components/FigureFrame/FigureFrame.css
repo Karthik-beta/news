@@ -1,0 +1,107 @@
+/* Figure frame (design/charts.md, "Anatomy"). Spacing: rule -> title 16px; title -> subtitle 4px; subtitle ->
+   legend or plot 12px; plot -> source 10px (the 8 + 2px steps); source -> actions 6px (4 + 2px). No box, no radius. */
+.figure-frame {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding-top: var(--space-5);
+  min-width: 0;
+}
+
+.figure-frame__caption {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.figure-frame__legend,
+.figure-frame__plot {
+  margin-top: var(--space-4);
+}
+
+.figure-frame__plot {
+  position: relative;
+  min-width: 0;
+}
+
+.figure-frame__legend + .figure-frame__plot {
+  margin-top: var(--space-3);
+}
+
+.figure-frame__source {
+  margin-top: calc(var(--space-3) + var(--space-1));
+}
+.figure-frame__source a {
+  color: inherit;
+}
+
+.figure-frame__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--space-5);
+  row-gap: var(--space-2);
+  margin-top: calc(var(--space-2) + var(--space-1));
+}
+.figure-frame__actions > a,
+.figure-frame__table > summary {
+  display: inline-flex;
+  align-items: center;
+  /* WCAG 2.2 target size: at least 24 x 24px, even for a short link such as "CSV". */
+  min-width: var(--space-7);
+  min-height: var(--space-7);
+  color: var(--color-ink-2);
+}
+
+.figure-frame__table > summary {
+  cursor: pointer;
+  text-decoration-line: underline;
+  text-decoration-thickness: var(--border-hairline);
+  text-underline-offset: 3px;
+  list-style: none;
+}
+.figure-frame__table > summary::-webkit-details-marker {
+  display: none;
+}
+/* Open, the table takes the whole row. min-width: 0 lets the flex item narrow below the table's own width, so
+   the scroll box below scrolls instead of widening the page. */
+.figure-frame__table {
+  min-width: 0;
+  max-width: 100%;
+}
+.figure-frame__table[open] {
+  flex-basis: 100%;
+}
+
+/* Wide tables scroll inside their own container, never the page (design/layout.md). */
+.figure-frame__table-scroll {
+  margin-top: var(--space-3);
+  overflow-x: auto;
+}
+.figure-frame__table-scroll table {
+  width: 100%;
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-label);
+  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--color-ink);
+}
+.figure-frame__table-scroll th,
+.figure-frame__table-scroll td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: var(--border-hairline) solid var(--color-rule);
+  text-align: start;
+}
+.figure-frame__table-scroll thead th {
+  color: var(--color-ink-2);
+  font-weight: var(--font-weight-regular);
+  border-bottom: var(--border-hairline) solid var(--color-ink);
+}
+.figure-frame__table-scroll .is-number {
+  text-align: end;
+}
+
+@media print {
+  .figure-frame__actions {
+    display: none;
+  }
+}

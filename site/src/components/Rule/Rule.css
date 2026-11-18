@@ -1,0 +1,44 @@
+/* Rules (design/layout.md): hairline, ink, section and brand (1px crimson plus a 36 x 7px tag at the left). */
+.rule,
+.rule-top {
+  border-top: var(--border-hairline) solid var(--color-rule);
+}
+.rule {
+  height: 0;
+}
+.rule--ink,
+.rule-top--ink {
+  border-top-color: var(--color-ink);
+}
+.rule--section,
+.rule-top--section {
+  border-top-width: var(--border-section);
+  border-top-color: var(--color-ink);
+}
+.rule--brand,
+.rule-top--brand {
+  position: relative;
+  border-top-color: var(--color-brand);
+}
+.rule--brand {
+  height: var(--border-chart-tag-height);
+}
+.rule--brand::before,
+.rule-top--brand::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  top: calc(-1 * var(--border-hairline));
+  width: var(--border-chart-tag-width);
+  height: var(--border-chart-tag-height);
+  background: var(--color-brand);
+  /* The tag is the site's signature: keep it in print and in forced colours. */
+  print-color-adjust: exact;
+}
+@media (forced-colors: active) {
+  .rule--brand::before,
+  .rule-top--brand::before {
+    forced-color-adjust: none;
+    background: CanvasText;
+  }
+}

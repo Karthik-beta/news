@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "version": {
+      "type": "number",
+      "const": 1
+    },
+    "sources": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^src_[a-z0-9]+(_[a-z0-9]+)*$",
+        "description": "A page-local source ID, src_…."
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The document: 'Apple Inc. Form 10-K, fiscal 2024'."
+          },
+          "short": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Short form for source lines: 'Form 10-K, fiscal 2024'."
+          },
+          "publisher": {
+            "type": "string",
+            "minLength": 1,
+            "description": "'Apple Inc.', 'U.S. Bureau of Labor Statistics'."
+          },
+          "connector": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The connector that fetched it ('sec-edgar', 'fred')."
+          },
+          "type": {
+            "type": "string",
+            "enum": ["filing", "dataset", "press_release", "statement", "report", "paper", "preprint", "news", "other"]
+          },
+          "primary": {
+            "type": "boolean",
+            "description": "False for context sources such as news outlets."
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "licence": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "description": "'Public filing', 'CC BY 4.0'."
+              },
+              "url": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "redistribution": {
+                "type": "boolean",
+                "description": "False: the page may cite but not offer the data as CSV/JSON."
+              }
+            },
+            "required": ["name", "redistribution"],
+            "additionalProperties": false
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "A calendar date, YYYY-MM-DD."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "retrieved_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "A calendar date, YYYY-MM-DD."
+              },
+              {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?(Z|[+-]\\d{2}:\\d{2})$",
+                "description": "A date-time with an offset (RFC 3339)."
+              }
+            ]
+          }
+        },
+        "required": ["title", "short", "publisher", "connector", "type", "primary", "url", "licence", "retrieved_at"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["version", "sources"],
+  "additionalProperties": false,
+  "title": "News page bundle: sources.json",
+  "description": "The source records a page's data points and quotes point at.",
+  "$id": "https://news.karthik.nz/contracts/bundle/sources.schema.json"
+}

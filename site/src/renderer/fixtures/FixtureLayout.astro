@@ -1,0 +1,31 @@
+---
+// Layout for fixture pages (built only with NEWS_FIXTURES=1): the site stylesheet, the fixture components'
+// styles, noindex, and the island script only when the page has an island.
+import "../../styles/site.css";
+import "./fixtures.css";
+import FixtureIslands from "./FixtureIslands.astro";
+
+interface Props {
+  title: string;
+  hasIslands: boolean;
+}
+const { title, hasIslands } = Astro.props;
+---
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preload" href="/fonts/literata-latin-opsz-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/fira-sans-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <title>{title}</title>
+  </head>
+  <body>
+    <main id="main" class="article-page">
+      <slot />
+    </main>
+    {hasIslands && <FixtureIslands />}
+  </body>
+</html>
