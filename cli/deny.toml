@@ -19,7 +19,11 @@ yanked = "deny"
 # dependencies; "all" applies the policy above to transitive dependencies too.
 unmaintained = "all"
 unsound = "all"
-ignore = []
+ignore = [
+    # chrono: unmaintained notice only, no vulnerability. sqlx 0.9, croner and our crates need it;
+    # no maintained drop-in yet. Revisit by 2027-02-28.
+    { id = "RUSTSEC-2026-0543", reason = "chrono unmaintained; no drop-in for sqlx/croner; revisit by 2027-02-28" },
+]
 
 [licenses]
 # The project itself is private (`UNLICENSED`), so dependencies only need permissive terms
