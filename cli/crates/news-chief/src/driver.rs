@@ -70,6 +70,8 @@ pub struct StepCx {
     pub outputs: Map<String, Value>,
     pub db: PgPool,
     pub now: DateTime<Utc>,
+    /// Cancelled when Chief stops the step (pause `now`, cancel, lost lock); the task is then aborted.
+    pub cancel: tokio_util::sync::CancellationToken,
 }
 
 impl StepCx {
@@ -303,16 +305,27 @@ impl Chief {
             outputs,
             db: db.clone(),
             now,
+            cancel: tokio_util::sync::CancellationToken::new(),
         };
+        let cancel = cx.cancel.clone();
         let handler = self.handlers().get(step.handler);
         let inline = step.kind == StepKind::Code;
         if inline {
             self.set_inline(run_id, true);
         }
         let task = tokio::spawn(async move { handler.run(&mut cx).await });
+        // Chief can stop and await this task (pause `now`, cancel, lost lock) even after this
+        // driver is aborted.
+        self.track_step(run_id, cancel.clone(), task.abort_handle());
         let joined = self.await_touching(run_id, task).await;
+        self.untrack_step(run_id);
         if inline {
             self.set_inline(run_id, false);
+        }
+        // A stopped step records nothing: the run is being paused or cancelled, or this service lost
+        // its lock and another driver will re-enter the step.
+        if cancel.is_cancelled() {
+            return Ok(Next::Stop);
         }
         let outcome = match joined {
             Ok(r) => r,
@@ -422,6 +435,13 @@ impl Chief {
         let now = self.now();
         let mut tx = self.db().begin().await.map_err(map_err)?;
         let run = row::load(&mut tx, run_id, true).await?;
+        // The fence on completion: a step of a finished run, or of one being stopped now or
+        // cancelled, writes nothing (no `done`, no consumed approvals). A `drain` pause lets it finish.
+        if run.status().is_terminal()
+            || (run.status() == Status::Pausing && run.stop_mode.as_deref() != Some("drain"))
+        {
+            return Ok(Next::Stop);
+        }
         let next = match outcome {
             Ok(StepOutcome::Done(v)) => {
                 mark_done(&mut tx, run_id, seq, "done", &v, now).await?;

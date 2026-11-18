@@ -200,6 +200,17 @@ struct Inner {
     /// Runs being stopped (pause `now`, cancel).
     stopping: Mutex<HashSet<Uuid>>,
     drivers: Mutex<HashMap<Uuid, tokio::task::JoinHandle<()>>>,
+    /// The step task each driver is awaiting: its cancel switch and abort handle. A pause `now`, a
+    /// cancel and a lost lock stop it and wait for it to end before anything else happens.
+    steps: Mutex<
+        HashMap<
+            Uuid,
+            (
+                tokio_util::sync::CancellationToken,
+                tokio::task::AbortHandle,
+            ),
+        >,
+    >,
 }
 
 fn lock<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
@@ -938,6 +949,9 @@ impl Chief {
             let me = self.clone();
             tokio::spawn(async move {
                 me.inner.stopper.stop(id).await;
+                // The driver's step task too (an inline code step), awaited: the slot is freed only
+                // once nothing of the run is still running.
+                me.stop_step(id).await;
                 if let Err(e) = me.finish_pause(id).await {
                     tracing::warn!(run_id = %id, error = %e, "finishing a pause failed; retried next tick");
                 }
@@ -1032,7 +1046,39 @@ impl Chief {
             h.abort();
             let _ = h.await;
         }
+        // Aborting a driver detaches its step task; stop those too, or a new driver would run the
+        // same step again beside it.
+        let runs: Vec<Uuid> = lock(&self.inner.steps).keys().copied().collect();
+        for run in runs {
+            self.stop_step(run).await;
+        }
         lock(&self.inner.inline).clear();
+    }
+
+    /// Cancel and abort the step task of `run`, and wait until it has ended (no timeout).
+    pub async fn stop_step(&self, run: Uuid) {
+        let Some((cancel, abort)) = lock(&self.inner.steps).get(&run).cloned() else {
+            return;
+        };
+        cancel.cancel();
+        abort.abort();
+        while !abort.is_finished() {
+            tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+        }
+        lock(&self.inner.steps).remove(&run);
+    }
+
+    pub(crate) fn track_step(
+        &self,
+        run: Uuid,
+        cancel: tokio_util::sync::CancellationToken,
+        abort: tokio::task::AbortHandle,
+    ) {
+        lock(&self.inner.steps).insert(run, (cancel, abort));
+    }
+
+    pub(crate) fn untrack_step(&self, run: Uuid) {
+        lock(&self.inner.steps).remove(&run);
     }
 
     pub(crate) fn set_inline(&self, run: Uuid, inside: bool) {
@@ -1101,6 +1147,7 @@ impl ChiefBuilder {
                 inline: Mutex::new(HashSet::new()),
                 stopping: Mutex::new(HashSet::new()),
                 drivers: Mutex::new(HashMap::new()),
+                steps: Mutex::new(HashMap::new()),
             }),
         }
     }

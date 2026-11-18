@@ -1079,3 +1079,144 @@ async fn the_hotline_gates_h_commands_from_anything_but_board_and_answers_reads(
     assert_eq!(code, 0, "{env}");
     assert_eq!(env["data"]["items"].as_array().unwrap().len(), 1);
 }
+
+/// A slow inline step: counts entries and concurrent runs, marks `ended` when its task stops (by
+/// returning or by being aborted), and `finished` only when it returns on its own.
+struct Slow {
+    entered: Arc<AtomicUsize>,
+    active: Arc<AtomicUsize>,
+    max_active: Arc<AtomicUsize>,
+    ended: Arc<AtomicUsize>,
+    finished: Arc<AtomicUsize>,
+    secs: u64,
+}
+
+struct Ended(Arc<AtomicUsize>, Arc<AtomicUsize>);
+impl Drop for Ended {
+    fn drop(&mut self) {
+        self.0.fetch_sub(1, Ordering::SeqCst);
+        self.1.fetch_add(1, Ordering::SeqCst);
+    }
+}
+
+impl StepHandler for Slow {
+    fn run<'a>(&'a self, _cx: &'a mut StepCx) -> BoxFut<'a, Result<StepOutcome, StepError>> {
+        Box::pin(async move {
+            self.entered.fetch_add(1, Ordering::SeqCst);
+            let now = self.active.fetch_add(1, Ordering::SeqCst) + 1;
+            self.max_active.fetch_max(now, Ordering::SeqCst);
+            let _guard = Ended(self.active.clone(), self.ended.clone());
+            tokio::time::sleep(StdDuration::from_secs(self.secs)).await;
+            self.finished.fetch_add(1, Ordering::SeqCst);
+            Ok(StepOutcome::Done(json!({})))
+        })
+    }
+}
+
+fn slow(secs: u64) -> (Arc<Slow>, [Arc<AtomicUsize>; 5]) {
+    let c: [Arc<AtomicUsize>; 5] = std::array::from_fn(|_| Arc::new(AtomicUsize::new(0)));
+    let s = Arc::new(Slow {
+        entered: c[0].clone(),
+        active: c[1].clone(),
+        max_active: c[2].clone(),
+        ended: c[3].clone(),
+        finished: c[4].clone(),
+        secs,
+    });
+    (s, c)
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres"]
+async fn a_cancel_mid_inline_step_frees_the_slot_only_after_the_step_task_ended() {
+    let f = Fixture::migrated().await;
+    let c = clock();
+    let (h, [entered, _, _, ended, finished]) = slow(30);
+    let ch = Chief::builder(f.pool.clone(), Arc::new(c.clone()))
+        .handlers(Handlers::default().with("catchup.preflight", h))
+        .build();
+    let run = board_start(&ch, "catchup", IfBusy::Offer)
+        .await
+        .unwrap()
+        .run()
+        .clone();
+    ch.ensure_drivers().await.unwrap();
+    for _ in 0..100 {
+        if entered.load(Ordering::SeqCst) == 1 {
+            break;
+        }
+        tokio::time::sleep(StdDuration::from_millis(50)).await;
+    }
+    // A heavy run waits in the Lineup behind it.
+    let queued = ch
+        .start(StartReq::board("reprint", reprint_args(), IfBusy::Queue))
+        .await
+        .unwrap()
+        .run()
+        .clone();
+    ch.cancel(&run.short_id).await.unwrap();
+    // The tick stops the step task, waits for it, then cancels the run and frees the slot.
+    settle(&ch).await;
+    for _ in 0..100 {
+        if status(&f, run.run_id).await == "cancelled" {
+            break;
+        }
+        tokio::time::sleep(StdDuration::from_millis(50)).await;
+    }
+    assert_eq!(status(&f, run.run_id).await, "cancelled");
+    assert_eq!(
+        ended.load(Ordering::SeqCst),
+        1,
+        "the step task had ended before the slot was freed"
+    );
+    assert_eq!(finished.load(Ordering::SeqCst), 0);
+    settle(&ch).await;
+    assert_eq!(status(&f, queued.run_id).await, "running");
+    // The stopped step wrote nothing: not done.
+    let s: String =
+        sqlx::query_scalar("select status from run_steps where run_id = $1 and seq = 1")
+            .bind(run.run_id)
+            .fetch_one(&f.pool)
+            .await
+            .unwrap();
+    assert_ne!(s, "done");
+    ch.stop_drivers().await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres"]
+async fn a_lost_lock_never_runs_a_step_twice_at_once() {
+    let f = Fixture::migrated().await;
+    let c = clock();
+    let (h, [entered, active, max_active, ended, finished]) = slow(1);
+    let handlers = Handlers::default().with("rollcall.health", h);
+    let old = Chief::builder(f.pool.clone(), Arc::new(c.clone()))
+        .handlers(handlers.clone())
+        .build();
+    let run = board_start(&old, "rollcall", IfBusy::Offer)
+        .await
+        .unwrap()
+        .run()
+        .clone();
+    old.ensure_drivers().await.unwrap();
+    for _ in 0..100 {
+        if entered.load(Ordering::SeqCst) == 1 {
+            break;
+        }
+        tokio::time::sleep(StdDuration::from_millis(20)).await;
+    }
+    // The fence: stopping the drivers also stops and awaits their step tasks.
+    old.stop_drivers().await;
+    assert_eq!(active.load(Ordering::SeqCst), 0);
+    assert_eq!(ended.load(Ordering::SeqCst), 1);
+    // A new instance re-enters the step: it runs once more, never beside the old one.
+    let new = Chief::builder(f.pool.clone(), Arc::new(c.clone()))
+        .handlers(handlers)
+        .build();
+    new.recover().await.unwrap();
+    new.ensure_drivers().await.unwrap();
+    wait_status(&f, run.run_id, "failed").await; // step 2 is not built
+    assert_eq!(entered.load(Ordering::SeqCst), 2);
+    assert_eq!(finished.load(Ordering::SeqCst), 1);
+    assert_eq!(max_active.load(Ordering::SeqCst), 1);
+}
