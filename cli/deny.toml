@@ -23,6 +23,8 @@ ignore = [
     # chrono: unmaintained notice only, no vulnerability. sqlx 0.9, croner and our crates need it;
     # no maintained drop-in yet. Revisit by 2027-02-28.
     { id = "RUSTSEC-2026-0543", reason = "chrono unmaintained; no drop-in for sqlx/croner; revisit by 2027-02-28" },
+    # chrono-tz: unmaintained notice only, no vulnerability; Rota needs IANA zones. Revisit with chrono (jiff) by 2027-02-28.
+    { id = "RUSTSEC-2026-0555", reason = "chrono-tz unmaintained; Rota time zones; revisit with chrono by 2027-02-28" },
 ]
 
 [licenses]
