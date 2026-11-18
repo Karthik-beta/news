@@ -64,17 +64,88 @@ pub async fn standing(cmd: StandingCmd) -> NewsResult<Reply> {
     }
 }
 
-/// `news service run`: the Bureau service in this console until Ctrl-C.
-pub async fn service(cmd: ServiceCmd) -> NewsResult<Reply> {
-    let ServiceCmd::Run { console: _ } = cmd;
+/// Run the Bureau service until `shutdown` resolves; `true` when it stopped for an update restart.
+async fn host(shutdown: impl std::future::Future<Output = ()>) -> NewsResult<bool> {
     let cfg = news_store::DbConfig::from_env()?;
     let mut opts = news_service::host::Options::new(cfg, news::registry::resolve);
     opts.handlers = news::registry::step_handlers();
-    news_service::host::run(opts, async {
-        let _ = tokio::signal::ctrl_c().await;
-    })
-    .await?;
-    Ok(Reply::new(json!({"stopped": true})))
+    let update = opts.update.clone();
+    news_service::host::run(opts, shutdown).await?;
+    Ok(update.restart_requested())
+}
+
+/// The body the SCM runs: a runtime of its own, until Stop. A non-zero exit code makes the failure
+/// actions restart the service (after an update, or after an error).
+fn scm_body(mut stop: tokio::sync::watch::Receiver<bool>) -> u32 {
+    let rt = match tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(4)
+        .enable_all()
+        .build()
+    {
+        Ok(rt) => rt,
+        Err(_) => return 1,
+    };
+    let _guard = news_telemetry::init_tracing();
+    match rt.block_on(host(async move {
+        let _ = stop.wait_for(|s| *s).await;
+    })) {
+        Ok(true) => news_service::update::RESTART_EXIT_CODE,
+        Ok(false) => 0,
+        Err(_) => 1,
+    }
+}
+
+/// `news service ...`: run (the SCM entry, or a console with `--console`), and the Windows
+/// administration of the service (`install`, `uninstall`, `start`, `stop`, `status`).
+pub async fn service(cmd: ServiceCmd) -> NewsResult<Reply> {
+    match cmd {
+        ServiceCmd::Run { console } => {
+            if !console {
+                // Started by the SCM this blocks until Stop; from a terminal it fails with 1063 and
+                // the service runs in this console instead.
+                let started = tokio::task::spawn_blocking(|| {
+                    news_win::scm::dispatch(news_service::install::SERVICE_NAME, scm_body)
+                })
+                .await
+                .map_err(|e| NewsError::internal(format!("service task failed: {e}")))?;
+                match started {
+                    Ok(()) => return Ok(Reply::new(json!({"stopped": true}))),
+                    Err(e)
+                        if e.raw_os_error() == Some(news_win::scm::NOT_STARTED_BY_SCM)
+                            || e.kind() == std::io::ErrorKind::Unsupported => {}
+                    Err(e) => {
+                        return Err(NewsError::precondition(format!(
+                            "cannot hand the process to the Service Control Manager: {e}"
+                        )));
+                    }
+                }
+            }
+            let restart = host(async {
+                let _ = tokio::signal::ctrl_c().await;
+            })
+            .await?;
+            Ok(Reply::new(json!({"stopped": true, "updated": restart})))
+        }
+        ServiceCmd::Install {
+            dry_run,
+            account,
+            elevated,
+            sid,
+        } => Ok(Reply::new(news_service::install::install(
+            &news_service::install::InstallArgs {
+                dry_run,
+                elevated,
+                account,
+                sid,
+            },
+        )?)),
+        ServiceCmd::Uninstall { elevated } => {
+            Ok(Reply::new(news_service::install::uninstall(elevated)?))
+        }
+        ServiceCmd::Start => Ok(Reply::new(news_service::install::start()?)),
+        ServiceCmd::Stop => Ok(Reply::new(news_service::install::stop()?)),
+        ServiceCmd::Status => Ok(Reply::new(news_service::install::status()?)),
+    }
 }
 
 /// The CLI forms of G-tier commands: always `gated` (ADR 0008 §6.3). Chief runs G-tier work in

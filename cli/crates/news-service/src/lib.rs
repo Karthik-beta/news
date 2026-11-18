@@ -7,10 +7,13 @@
 //! drivers, terminates every process in the root job, cancels and awaits every worker task) before it
 //! tries again.
 
+pub mod docker;
 pub mod handlers;
 pub mod host;
+pub mod install;
 pub mod log;
 pub mod reads;
+pub mod update;
 
 use news_chief::board::ServiceState;
 use std::sync::atomic::{AtomicU8, Ordering};

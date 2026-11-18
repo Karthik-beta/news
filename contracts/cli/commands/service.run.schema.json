@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://news.karthik.nz/contracts/cli/commands/service.run.schema.json",
   "title": "news service run",
-  "description": "Run the Bureau service in this console until Ctrl-C (ADR 0008 §9). Registration as a Windows service is #29.",
+  "description": "Run the Bureau service in this console until Ctrl-C (ADR 0008 §9). Without --console it is the Service Control Manager entry point (and falls back to a console when started from a terminal); `news service install` registers it.",
   "x-news-tier": "W",
   "x-news-status": "built",
   "x-news-errors": ["precondition", "conflict", "upstream_unavailable"],
@@ -22,6 +22,10 @@
       "properties": {
         "stopped": {
           "const": true
+        },
+        "updated": {
+          "type": "boolean",
+          "description": "Stopped for a service.update restart (console mode only)"
         }
       },
       "required": ["stopped"],

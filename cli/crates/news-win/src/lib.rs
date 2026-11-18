@@ -35,10 +35,91 @@ pub fn same_image(a: &str, b: &str) -> bool {
     a.eq_ignore_ascii_case(b)
 }
 
+/// The service's name in the SCM.
+pub const SERVICE_NAME: &str = "NewsBureau";
+
+/// What `news service install` registers with the SCM.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ServiceSpec {
+    pub name: String,
+    pub display_name: String,
+    pub description: String,
+    pub exe: std::path::PathBuf,
+    /// Arguments after the executable path (`service run`).
+    pub args: Vec<String>,
+    /// `.\user` or `DOMAIN\user`: Karthik's own account, because `claude -p` uses his login.
+    pub account: String,
+}
+
+/// The SCM's view of the service.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ScmStatus {
+    /// `stopped`, `startpending`, `running`, ...
+    pub state: String,
+    pub running: bool,
+    /// The Win32 or service-specific exit code of the last stop, when it was not clean (1069 is a
+    /// log-on failure).
+    pub exit_code: Option<u32>,
+    pub pid: Option<u32>,
+}
+
+/// A readable reason for the exit codes Board's offline banner is likely to meet.
+pub fn explain_exit_code(code: u32) -> String {
+    match code {
+        1069 => "Windows could not log the service on: the account password is wrong or changed. \
+                 Run `news service install` again to enter it."
+            .to_owned(),
+        1326 => "Windows rejected the account name or password. Run `news service install` again."
+            .to_owned(),
+        1053 => "The service did not respond to the start request in time.".to_owned(),
+        5 => "Access denied.".to_owned(),
+        other => format!("Windows error {other}."),
+    }
+}
+
+#[cfg(windows)]
+mod admin;
 #[cfg(windows)]
 mod imp;
 #[cfg(windows)]
+#[allow(unsafe_code)]
+pub mod scm;
+#[cfg(windows)]
+pub use admin::*;
+#[cfg(windows)]
 pub use imp::*;
+
+/// Off Windows there is no SCM: every call is `Unsupported`.
+#[cfg(not(windows))]
+pub mod scm {
+    use super::*;
+
+    fn unsupported<T>() -> io::Result<T> {
+        Err(io::Error::new(io::ErrorKind::Unsupported, "Windows only"))
+    }
+    pub fn install(_spec: &ServiceSpec, _password: Option<&str>) -> io::Result<()> {
+        unsupported()
+    }
+    pub fn uninstall(_name: &str) -> io::Result<()> {
+        unsupported()
+    }
+    pub fn start(_name: &str) -> io::Result<()> {
+        unsupported()
+    }
+    pub fn stop(_name: &str) -> io::Result<()> {
+        unsupported()
+    }
+    pub fn status(_name: &str) -> io::Result<Option<ScmStatus>> {
+        unsupported()
+    }
+    pub fn dispatch(
+        _name: &str,
+        _body: fn(tokio::sync::watch::Receiver<bool>) -> u32,
+    ) -> io::Result<()> {
+        unsupported()
+    }
+    pub const NOT_STARTED_BY_SCM: i32 = 1063;
+}
 
 #[cfg(not(windows))]
 mod stub {
@@ -70,6 +151,41 @@ mod stub {
     pub fn current_user_sid() -> io::Result<String> {
         unsupported()
     }
+
+    pub fn cred_write(_target: &str, _secret: &str) -> io::Result<()> {
+        unsupported()
+    }
+    pub fn cred_read(_target: &str) -> Option<String> {
+        None
+    }
+    pub fn cred_exists(_target: &str) -> bool {
+        false
+    }
+    pub fn cred_delete(_target: &str) -> io::Result<()> {
+        unsupported()
+    }
+    pub fn read_password(_prompt: &str) -> io::Result<String> {
+        unsupported()
+    }
+    pub fn is_elevated() -> bool {
+        false
+    }
+    pub fn relaunch_elevated(_exe: &std::path::Path, _args: &str) -> io::Result<u32> {
+        unsupported()
+    }
+    pub fn grant_service_logon(_sid: &str) -> io::Result<()> {
+        unsupported()
+    }
+    pub fn set_logon_entry(_command: Option<&str>) -> io::Result<()> {
+        unsupported()
+    }
+    pub fn logon_entry_exists() -> bool {
+        false
+    }
+    pub fn allow_user_to_control(_service: &str, _sid: &str) -> io::Result<()> {
+        unsupported()
+    }
+    pub fn detach_console_if_alone() {}
 }
 #[cfg(not(windows))]
 pub use stub::*;

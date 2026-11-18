@@ -2,8 +2,10 @@
 //! already admitted the peer and validated the args; these run the command.
 
 use crate::State;
+use crate::docker;
 use crate::log::LogRing;
 use crate::reads::{self, ReadCtx};
+use crate::update::{self, UpdateGate};
 use chrono::{DateTime, Utc};
 use news_chief::gates::{Answer, Decision};
 use news_chief::presets;
@@ -14,6 +16,7 @@ use news_hotline::{BoxFut, Bus, Peer, Refusal, Service};
 use news_store::{PgPool, map_err};
 use serde_json::{Map, Value, json};
 use std::sync::{Arc, RwLock};
+use std::time::Duration;
 
 /// What the handlers use once the database is up.
 pub struct Core {
@@ -31,6 +34,10 @@ pub struct Bureau {
     pub log: Arc<LogRing>,
     pub started_at: DateTime<Utc>,
     pub core: RwLock<Option<Arc<Core>>>,
+    /// `service.update`: stops `ai` and `publish` claims, then asks the host to restart.
+    pub update: Arc<UpdateGate>,
+    /// `docker.*`: the Docker command line (a fake in tests).
+    pub docker: Arc<dyn docker::Runner>,
 }
 
 impl Bureau {
@@ -42,7 +49,75 @@ impl Bureau {
             log,
             started_at: Utc::now(),
             core: RwLock::new(None),
+            update: Arc::new(UpdateGate::default()),
+            docker: docker::default_runner(),
         }
+    }
+
+    pub fn with_update(mut self, gate: Arc<UpdateGate>) -> Self {
+        self.update = gate;
+        self
+    }
+
+    pub fn with_docker(mut self, runner: Arc<dyn docker::Runner>) -> Self {
+        self.docker = runner;
+        self
+    }
+
+    /// `docker.status`, `docker.start`, `docker.stop`: the blocking command line runs off the reactor.
+    async fn docker_cmd(&self, cmd: &str, args: &Value) -> Result<Value, NewsError> {
+        let runner = self.docker.clone();
+        let (cmd, name) = (
+            cmd.to_owned(),
+            args["container"].as_str().unwrap_or_default().to_owned(),
+        );
+        tokio::task::spawn_blocking(move || match cmd.as_str() {
+            "docker.status" => Ok(docker::status(runner.as_ref())),
+            other => docker::control(runner.as_ref(), &name, other == "docker.start"),
+        })
+        .await
+        .map_err(|e| NewsError::internal(format!("docker task failed: {e}")))?
+    }
+
+    /// `service.update`: see [`crate::update`].
+    async fn start_update(&self) -> Result<Value, NewsError> {
+        let core = self.core()?;
+        let exe = std::env::current_exe()
+            .map_err(|e| NewsError::internal(format!("cannot find the installed binary: {e}")))?;
+        let staged = update::staged_path(&exe);
+        if std::fs::metadata(&staged).map_or(0, |m| m.len()) == 0 {
+            return Err(NewsError::precondition(format!(
+                "no staged build at {}",
+                staged.display()
+            ))
+            .with_hint("build news.exe and copy it next to the installed one as news.exe.new"));
+        }
+        let waiting = update::in_flight(&core.db).await?;
+        if self.update.begin() {
+            let (gate, log, bus, db) = (
+                self.update.clone(),
+                self.log.clone(),
+                self.bus.clone(),
+                core.db.clone(),
+            );
+            tokio::spawn(async move {
+                let say = |level: &str, msg: &str| {
+                    bus.emit("service", log.push(level, "update", msg, None))
+                };
+                say("info", "update requested: waiting for a safe point");
+                match update::finish(&db, &gate, &exe, &staged, Duration::from_secs(1)).await {
+                    Ok(()) => say("info", "binary swapped: restarting the service"),
+                    Err(e) => say("error", &format!("update failed: {}", e.message)),
+                }
+            });
+        }
+        let state = if waiting.is_empty() {
+            "restarting"
+        } else {
+            "waiting_for_safe_point"
+        };
+        let text = update::text(&waiting);
+        Ok(json!({"state": state, "waiting_on": waiting, "text": text}))
     }
 
     pub fn set_core(&self, core: Option<Arc<Core>>) {
@@ -96,9 +171,10 @@ impl Bureau {
                     args["level"].as_str(),
                 ));
             }
-            "docker.status" | "docker.start" | "docker.stop" | "service.update" => {
-                return Err(NewsError::precondition(format!("{cmd} is built in #29")));
+            "docker.status" | "docker.start" | "docker.stop" => {
+                return self.docker_cmd(cmd, &args).await;
             }
+            "service.update" => return self.start_update().await,
             _ => {}
         }
         let core = self.core()?;

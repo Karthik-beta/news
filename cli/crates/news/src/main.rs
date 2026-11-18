@@ -133,6 +133,14 @@ fn exit(code: i32) -> ExitCode {
 }
 
 fn main() -> ExitCode {
+    // Board is a window: it needs the main thread and prints no envelope. It also needs `board` as
+    // argv[1], which the Hotline checks (ADR 0007 decision 8), so it is not routed through clap.
+    let argv: Vec<String> = std::env::args().collect();
+    if argv.get(1).map(String::as_str) == Some("board") {
+        return exit(news_board::run(&argv[2..]));
+    }
+    // The write-API key is read from Credential Manager first (where Board puts it).
+    news_core::secrets::set_credential_reader(news_win::cred_read);
     let started = Instant::now();
     let matches = match Cli::command().try_get_matches() {
         Ok(m) => m,
@@ -415,7 +423,8 @@ mod tests {
     fn every_bureau_command_has_a_contract_except_home_and_publish() {
         let have = commands::schema_commands();
         for (path, _) in leaves() {
-            if path.starts_with("home.") || path == "publish" {
+            // `board` opens a window and prints no envelope: it has no contract.
+            if path.starts_with("home.") || path == "publish" || path == "board" {
                 continue;
             }
             assert!(

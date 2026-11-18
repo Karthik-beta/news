@@ -5,8 +5,7 @@
   "workspaces": [
     "site",
     "workers/*",
-    "pipeline",
-    "dashboard"
+    "pipeline"
   ],
   "scripts": {
     "setup": "bun --no-env-file scripts/setup.ts",

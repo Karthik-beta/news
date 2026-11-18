@@ -11,6 +11,7 @@ tokio = { workspace = true }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { workspace = true }
+windows-service = { workspace = true }
 
 # Not the workspace table: this crate denies (not forbids) unsafe, and allows it per function with a
 # `// SAFETY:` comment (ADR 0008 §2).

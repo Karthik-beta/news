@@ -32,6 +32,8 @@ news-press = { workspace = true }
 news-critic = { workspace = true }
 news-standing = { workspace = true }
 news-service = { workspace = true }
+news-board = { workspace = true }
+news-win = { workspace = true }
 chrono = { workspace = true }
 clap = { workspace = true }
 serde = { workspace = true }

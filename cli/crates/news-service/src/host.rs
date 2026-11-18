@@ -1,9 +1,10 @@
-//! `news service run`: the host loop (ADR 0008 §9). Console mode; the SCM entry point and service
-//! registration are #29's.
+//! `news service run`: the host loop (ADR 0008 §9). The SCM entry point is `news service run` without
+//! `--console` (see [`crate::install`]); registration is `news service install`.
 
 use crate::State;
 use crate::handlers::{Bureau, Core};
 use crate::log::LogRing;
+use crate::update::UpdateGate;
 use chrono::Utc;
 use news_chief::board::ServiceState;
 use news_chief::driver::Handlers;
@@ -50,6 +51,8 @@ pub struct Options {
     pub usage: Arc<dyn UsageSource>,
     pub clock: Arc<dyn Clock>,
     pub worker_id: String,
+    /// `service.update`: the caller keeps a clone and reads `restart_requested()` after `run` returns.
+    pub update: Arc<UpdateGate>,
 }
 
 impl Options {
@@ -62,6 +65,7 @@ impl Options {
             usage: Arc::new(news_rota::Unknown),
             clock: Arc::new(SystemClock),
             worker_id: format!("bureau-{}", std::process::id()),
+            update: Arc::new(UpdateGate::default()),
         }
     }
 }
@@ -80,7 +84,9 @@ pub async fn run(opts: Options, shutdown: impl Future<Output = ()>) -> Result<()
     let state = Arc::new(State::default());
     let bus = Arc::new(Bus::default());
     let log = Arc::new(LogRing::default());
-    let bureau = Arc::new(Bureau::new(state.clone(), bus.clone(), log.clone()));
+    let bureau = Arc::new(
+        Bureau::new(state.clone(), bus.clone(), log.clone()).with_update(opts.update.clone()),
+    );
     let say = |level: &str, msg: &str| {
         let line = log.push(level, "service", msg, None);
         bus.emit("service", line);
@@ -112,6 +118,10 @@ pub async fn run(opts: Options, shutdown: impl Future<Output = ()>) -> Result<()
         say("info", "Bureau service up");
         let lost = tokio::select! {
             () = &mut shutdown => false,
+            () = opts.update.wait_restart() => {
+                say("info", "update: stopping for the restart");
+                false
+            }
             () = serve(&mut up) => true,
         };
         bureau.set_core(None);
@@ -207,8 +217,9 @@ async fn connect(
     );
     wo.active = active.clone();
     let hook = policy.clone();
+    let gate = opts.update.clone();
     wo.pre_claim = Some(Arc::new(move |pool: &str| {
-        pool != "ai" || hook.ai_claim(Utc::now()) == AiClaim::Allow
+        gate.allows_claim(pool) && (pool != "ai" || hook.ai_claim(Utc::now()) == AiClaim::Allow)
     }));
     let resolve = opts.resolve;
     let wdb = pool.clone();

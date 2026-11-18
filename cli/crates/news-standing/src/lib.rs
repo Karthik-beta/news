@@ -31,6 +31,11 @@ pub enum KeyType {
     Enum(&'static [&'static str]),
     /// A token count; null means no limit.
     Tokens,
+    /// A decimal number as published (a share such as 0.05, never rescaled), bounded in thousandths.
+    Decimal {
+        min_milli: i64,
+        max_milli: i64,
+    },
     /// `{"preset", "args", "cron", "enabled"}` (only under `schedules.`).
     Schedule,
 }
@@ -45,6 +50,7 @@ impl KeyType {
             KeyType::TimeZone => "time_zone",
             KeyType::Enum(_) => "enum",
             KeyType::Tokens => "tokens",
+            KeyType::Decimal { .. } => "decimal",
             KeyType::Schedule => "schedule",
         }
     }
@@ -112,6 +118,96 @@ pub const REGISTRY: &[KeyDecl] = &[
         "A scheduled run that cannot start within this long of its slot is skipped",
     ),
     key(
+        "models.a1",
+        KeyType::Text,
+        "null",
+        "Model for step A1, Write page (new, or update after a direction flip) (a claude -p --model value; null: the role's model)",
+    ),
+    key(
+        "models.a10",
+        KeyType::Text,
+        "null",
+        "Model for step A10, Alt text when the image source gives none (a claude -p --model value; null: the role's model)",
+    ),
+    key(
+        "models.a11",
+        KeyType::Text,
+        "null",
+        "Model for step A11, Rollcall proposals (a claude -p --model value; null: the role's model)",
+    ),
+    key(
+        "models.a12",
+        KeyType::Text,
+        "null",
+        "Model for step A12, Eval judge (a claude -p --model value; null: the role's model)",
+    ),
+    key(
+        "models.a2",
+        KeyType::Text,
+        "null",
+        "Model for step A2, Repair a Copy (a claude -p --model value; null: the role's model)",
+    ),
+    key(
+        "models.a3",
+        KeyType::Text,
+        "null",
+        "Model for step A3, Classify an ambiguous item (a claude -p --model value; null: the role's model)",
+    ),
+    key(
+        "models.a4",
+        KeyType::Text,
+        "null",
+        "Model for step A4, Same story? (grey zone) (a claude -p --model value; null: the role's model)",
+    ),
+    key(
+        "models.a5",
+        KeyType::Text,
+        "null",
+        "Model for step A5, Condense long source text for a brief (a claude -p --model value; null: the role's model)",
+    ),
+    key(
+        "models.a6",
+        KeyType::Text,
+        "null",
+        "Model for step A6, Pick an entity from a shortlist (a claude -p --model value; null: the role's model)",
+    ),
+    key(
+        "models.a7",
+        KeyType::Text,
+        "null",
+        "Model for step A7, Sample spot check (a claude -p --model value; null: the role's model)",
+    ),
+    key(
+        "models.a8",
+        KeyType::Text,
+        "null",
+        "Model for step A8, Home curation (Frontpage) (a claude -p --model value; null: the role's model)",
+    ),
+    key(
+        "models.a9",
+        KeyType::Text,
+        "null",
+        "Model for step A9, Triage a reader error report (a claude -p --model value; null: the role's model)",
+    ),
+    key(
+        "models.curator",
+        KeyType::Text,
+        "\"sonnet\"",
+        "Model role for the home page curator (A8) unless that step has its own",
+    ),
+    key(
+        "models.light",
+        KeyType::Text,
+        "\"haiku\"",
+        "Model role for the light steps (A3 to A7, A9, A10) unless a step has its own",
+    ),
+    key(
+        "models.main",
+        KeyType::Text,
+        "\"sonnet\"",
+        "Model role for the main drafting steps (A1, A2, A11, A12) unless a step has its own",
+    ),
+    key(
         "next.dead_jobs_min",
         KeyType::Integer {
             min: 1,
@@ -154,6 +250,24 @@ pub const REGISTRY: &[KeyDecl] = &[
         "Parallel AI calls (claude -p); replaces NEWS_PARALLEL",
     ),
     key(
+        "proof.sample_rate",
+        KeyType::Decimal {
+            min_milli: 0,
+            max_milli: 1000,
+        },
+        "0.05",
+        "Share of pages given the Haiku spot check (a share from 0 to 1, as written)",
+    ),
+    key(
+        "publish.index_per_day",
+        KeyType::Integer {
+            min: 0,
+            max: 10_000,
+        },
+        "20",
+        "Pages offered to search engines per day",
+    ),
+    key(
         "quiet_hours.ai_slots",
         KeyType::Integer { min: 0, max: 32 },
         "1",
@@ -184,6 +298,12 @@ pub const REGISTRY: &[KeyDecl] = &[
         "Quiet hours start (local time; may wrap midnight)",
     ),
     key(
+        "quota.ai_run_tokens",
+        KeyType::Tokens,
+        "2500000",
+        "Token ceiling per run (input-equivalent): new AI jobs stop when it is reached and the run finishes its code work; null: no ceiling",
+    ),
+    key(
         "quota.bureau_daily_tokens",
         KeyType::Tokens,
         "null",
@@ -208,6 +328,18 @@ pub const REGISTRY: &[KeyDecl] = &[
         "Stop AI claims when all Claude Code usage this week reaches this (null: none)",
     ),
     key(
+        "retain.raw_days_data",
+        KeyType::Integer { min: 1, max: 3650 },
+        "400",
+        "Days to keep raw structured snapshots (JSON, XBRL, CSV, SDMX)",
+    ),
+    key(
+        "retain.raw_days_docs",
+        KeyType::Integer { min: 1, max: 3650 },
+        "90",
+        "Days to keep raw HTML and PDF snapshots",
+    ),
+    key(
         "rota.missed_slot_limit_minutes",
         MINUTES,
         "120",
@@ -219,6 +351,27 @@ pub const REGISTRY: &[KeyDecl] = &[
         "null",
         "Time zone for schedules, quiet hours and quota days (null: the laptop's)",
     ),
+    key(
+        "run.backfill_from",
+        KeyType::Text,
+        "null",
+        "Earliest date for backfill, YYYY-MM-DD (null: the start of the current year)",
+    ),
+    key(
+        "run.target_pages",
+        KeyType::Integer {
+            min: 1,
+            max: 10_000,
+        },
+        "100",
+        "Suggested pages per run (not a hard limit)",
+    ),
+    key(
+        "wire.contact_email",
+        KeyType::Text,
+        "null",
+        "Contact e-mail sent in the User-Agent only to sources that require one (SEC EDGAR); a dedicated address, never a secret",
+    ),
 ];
 
 /// Schedules are keys `schedules.<id>`, `id` matching `^[a-z0-9-]{1,32}$`.
@@ -226,8 +379,37 @@ pub const SCHEDULE_PREFIX: &str = "schedules.";
 const SCHEDULE_DOC: &str =
     "A preset schedule: {preset, args, cron (five fields, in rota.time_zone), enabled}";
 
-/// The declaration of `key`, including `schedules.<id>`.
+/// Sources on or off are keys `sources.<source_id>.enabled` (`^[a-z0-9-]{1,48}$`): true or false
+/// overrides the Contacts file's `enabled`, null (unset) leaves the file in charge.
+pub const SOURCE_PREFIX: &str = "sources.";
+const SOURCE_DOC: &str = "A source on or off; unset: the Contacts file decides";
+
+pub fn is_source_key(key: &str) -> bool {
+    key.strip_prefix(SOURCE_PREFIX)
+        .and_then(|r| r.strip_suffix(".enabled"))
+        .is_some_and(|id| {
+            (1..=48).contains(&id.len())
+                && id
+                    .bytes()
+                    .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+        })
+}
+
+/// Keys that are set explicitly and are not in the registry: schedules and source switches.
+fn is_dynamic_key(key: &str) -> bool {
+    key.starts_with(SCHEDULE_PREFIX) || is_source_key(key)
+}
+
+/// The declaration of `key`, including `schedules.<id>` and `sources.<id>.enabled`.
 pub fn decl(key: &str) -> Option<KeyDecl> {
+    if is_source_key(key) {
+        return Some(KeyDecl {
+            key: "sources.*.enabled",
+            ty: KeyType::Boolean,
+            default: "null",
+            doc: SOURCE_DOC,
+        });
+    }
     if let Some(id) = key.strip_prefix(SCHEDULE_PREFIX) {
         return valid_schedule_id(id).then_some(KeyDecl {
             key: "schedules.*",
@@ -294,6 +476,17 @@ pub fn validate(key: &str, value: &Value, check: ScheduleCheck<'_>) -> Result<()
         KeyType::Tokens => match value.as_i64() {
             Some(n) if n >= 0 => Ok(()),
             _ => bad("a token count (0 or more) or null"),
+        },
+        KeyType::Decimal {
+            min_milli,
+            max_milli,
+        } => match value.as_f64() {
+            Some(n) if n >= min_milli as f64 / 1000.0 && n <= max_milli as f64 / 1000.0 => Ok(()),
+            _ => bad(&format!(
+                "a number from {} to {}",
+                min_milli as f64 / 1000.0,
+                max_milli as f64 / 1000.0
+            )),
         },
         KeyType::Boolean if value.is_boolean() => Ok(()),
         KeyType::Boolean => bad("true or false"),
@@ -418,7 +611,7 @@ impl Standing {
             .map(|d| (d.key.to_owned(), self.get(d.key)))
             .collect();
         for (k, v) in &self.settings {
-            if k.starts_with(SCHEDULE_PREFIX) {
+            if is_dynamic_key(k) {
                 m.insert(k.clone(), v.clone());
             }
         }
@@ -428,12 +621,7 @@ impl Standing {
     /// The `standing.get` data: every key (or those under `prefix`) with value, default and type.
     pub fn items(&self, prefix: Option<&str>) -> Value {
         let mut keys: Vec<String> = REGISTRY.iter().map(|d| d.key.to_owned()).collect();
-        keys.extend(
-            self.settings
-                .keys()
-                .filter(|k| k.starts_with(SCHEDULE_PREFIX))
-                .cloned(),
-        );
+        keys.extend(self.settings.keys().filter(|k| is_dynamic_key(k)).cloned());
         keys.sort();
         let items: Vec<Value> = keys
             .iter()
@@ -685,6 +873,51 @@ mod tests {
             validate(d.key, &def, &ok).unwrap_or_else(|e| panic!("{}: {e}", d.key));
         }
         assert!(decl("pools.ai.max_running").is_some());
+    }
+
+    #[test]
+    fn the_config_models_and_source_keys_are_registered_and_checked() {
+        // The former environment variables of Technical Design "Settings", with their starting values.
+        let s = Standing::defaults();
+        assert_eq!(s.int("run.target_pages"), 100);
+        assert_eq!(s.int("publish.index_per_day"), 20);
+        assert_eq!(s.get("proof.sample_rate"), json!(0.05));
+        assert_eq!(s.int("quota.ai_run_tokens"), 2_500_000);
+        assert_eq!(s.int("retain.raw_days_data"), 400);
+        assert_eq!(s.int("retain.raw_days_docs"), 90);
+        assert_eq!(s.text("models.main").as_deref(), Some("sonnet"));
+        assert_eq!(s.text("models.light").as_deref(), Some("haiku"));
+        assert_eq!(s.text("models.curator").as_deref(), Some("sonnet"));
+        assert_eq!(
+            s.text("models.a1"),
+            None,
+            "a step follows its role until set"
+        );
+        assert_eq!(
+            REGISTRY
+                .iter()
+                .filter(|d| d.key.starts_with("models.a"))
+                .count(),
+            12
+        );
+        // A decimal is kept as written and bounded, never rescaled.
+        assert!(validate("proof.sample_rate", &json!(0.1), &ok).is_ok());
+        assert!(validate("proof.sample_rate", &json!(1.5), &ok).is_err());
+        assert!(validate("proof.sample_rate", &json!("5%"), &ok).is_err());
+        // Sources on or off.
+        assert!(is_source_key("sources.sec-edgar.enabled"));
+        assert!(!is_source_key("sources..enabled"));
+        assert!(!is_source_key("sources.Bad.enabled"));
+        assert!(validate("sources.fred.enabled", &json!(false), &ok).is_ok());
+        assert!(validate("sources.fred.enabled", &json!("no"), &ok).is_err());
+        assert!(validate("sources.x.disabled", &json!(true), &ok).is_err());
+        let mut set = Standing::defaults();
+        set.settings
+            .insert("sources.fred.enabled".into(), json!(false));
+        assert_eq!(set.effective()["sources.fred.enabled"], json!(false));
+        let items = set.items(Some("sources."));
+        assert_eq!(items["items"][0]["key"], "sources.fred.enabled");
+        assert_eq!(items["items"][0]["type"], "boolean");
     }
 
     #[test]

@@ -39,8 +39,9 @@ Commands whose subsystem is not built yet return `precondition` (exit 4) with a 
 | `news-standing` | Standing: Karthik's versioned settings, the key registry, history and the optimistic `set` |
 | `news-rota` | Rota: preset schedules (missed slots, the late limit), quiet hours and the quota guard |
 | `news-hotline` | The Hotline protocol: frames, the command table from `contracts/hotline/`, admission, the event bus, the server loop and the client |
-| `news-service` | `news service run`: the singleton lock and its fence, recovery, the pools, Chief's and Rota's ticks, the Hotline handlers |
-| `news-win` | Every Win32 call (the pipe's security descriptor, peer identity, Job Objects); the only crate allowed `unsafe`; stubs off Windows |
+| `news-service` | `news service run|install|uninstall|start|stop|status`: the singleton lock and its fence, recovery, the pools, Chief's and Rota's ticks, the Hotline handlers, `docker.*` and `service.update`. README in the crate |
+| `news-win` | Every Win32 call (the pipe's security descriptor, peer identity, Job Objects, the SCM, Credential Manager, elevation, the log-on entry); the only crate allowed `unsafe`; stubs off Windows |
+| `news-board` | Board, the egui desktop app (`news board`): the Hotline client, the three first screens, the token-generated theme, toasts, Credential Manager secrets. README in the crate; the window is `cfg(windows)` |
 | `news-ledger` | Ledger rules, pure (ADR 0018): data points as published, `dp_id`, exact decimals and their style, the unit vocabulary, event keys, derived-point guards |
 | `news-connectors` | The Stringers (`Connector` trait; SEC EDGAR, FRED, BLS): request descriptions and pure, versioned parsers. README in the crate; fixtures in `tests/fixtures/` |
 | `news-contacts` | Source rows from `data/sources/*.toml`, the Contacts lint, `sync` into `sources`, the licence gate |
@@ -48,7 +49,7 @@ Commands whose subsystem is not built yet return `precondition` (exit 4) with a 
 | `news-clerk` | Rule-based classification and the taxonomy seed, candidates, storing data points (vintages, `supersedes`) and Roster step 1 entities, SimHash |
 | `news-diary`, `news-roster`, `news-taster`, `news-nose`, `news-fixer`, `news-ghost`, `news-proof`, `news-rewrite`, `news-press`, `news-critic` | Subsystem skeletons: `ISSUE`, the job kinds they own and a stub `handle` (fails with class `bug`, "not built yet") |
 
-The name `news-board` is free for Board, the desktop app (#29). Skeleton subsystem crates depend only on `news-core`; the #9 crates also use `news-ledger`, `news-connectors` and sqlx. `news` wires them together. Wire's and Clerk's job handlers still refuse with `bug` until the Bureau service gives them a context (#10, #29). A new handler replaces its crate's `handle`; a new job kind is added to `news_dispatch::KINDS` and to the owning crate's `KINDS` (a test checks both lists agree).
+Skeleton subsystem crates depend only on `news-core`; the #9 crates also use `news-ledger`, `news-connectors` and sqlx. `news` wires them together. Wire's and Clerk's job handlers still refuse with `bug` until the Bureau service gives them a context (#10, #29). A new handler replaces its crate's `handle`; a new job kind is added to `news_dispatch::KINDS` and to the owning crate's `KINDS` (a test checks both lists agree).
 
 ## Database and migrations
 

@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/service.install.schema.json",
+  "title": "news service install",
+  "description": "Register the Bureau service under the user's own account (ADR 0007 decision 12). Karthik runs it in his own terminal: it re-launches elevated, asks for his Windows password at a prompt that does not echo, grants 'Log on as a service', creates or updates the service, and adds Board's log-on entry. `--dry-run` prints the plan and changes nothing. It is Windows administration, not a Hotline action.",
+  "x-news-tier": "W",
+  "x-news-status": "built",
+  "x-news-errors": ["usage", "precondition"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "dry_run": {
+          "type": "boolean"
+        },
+        "account": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "installed": {
+          "type": "boolean"
+        },
+        "dry_run": {
+          "type": "boolean"
+        },
+        "service": {
+          "type": "string"
+        },
+        "account": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": ["text"],
+      "additionalProperties": true
+    }
+  }
+}

@@ -31,7 +31,7 @@ updates:
       cargo:
         patterns: ["*"]
 
-  # Bun workspaces: the root bun.lock covers site, workers/*, pipeline and dashboard.
+  # Bun workspaces: the root bun.lock covers site, workers/*, and pipeline.
   - package-ecosystem: bun
     directory: /
     schedule:

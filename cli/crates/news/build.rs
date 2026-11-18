@@ -17,6 +17,26 @@ fn walk(dir: &Path, out: &mut Vec<PathBuf>) -> std::io::Result<()> {
 }
 
 fn main() {
+    // Board links the GUI DLLs; delay-load them so the hundreds of CLI calls inside `claude -p` never
+    // map OpenGL, user32 and UI Automation (spike item 5: median +270 ms per call otherwise).
+    if std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("windows")
+        && std::env::var("CARGO_CFG_TARGET_ENV").as_deref() == Ok("msvc")
+    {
+        for dll in [
+            "opengl32.dll",
+            "gdi32.dll",
+            "user32.dll",
+            "dwmapi.dll",
+            "imm32.dll",
+            "uxtheme.dll",
+            "uiautomationcore.dll",
+            "ole32.dll",
+            "oleaut32.dll",
+        ] {
+            println!("cargo:rustc-link-arg-bins=/DELAYLOAD:{dll}");
+        }
+        println!("cargo:rustc-link-arg-bins=delayimp.lib");
+    }
     let manifest = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap_or_default());
     let root = manifest.join("../../../contracts/cli");
     println!("cargo:rerun-if-changed={}", root.display());
