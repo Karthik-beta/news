@@ -1,0 +1,5 @@
+{
+  "flyTitle": "Renderer edge cases",
+  "headline": "Every kind of value the renderer must handle, ending at {dp_edge_percent}",
+  "summary": "Zero is {dp_edge_zero}, a fall is {dp_edge_negative} and a missing value reads {dp_edge_null}, never a zero."
+}

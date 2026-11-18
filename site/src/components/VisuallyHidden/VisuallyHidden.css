@@ -1,0 +1,13 @@
+/* biome-ignore-all lint/complexity/noImportantStyles: visually hidden must win over any layout rule */
+/* Hidden visually, kept for assistive technology. The standard clip pattern; no display or visibility tricks. */
+.visually-hidden:not(.visually-hidden--focusable:focus-within) {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  clip-path: inset(50%) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}

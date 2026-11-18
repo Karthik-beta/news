@@ -1,0 +1,125 @@
+{
+  "dist_A_astroIslands": {
+    "html": {
+      "rawKB": 9.94,
+      "gzipKB": 3.78
+    },
+    "inlineJs": {
+      "rawKB": 5.15,
+      "gzipKB": 2.04
+    },
+    "externalJs": {
+      "rawKB": 217.87,
+      "gzipKB": 68.01
+    },
+    "totalJs": {
+      "rawKB": 223.02,
+      "gzipKB": 69.65
+    },
+    "jsFiles": [
+      "_astro/client.CIsY-ihd.js",
+      "_astro/client.Dm5CapbD.js",
+      "_astro/react.CvnImTBr.js",
+      "_astro/LineChart.tuPkhZp0.js",
+      "_astro/LineChart.DXVa26-G.js"
+    ]
+  },
+  "dist_B_reactServer": {
+    "html": {
+      "rawKB": 4.51,
+      "gzipKB": 1.68
+    },
+    "inlineJs": {
+      "rawKB": 0,
+      "gzipKB": 0.02
+    },
+    "externalJs": {
+      "rawKB": 216.59,
+      "gzipKB": 67.26
+    },
+    "totalJs": {
+      "rawKB": 216.59,
+      "gzipKB": 67.26
+    },
+    "jsFiles": [
+      "_astro/ReactSsrPage.astro_astro_type_script_index_0_lang.BFPc28c5.js",
+      "_astro/LineChart.DXVa26-G.js",
+      "_astro/react.CvnImTBr.js",
+      "_astro/client.Dm5CapbD.js"
+    ]
+  },
+  "machine": {
+    "runtime": "bun 1.4.3",
+    "platform": "win32",
+    "arch": "x64"
+  },
+  "B_reactServer": {
+    "render": {
+      "firstMs": 126.193,
+      "runs": 50,
+      "p50Ms": 3.995,
+      "p95Ms": 12.746,
+      "minMs": 2.187,
+      "maxMs": 22.276
+    },
+    "html": {
+      "rawKB": 2.47,
+      "gzipKB": 1
+    },
+    "islandJs": {
+      "rawKB": 209.57,
+      "gzipKB": 65.49
+    }
+  },
+  "C_ownWalker": {
+    "render": {
+      "firstMs": 2.407,
+      "runs": 50,
+      "p50Ms": 1.219,
+      "p95Ms": 2.129,
+      "minMs": 0.997,
+      "maxMs": 15.564
+    },
+    "html": {
+      "rawKB": 2.47,
+      "gzipKB": 1
+    },
+    "islandJs": {
+      "rawKB": 209.57,
+      "gzipKB": 65.49
+    }
+  },
+  "wholePageHydrationJs": {
+    "rawKB": 605.05,
+    "gzipKB": 186.45
+  },
+  "A_astroContainer": {
+    "render": {
+      "firstMs": 85.884,
+      "runs": 50,
+      "p50Ms": 8.931,
+      "p95Ms": 14.746,
+      "minMs": 6.477,
+      "maxMs": 26.206
+    },
+    "html": {
+      "rawKB": 8.18,
+      "gzipKB": 3.28
+    },
+    "runtime": "vitest under bun 1.4.3"
+  },
+  "B_inAstroContainer": {
+    "render": {
+      "firstMs": 27.892,
+      "runs": 50,
+      "p50Ms": 3.284,
+      "p95Ms": 6.782,
+      "minMs": 2.114,
+      "maxMs": 30.157
+    },
+    "html": {
+      "rawKB": 2.7,
+      "gzipKB": 1.15
+    }
+  }
+}

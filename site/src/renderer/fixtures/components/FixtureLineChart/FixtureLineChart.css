@@ -1,0 +1,106 @@
+/* Fixture line chart (renderer tests only). Line and grid follow design/charts.md: solid horizontal hairline
+   gridlines, an ink baseline, the line in the comparison colour, labels never under 12px. */
+.fixture-plot {
+  position: relative;
+  height: 15rem;
+}
+.fixture-plot__area,
+.fixture-plot__overlay {
+  position: absolute;
+  inset: var(--space-5) var(--space-3) var(--space-8) var(--space-3);
+}
+.fixture-plot__overlay {
+  pointer-events: none;
+}
+.fixture-plot__area {
+  cursor: crosshair;
+  touch-action: pan-y;
+}
+.fixture-plot__svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.fixture-plot__grid,
+.fixture-plot__baseline,
+.fixture-plot__crosshair,
+.fixture-plot__line {
+  vector-effect: non-scaling-stroke;
+  fill: none;
+}
+.fixture-plot__grid {
+  stroke: var(--chart-grid);
+  stroke-width: var(--border-hairline);
+}
+.fixture-plot__baseline {
+  stroke: var(--chart-baseline);
+  stroke-width: var(--border-hairline);
+}
+.fixture-plot__crosshair {
+  stroke: var(--color-ink-3);
+  stroke-width: var(--border-hairline);
+}
+.fixture-plot__line {
+  stroke: var(--chart-comparison);
+  stroke-width: var(--chart-mark-line-width);
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.fixture-plot__tick {
+  position: absolute;
+  inset-inline-start: 0;
+  translate: 0 -100%;
+  font-size: var(--font-size-label);
+  line-height: 1.35;
+  color: var(--color-ink-3);
+}
+.fixture-plot__marker {
+  position: absolute;
+  width: var(--chart-mark-marker);
+  height: var(--chart-mark-marker);
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: var(--chart-comparison);
+}
+.fixture-plot__marker.is-active {
+  background: var(--chart-highlight);
+}
+.fixture-plot__x {
+  position: absolute;
+  inset: auto var(--space-3) 0 var(--space-3);
+  height: var(--space-7);
+}
+.fixture-plot__x-label {
+  position: absolute;
+  bottom: 0;
+  translate: -50% 0;
+  font-size: var(--font-size-label);
+  line-height: 1.35;
+  color: var(--color-ink-2);
+  white-space: nowrap;
+}
+.fixture-plot__x-label.is-first {
+  translate: 0 0;
+}
+.fixture-plot__x-label.is-last {
+  translate: -100% 0;
+}
+@media (max-width: 599px) {
+  .fixture-plot__x-label.is-mid {
+    display: none;
+  }
+}
+@media (forced-colors: active) {
+  .fixture-plot__line {
+    stroke: CanvasText;
+  }
+  .fixture-plot__marker {
+    forced-color-adjust: none;
+    background: CanvasText;
+  }
+}
+.fixture-chart-missing {
+  padding-block: var(--space-7);
+}

@@ -63,6 +63,9 @@ When documents disagree, `tokens.json` wins for values and `principles.md` wins 
 | 14 Nov 2026 | Crimson lightened from `#B8152F` to `#C8213A` |
 | 14 Nov 2026 | Chart palettes generated and validated by script for colour-vision deficiency and contrast, both themes |
 | 14 Nov 2026 | Home page becomes dynamic and agent-curated every 2–3 days (server-side data, no rebuild); an automatic "Latest" list added under the lead block (not yet in the mock-up) |
+| 16 Nov 2026 | Figures show the source's own digits: rates, points and basis points are never rounded (6.50% stays 6.50%) |
+| 16 Nov 2026 | Citation and glossary popovers open on click, tap, Enter or Space only, not on hover or focus |
+| 16 Nov 2026 | Crimson never marks a subject that fell (chart highlight rules follow with the chart components, issue #8) |
 
 ## Open items
 

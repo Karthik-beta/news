@@ -28,7 +28,7 @@ __pycache__/
 # Local databases and data volumes
 *.sqlite
 *.sqlite3
-data/
+/data/
 
 # Claude Code local files
 .claude/settings.local.json
@@ -41,5 +41,6 @@ desktop.ini
 .vscode/
 .idea/
 
-# Generated copies (made by site/scripts/sync-tokens.ts)
+# Generated copies (made by site/scripts/sync-tokens.ts and site/scripts/sync-fonts.ts)
 site/src/styles/tokens.css
+site/public/fonts/

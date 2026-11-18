@@ -1,0 +1,163 @@
+{
+  "$schema": "../../../../../../contracts/bundle/data.schema.json",
+  "version": 1,
+  "points": {
+    "dp_aapl_net_sales_fy2020": {
+      "label": "Total net sales",
+      "value": "274515",
+      "value_text": "274,515",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "decimals": 0,
+      "period": "pd_fy2020",
+      "source": "src_aapl_10k_2022",
+      "locator": {
+        "kind": "xbrl",
+        "accn": "0000320193-22-000108",
+        "tag": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "context": "FY2020"
+      }
+    },
+    "dp_aapl_net_sales_fy2021": {
+      "label": "Total net sales",
+      "value": "365817",
+      "value_text": "365,817",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "decimals": 0,
+      "period": "pd_fy2021",
+      "source": "src_aapl_10k_2022",
+      "locator": {
+        "kind": "xbrl",
+        "accn": "0000320193-22-000108",
+        "tag": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "context": "FY2021"
+      }
+    },
+    "dp_aapl_net_sales_fy2022": {
+      "label": "Total net sales",
+      "value": "394328",
+      "value_text": "394,328",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "decimals": 0,
+      "period": "pd_fy2022",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "xbrl",
+        "accn": "0000320193-24-000123",
+        "tag": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "context": "FY2022"
+      }
+    },
+    "dp_aapl_net_sales_fy2023": {
+      "label": "Total net sales",
+      "value": "383285",
+      "value_text": "383,285",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "decimals": 0,
+      "period": "pd_fy2023",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "xbrl",
+        "accn": "0000320193-24-000123",
+        "tag": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "context": "FY2023"
+      }
+    },
+    "dp_aapl_net_sales_fy2024": {
+      "label": "Total net sales",
+      "value": "391035",
+      "value_text": "391,035",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "decimals": 0,
+      "period": "pd_fy2024",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "xbrl",
+        "accn": "0000320193-24-000123",
+        "tag": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "context": "FY2024"
+      }
+    }
+  },
+  "derived": {
+    "dv_aapl_net_sales_growth_fy2024": {
+      "label": "Change in total net sales on the previous fiscal year",
+      "value": "2.0",
+      "unit": "%",
+      "currency": null,
+      "scale": null,
+      "formula": "pct_change",
+      "inputs": ["dp_aapl_net_sales_fy2024", "dp_aapl_net_sales_fy2023"],
+      "rounding": 1
+    }
+  },
+  "series": {
+    "sr_aapl_net_sales_5y": {
+      "label": "Total net sales",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "points": [
+        {
+          "period": "pd_fy2020",
+          "point": "dp_aapl_net_sales_fy2020"
+        },
+        {
+          "period": "pd_fy2021",
+          "point": "dp_aapl_net_sales_fy2021"
+        },
+        {
+          "period": "pd_fy2022",
+          "point": "dp_aapl_net_sales_fy2022"
+        },
+        {
+          "period": "pd_fy2023",
+          "point": "dp_aapl_net_sales_fy2023"
+        },
+        {
+          "period": "pd_fy2024",
+          "point": "dp_aapl_net_sales_fy2024"
+        }
+      ]
+    }
+  },
+  "periods": {
+    "pd_fy2020": {
+      "label": "fiscal 2020",
+      "fiscal": true
+    },
+    "pd_fy2021": {
+      "label": "fiscal 2021",
+      "fiscal": true
+    },
+    "pd_fy2022": {
+      "label": "fiscal 2022",
+      "fiscal": true
+    },
+    "pd_fy2023": {
+      "label": "fiscal 2023",
+      "fiscal": true
+    },
+    "pd_fy2024": {
+      "label": "fiscal 2024",
+      "fiscal": true
+    }
+  },
+  "quotes": {},
+  "context": {
+    "cx_aapl_first_rise_2y": {
+      "text": "the first rise in two years",
+      "rule": "first_increase_since",
+      "inputs": ["sr_aapl_net_sales_5y"]
+    }
+  }
+}

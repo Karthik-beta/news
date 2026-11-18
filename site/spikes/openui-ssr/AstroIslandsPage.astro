@@ -1,0 +1,27 @@
+---
+// Approach A: the page is an Astro component. Astro walks the OpenUI parse tree; static nodes render through
+// OpenUI's React runtime with no client directive (0 KB JS), and the chart is a native Astro island
+// (client:visible). Astro islands must be placed from .astro, so this walk is what puts the chart there.
+import type { ElementNode } from "@openuidev/react-lang";
+import FixtureLayout from "./FixtureLayout.astro";
+import oui from "./fixture.oui?raw";
+import { LineChart } from "./LineChart";
+import { OuiStatic } from "./OuiStatic";
+import { parseOui } from "./render";
+
+const root = parseOui(oui);
+const children = (root.props as { children: ElementNode[] }).children;
+---
+<FixtureLayout title="OpenUI SSR spike: Astro islands">
+  <article class="oui-page">
+    {
+      children.map((node) =>
+        node.typeName === "LineChart" ? (
+          <LineChart client:visible {...(node.props as unknown as Parameters<typeof LineChart>[0])} />
+        ) : (
+          <OuiStatic oui={oui} node={node} />
+        ),
+      )
+    }
+  </article>
+</FixtureLayout>

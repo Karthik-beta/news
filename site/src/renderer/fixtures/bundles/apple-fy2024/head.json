@@ -1,0 +1,5 @@
+{
+  "flyTitle": "Apple's annual results",
+  "headline": "Apple's sales grew again in {pd_fy2024}, to {dp_aapl_net_sales_fy2024}",
+  "summary": "Total net sales rose by {dv_aapl_net_sales_growth_fy2024} on {pd_fy2023}, {cx_aapl_first_rise_2y}. The figures come from the company's annual reports."
+}

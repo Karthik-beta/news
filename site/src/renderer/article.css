@@ -1,0 +1,53 @@
+/* The article template the renderer writes around page.oui: head, body, sources (design/layout.md, "Article
+   page"). A minimal version until the article head and sources components (#7, #9) replace its parts. */
+.article-page {
+  max-width: var(--layout-container);
+  margin: 0 auto;
+  padding-inline: max(var(--gutter), env(safe-area-inset-left, 0px)) max(var(--gutter), env(safe-area-inset-right, 0px));
+  padding-block: var(--space-9) var(--space-12);
+}
+
+.article {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  max-width: var(--layout-article);
+  min-width: 0;
+}
+
+/* Fly title -> headline 12px; headline -> standfirst 12px (design/typography.md). */
+.article__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.article__sources {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: var(--border-section) solid var(--color-ink);
+}
+.article__source-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.article__source-title {
+  font-size: var(--font-size-ui);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-ink);
+}
+.article__source-meta {
+  display: block;
+  margin-top: var(--space-1);
+}
+
+/* A value cited without a popover (headlines): same text, no decoration. */
+.cited {
+  font-variant-numeric: lining-nums;
+}

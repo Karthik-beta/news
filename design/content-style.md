@@ -32,7 +32,7 @@ How the site writes: headlines, chart titles, numbers, dates, units and interfac
 
 ## Chart and table titles
 
-- **Title: the takeaway, as a sentence.** "Greater China was the only region where sales fell". No full stop.
+- **Title: the takeaway, as a sentence.** "Services was the only large category to grow by double digits". No full stop.
 - **Subtitle: what is plotted, the period and the unit**, as a phrase: "Net sales by reportable segment, US$ millions, as reported".
 - The unit appears once, in the subtitle; axis ticks then carry bare numbers. The only exception is a percentage axis, whose top tick may carry `%`.
 - A title must be true from the chart alone. If the chart doesn't show it, the title can't say it.
@@ -59,7 +59,7 @@ How the site writes: headlines, chart titles, numbers, dates, units and interfac
 | Ordinals | Words up to tenth, then figures | third quarter; 11th |
 | Numbers in prose | Figures for 10 and above and for all measurements; words for one to nine when not a measurement | nine central banks; 3 points |
 
-- **Precision**: key figures use one decimal place for bn/m values and percentages, unless the source gives fewer. Never add precision the source doesn't have.
+- **Precision**: key figures use one decimal place for bn/m values, unless the source gives fewer. Percentages, points and basis points keep the source's own digits, never rounded: a policy rate of 6.50% is written 6.50%. Never add precision the source doesn't have.
 - **Change words**: "Up 2.0% on fiscal 2023", "Down 3.4%", "Unchanged". In compact columns, a signed figure: "+12.9%", "−7.1%". Never coloured red or green.
 
 ### Currencies

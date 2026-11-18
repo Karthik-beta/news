@@ -1,0 +1,18 @@
+/* Icons follow the text: 1em square, stroke and fill in currentColor, 1.6 units on the 16-unit grid. */
+.icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  flex: none;
+  vertical-align: -0.125em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  overflow: visible;
+}
+.icon .icon__fill {
+  fill: currentColor;
+  stroke: none;
+}
