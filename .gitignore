@@ -28,7 +28,9 @@ __pycache__/
 # Local databases and data volumes
 *.sqlite
 *.sqlite3
-data/
+# Only the root data/ is local; Contacts source rows (data/sources/<id>.toml) are reviewed like code.
+/data/*
+!/data/sources/
 
 # Claude Code local files
 .claude/settings.local.json
@@ -41,5 +43,6 @@ desktop.ini
 .vscode/
 .idea/
 
-# Generated copies (made by site/scripts/sync-tokens.ts)
+# Generated copies (made by site/scripts/sync-tokens.ts and site/scripts/sync-fonts.ts)
 site/src/styles/tokens.css
+site/public/fonts/

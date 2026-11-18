@@ -1,0 +1,20 @@
+---
+// Renderer fixture pages: each bundle in src/renderer/fixtures/bundles/ rendered by the real renderer
+// (react-dom/server over OpenUI's Renderer.Root) and hosted in the fixture layout. NEWS_FIXTURES=1 builds only.
+import { fixtureBundles } from "../../../../renderer/fixtures/bundles/vite";
+import FixtureLayout from "../../../../renderer/fixtures/FixtureLayout.astro";
+import { fixtureLibrary } from "../../../../renderer/fixtures/library";
+import { rendererFixturePaths } from "../../../../renderer/fixtures/routes";
+import { renderPage } from "../../../../renderer/render";
+
+export function getStaticPaths() {
+  return rendererFixturePaths();
+}
+
+const { bundle } = Astro.params as { bundle: keyof typeof fixtureBundles };
+const result = renderPage(fixtureBundles[bundle], { library: fixtureLibrary() });
+const title = `Fixture: ${bundle}`;
+---
+<FixtureLayout title={title} hasIslands={result.hasIslands}>
+  <Fragment set:html={result.article} />
+</FixtureLayout>

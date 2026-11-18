@@ -1,0 +1,17 @@
+---
+// One gallery page per primitive: every fixture case in src/components/<Name>/fixtures/cases.tsx, rendered on the
+// server with the merged fixture data. For the component tester. NEWS_FIXTURES=1 builds only.
+import FixtureLayout from "../../../renderer/fixtures/FixtureLayout.astro";
+import { galleryNames, renderGallery } from "../../../renderer/fixtures/gallery";
+import { fixturesEnabled } from "../../../renderer/fixtures/routes";
+
+export function getStaticPaths() {
+  return fixturesEnabled() ? galleryNames().map((name) => ({ params: { name } })) : [];
+}
+
+const { name } = Astro.params as { name: string };
+const html = renderGallery(name);
+---
+<FixtureLayout title={`Fixture: ${name}`} hasIslands={false}>
+  <Fragment set:html={html} />
+</FixtureLayout>

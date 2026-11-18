@@ -8,6 +8,17 @@
     "doctype-style": "off",
     "void-style": "off",
     "no-trailing-whitespace": "off",
-    "require-sri": ["error", { "target": "crossorigin" }]
+    "require-sri": [
+      "error",
+      {
+        "target": "crossorigin"
+      }
+    ],
+    "no-inline-style": [
+      "error",
+      {
+        "allowedProperties": ["display", "left", "top"]
+      }
+    ]
   }
 }

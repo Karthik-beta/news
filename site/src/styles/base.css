@@ -1,17 +1,78 @@
-/* Base styles. Tokens only; see design/typography.md and design/layout.md. Fonts are self-hosted in Phase 3.1. */
+/* biome-ignore-all lint/complexity/noImportantStyles: base rules (hidden, reduced motion, print) must beat any component style */
+/* Base styles: reset, body, links, focus ring, selection and print. Tokens only; see design/typography.md,
+   design/layout.md and design/accessibility.md. Fonts are self-hosted (fonts.css). Component styles live in
+   each component's folder; type styles in components/Text/Text.css. */
+
+/* Reset */
 *,
 *::before,
 *::after {
   box-sizing: border-box;
 }
 
-body {
+html {
+  /* Phones must not inflate text on rotation; the reader's own text-size setting still applies. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  background: var(--color-paper);
+}
+
+body,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+figure,
+figcaption,
+blockquote,
+dl,
+dd,
+ol,
+ul,
+pre {
   margin: 0;
+}
+
+img,
+svg,
+video,
+canvas {
+  display: block;
+  max-width: 100%;
+}
+img,
+video {
+  height: auto;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+/* Body */
+body {
+  min-height: 100vh;
   background: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-family-sans);
   font-size: var(--font-size-ui);
   line-height: var(--font-line-height-ui);
+  font-optical-sizing: auto;
   /* Long unbroken words, URLs and file names wrap instead of pushing the page sideways (reflow at 320px, 200% text). */
   overflow-wrap: break-word;
 }
@@ -24,14 +85,72 @@ pre {
   font: inherit;
 }
 
+/* Links (design/typography.md, "Links"): underlined in the text's own ink, 1px, offset 3px; hover thickens it. */
+a {
+  color: inherit;
+  text-decoration-line: underline;
+  text-decoration-thickness: var(--border-hairline);
+  text-underline-offset: 3px;
+}
+a:hover {
+  text-decoration-thickness: var(--border-section);
+}
+
+/* Focus ring (design/accessibility.md): 2px focus colour, 2px offset, on everything interactive. Never removed. */
 :focus-visible {
   outline: var(--border-focus) solid var(--color-focus);
   outline-offset: 2px;
 }
+
 ::selection {
   background: var(--color-selection);
+  color: var(--color-ink);
 }
 
+/* Motion only in response to the reader, and none when the reader asks for less. Tokens set --motion-* to 0 too;
+   this also stops anything that did not use them. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0s !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Print (design/layout.md, "Print"): keep the article, figures and sources; drop interface-only parts. */
+@media print {
+  @page {
+    margin: 15mm;
+  }
+  html,
+  body {
+    background: none;
+  }
+  [data-print="hide"],
+  [popover],
+  nav,
+  button:not(.popover-trigger) {
+    display: none !important;
+  }
+  /* A popover's trigger is the cited figure or the glossary term itself: it prints as plain text in its
+     sentence (Popover.css), and only the popover is dropped. */
+  figure,
+  table,
+  tr,
+  blockquote {
+    break-inside: avoid;
+  }
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
+  }
+}
+
+/* The local development placeholder page (src/pages/index.astro). */
 .dev {
   max-width: var(--layout-article);
   margin: 0 auto;
@@ -56,4 +175,7 @@ pre {
   font-size: var(--font-size-ui);
   color: var(--color-brand);
   margin: 0;
+}
+.dev p + p {
+  margin-top: var(--space-4);
 }

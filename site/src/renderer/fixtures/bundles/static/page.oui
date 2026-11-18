@@ -1,0 +1,3 @@
+root = Page([intro, sales])
+intro = FixtureText("A page with no islands ships no JavaScript. Net sales were {dp_aapl_net_sales_fy2024} in {pd_fy2024}.")
+sales = FixtureFigure("Total net sales", "dp_aapl_net_sales_fy2024", "dv_aapl_net_sales_growth_fy2024", "pd_fy2023")

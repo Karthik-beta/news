@@ -1,0 +1,298 @@
+{
+  "$schema": "../../../../../../contracts/bundle/data.schema.json",
+  "version": 1,
+  "points": {
+    "dp_edge_zero": {
+      "label": "Change in the index",
+      "value": "0",
+      "value_text": "0",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_edge_2024",
+      "source": "src_edge_stats",
+      "locator": {
+        "kind": "json",
+        "path": "$.observations[0].value",
+        "series": "EDGE"
+      }
+    },
+    "dp_edge_negative": {
+      "label": "Change in output",
+      "value": "-5.7",
+      "value_text": "-5.7",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_edge_2024",
+      "source": "src_edge_stats",
+      "locator": {
+        "kind": "json",
+        "path": "$.observations[0].value",
+        "series": "EDGE"
+      }
+    },
+    "dp_edge_percent": {
+      "label": "Consumer prices, 12-month change",
+      "value": "2.4",
+      "value_text": "2.4",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_edge_2024",
+      "source": "src_edge_stats",
+      "locator": {
+        "kind": "json",
+        "path": "$.observations[0].value",
+        "series": "EDGE"
+      }
+    },
+    "dp_edge_very_large": {
+      "label": "A very large amount",
+      "value": "123456789012345678",
+      "value_text": "123456789012345678",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "units",
+      "period": "pd_edge_2024",
+      "source": "src_edge_stats",
+      "locator": {
+        "kind": "json",
+        "path": "$.observations[0].value",
+        "series": "EDGE"
+      }
+    },
+    "dp_edge_very_small": {
+      "label": "A very small concentration",
+      "value": "0.000000012",
+      "value_text": "0.000000012",
+      "unit": "mol/L",
+      "currency": null,
+      "scale": null,
+      "period": "pd_edge_2024",
+      "source": "src_edge_stats",
+      "locator": {
+        "kind": "json",
+        "path": "$.observations[0].value",
+        "series": "EDGE"
+      }
+    },
+    "dp_edge_null": {
+      "label": "Not published this month",
+      "value": null,
+      "value_text": null,
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_edge_2024",
+      "source": "src_edge_stats",
+      "locator": {
+        "kind": "json",
+        "path": "$.observations[0].value",
+        "series": "EDGE"
+      }
+    },
+    "dp_edge_inr": {
+      "label": "Gross tax revenue",
+      "value": "2100000",
+      "value_text": "2100000",
+      "unit": "INR",
+      "currency": "INR",
+      "scale": "millions",
+      "period": "pd_edge_2024",
+      "source": "src_edge_stats",
+      "locator": {
+        "kind": "json",
+        "path": "$.observations[0].value",
+        "series": "EDGE"
+      }
+    },
+    "dp_edge_fiscal": {
+      "label": "Revenue",
+      "value": "82.3",
+      "value_text": "82.3",
+      "unit": "HKD",
+      "currency": "HKD",
+      "scale": "billions",
+      "period": "pd_edge_q4_fy26",
+      "source": "src_edge_stats",
+      "locator": {
+        "kind": "json",
+        "path": "$.observations[0].value",
+        "series": "EDGE"
+      }
+    },
+    "dp_edge_single": {
+      "label": "Turnout",
+      "value": "42.5",
+      "value_text": "42.5",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_edge_2024",
+      "source": "src_edge_stats",
+      "locator": {
+        "kind": "json",
+        "path": "$.observations[0].value",
+        "series": "EDGE"
+      }
+    },
+    "dp_edge_gap_2022": {
+      "label": "Growth",
+      "value": "1.5",
+      "value_text": "1.5",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_edge_2022",
+      "source": "src_edge_stats",
+      "locator": {
+        "kind": "json",
+        "path": "$.observations[0].value",
+        "series": "EDGE"
+      }
+    },
+    "dp_edge_gap_2024": {
+      "label": "Growth",
+      "value": "-0.4",
+      "value_text": "-0.4",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_edge_2024",
+      "source": "src_edge_stats",
+      "locator": {
+        "kind": "json",
+        "path": "$.observations[0].value",
+        "series": "EDGE"
+      }
+    },
+    "dp_edge_restricted_2023": {
+      "label": "Licensed measure",
+      "value": "10.2",
+      "value_text": "10.2",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_edge_2023",
+      "source": "src_edge_restricted",
+      "locator": {
+        "kind": "json",
+        "path": "$.observations[0].value",
+        "series": "EDGE"
+      }
+    },
+    "dp_edge_restricted_2024": {
+      "label": "Licensed measure",
+      "value": "11.8",
+      "value_text": "11.8",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_edge_2024",
+      "source": "src_edge_restricted",
+      "locator": {
+        "kind": "json",
+        "path": "$.observations[0].value",
+        "series": "EDGE"
+      }
+    }
+  },
+  "derived": {
+    "dv_edge_change_neg": {
+      "label": "Change in growth",
+      "value": "-1.9",
+      "unit": "pp",
+      "currency": null,
+      "scale": null,
+      "formula": "pp_change",
+      "inputs": ["dp_edge_gap_2024", "dp_edge_gap_2022"],
+      "rounding": 1
+    }
+  },
+  "series": {
+    "sr_edge_single": {
+      "label": "Turnout",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "points": [
+        {
+          "period": "pd_edge_2024",
+          "point": "dp_edge_single"
+        }
+      ]
+    },
+    "sr_edge_gap": {
+      "label": "Growth",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "points": [
+        {
+          "period": "pd_edge_2022",
+          "point": "dp_edge_gap_2022"
+        },
+        {
+          "period": "pd_edge_2023",
+          "point": null
+        },
+        {
+          "period": "pd_edge_2024",
+          "point": "dp_edge_gap_2024"
+        }
+      ]
+    },
+    "sr_edge_restricted": {
+      "label": "Licensed measure",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "points": [
+        {
+          "period": "pd_edge_2023",
+          "point": "dp_edge_restricted_2023"
+        },
+        {
+          "period": "pd_edge_2024",
+          "point": "dp_edge_restricted_2024"
+        }
+      ]
+    }
+  },
+  "periods": {
+    "pd_edge_2022": {
+      "label": "2022"
+    },
+    "pd_edge_2023": {
+      "label": "2023"
+    },
+    "pd_edge_2024": {
+      "label": "2024",
+      "start": "2024-01-01",
+      "end": "2024-12-31"
+    },
+    "pd_edge_q4_fy26": {
+      "label": "Q4 FY26",
+      "fiscal": true
+    }
+  },
+  "quotes": {
+    "q_edge_1": {
+      "text": "The committee decided to keep the policy rate unchanged.",
+      "source": "src_edge_stats",
+      "speaker": "A central bank governor",
+      "locator": {
+        "kind": "pdf",
+        "page": 2
+      }
+    }
+  },
+  "context": {
+    "cx_edge_lowest": {
+      "text": "the lowest in the series",
+      "rule": "series_min_since",
+      "inputs": ["sr_edge_gap"]
+    }
+  }
+}

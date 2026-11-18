@@ -1,0 +1,4 @@
+root = Page([intro, sales, chart])
+intro = FixtureText("Apple's total net sales were {dp_aapl_net_sales_fy2024} in {pd_fy2024}, against {dp_aapl_net_sales_fy2023} a year earlier.")
+sales = FixtureFigure("Total net sales", "dp_aapl_net_sales_fy2024", "dv_aapl_net_sales_growth_fy2024", "pd_fy2023")
+chart = FixtureLineChart("Sales grew again in {pd_fy2024} after a dip", "Total net sales, fiscal years ending in September, US$ bn", "sr_aapl_net_sales_5y")

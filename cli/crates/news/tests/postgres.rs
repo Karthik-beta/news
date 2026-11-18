@@ -30,6 +30,8 @@ mod dispatch;
 mod fixture;
 #[path = "postgres/migrations.rs"]
 mod migrations;
+#[path = "postgres/wire.rs"]
+mod wire;
 
 use postgres::config::Host;
 use postgres::{Client, Config, NoTls};
