@@ -1,0 +1,18 @@
+[package]
+name = "news-contacts"
+description = "Contacts, the source registry (Bureau Design §3.1): source rows as data files, the Contacts lint, sync into `sources`, the licence gate."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+news-core = { workspace = true }
+news-connectors = { workspace = true }
+serde = { workspace = true }
+sqlx = { workspace = true }
+thiserror = { workspace = true }
+toml = { workspace = true }
+
+[lints]
+workspace = true

@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/check.schema.json",
+  "title": "news check",
+  "description": "Code checks C1–C14 on a story's page (the Markup). Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "W",
+  "x-news-status": "stub until #17",
+  "x-news-errors": ["validation_failed"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "story": {
+          "type": "string"
+        }
+      },
+      "required": ["story"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "pass": {
+          "type": "boolean"
+        },
+        "failures": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "check": {
+                "type": "string",
+                "pattern": "^C[0-9]+$"
+              },
+              "where": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": ["check", "where", "message"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["pass", "failures"],
+      "additionalProperties": false
+    }
+  }
+}

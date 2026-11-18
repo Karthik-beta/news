@@ -1,8 +1,8 @@
 // Creates the isolated `news` database, user, settings profile and quota in the shared ClickHouse,
-// then the events table. Idempotent. The password comes from .env and is passed on stdin, not argv.
+// then the tables (002, 003). Idempotent. The password comes from .env and is passed on stdin, not argv.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { applyAccess, passwordProblem, renderAccessSql } from "./clickhouse";
+import { applyAccess, passwordProblem, renderAccessSql, splitStatements } from "./clickhouse";
 import { chQuery, env, root } from "./lib";
 
 const container = env("NEWS_CH_CONTAINER", "shorts-clickhouse-1");
@@ -21,10 +21,14 @@ if (!admin.ok) {
 }
 console.log(`✓ database, user, profile and quota ready in ${container}`);
 
-const events = readFileSync(join(root, "infra/clickhouse/002_events.sql"), "utf8");
-const ddl = await chQuery(events);
-if (!ddl.ok) {
-  console.error(`events table failed (as user news):\n${ddl.body}`);
-  process.exit(1);
+// The tables, as user news: the events table (002), then Ticker's columns and tables (003). Idempotent.
+for (const file of ["002_events.sql", "003_ticker.sql"]) {
+  for (const statement of splitStatements(readFileSync(join(root, "infra/clickhouse", file), "utf8"))) {
+    const ddl = await chQuery(statement);
+    if (!ddl.ok) {
+      console.error(`${file} failed (as user news):\n${ddl.body}`);
+      process.exit(1);
+    }
+  }
+  console.log(`✓ ${file} applied (as user news)`);
 }
-console.log("✓ news.events ready (created as user news)");

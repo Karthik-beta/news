@@ -1,0 +1,28 @@
+[package]
+name = "news-wire"
+description = "Wire (Bureau Design §3.2): the Runner (one polite HTTP client), the Morgue (content-addressed snapshots) and discover/fetch for every Stringer."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+news-core = { workspace = true }
+news-connectors = { workspace = true }
+chrono = { workspace = true }
+httpdate = { workspace = true }
+# The only crate with TLS: the Runner talks to SEC, FRED and BLS over HTTPS.
+reqwest = { workspace = true, features = ["rustls-tls-native-roots", "gzip", "brotli"] }
+sha2 = { workspace = true }
+sqlx = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+zstd = { workspace = true }
+
+[dev-dependencies]
+news-clerk = { workspace = true }
+news-ledger = { workspace = true }
+serde_json = { workspace = true }
+
+[lints]
+workspace = true

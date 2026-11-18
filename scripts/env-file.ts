@@ -37,11 +37,13 @@ export function withLocalSecrets(text: string, secret: () => string = newSecret)
   return out;
 }
 
-/** Values setup may have written to .env that its child processes (compose, doctor) must see. */
+/** Values from .env that setup's child processes (compose, `news db migrate`, doctor) must see. */
 export const CHILD_ENV_KEYS = [
   "NEWS_PG_PASSWORD",
   "NEWS_CH_PASSWORD",
   "DATABASE_URL",
+  // The migration must target the schema the other scripts will use.
+  "NEWS_DB_SCHEMA",
   "NEWS_DYNAMODB_PORT",
   "NEWS_DYNAMODB_ENDPOINT",
   "NEWS_DYNAMODB_REGION",

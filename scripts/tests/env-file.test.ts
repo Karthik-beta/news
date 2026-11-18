@@ -307,6 +307,15 @@ describe("reloadChildEnv", () => {
     expect(env.NEWS_DYNAMODB_PORT).toBe("8123");
     expect(env.NEWS_PG_PASSWORD).toBe("exported");
   });
+
+  test("passes NEWS_DB_SCHEMA from .env to the migration step; an exported schema wins", () => {
+    const fromFile: Record<string, string | undefined> = {};
+    reloadChildEnv("NEWS_DB_SCHEMA=local_news\n", fromFile);
+    expect(fromFile.NEWS_DB_SCHEMA).toBe("local_news");
+    const exported: Record<string, string | undefined> = { NEWS_DB_SCHEMA: "shell_news" };
+    reloadChildEnv("NEWS_DB_SCHEMA=local_news\n", exported);
+    expect(exported.NEWS_DB_SCHEMA).toBe("shell_news");
+  });
 });
 
 describe("$ in .env values", () => {

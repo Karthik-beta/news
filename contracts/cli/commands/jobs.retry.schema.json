@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/jobs.retry.schema.json",
+  "title": "news jobs retry",
+  "description": "Re-enqueue one finished job, or every discarded job of a class (above 50 jobs: gated; Salvage's approved step or Board). Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "W",
+  "x-news-status": "built",
+  "x-news-errors": ["usage", "not_found", "conflict", "gated"],
+  "$defs": {
+    "input": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "job": {
+              "type": "integer"
+            }
+          },
+          "required": ["job"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "class": {
+              "enum": [
+                "transient",
+                "rate_limited",
+                "ai_usage_limit",
+                "ai_invalid_output",
+                "check_failed",
+                "upstream_changed",
+                "invalid_data",
+                "licence_blocked",
+                "bug"
+              ]
+            }
+          },
+          "required": ["class"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "requeued": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "skipped": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "job_id": {
+                "type": "integer"
+              },
+              "reason": {
+                "type": "string"
+              }
+            },
+            "required": ["job_id", "reason"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["requeued", "skipped"],
+      "additionalProperties": false
+    }
+  }
+}

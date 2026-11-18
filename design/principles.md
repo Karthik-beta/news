@@ -46,7 +46,7 @@ In finance, red usually signals a loss. On this site crimson only means "this is
 Trust is the brand. Citations are quiet but always present:
 
 - A source line sits under every chart, table and group of key figures.
-- Every key figure can be hovered or tapped to show its exact source (document, page or XBRL tag, retrieval date).
+- Every key figure can be clicked or tapped to show its exact source (document, page or XBRL tag, retrieval date).
 - Every page ends with a sources panel that labels primary sources and linked context.
 - Downloads (CSV, JSON, Markdown) are always one click away.
 

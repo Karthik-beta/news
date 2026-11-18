@@ -1,8 +1,28 @@
-//! Shared types for the News pipeline. The data model is designed in Phase 5
-//! (see the Technical Design, "Data model"); this crate only holds the version for now.
+//! Shared core of the `news` CLI (Bureau Design §6.2): the JSON envelope, stable error codes and their
+//! exit codes, output shaping (`--limit`, `--fields`, `--cursor`), the job contract every subsystem
+//! handler implements, permission tiers and the write-API key guard.
+//!
+//! Nothing here touches the database or the network, and only `clock::SystemClock` reads the time, so
+//! all of it is unit-tested.
+
+pub mod clock;
+pub mod envelope;
+pub mod error;
+pub mod job;
+pub mod refs;
+pub mod secrets;
+pub mod shape;
+pub mod tier;
+
+pub use envelope::Envelope;
+pub use error::{ErrorCode, NewsError};
+pub use shape::Shape;
 
 /// Version of the `news` toolchain, recorded on every page as the renderer/CLI version.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+/// Result type of every command handler.
+pub type NewsResult<T> = Result<T, NewsError>;
 
 #[cfg(test)]
 mod tests {

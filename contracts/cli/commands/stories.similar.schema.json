@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/stories.similar.schema.json",
+  "title": "news stories similar",
+  "description": "Stories similar to a text or a candidate. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "R",
+  "x-news-status": "stub until #15",
+  "x-news-errors": [],
+  "$defs": {
+    "input": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string"
+            }
+          },
+          "required": ["text"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "cand": {
+              "type": "string"
+            }
+          },
+          "required": ["cand"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "story_id": {
+                "type": "integer"
+              },
+              "title": {
+                "type": ["string", "null"]
+              },
+              "cos": {
+                "type": "number"
+              }
+            },
+            "required": ["story_id", "title", "cos"],
+            "additionalProperties": false
+          }
+        },
+        "next_cursor": {
+          "type": "string",
+          "description": "Present when truncated: pass to --cursor"
+        }
+      },
+      "required": ["items"],
+      "additionalProperties": false
+    }
+  }
+}

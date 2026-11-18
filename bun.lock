@@ -63,6 +63,9 @@
     "workers/api": {
       "name": "@news/worker-api",
       "version": "0.0.1",
+      "dependencies": {
+        "@news/worker-shared": "workspace:*",
+      },
       "devDependencies": {
         "@cloudflare/vitest-plugin": "1.8.2",
         "@cloudflare/workers-types": "^5.20261114.1",
@@ -75,6 +78,9 @@
     "workers/mcp": {
       "name": "@news/worker-mcp",
       "version": "0.0.1",
+      "dependencies": {
+        "@news/worker-shared": "workspace:*",
+      },
       "devDependencies": {
         "@cloudflare/vitest-plugin": "1.8.2",
         "@cloudflare/workers-types": "^5.20261114.1",
@@ -96,6 +102,20 @@
         "wrangler": "^4.162.0",
       },
     },
+    "workers/shared": {
+      "name": "@news/worker-shared",
+      "version": "0.0.1",
+      "dependencies": {
+        "aws4fetch": "1.0.20",
+      },
+      "devDependencies": {
+        "@cloudflare/workers-types": "^5.20261114.1",
+        "@types/node": "^22.0.0",
+        "ajv": "8.20.0",
+        "typescript": "^6.0.3",
+        "vitest": "^5.1.0",
+      },
+    },
     "workers/test-support": {
       "name": "@news/worker-test-support",
       "version": "0.0.1",
@@ -110,6 +130,9 @@
         "wrangler": "^4.162.0",
       },
     },
+  },
+  "overrides": {
+    "zod": "4.6.7",
   },
   "packages": {
     "@adobe/css-tools": ["@adobe/css-tools@4.5.0", "", {}, "sha512-6OzddxPio9UiWTCemp4N8cYLV2ZN1ncRnV1cVGtve7dhPOtRkleRyx32GQCYSwDYgaHU3USMm84tNsvKzRCa1Q=="],
@@ -411,6 +434,8 @@
     "@news/worker-mcp": ["@news/worker-mcp@workspace:workers/mcp"],
 
     "@news/worker-search": ["@news/worker-search@workspace:workers/search"],
+
+    "@news/worker-shared": ["@news/worker-shared@workspace:workers/shared"],
 
     "@news/worker-test-support": ["@news/worker-test-support@workspace:workers/test-support"],
 
@@ -1441,8 +1466,6 @@
     "@clack/core/sisteransi": ["sisteransi@2.0.0", "", {}, "sha512-2WCqLdt12eN6ehLI50S2/ZxoowXU3DD1KVPRyVP0WEsFahrGZZmCdq1K59qjJljMRIDTwx1D9YaRK+hDneBUMg=="],
 
     "@clack/prompts/sisteransi": ["sisteransi@2.0.0", "", {}, "sha512-2WCqLdt12eN6ehLI50S2/ZxoowXU3DD1KVPRyVP0WEsFahrGZZmCdq1K59qjJljMRIDTwx1D9YaRK+hDneBUMg=="],
-
-    "@cloudflare/vitest-plugin/zod": ["zod@4.6.6", "", {}, "sha512-4UmzQUF5fxvfcYHlbjBmejU+w+hbDnWFx4aS8kBx7nPBHcO2SqPbpAG8snbdg+Xse4pRefR98hgjFgIMCI/UhA=="],
 
     "@cspotcode/source-map-support/@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.9", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.0.3", "@jridgewell/sourcemap-codec": "^1.4.10" } }, "sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ=="],
 

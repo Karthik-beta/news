@@ -4,7 +4,10 @@ expression: "stdout_of(&[\"version\", \"--help\"])"
 ---
 Print the CLI version as JSON
 
-Usage: news version
+Usage: news version [OPTIONS]
 
 Options:
-  -h, --help  Print help
+      --limit <N>        Return at most N list items (default 20; `jobs claim`: how many to claim, default 1)
+      --fields <A,B>     Keep only these keys of each item, comma-separated
+      --cursor <CURSOR>  Continue a truncated list from its next_cursor
+  -h, --help             Print help

@@ -18,6 +18,21 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
+// The news schema, Dispatch and the CLI against a real database. Async tests use sqlx through
+// `news_store`; each makes and drops its own schema (see `fixture`).
+#[path = "postgres/chief.rs"]
+mod chief;
+#[path = "postgres/cli_db.rs"]
+mod cli_db;
+#[path = "postgres/dispatch.rs"]
+mod dispatch;
+#[path = "postgres/fixture.rs"]
+mod fixture;
+#[path = "postgres/migrations.rs"]
+mod migrations;
+#[path = "postgres/wire.rs"]
+mod wire;
+
 use postgres::config::Host;
 use postgres::{Client, Config, NoTls};
 use std::sync::atomic::{AtomicU32, Ordering};

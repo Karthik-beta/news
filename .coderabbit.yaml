@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
-# CodeRabbit: light review. Balanced, low-noise feedback focused on correctness, security and the design system.
+# CodeRabbit: light review. One pass per PR, low-noise feedback on correctness, security and the design system.
 language: en-GB
-tone_instructions: "Be brief and specific. Only flag issues that matter: bugs, security, data accuracy, accessibility and design-system violations. Skip style nitpicks a formatter would fix."
+tone_instructions: "Be brief. Flag only real bugs, security holes, wrong numbers, accessibility and design-system failures, each with a concrete failure. No nitpicks, wording or hypothetical races. Do not reopen a fixed comment unless the fix is broken."
 
 reviews:
   profile: chill # light review ("quiet" is lighter still; "assertive" is the heavy option)
@@ -23,7 +23,7 @@ reviews:
 
   auto_review:
     enabled: true
-    auto_incremental_review: true
+    auto_incremental_review: false # review each PR once; ask for another with `@coderabbitai review`
     drafts: false
     base_branches:
       - main
@@ -55,7 +55,10 @@ reviews:
         Numbers must never be converted between currencies or units. Flag unwraps on external data.
     - path: "workers/**"
       instructions: |
-        Cloudflare Workers. Public endpoints must be read-only. The write API must check its secret key and validate input schemas.
+        Cloudflare Workers. Public endpoints must be read-only, with one documented exception: the public report intake
+        (POST /v1/reports, ADR 0006), which stores reader reports in D1 under per-IP and per-location rate limits, a
+        global daily cap, a honeypot and an Origin check. Every other write API route must check its secret key; all
+        must validate input schemas.
         Watch free-tier limits: no heavy CPU work per request, cache aggressively, never call AI services.
     - path: "design/**/*.md"
       instructions: "Design documentation. Check for contradictions with design/tokens/tokens.json and other design documents. Ignore prose style."

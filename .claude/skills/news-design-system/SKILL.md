@@ -1,6 +1,6 @@
 ---
 name: news-design-system
-description: "How to apply the News design system (Direction E, \"Economist school\") to any UI work in this repo. Use this whenever you write or change CSS, components, charts, page templates, the dashboard, social images, colours, fonts, spacing or any visual element, and whenever you change a design token or a design document, even if the request doesn't mention \"design system\"."
+description: "How to apply the News design system (Direction E, \"Economist school\") to any UI work in this repo. Use this whenever you write or change CSS, components, charts, page templates, Board (the egui desktop app), social images, colours, fonts, spacing or any visual element, and whenever you change a design token or a design document, even if the request doesn't mention \"design system\"."
 ---
 
 # News design system

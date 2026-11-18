@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/hotline/commands/service.ping.schema.json",
+  "title": "Hotline service.ping",
+  "description": "Is the service there, which build, and in what state. Answered in every state, including before PostgreSQL is reachable. Board compares `build` with its own and stops sending H-tier commands on a mismatch. Input is the request's args; output is the reply envelope's data.",
+  "x-news-tier": "R",
+  "x-hotline-from": ["board", "terminal"],
+  "x-news-status": "#10",
+  "x-news-cli": null,
+  "x-news-errors": [],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "service": {
+          "const": "bureau"
+        },
+        "state": {
+          "$ref": "../common.schema.json#/$defs/serviceState"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Why it is not up, e.g. PostgreSQL unreachable"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "build": {
+          "type": "string",
+          "description": "Version and commit; equal for Board and the service when they come from one news.exe"
+        },
+        "protocol": {
+          "enum": [1]
+        },
+        "pid": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "started_at": {
+          "$ref": "../common.schema.json#/$defs/timestamp"
+        },
+        "settings_version": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "time_zone": {
+          "type": "string",
+          "description": "IANA zone Rota and the rendered text use"
+        },
+        "text": {
+          "$ref": "../common.schema.json#/$defs/text"
+        }
+      },
+      "required": [
+        "service",
+        "state",
+        "reason",
+        "version",
+        "build",
+        "protocol",
+        "pid",
+        "started_at",
+        "settings_version",
+        "time_zone",
+        "text"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

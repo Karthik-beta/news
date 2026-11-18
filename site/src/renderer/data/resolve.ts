@@ -354,11 +354,9 @@ export class PageDataResolver {
             return s.text;
           case "quote":
             return `“${s.text}”`;
-          case "missing":
-            return MISSING_TEXT.toLowerCase();
-          default:
-            return "";
         }
+        // The one remaining segment type, "missing".
+        return MISSING_TEXT.toLowerCase();
       })
       .join("");
   }
@@ -418,8 +416,8 @@ export function formatValue(
   if (v.currency) return formatMoney(v.value, v.currency, { scale, sourceDecimals, style, ...options });
   const kind = unitKind(v.unit);
   if (style === "as-reported") {
-    if (kind === "percent") return formatPercent(v.value, { decimals: v.value.split(".")[1]?.length ?? 0 });
-    if (kind !== "other") return formatQuantity(v.value, v.unit, { decimals: v.value.split(".")[1]?.length ?? 0 });
+    if (kind === "percent") return formatPercent(v.value, { sourceDecimals });
+    if (kind !== "other") return formatQuantity(v.value, v.unit, { sourceDecimals });
     const word = {
       units: "",
       thousands: " thousand",

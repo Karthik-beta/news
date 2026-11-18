@@ -1,63 +1,572 @@
-// Unit tests: run inside workerd (Cloudflare's vitest integration), no services, no network.
-import { createExecutionContext, waitOnExecutionContext } from "cloudflare:test";
-import { env, exports } from "cloudflare:workers";
+// MCP conformance tests against spec revision 2026-07-28 (inside workerd): server/discover, initialize (legacy,
+// stateless), tools/list and tools/call; header and _meta validation; transport rules; read-only tools; size caps.
+import { exports } from "cloudflare:workers";
+import type { DynamoTable } from "@news/worker-shared/dynamo/client";
+import { schemas } from "@news/worker-shared/validate";
 import { describe, expect, it } from "vitest";
-import worker from "./index";
+import { depsFromEnv } from "./deps";
+import { ERR, handleMcp, LEGACY_VERSIONS, MODERN_VERSION, SERVER_INFO } from "./server";
+import { callTool, harness, ORIGIN, rpc, STAMP_V1 } from "./testing";
+import { CAPS, type TOOL_LIST } from "./tools";
 
-const NAME = "news-mcp";
-const at = (path: string, init?: RequestInit) => exports.default.fetch(new Request(`http://localhost${path}`, init));
+// Responses are checked field by field below; a loose type keeps the assertions readable.
+// biome-ignore lint/suspicious/noExplicitAny: test-only view of arbitrary JSON-RPC results
+type Loose = any;
+type Rpc = {
+  jsonrpc: string;
+  id?: unknown;
+  result?: Record<string, Loose>;
+  error?: { code: number; message: string; data?: Loose };
+};
+const body = async (res: Response) => (await res.json()) as Rpc;
 
-describe(NAME, () => {
-  it("answers /health with the worker name and status", async () => {
-    const res = await at("/health");
+async function expectRpcError(res: Response, status: number, code: number): Promise<Rpc> {
+  expect(res.status).toBe(status);
+  expect(res.headers.get("content-type")).toContain("application/json");
+  const b = await body(res);
+  expect(b.jsonrpc).toBe("2.0");
+  expect(b.error?.code).toBe(code);
+  expect(b.result).toBeUndefined();
+  return b;
+}
+
+describe("entry point", () => {
+  it("health and 404 outside /mcp", async () => {
+    expect((await exports.default.fetch(new Request("http://x/health"))).status).toBe(200);
+    expect((await exports.default.fetch(new Request("http://x/sse"))).status).toBe(404);
+  });
+
+  it("reads DynamoDB with eventually consistent reads (the write API keeps strong ones)", () => {
+    const deps = depsFromEnv({
+      NEWS_DYNAMODB_TABLE: "news",
+      NEWS_DYNAMODB_REGION: "us-east-1",
+      NEWS_DYNAMODB_ACCESS_KEY_ID: "AKIDEXAMPLE",
+      NEWS_DYNAMODB_SECRET_ACCESS_KEY: "test-secret-not-real",
+    });
+    expect((deps.reader().table as DynamoTable).consistentRead).toBe(false);
+  });
+
+  it("tools/list works with no data bindings at all (nothing is read)", async () => {
+    const { deps } = harness();
+    const listed = await body(await rpc(deps, "tools/list"));
+    const res = await exports.default.fetch(
+      new Request("http://x/mcp", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "mcp-protocol-version": MODERN_VERSION,
+          "mcp-method": "tools/list",
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/list",
+          params: { _meta: (await import("./testing")).clientMeta },
+        }),
+      }),
+    );
     expect(res.status).toBe(200);
-    expect(res.headers.get("content-type")).toContain("application/json");
-    expect(await res.json()).toEqual({ worker: NAME, status: "ok" });
+    expect((await body(res)).result?.tools).toEqual(listed.result?.tools);
   });
+});
 
-  it("works as a plain module handler with an execution context", async () => {
-    const handler: ExportedHandler<Cloudflare.Env> = worker;
-    const ctx = createExecutionContext();
-    const res = await handler.fetch?.(new Request("http://localhost/health") as never, env, ctx);
-    await waitOnExecutionContext(ctx);
-    expect(res?.status).toBe(200);
-    expect(await res?.json()).toEqual({ worker: NAME, status: "ok" });
-  });
-
-  it("ignores the query string on /health", async () => {
-    const res = await at("/health?probe=1&x=%20");
+describe("server/discover (2026-07-28)", () => {
+  it("returns versions, capabilities and server info", async () => {
+    const res = await rpc(harness().deps, "server/discover", { id: "discover-1" });
     expect(res.status).toBe(200);
+    const b = await body(res);
+    expect(b.id).toBe("discover-1");
+    expect(b.result).toMatchObject({
+      resultType: "complete",
+      supportedVersions: [MODERN_VERSION, ...LEGACY_VERSIONS],
+      capabilities: { tools: { listChanged: false } },
+      _meta: { "io.modelcontextprotocol/serverInfo": SERVER_INFO },
+    });
+    expect(typeof b.result?.instructions).toBe("string");
+  });
+});
+
+describe("initialize (earlier revisions; answered without a session)", () => {
+  it.each([
+    ["2025-11-25", "2025-11-25"],
+    ["2025-06-18", "2025-06-18"],
+    ["2024-11-05", "2025-11-25"],
+    ["2026-07-28", "2025-11-25"],
+  ])("a client asking for %s gets %s", async (requested, expected) => {
+    const res = await rpc(harness().deps, "initialize", {
+      noMeta: true,
+      headers: { "mcp-protocol-version": null, "mcp-method": null },
+      params: { protocolVersion: requested, capabilities: {}, clientInfo: { name: "legacy", version: "1" } },
+    });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("mcp-session-id")).toBeNull();
+    const b = await body(res);
+    expect(b.result).toEqual({
+      protocolVersion: expected,
+      capabilities: { tools: { listChanged: false } },
+      serverInfo: SERVER_INFO,
+      instructions: expect.any(String),
+    });
   });
 
-  it("returns 501 with a JSON error for everything else until Phase 6", async () => {
-    const res = await at("/anything");
-    expect(res.status).toBe(501);
-    expect(res.headers.get("content-type")).toContain("application/json");
-    expect(await res.json()).toEqual({ error: "Not implemented yet (Phase 6)" });
+  it("then serves tools/list and tools/call for the negotiated legacy version, statelessly", async () => {
+    const { deps } = harness();
+    const legacy = {
+      noMeta: true,
+      headers: { "mcp-protocol-version": "2025-11-25", "mcp-method": null, "mcp-name": null },
+    };
+    expect((await rpc(deps, "notifications/initialized", { ...legacy, id: null })).status).toBe(202);
+    const list = await body(await rpc(deps, "tools/list", legacy));
+    expect(list.result?.tools).toHaveLength(5);
+    expect(list.result?.resultType).toBeUndefined();
+    const call = await body(await callTool(deps, "list_categories", {}, legacy));
+    expect(call.result?.isError).toBe(false);
   });
 
-  // Routing is an exact match on the path: near-misses must not be treated as /health.
-  it.each(["/", "/health/", "/health/extra", "/Health", "/HEALTH", "/healthz", "//health", "/%68ealth", "/health%2F"])(
-    "does not treat %s as /health",
-    async (path) => {
-      expect((await at(path)).status).toBe(501);
-    },
-  );
+  it("an initialize carrying 2026-07-28 _meta is refused with the supported versions", async () => {
+    const b = await expectRpcError(
+      await rpc(harness().deps, "initialize", { params: { protocolVersion: MODERN_VERSION } }),
+      404,
+      ERR.methodNotFound,
+    );
+    expect(b.error?.data?.supported).toContain(MODERN_VERSION);
+  });
 
-  it("survives malformed percent-encoding and very long paths without a 5xx other than 501", async () => {
-    for (const path of ["/%E0%A4%A", "/%", `/${"a".repeat(8000)}`]) {
-      expect((await at(path)).status).toBe(501);
+  it("ignores an Mcp-Session-Id header and never sets one", async () => {
+    const res = await rpc(harness().deps, "tools/list", { headers: { "mcp-session-id": "abc123" } });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("mcp-session-id")).toBeNull();
+  });
+});
+
+describe("tools/list", () => {
+  it("lists the five read-only tools in a fixed order with valid schemas", async () => {
+    const b = await body(await rpc(harness().deps, "tools/list"));
+    expect(b.result?.resultType).toBe("complete");
+    expect(b.result?.cacheScope).toBe("public");
+    const tools = b.result?.tools as typeof TOOL_LIST;
+    expect(tools.map((t) => t.name)).toEqual(["search_pages", "get_page", "list_categories", "get_entity", "get_data"]);
+    for (const t of tools) {
+      expect(t.name).toMatch(/^[A-Za-z0-9_.-]{1,128}$/);
+      expect(t.inputSchema).toMatchObject({ type: "object" });
+      expect(JSON.stringify(t.inputSchema)).not.toContain("$ref");
+      expect(t.annotations).toMatchObject({ readOnlyHint: true, destructiveHint: false });
+      expect(t.description.length).toBeGreaterThan(20);
+    }
+  });
+});
+
+describe("tools/call", () => {
+  const outputs: Record<string, (d: unknown) => boolean> = {
+    search_pages: schemas.validateSearchPagesOutput,
+    get_page: schemas.validateGetPageOutput,
+    list_categories: schemas.validateListCategoriesOutput,
+    get_entity: schemas.validateGetEntityOutput,
+    get_data: schemas.validateGetDataOutput,
+  };
+
+  it.each([
+    ["search_pages", { query: "inflation", region: "north-america" }],
+    ["get_page", { page_id: "us-cpi-october" }],
+    ["get_page", { path: "/2026/11/us-cpi-october", format: "json" }],
+    ["list_categories", {}],
+    ["get_entity", { entity_id: "country:US" }],
+    ["get_data", { page_id: "us-cpi-october" }],
+    ["get_data", { page_id: "us-cpi-october", chart_id: "cpi-trend" }],
+  ])("%s %j returns structured content that matches its output schema", async (name, args) => {
+    const res = await callTool(harness().deps, name, args);
+    expect(res.status).toBe(200);
+    const b = await body(res);
+    expect(b.result?.resultType).toBe("complete");
+    expect(b.result?.isError).toBe(false);
+    expect(b.result?.content?.[0]?.type).toBe("text");
+    expect(outputs[name]?.(b.result?.structuredContent), JSON.stringify(b.result?.structuredContent)).toBe(true);
+  });
+
+  it("returns figures exactly as published", async () => {
+    const b = await body(await callTool(harness().deps, "get_data", { page_id: "us-cpi-october" }));
+    expect(b.result?.structuredContent.content).toBe(
+      '{"points":[{"id":"dp:cpi-yoy","value":"2.4","unit":"percent","source":"src:bls"}]}',
+    );
+    const md = await body(await callTool(harness().deps, "get_page", { page_id: "us-cpi-october" }));
+    expect(md.result?.content[0].text).toContain("0.2% (BLS)");
+    expect(md.result?.structuredContent).toMatchObject({ url: `${ORIGIN}/2026/11/us-cpi-october`, truncated: false });
+  });
+
+  it("reports missing and withdrawn pages, unknown entities and charts as tool errors", async () => {
+    for (const [name, args] of [
+      ["get_page", { page_id: "nope" }],
+      ["get_page", { page_id: "old-page" }],
+      ["get_page", { path: "/2026/01/unknown" }],
+      ["get_entity", { entity_id: "company:nobody" }],
+      ["get_data", { page_id: "us-cpi-october", chart_id: "not-a-chart" }],
+    ] as const) {
+      const b = await body(await callTool(harness().deps, name, args));
+      expect(b.result?.isError, `${name} ${JSON.stringify(args)}`).toBe(true);
     }
   });
 
-  it.each(["POST", "PUT", "PATCH", "DELETE"])("returns 501 for %s on an unknown route", async (method) => {
-    const res = await at("/anything", { method, body: "{}" });
-    expect(res.status).toBe(501);
+  it("invalid arguments are a tool execution error; an unknown tool is a protocol error", async () => {
+    const { deps } = harness();
+    for (const [name, args] of [
+      ["search_pages", {}],
+      ["search_pages", { query: "x", limit: 500 }],
+      ["search_pages", { query: "one two three four five six seven eight nine" }],
+      ["get_entity", { entity_id: "country:US", limit: 21 }],
+      ["get_page", {}],
+      ["get_page", { page_id: "a", path: "/2026/11/a" }],
+      ["get_page", { page_id: "../../etc/passwd" }],
+      ["get_data", { page_id: "a", chart_id: "../x" }],
+      ["list_categories", { extra: true }],
+    ] as const) {
+      const b = await body(await callTool(deps, name, args));
+      expect(b.result?.isError, `${name} ${JSON.stringify(args)}`).toBe(true);
+    }
+    await expectRpcError(await callTool(deps, "delete_page", {}), 400, ERR.invalidParams);
   });
 
-  it("is stateless: many concurrent requests all get the same answer", async () => {
-    const results = await Promise.all(Array.from({ length: 50 }, () => at("/health")));
-    expect(results.map((r) => r.status)).toEqual(Array(50).fill(200));
-    expect(new Set(await Promise.all(results.map((r) => r.text()))).size).toBe(1);
+  it("no tool writes anything: DynamoDB and R2 untouched, D1 only SELECTs", async () => {
+    const h = harness();
+    for (const [name, args] of [
+      ["search_pages", { query: "inflation" }],
+      ["get_page", { page_id: "us-cpi-october" }],
+      ["get_page", { page_id: "us-cpi-october", format: "json" }],
+      ["list_categories", {}],
+      ["get_entity", { entity_id: "country:US" }],
+      ["get_data", { page_id: "us-cpi-october" }],
+      ["get_data", { page_id: "us-cpi-october", chart_id: "cpi-trend" }],
+    ] as const) {
+      expect((await callTool(h.deps, name, args)).status).toBe(200);
+    }
+    expect(h.table.writes).toEqual([]);
+    expect(h.bucket.writes).toEqual([]);
+    expect(h.d1.statements.length).toBeGreaterThan(0);
+    for (const sql of h.d1.statements) expect(sql.trim()).toMatch(/^SELECT\b/i);
+  });
+
+  it("never labels a file with the wrong version: mid-publish it re-reads the live record or says to retry", async () => {
+    const h = harness();
+    const v2 = { customMetadata: { version: "2", bundle_sha256: "b".repeat(64) } };
+    // A publish of version 2 has written its files but not yet moved the live record (still version 1).
+    await h.bucket.put("2026/11/us-cpi-october/index.md", "# Version two\n", v2);
+    await h.bucket.put("2026/11/us-cpi-october/data.json", '{"v":2}', v2);
+    for (const [name, args] of [
+      ["get_page", { page_id: "us-cpi-october" }],
+      ["get_data", { page_id: "us-cpi-october" }],
+    ] as const) {
+      const b = await body(await callTool(h.deps, name, args));
+      expect(b.result?.isError, name).toBe(true);
+      expect(b.result?.content[0].text).toMatch(/being updated/);
+    }
+    // Once the live record says version 2, the same files are served as version 2.
+    const live = h.table.dump().find((i) => i.PK === "PAGE#us-cpi-october" && i.SK === "LATEST") as Record<
+      string,
+      never
+    >;
+    h.table.seed({ ...live, version: 2 as never });
+    const b = await body(await callTool(h.deps, "get_page", { page_id: "us-cpi-october" }));
+    expect(b.result?.structuredContent).toMatchObject({ version: 2, markdown: "# Version two\n" });
+  });
+
+  it("never serves a file without a version stamp as the page's content", async () => {
+    const h = harness();
+    // An object written by anything but the publish path carries no version: it cannot be shown as version 1.
+    await h.bucket.put("2026/11/us-cpi-october/index.md", "# Unstamped\n");
+    await h.bucket.put("2026/11/us-cpi-october/data.json", '{"unstamped":true}');
+    for (const [name, args] of [
+      ["get_page", { page_id: "us-cpi-october" }],
+      ["get_data", { page_id: "us-cpi-october" }],
+    ] as const) {
+      const b = await body(await callTool(h.deps, name, args));
+      expect(b.result?.isError, name).toBe(true);
+      expect(JSON.stringify(b.result)).not.toContain("nstamped");
+    }
+  });
+
+  it("search and entity lists show only committed, published pages, with the live record's metadata", async () => {
+    const h = harness();
+    const row = h.d1.rows[0] as Record<string, unknown>;
+    // A first publish that never committed (no LATEST), a withdrawn page, and an update whose commit failed after it
+    // wrote its search row and hub entries.
+    h.d1.rows.push(
+      { ...row, page_id: "ghost-page", path: "/2026/11/ghost-page", title: "Ghost" },
+      { ...row, page_id: "old-page", path: "/2026/10/old-page", title: "Old" },
+    );
+    row.title = "Uncommitted title";
+    const hub = h.table.dump().filter((i) => i.PK === "HUB#ent/country:US")[0] as Record<string, never>;
+    h.table.seed(
+      { ...hub, title: "Uncommitted title" as never },
+      { ...hub, SK: "2026-11-12T00:00:00.000Z#ghost-page" as never, page_id: "ghost-page" as never },
+      { ...hub, SK: "2026-11-12T00:00:01.000Z#old-page" as never, page_id: "old-page" as never },
+    );
+    const search = await body(await callTool(h.deps, "search_pages", { query: "inflation" }));
+    const entity = await body(await callTool(h.deps, "get_entity", { entity_id: "country:US" }));
+    for (const list of [search.result?.structuredContent.results, entity.result?.structuredContent.pages]) {
+      expect(list.map((p: Loose) => [p.page_id, p.title])).toEqual([["us-cpi-october", h.page.title]]);
+    }
+  });
+
+  it("does not cache 'being updated': the next call reads again and gets the content", async () => {
+    const stored = new Map<string, string>();
+    const cache = {
+      async match(key: string) {
+        const hit = stored.get(key);
+        return hit ? new Response(hit) : undefined;
+      },
+      async put(key: string, res: Response) {
+        stored.set(key, await res.text());
+      },
+    } as unknown as Cache;
+    const h = harness({ cache });
+    const v2 = { customMetadata: { version: "2", bundle_sha256: "b".repeat(64) } };
+    await h.bucket.put("2026/11/us-cpi-october/index.md", "# Version two\n", v2);
+    const busy = await body(await callTool(h.deps, "get_page", { page_id: "us-cpi-october" }));
+    expect(busy.result?.content[0].text).toMatch(/being updated/);
+    expect(stored.size).toBe(0);
+    const live = h.table.dump().find((i) => i.PK === "PAGE#us-cpi-october" && i.SK === "LATEST") as Record<
+      string,
+      never
+    >;
+    h.table.seed({ ...live, version: 2 as never });
+    const done = await body(await callTool(h.deps, "get_page", { page_id: "us-cpi-october" }));
+    expect(done.result?.structuredContent).toMatchObject({ version: 2, markdown: "# Version two\n" });
+  });
+
+  it("answers a repeated call from the edge cache without reading storage again", async () => {
+    const stored = new Map<string, { body: string; cacheControl: string | null }>();
+    const cache = {
+      async match(key: string) {
+        const hit = stored.get(key);
+        return hit ? new Response(hit.body) : undefined;
+      },
+      async put(key: string, res: Response) {
+        stored.set(key, { body: await res.text(), cacheControl: res.headers.get("cache-control") });
+      },
+    } as unknown as Cache;
+    const h = harness({ cache });
+    const calls = () => h.table.calls.length + h.d1.statements.length;
+    for (const [name, args] of [
+      ["get_page", { page_id: "us-cpi-october" }],
+      ["get_entity", { entity_id: "country:US" }],
+      ["search_pages", { query: "inflation" }],
+      ["list_categories", {}],
+      ["get_page", { page_id: "nope" }], // a "not found" is cached too, so hammering a missing ID costs nothing
+    ] as const) {
+      const first = await body(await callTool(h.deps, name, args));
+      const before = calls();
+      const again = await body(await callTool(h.deps, name, { ...args }));
+      expect(calls(), name).toBe(before);
+      expect(again.result).toEqual(first.result);
+    }
+    expect([...stored.values()].every((v) => /max-age=\d+/.test(v.cacheControl ?? ""))).toBe(true);
+    // Different arguments are a different entry.
+    const before = calls();
+    await callTool(h.deps, "get_entity", { entity_id: "country:US", limit: 5 });
+    expect(calls()).toBeGreaterThan(before);
+  });
+
+  it("applies the result cap to the whole response, request ID included", async () => {
+    const h = harness();
+    // Control characters cost 6 bytes each once JSON-escaped: a file under the data cap makes a near-cap result.
+    await h.bucket.put("2026/11/us-cpi-october/data.json", "".repeat(41_500), STAMP_V1);
+    const size = async (res: Response) => new TextEncoder().encode(await res.clone().text()).length;
+    const short = await callTool(h.deps, "get_data", { page_id: "us-cpi-october" });
+    const nearCap = await size(short);
+    expect(nearCap).toBeLessThanOrEqual(CAPS.resultBytes);
+    expect(nearCap).toBeGreaterThan(CAPS.resultBytes - 50_000);
+    const longId = await callTool(h.deps, "get_data", { page_id: "us-cpi-october" }, { id: "i".repeat(55_000) });
+    expect(longId.status).toBe(200);
+    expect(await size(longId)).toBeLessThanOrEqual(CAPS.resultBytes);
+    const b = await body(longId);
+    expect(b.result?.isError).toBe(true);
+    expect(b.result?.content[0].text).toMatch(/too large/);
+  });
+
+  it("keeps responses within their size caps, and says when it truncated", async () => {
+    const h = harness();
+    await h.bucket.put("2026/11/us-cpi-october/index.md", `# Big\n${"é paragraph text. ".repeat(20_000)}`, STAMP_V1);
+    await h.bucket.put(
+      "2026/11/us-cpi-october/data.json",
+      JSON.stringify({ rows: Array.from({ length: 50_000 }, (_, i) => ({ id: `dp:${i}`, v: "1" })) }),
+      STAMP_V1,
+    );
+    for (const [name, args, cap] of [
+      ["get_page", { page_id: "us-cpi-october" }, CAPS.markdownBytes],
+      ["get_data", { page_id: "us-cpi-october" }, CAPS.dataBytes],
+    ] as const) {
+      const res = await callTool(h.deps, name, args);
+      const text = await res.clone().text();
+      expect(new TextEncoder().encode(text).length).toBeLessThanOrEqual(CAPS.resultBytes);
+      const b = (await res.json()) as Rpc;
+      const sc = b.result?.structuredContent;
+      expect(sc.truncated).toBe(true);
+      const content = (sc.markdown ?? sc.content) as string;
+      expect(new TextEncoder().encode(content).length).toBeLessThanOrEqual(cap);
+      expect(content).not.toContain("�");
+      expect(b.result?.content[0].text).toContain("Truncated");
+    }
+  });
+});
+
+describe("2026-07-28 request validation", () => {
+  const { deps } = harness();
+
+  it("a missing MCP-Protocol-Version header → 400 HeaderMismatch", async () => {
+    await expectRpcError(
+      await rpc(deps, "tools/list", { headers: { "mcp-protocol-version": null } }),
+      400,
+      ERR.headerMismatch,
+    );
+  });
+
+  it("header and _meta disagreeing → 400 HeaderMismatch", async () => {
+    await expectRpcError(
+      await rpc(deps, "tools/list", { headers: { "mcp-protocol-version": "2025-11-25" } }),
+      400,
+      ERR.headerMismatch,
+    );
+  });
+
+  it("an unsupported version → 400 UnsupportedProtocolVersion listing the supported ones", async () => {
+    const b = await expectRpcError(
+      await rpc(deps, "tools/list", { noMeta: true, headers: { "mcp-protocol-version": "1900-01-01" } }),
+      400,
+      ERR.unsupportedVersion,
+    );
+    expect(b.error?.data).toEqual({ supported: [MODERN_VERSION, ...LEGACY_VERSIONS], requested: "1900-01-01" });
+  });
+
+  it("missing required _meta fields → 400 Invalid params", async () => {
+    await expectRpcError(await rpc(deps, "tools/list", { noMeta: true }), 400, ERR.invalidParams);
+    const res = await handle({ "io.modelcontextprotocol/protocolVersion": MODERN_VERSION });
+    await expectRpcError(res, 400, ERR.invalidParams);
+  });
+
+  it("Mcp-Method missing or different → 400 HeaderMismatch", async () => {
+    await expectRpcError(await rpc(deps, "tools/list", { headers: { "mcp-method": null } }), 400, ERR.headerMismatch);
+    await expectRpcError(
+      await rpc(deps, "tools/list", { headers: { "mcp-method": "tools/call" } }),
+      400,
+      ERR.headerMismatch,
+    );
+  });
+
+  it("tools/call: Mcp-Name missing or different → 400 HeaderMismatch; Base64 sentinel accepted", async () => {
+    await expectRpcError(
+      await callTool(deps, "list_categories", {}, { headers: { "mcp-name": null } }),
+      400,
+      ERR.headerMismatch,
+    );
+    await expectRpcError(
+      await callTool(deps, "list_categories", {}, { headers: { "mcp-name": "get_page" } }),
+      400,
+      ERR.headerMismatch,
+    );
+    const encoded = `=?base64?${btoa("list_categories")}?=`;
+    expect((await callTool(deps, "list_categories", {}, { headers: { "mcp-name": encoded } })).status).toBe(200);
+  });
+
+  it("an unknown method → 404 Method not found", async () => {
+    await expectRpcError(await rpc(deps, "resources/list"), 404, ERR.methodNotFound);
+  });
+
+  it("ping", async () => {
+    expect((await body(await rpc(deps, "ping"))).result).toMatchObject({ resultType: "complete" });
+  });
+
+  async function handle(meta: Record<string, unknown>) {
+    const { handleMcp } = await import("./server");
+    return handleMcp(
+      deps,
+      new Request("http://mcp.test/mcp", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "mcp-protocol-version": MODERN_VERSION,
+          "mcp-method": "tools/list",
+        },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 9, method: "tools/list", params: { _meta: meta } }),
+      }),
+    );
+  }
+});
+
+describe("transport", () => {
+  it("GET and DELETE → 405 (no standalone stream, no sessions)", async () => {
+    const { deps } = harness();
+    for (const method of ["GET", "DELETE"]) {
+      const res = await rpc(deps, "tools/list", { method });
+      expect(res.status).toBe(405);
+      expect(res.headers.get("allow")).toBe("POST");
+    }
+  });
+
+  it("refuses foreign browser origins (DNS rebinding) and allows the site and non-browser clients", async () => {
+    const { deps } = harness();
+    expect((await rpc(deps, "tools/list", { headers: { origin: "https://evil.example" } })).status).toBe(403);
+    expect((await rpc(deps, "tools/list", { headers: { origin: ORIGIN } })).status).toBe(200);
+  });
+
+  it("answers a browser preflight from an allowed origin, and adds CORS headers to its responses", async () => {
+    const { deps } = harness();
+    const preflight = (origin: string) =>
+      handleMcp(
+        deps,
+        new Request("http://mcp.test/mcp", {
+          method: "OPTIONS",
+          headers: {
+            origin,
+            "access-control-request-method": "POST",
+            "access-control-request-headers": "content-type, mcp-protocol-version, mcp-method, mcp-name",
+          },
+        }),
+      );
+    const ok = await preflight(ORIGIN);
+    expect(ok.status).toBe(204);
+    expect(ok.headers.get("access-control-allow-origin")).toBe(ORIGIN);
+    expect(ok.headers.get("access-control-allow-methods")).toBe("POST, OPTIONS");
+    for (const h of ["content-type", "mcp-protocol-version", "mcp-method", "mcp-name"])
+      expect(ok.headers.get("access-control-allow-headers")).toContain(h);
+    expect((await preflight("https://evil.example")).status).toBe(403);
+    const call = await rpc(deps, "tools/list", { headers: { origin: ORIGIN } });
+    expect(call.headers.get("access-control-allow-origin")).toBe(ORIGIN);
+    expect(call.headers.get("vary")).toContain("origin");
+    const failed = await rpc(deps, "nope/nope", { headers: { origin: ORIGIN } });
+    expect(failed.headers.get("access-control-allow-origin")).toBe(ORIGIN);
+    // Non-browser clients send no Origin and get no CORS headers.
+    expect((await rpc(deps, "tools/list")).headers.get("access-control-allow-origin")).toBeNull();
+  });
+
+  it("bad bodies: wrong type 415, oversize 413, parse error, batch, bad id", async () => {
+    const { deps } = harness();
+    expect((await rpc(deps, "tools/list", { headers: { "content-type": "text/plain" } })).status).toBe(415);
+    await expectRpcError(
+      await rpc(deps, "tools/list", { raw: `{"pad":"${"x".repeat(70_000)}"}` }),
+      413,
+      ERR.invalidRequest,
+    );
+    await expectRpcError(await rpc(deps, "tools/list", { raw: "{nope" }), 400, ERR.parse);
+    await expectRpcError(await rpc(deps, "tools/list", { raw: "[]" }), 400, ERR.invalidRequest);
+    await expectRpcError(
+      await rpc(deps, "tools/list", { raw: '{"jsonrpc":"2.0","id":null,"method":"tools/list"}' }),
+      400,
+      ERR.invalidRequest,
+    );
+    await expectRpcError(
+      await rpc(deps, "tools/list", { raw: '{"jsonrpc":"1.0","id":1,"method":"tools/list"}' }),
+      400,
+      ERR.invalidRequest,
+    );
+  });
+
+  it("rate-limits per client with 429", async () => {
+    let n = 0;
+    const limiter = { limit: async () => ({ success: ++n <= 2 }) } as unknown as RateLimit;
+    const { deps } = harness({ limiter });
+    expect((await rpc(deps, "tools/list")).status).toBe(200);
+    expect((await rpc(deps, "tools/list")).status).toBe(200);
+    const limited = await rpc(deps, "tools/list");
+    await expectRpcError(limited, 429, ERR.rateLimited);
+    expect(limited.headers.get("retry-after")).toBe("60");
   });
 });

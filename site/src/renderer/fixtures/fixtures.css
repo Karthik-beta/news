@@ -30,3 +30,8 @@
 .fixture-plot {
   min-width: 0;
 }
+/* Tester's fixture: a cited figure at the right end of the column, to test the popover near the screen edge. */
+.fixture-align-end {
+  max-width: none;
+  text-align: end;
+}

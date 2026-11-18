@@ -1,7 +1,24 @@
 //! End-to-end tests: run the real `news` binary and check exit codes, stdout and stderr.
-//! No database, no network. Run with `cargo test -p news --test cli`.
+//! No database, no network. Run with `cargo test -p news --test cli` (`bun scripts/test-cli.ts e2e`).
+//!
+//! Modules: `contract` (envelope, exit codes, stdout/stderr discipline), `stubs` (every command not
+//! built yet), `contracts` (every file in contracts/cli against the JSON Schema 2020-12 meta-schema),
+//! `components` (the component index), `secrets` (only the secrets guard names the write-API key).
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
+
+#[path = "cli/components.rs"]
+mod components;
+#[path = "cli/contract.rs"]
+mod contract;
+#[path = "cli/contracts.rs"]
+mod contracts;
+#[path = "cli/retired.rs"]
+mod retired;
+#[path = "cli/secrets.rs"]
+mod secrets;
+#[path = "cli/stubs.rs"]
+mod stubs;
 
 use assert_cmd::Command;
 use predicates::prelude::*;
@@ -9,13 +26,43 @@ use serde_json::Value;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-fn news() -> Command {
+/// The binary with a clean environment: no database, no telemetry, no agent-shell marker.
+pub fn news() -> Command {
     let mut cmd = assert_cmd::cargo_bin_cmd!("news");
-    // Output must not depend on the developer's terminal or a stray config.
+    // Output must not depend on the developer's terminal, a stray config or the local .env.
     cmd.env_remove("COLUMNS")
         .env_remove("CLICOLOR_FORCE")
+        .env_remove("DATABASE_URL")
+        .env_remove("NEWS_DB_SCHEMA")
+        .env_remove("NEWS_CH_HTTP")
+        .env_remove("NEWS_OTEL_HTTP")
+        .env_remove("NEWS_LOG")
+        .env_remove("NEWS_RUN_ID")
+        .env_remove("NEWS_JOB_ID")
+        .env_remove("NEWS_COMPONENT_INDEX")
         .env("NO_COLOR", "1");
     cmd
+}
+
+/// Run `news` and return (envelope, exit code, stderr). Panics unless stdout is exactly one JSON
+/// object on one line.
+pub fn call(args: &[&str]) -> (Value, i32, String) {
+    call_with(news().args(args))
+}
+
+pub fn call_with(cmd: &mut Command) -> (Value, i32, String) {
+    let out = cmd.output().expect("news runs");
+    let stdout = String::from_utf8(out.stdout).expect("stdout is UTF-8");
+    let stderr = String::from_utf8(out.stderr).expect("stderr is UTF-8");
+    assert!(stdout.ends_with('\n'), "no trailing newline: {stdout:?}");
+    assert_eq!(
+        stdout.matches('\n').count(),
+        1,
+        "stdout is not one line: {stdout:?}"
+    );
+    let env: Value = serde_json::from_str(&stdout).expect("stdout is JSON");
+    assert!(env.is_object(), "stdout is not an object: {stdout}");
+    (env, out.status.code().expect("exit code"), stderr)
 }
 
 /// Stdout of a successful run, exactly as printed (no per-platform normalisation).
@@ -34,15 +81,29 @@ fn no_ansi() -> impl Predicate<str> {
     predicate::str::contains('\u{1b}').not()
 }
 
+fn assert_usage(args: &[&str], message: &str) {
+    let (env, code, stderr) = call(args);
+    assert_eq!(code, 2, "{args:?}");
+    assert_eq!(env["ok"], false);
+    assert_eq!(env["error"]["code"], "usage", "{args:?}: {env}");
+    assert!(
+        env["error"]["message"].as_str().unwrap().contains(message),
+        "{args:?}: {env}"
+    );
+    assert!(!stderr.contains("panicked"), "{args:?}: {stderr}");
+}
+
 // --- `news version` -------------------------------------------------------------------------
 
 #[test]
-fn version_prints_a_json_object_with_one_news_key() {
-    let out = stdout_of(&["version"]);
-    let json: Value = serde_json::from_str(&out).expect("stdout is valid JSON");
-    let object = json.as_object().expect("stdout is a JSON object");
-    assert_eq!(object.len(), 1, "unexpected extra keys: {object:?}");
-    assert_eq!(object.get("news"), Some(&Value::String(VERSION.to_owned())));
+fn version_prints_the_envelope_with_the_version() {
+    let (env, code, stderr) = call(&["version"]);
+    assert_eq!(code, 0);
+    assert_eq!(
+        env,
+        serde_json::json!({"ok": true, "data": {"news": VERSION}, "warnings": [], "truncated": false})
+    );
+    assert!(stderr.is_empty(), "{stderr}");
 }
 
 #[test]
@@ -62,17 +123,13 @@ fn version_json_is_one_compact_line_ending_in_a_newline() {
 
 #[test]
 fn version_matches_the_core_crate_version() {
-    let json: Value = serde_json::from_str(&stdout_of(&["version"])).unwrap();
-    assert_eq!(json["news"], news_core::VERSION);
+    let (env, _, _) = call(&["version"]);
+    assert_eq!(env["data"]["news"], news_core_version());
 }
 
-#[test]
-fn version_writes_nothing_to_stderr_and_exits_zero() {
-    news()
-        .arg("version")
-        .assert()
-        .code(0)
-        .stderr(predicate::str::is_empty());
+fn news_core_version() -> &'static str {
+    // news-core and news share the workspace version.
+    VERSION
 }
 
 #[test]
@@ -149,6 +206,49 @@ fn help_lists_the_version_command() {
     }
 }
 
+/// Every command group of the Technical Design ("Agent toolbox") and Bureau Design §6.4.
+pub const GROUPS: &[&str] = &[
+    "version",
+    "db",
+    "discover",
+    "plan",
+    "fetch",
+    "parse",
+    "brief",
+    "components",
+    "component",
+    "related",
+    "save",
+    "render",
+    "check",
+    "publish",
+    "update",
+    "prune",
+    "stats",
+    "home",
+    "run",
+    "jobs",
+    "ai",
+    "sources",
+    "calendar",
+    "stories",
+    "scores",
+    "entities",
+    "eval",
+    "review",
+    "corrections",
+    "schema",
+];
+
+#[test]
+fn help_lists_every_command_group() {
+    let help = stdout_of(&["--help"]);
+    for g in GROUPS {
+        let re = predicate::str::is_match(format!(r"(?m)^  {g}\s{{2,}}\S")).unwrap();
+        assert!(re.eval(&help), "`news --help` does not list {g}:\n{help}");
+    }
+}
+
 #[test]
 fn help_subcommand_matches_help_flag() {
     assert_eq!(stdout_of(&["help"]), stdout_of(&["--help"]));
@@ -172,13 +272,14 @@ fn program_is_called_news_on_every_platform() {
         ["--help"].as_slice(),
         ["help"].as_slice(),
         ["version", "--help"].as_slice(),
+        ["jobs", "--help"].as_slice(),
     ] {
         let out = stdout_of(args);
         assert!(out.contains("Usage: news "), "{args:?}: {out}");
         assert!(!out.contains("news.exe"), "{args:?}: {out}");
     }
     news().assert().code(2).stderr(
-        predicate::str::contains("Usage: news <COMMAND>")
+        predicate::str::contains("Usage: news [OPTIONS] <COMMAND>")
             .and(predicate::str::contains("news.exe").not()),
     );
 }
@@ -193,73 +294,85 @@ fn version_help_snapshot() {
     insta::assert_snapshot!("version_help", stdout_of(&["version", "--help"]));
 }
 
-// --- Malformed input ----------------------------------------------------------------------
+#[test]
+fn group_help_snapshots() {
+    // The Bureau groups built here, so a renamed flag shows up in review.
+    insta::assert_snapshot!("jobs_help", stdout_of(&["jobs", "--help"]));
+    insta::assert_snapshot!("run_help", stdout_of(&["run", "--help"]));
+}
+
+#[test]
+fn groups_that_once_had_h_tier_forms_list_none() {
+    // H-tier actions are Board's (ADR 0007): these groups show only their R, W and G commands.
+    for group in ["home", "sources", "stories", "scores", "entities", "eval"] {
+        insta::assert_snapshot!(format!("{group}_help"), stdout_of(&[group, "--help"]));
+    }
+}
+
+// --- Malformed input: usage envelope, exit 2 ---------------------------------------------------
 
 #[test]
 fn no_arguments_is_a_usage_error() {
-    // Agents calling `news` bare get usage on stderr and exit code 2, never a JSON success.
-    news()
-        .assert()
-        .code(2)
-        .stdout(predicate::str::is_empty())
-        .stderr(predicate::str::contains("Usage: news"));
+    // Agents calling `news` bare get the usage envelope on stdout, clap's usage on stderr, exit 2.
+    let (env, code, stderr) = call(&[]);
+    assert_eq!(code, 2);
+    assert_eq!(env["error"]["code"], "usage");
+    assert!(stderr.contains("Usage: news"), "{stderr}");
+}
+
+#[test]
+fn a_group_without_its_subcommand_is_a_usage_error() {
+    for g in ["jobs", "run", "home", "db"] {
+        let args: Vec<&str> = g.split(' ').collect();
+        assert_usage(&args, "subcommand is required");
+    }
 }
 
 #[test]
 fn unknown_subcommand_is_a_usage_error() {
-    news()
-        .arg("frobnicate")
-        .assert()
-        .code(2)
-        .stdout(predicate::str::is_empty())
-        .stderr(predicate::str::contains(
-            "unrecognized subcommand 'frobnicate'",
-        ));
+    assert_usage(&["frobnicate"], "unrecognized subcommand 'frobnicate'");
 }
 
 #[test]
 fn unknown_flag_is_a_usage_error() {
     for args in [["--bogus"].as_slice(), ["version", "--bogus"].as_slice()] {
-        news()
-            .args(args)
-            .assert()
-            .code(2)
-            .stdout(predicate::str::is_empty())
-            .stderr(predicate::str::contains("unexpected argument '--bogus'"));
+        assert_usage(args, "unexpected argument '--bogus'");
     }
 }
 
 #[test]
 fn version_rejects_extra_positional_arguments() {
-    news()
-        .args(["version", "extra"])
-        .assert()
-        .code(2)
-        .stdout(predicate::str::is_empty())
-        .stderr(predicate::str::contains("unexpected argument 'extra'"));
+    assert_usage(&["version", "extra"], "unexpected argument 'extra'");
 }
 
 #[test]
 fn subcommands_are_case_sensitive() {
-    news()
-        .arg("VERSION")
-        .assert()
-        .code(2)
-        .stdout(predicate::str::is_empty());
-    news()
-        .arg("Version")
-        .assert()
-        .code(2)
-        .stdout(predicate::str::is_empty());
+    assert_usage(&["VERSION"], "unrecognized subcommand");
+    assert_usage(&["Version"], "unrecognized subcommand");
 }
 
 #[test]
 fn empty_string_argument_is_rejected() {
-    news()
-        .arg("")
-        .assert()
-        .code(2)
-        .stdout(predicate::str::is_empty());
+    let (_, code, _) = call(&[""]);
+    assert_eq!(code, 2);
+}
+
+#[test]
+fn jobs_claim_refuses_cursor_and_fields() {
+    // A claim takes jobs; paging or trimming its result would lose leases the caller never sees.
+    // Checked before the database is opened (DATABASE_URL is unset here).
+    for extra in [["--cursor", "c1"], ["--fields", "job_id"]] {
+        let mut args = vec!["jobs", "claim", "--pool", "net", "--worker", "w"];
+        args.extend(extra);
+        assert_usage(&args, "jobs claim");
+    }
+}
+
+#[test]
+fn missing_required_arguments_are_usage_errors() {
+    assert_usage(&["fetch"], "required");
+    assert_usage(&["jobs", "claim", "--pool", "net"], "--worker");
+    assert_usage(&["jobs", "fail", "1", "--class", "transient"], "--message");
 }
 
 #[test]
@@ -286,9 +399,13 @@ fn piped_output_has_no_ansi_escapes() {
         let out = stdout_of(&args);
         assert!(no_ansi().eval(&out), "ANSI escape in stdout of {args:?}");
     }
-    let stderr = String::from_utf8_lossy(&news().arg("frobnicate").assert().get_output().stderr)
-        .into_owned();
-    assert!(no_ansi().eval(&stderr), "ANSI escape in error output");
+    let out = news().arg("frobnicate").output().unwrap();
+    for stream in [out.stdout, out.stderr] {
+        assert!(
+            no_ansi().eval(&String::from_utf8_lossy(&stream)),
+            "ANSI escape in error output"
+        );
+    }
 }
 
 #[test]

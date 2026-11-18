@@ -1,7 +1,14 @@
 import { describe, expect, mock, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { applyAccess, dockerExecArgs, PASSWORD_PLACEHOLDER, passwordProblem, renderAccessSql } from "../clickhouse";
+import {
+  applyAccess,
+  dockerExecArgs,
+  PASSWORD_PLACEHOLDER,
+  passwordProblem,
+  renderAccessSql,
+  splitStatements,
+} from "../clickhouse";
 import { root } from "../lib";
 import { makeScratchRepo, removeDir, runBun, sandboxEnv } from "./helpers";
 
@@ -121,6 +128,26 @@ describe("applyAccess: the password goes on stdin, never in argv", () => {
     expect(args?.filter((a) => a === "only-this-one")).toHaveLength(1);
     expect(args).not.toContain("rm");
     expect(args).not.toContain("restart");
+  });
+});
+
+describe("splitStatements", () => {
+  test("splits on line-ending semicolons and drops comments and blanks", () => {
+    expect(splitStatements("-- a comment\nSELECT 1;\n\n-- another\nSELECT 2 ;\n")).toEqual(["SELECT 1", "SELECT 2"]);
+  });
+
+  test("003_ticker.sql is one ALTER and five CREATE TABLE IF NOT EXISTS, all idempotent", () => {
+    const parts = splitStatements(readFileSync(join(root, "infra/clickhouse/003_ticker.sql"), "utf8"));
+    expect(parts).toHaveLength(6);
+    expect(parts[0]).toStartWith("ALTER TABLE news.events");
+    expect(occurrences(parts[0], "ADD COLUMN IF NOT EXISTS")).toBe(9);
+    for (const table of ["ai_calls", "fetches", "scores", "check_results", "runs"]) {
+      expect(parts.some((p) => p.startsWith(`CREATE TABLE IF NOT EXISTS news.${table}`))).toBe(true);
+    }
+  });
+
+  test("002_events.sql is a single statement", () => {
+    expect(splitStatements(readFileSync(join(root, "infra/clickhouse/002_events.sql"), "utf8"))).toHaveLength(1);
   });
 });
 

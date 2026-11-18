@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/run.status.schema.json",
+  "title": "news run status",
+  "description": "The status board, or one run with a run id. Runs in this process against PostgreSQL through the function the Hotline handler calls, so the data is the Hotline command's output (ADR 0008 §11). Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "R",
+  "x-news-status": "built",
+  "x-news-errors": ["not_found", "precondition", "upstream_unavailable"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "run": {
+          "type": "string",
+          "description": "Run id or short id (r_…)"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "output": {
+      "anyOf": [
+        {
+          "$ref": "../../hotline/commands/status.schema.json#/$defs/output"
+        },
+        {
+          "$ref": "../../hotline/commands/run.show.schema.json#/$defs/output"
+        }
+      ]
+    }
+  }
+}

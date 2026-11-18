@@ -80,6 +80,9 @@ jobs:
     env:
       CI: "1"
       NEWS_VISUAL: "1"
+      # The job runs as root, but GitHub points HOME at /github/home (owned by pwuser), and Firefox refuses to
+      # start as root in another user's home. The Playwright docs' fix for GitHub Actions containers.
+      HOME: /root
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -87,7 +90,8 @@ jobs:
       # The same steps as site/scripts/visual.ts: Bun from npm at the pinned version, then a frozen install.
       - run: npm install --global --silent bun@1.4.3
       - run: bun install --frozen-lockfile
-      # Every @visual test is test.fixme until the first component adds baselines, so this passes with all skipped.
+      # Every @visual test is test.fixme until fonts are self-hosted (Phase 3.1), so this passes with all skipped.
+      # Each test still opens its browser before reaching the fixme, so a browser that cannot start fails the job.
       - run: bunx playwright test --grep @visual
         working-directory: site
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

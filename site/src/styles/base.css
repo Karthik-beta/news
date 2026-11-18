@@ -132,9 +132,11 @@ a:hover {
   [data-print="hide"],
   [popover],
   nav,
-  button {
+  button:not(.popover-trigger) {
     display: none !important;
   }
+  /* A popover's trigger is the cited figure or the glossary term itself: it prints as plain text in its
+     sentence (Popover.css), and only the popover is dropped. */
   figure,
   table,
   tr,
