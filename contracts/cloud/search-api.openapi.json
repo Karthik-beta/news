@@ -1,0 +1,108 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "News search API",
+    "version": "1.0.0",
+    "description": "The public, read-only search Worker (workers/search), built in #14 on the query module in workers/shared/src/search.ts. This file fixes the contract that module already implements: keyword search over the D1 FTS5 shards (one per year), words only (no FTS5 operators reach the database), all words required, the last one as a prefix. Popular queries are cached at the edge. When D1's daily read cap is reached the API answers 503 search_unavailable and the site shows a friendly message (TD, Search)."
+  },
+  "paths": {
+    "/v1/search": {
+      "get": {
+        "summary": "Search pages",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "minLength": 1, "maxLength": 200 }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Category slug; matches the category and its sub-categories.",
+            "schema": { "$ref": "common.schema.json#/$defs/categorySlug" }
+          },
+          { "name": "region", "in": "query", "schema": { "$ref": "common.schema.json#/$defs/region" } },
+          { "name": "type", "in": "query", "schema": { "$ref": "common.schema.json#/$defs/pageType" } },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "YYYY-MM-DD (UTC), inclusive",
+            "schema": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "YYYY-MM-DD (UTC), inclusive",
+            "schema": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 50, "default": 10 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matches, best first",
+            "headers": { "Cache-Control": { "schema": { "type": "string" }, "description": "public, edge-cacheable" } },
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SearchResponse" } } }
+          },
+          "400": {
+            "description": "invalid_request",
+            "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/error" } } }
+          },
+          "429": {
+            "description": "rate_limited",
+            "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/error" } } }
+          },
+          "503": {
+            "description": "search_unavailable (D1 daily limit reached)",
+            "content": { "application/json": { "schema": { "type": "object" } } }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "SearchResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["results"],
+        "properties": {
+          "results": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "page_id",
+                "url",
+                "lang",
+                "title",
+                "summary",
+                "categories",
+                "region",
+                "page_type",
+                "published_at"
+              ],
+              "properties": {
+                "page_id": { "$ref": "common.schema.json#/$defs/pageId" },
+                "url": { "type": "string" },
+                "lang": { "$ref": "common.schema.json#/$defs/lang" },
+                "title": { "type": "string" },
+                "summary": { "type": "string" },
+                "categories": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/categorySlug" } },
+                "region": { "$ref": "common.schema.json#/$defs/region" },
+                "page_type": { "$ref": "common.schema.json#/$defs/pageType" },
+                "published_at": { "$ref": "common.schema.json#/$defs/timestamp" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

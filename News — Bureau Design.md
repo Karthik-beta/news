@@ -732,7 +732,7 @@ create table pages (
 create table page_refs (page_id text, version int, ref text, primary key (page_id, version, ref));
 ```
 
-**Publish interface** (contract with the cloud; same substance as the TD): `PUT /v1/pages/{page_id}` with an `Idempotency-Key` header (Stripe-style keys [6]); body = bundle manifest and files; response `{version, url, purged:[…]}`; `PUT /v1/home/curation` for curations. A token bucket below DynamoDB's 25 write units paces writes (default 5 pages/s, burst 10), and purges are batched.
+**Publish interface** (contract with the cloud; same substance as the TD): `PUT /v1/pages/{page_id}` with an `Idempotency-Key` header (Stripe-style keys [6]); body = bundle manifest and files; response `{version, url, purged:[…]}`; `PUT /v1/home/curation` for curations. A token bucket below DynamoDB's 25 write units paces writes: at most 1 page/s, fewer for large pages (a typical publish is about 35 write units, a schema-maximum one about 700; ADR 0004), and purges are batched. The Press checks a bundle's total body size against the API's 1 MiB cap before sending (ADR 0006).
 
 **Index budget.** In Edition step 11, never in the background: take published `noindex` pages, excluding any flagged `templated` (they stay `noindex` until Reporter upgrades them, D10), rank them by `index_priority = score + 10·[Tier 1] + uniqueness` (uniqueness = distinct data series and charts no indexed page has) and promote until `NEWS_INDEX_PER_DAY` promotions have been made that day. Code only.
 
@@ -1686,6 +1686,7 @@ A scheduled Edition, as the service runs it:
 | --- | --- |
 | **Trigger** | Start in Board, weekly or when Board shows new reports (it can also be scheduled; its gates wait in Board) |
 | **Steps** | 1 `news corrections pull` (code) → 2 Triage (A9) → 3 For `figure` reports: code re-fetches the source and compares the value at the cited locator → 4 **Approval** per report in Board, with code's evidence (confirmed / not reproduced) → 5 Confirmed: fix (parser fix as a dev task, or re-render, or A1 update) → 6 Publish with "Updated on …"; resolve the report |
+| **Untrusted input** | A report's `text` and `where` are written by anyone on the internet (contracts/cloud/report.schema.json). They are data only: fenced in A9's prompt, never followed as instructions, A9 has no tools, and nothing is corrected or published without Karthik's approval in Board (step 4) |
 | **Output** | Corrections log (feeds the methodology page's corrections count, if Karthik wants one) |
 
 ### 8.11 Audit
