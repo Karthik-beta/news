@@ -10,7 +10,7 @@
         "typescript": "^6.0.3",
       },
     },
-    "pipeline": {
+    "D:/dev/Personal Projects/news/pipeline": {
       "name": "@news/pipeline",
       "version": "0.0.1",
       "devDependencies": {
@@ -18,7 +18,7 @@
         "typescript": "^6.0.3",
       },
     },
-    "site": {
+    "D:/dev/Personal Projects/news/site": {
       "name": "@news/site",
       "version": "0.0.1",
       "dependencies": {
@@ -52,7 +52,7 @@
         "vitest": "^5.1.0",
       },
     },
-    "workers/api": {
+    "D:/dev/Personal Projects/news/workers/api": {
       "name": "@news/worker-api",
       "version": "0.0.1",
       "dependencies": {
@@ -67,7 +67,7 @@
         "wrangler": "^4.162.0",
       },
     },
-    "workers/mcp": {
+    "D:/dev/Personal Projects/news/workers/mcp": {
       "name": "@news/worker-mcp",
       "version": "0.0.1",
       "dependencies": {
@@ -82,7 +82,7 @@
         "wrangler": "^4.162.0",
       },
     },
-    "workers/search": {
+    "D:/dev/Personal Projects/news/workers/search": {
       "name": "@news/worker-search",
       "version": "0.0.1",
       "devDependencies": {
@@ -94,7 +94,7 @@
         "wrangler": "^4.162.0",
       },
     },
-    "workers/shared": {
+    "D:/dev/Personal Projects/news/workers/shared": {
       "name": "@news/worker-shared",
       "version": "0.0.1",
       "dependencies": {
@@ -108,7 +108,7 @@
         "vitest": "^5.1.0",
       },
     },
-    "workers/test-support": {
+    "D:/dev/Personal Projects/news/workers/test-support": {
       "name": "@news/worker-test-support",
       "version": "0.0.1",
       "dependencies": {
@@ -415,19 +415,19 @@
 
     "@napi-rs/wasm-runtime": ["@napi-rs/wasm-runtime@1.2.4", "", { "dependencies": { "@tybys/wasm-util": "^0.10.3" }, "peerDependencies": { "@emnapi/core": "^1.7.1 || ^2.0.0-alpha.4", "@emnapi/runtime": "^1.7.1 || ^2.0.0-alpha.4" } }, "sha512-AJxoUD2/15ESHbvpcyjU274nsAPLuOtPHCk0vKJM5pj//Fg/B1FXNWjPnXTT9PymCYYiHo4zPj0ZomXBKhoy7g=="],
 
-    "@news/pipeline": ["@news/pipeline@workspace:pipeline"],
+    "@news/pipeline": ["@news/pipeline@workspace:D:/dev/Personal Projects/news/pipeline"],
 
-    "@news/site": ["@news/site@workspace:site"],
+    "@news/site": ["@news/site@workspace:D:/dev/Personal Projects/news/site"],
 
-    "@news/worker-api": ["@news/worker-api@workspace:workers/api"],
+    "@news/worker-api": ["@news/worker-api@workspace:D:/dev/Personal Projects/news/workers/api"],
 
-    "@news/worker-mcp": ["@news/worker-mcp@workspace:workers/mcp"],
+    "@news/worker-mcp": ["@news/worker-mcp@workspace:D:/dev/Personal Projects/news/workers/mcp"],
 
-    "@news/worker-search": ["@news/worker-search@workspace:workers/search"],
+    "@news/worker-search": ["@news/worker-search@workspace:D:/dev/Personal Projects/news/workers/search"],
 
-    "@news/worker-shared": ["@news/worker-shared@workspace:workers/shared"],
+    "@news/worker-shared": ["@news/worker-shared@workspace:D:/dev/Personal Projects/news/workers/shared"],
 
-    "@news/worker-test-support": ["@news/worker-test-support@workspace:workers/test-support"],
+    "@news/worker-test-support": ["@news/worker-test-support@workspace:D:/dev/Personal Projects/news/workers/test-support"],
 
     "@openuidev/devtools": ["@openuidev/devtools@0.3.1", "", { "dependencies": { "lucide-react": "^0.575.0" }, "peerDependencies": { "@openuidev/observability": ">=0.0.4 <0.1.0", "@openuidev/react-lang": ">=1.0.0 <2.0.0", "react": "^18.3.1 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" }, "optionalPeers": ["@openuidev/react-lang"] }, "sha512-kOCCsRGwY0w6xL1rVL1zOa9CO97ZrG6YGasRZyCv7FXaDAzbFkEgFy+FhYx6EP7sPKhkgr/jBqunADzhevpBDw=="],
 
