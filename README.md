@@ -19,8 +19,8 @@ Major company, economic and science reports, turned into visual, fully sourced p
 |---|---|---|
 | Bun | 1.4.x | Runtime and package manager; Astro runs under Bun |
 | Rust | stable (rustup) | `cli/rust-toolchain.toml` adds rustfmt, clippy, rust-analyzer |
-| Docker Desktop | 29.x | PostgreSQL + pgvector, the OTel Collector and DynamoDB Local |
-| Shared ClickHouse | `shorts-clickhouse-1` | Another project's container; News gets its own database and user |
+| [Kiri](https://runkiri.com) | 0.2.x | The container engine (replaced Docker Desktop on 19 Nov 2026): PostgreSQL + pgvector, the OTel Collector and DynamoDB Local. Kiri is docker's default context, so `docker` and `bun run infra:*` work unchanged |
+| Shared ClickHouse | `shorts-clickhouse-1` | Another project's container; News gets its own database and user. Start the shorts stack first: `news-otel` joins its `shorts_default` network and reaches ClickHouse by container name (under Kiri, `host.docker.internal` cannot reach ports published on 127.0.0.1) |
 | Git, GitHub CLI, Claude Code | | |
 | Optional | gitleaks, Tesseract | Local secret scan; scanned PDFs (Phase 5) |
 
