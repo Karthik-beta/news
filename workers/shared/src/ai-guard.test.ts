@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { scanFile } from "./ai-guard";
 
-const WORKERS = fileURLToPath(new URL("../../", import.meta.url));
+const WORKERS = fileURLToPath(new URL("../../", import.meta.url).href);
 // This guard and its test name the forbidden packages on purpose.
 const SELF = new Set(["shared/src/ai-guard.ts", "shared/src/ai-guard.test.ts"]);
 const SKIP_DIRS = new Set(["node_modules", ".wrangler", "dist", "generated"]);
