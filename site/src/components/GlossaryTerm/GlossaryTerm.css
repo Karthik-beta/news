@@ -1,0 +1,17 @@
+/* Glossary term: a dotted 1px tertiary-ink underline, offset 4px (design/typography.md, "Links"). The popover is
+   the shared one (Popover.css). In print the term is plain words in its sentence: base.css keeps every
+   .popover-trigger and drops only the popover, and Popover.css removes the underline. */
+.glossary-term {
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-thickness: var(--border-hairline);
+  text-decoration-color: var(--color-ink-3);
+  text-underline-offset: 4px;
+}
+.glossary-term:hover {
+  text-decoration-color: var(--color-ink);
+}
+
+.glossary-term__definition {
+  color: var(--color-ink);
+}

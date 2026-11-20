@@ -1,19 +1,16 @@
 ---
-// Component fixture pages: each src/components/<Name>/fixtures/<fixture>.oui rendered by the real renderer with
-// the merged fixture data, hosted in the fixture layout. NEWS_FIXTURES=1 builds only.
-import type { ComponentFixture } from "../../../../../renderer/fixtures/components";
-import { componentFixtureBundle, componentFixturePaths } from "../../../../../renderer/fixtures/components.vite";
+// Component fixture pages: src/components/<Name>/fixtures/<fixture>.oui rendered by the real renderer with the
+// fixture data, glossary and images, hosted in the fixture layout. For the component tester. NEWS_FIXTURES=1 only.
+import { componentFixturePaths, renderComponentFixture } from "../../../../../renderer/fixtures/component-pages";
 import FixtureLayout from "../../../../../renderer/fixtures/FixtureLayout.astro";
-import { fixtureLibrary } from "../../../../../renderer/fixtures/library";
-import { renderPage } from "../../../../../renderer/render";
 
 export function getStaticPaths() {
   return componentFixturePaths();
 }
 
-const { fixture } = Astro.props as { fixture: ComponentFixture };
-const result = renderPage(componentFixtureBundle(fixture), { library: fixtureLibrary() });
+const { name, fixture } = Astro.params as { name: string; fixture: string };
+const result = renderComponentFixture(name, fixture);
 ---
-<FixtureLayout title={`Fixture: ${fixture.name}, ${fixture.fixture}`} hasIslands={result.hasIslands}>
+<FixtureLayout title={`Fixture: ${name}, ${fixture}`} hasIslands={result.hasIslands}>
   <Fragment set:html={result.article} />
 </FixtureLayout>

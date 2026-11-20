@@ -8,18 +8,18 @@ import { colourRoles, displayValue, formatCell, modelSummary, unitLabel } from "
 import { MINUS } from "../../src/format/number";
 import { PageData, PageSources } from "../../src/renderer/bundle/schema";
 import { PageDataResolver } from "../../src/renderer/data/resolve";
-import { componentFixtureBundle, componentFixtures } from "../../src/renderer/fixtures/components.vite";
+import { componentFixtureBundle, componentFixtures } from "../../src/renderer/fixtures/component-pages";
 import { fixtureLibrary } from "../../src/renderer/fixtures/library";
 import { RenderError, renderPage } from "../../src/renderer/render";
 
 const library = fixtureLibrary();
-const base = componentFixtures.find((f) => f.name === "KeyFigures" && f.fixture === "default");
+const base = componentFixtures.find((f) => f.component === "KeyFigures" && f.fixture === "default");
 if (!base) throw new Error("no KeyFigures/default fixture");
 
 const render = (oui: string) => renderPage({ ...componentFixtureBundle(base), oui }, { library });
 const doc = (oui: string) => new JSDOM(render(oui).article).window.document;
 const fixturePage = (name: string, fixture: string) => {
-  const f = componentFixtures.find((x) => x.name === name && x.fixture === fixture);
+  const f = componentFixtures.find((x) => x.component === name && x.fixture === fixture);
   if (!f) throw new Error(`no fixture ${name}/${fixture}`);
   const input = componentFixtureBundle(f);
   return {

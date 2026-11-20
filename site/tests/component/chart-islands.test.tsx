@@ -10,7 +10,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import BarChartPlot from "../../src/components/BarChart/BarChartPlot.client";
 import ColumnChartPlot from "../../src/components/ColumnChart/ColumnChartPlot.client";
 import LineChartPlot from "../../src/components/LineChart/LineChartPlot.client";
-import { componentFixtureBundle, componentFixtures } from "../../src/renderer/fixtures/components.vite";
+import { componentFixtureBundle, componentFixtures } from "../../src/renderer/fixtures/component-pages";
 import { fixtureLibrary } from "../../src/renderer/fixtures/library";
 import { renderPage } from "../../src/renderer/render";
 import { expectNoAxeViolations, renderComponent } from "../support/render";
@@ -26,7 +26,7 @@ interface IslandOnPage {
 }
 
 function islandsOf(component: string, fixture: string): IslandOnPage[] {
-  const f = componentFixtures.find((x) => x.name === component && x.fixture === fixture);
+  const f = componentFixtures.find((x) => x.component === component && x.fixture === fixture);
   if (!f) throw new Error(`no fixture ${component}/${fixture}`);
   const { article } = renderPage(componentFixtureBundle(f), { library: fixtureLibrary() });
   const doc = new DOMParser().parseFromString(article, "text/html");

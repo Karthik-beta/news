@@ -30,6 +30,7 @@ function fixturePages() {
             pattern: "/fixtures/components/[name]/[fixture]/[...file]",
             entrypoint: `${dir}/components/[name]/[fixture]/[...file].ts`,
           });
+          injectRoute({ pattern: "/fixtures/images/[file]", entrypoint: `${dir}/images/[file].ts` });
         }
         if (process.env.OPENUI_SPIKE === "1") {
           injectRoute({

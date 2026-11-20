@@ -56,8 +56,10 @@ describe("generated OpenUI library", () => {
   it("puts every non-root component in Page's children, so the parser accepts it", () => {
     const { library } = createNewsLibrary([...componentSpecs(specs), ...fixtureSpecs]);
     const prompt = library.prompt();
-    // Production components come first, then the fixture-only ones.
-    expect(prompt).toMatch(/Page\(children: \((\w+ \| )*FixtureText \| FixtureFigure \| FixtureLineChart\)\[\]\)/);
+    const children = /Page\(children: \(([^)]*)\)\[\]\)/.exec(prompt)?.[1]?.split(" | ") ?? [];
+    expect(children).toEqual(
+      [...componentSpecs(specs).filter((s) => s.root !== true), ...fixtureSpecs].map((s) => s.name),
+    );
   });
 
   it("refuses two roots or a duplicate name", () => {

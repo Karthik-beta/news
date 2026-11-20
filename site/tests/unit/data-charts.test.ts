@@ -6,7 +6,7 @@ import { JSDOM } from "jsdom";
 import { describe, expect, it } from "vitest";
 import { PageData, PageSources } from "../../src/renderer/bundle/schema";
 import { PageDataResolver } from "../../src/renderer/data/resolve";
-import { componentFixtureBundle, componentFixtures } from "../../src/renderer/fixtures/components.vite";
+import { componentFixtureBundle, componentFixtures } from "../../src/renderer/fixtures/component-pages";
 import { fixtureLibrary } from "../../src/renderer/fixtures/library";
 import { parsePage, renderPage } from "../../src/renderer/render";
 
@@ -15,13 +15,13 @@ const CHART_NAMES = ["ColumnChart", "BarChart", "LineChart", "StepLineChart", "D
 const DATA_NAMES = [...CHART_NAMES, "KeyFigure", "KeyFigures"];
 
 const pages = componentFixtures
-  .filter((f) => DATA_NAMES.includes(f.name))
+  .filter((f) => DATA_NAMES.includes(f.component))
   .map((f) => {
     const input = componentFixtureBundle(f);
     const result = renderPage(input, { library });
     const doc = new JSDOM(result.article).window.document;
     const resolver = new PageDataResolver(PageData.parse(input.data), PageSources.parse(input.sources));
-    return { id: `${f.name}/${f.fixture}`, f, result, doc, resolver };
+    return { id: `${f.component}/${f.fixture}`, f, result, doc, resolver };
   });
 
 const page = (id: string) => {

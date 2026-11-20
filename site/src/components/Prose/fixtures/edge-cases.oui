@@ -1,0 +1,5 @@
+root = Page([short, long, missing, markup])
+short = Prose(["Prices held."])
+long = Prose(["## A section heading that runs long enough to wrap across two or three lines on a phone screen", "Pneumonoultramicroscopicsilicovolcanoconiosis is the longest word in some dictionaries, and https://statistics.example.org/releases/consumer-prices/latest/tables/full-table-of-components-and-revisions is a long URL; neither may push the page sideways.", "Two paragraphs in one string are split on the blank line.\n\nThis is the second one, and a single\nline break reads as a space."])
+missing = Prose(["A missing value reads {dp_edge_null}; an unknown reference reads {dp_edge_not_in_data}; a negative value is {dp_edge_negative}; a very large one {dp_edge_very_large} and a very small one {dp_edge_very_small}.", "In {pd_edge_q4_fy26} tax revenue was {dp_edge_inr}. A governor said {q_edge_1}"])
+markup = Prose(["A term the glossary defines: [core inflation](glossary:core-inflation). One it does not: [neutral rate](glossary:neutral-rate). Other brackets [like these] and *asterisks* print as typed, and so do # and | and _underscores_.", "- One item list"])

@@ -130,7 +130,8 @@ export default function LineChartPlot({
       {events.some((ev) => ev.phone && ev.label) ? (
         // A tight plot (a phone at 150-200% text) wraps the phone's one event label to the room between its line and
         // the plot's edge; here, in a row of its own above the plot, so the row is as tall as the label however many
-        // lines it takes. Hidden otherwise; the same text as the label in the plot.
+        // lines it takes. Hidden otherwise; the same text as the label in the plot, citing the decision's period
+        // (the date in it).
         <div className="line-chart__events" aria-hidden="true">
           {events
             .filter((ev) => ev.phone && ev.label)
@@ -138,6 +139,7 @@ export default function LineChartPlot({
               <span
                 key={`${ev.key}-row`}
                 className={`line-chart__events-label${ev.x > 70 ? " is-end" : ""}`}
+                data-ref={ev.key}
                 style={
                   {
                     left: `${ev.x}%`,

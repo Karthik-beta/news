@@ -1,0 +1,5 @@
+root = Page([long, bare, speakerOnly, unknown])
+long = Quote("q_test_long")
+bare = Quote("q_test_bare")
+speakerOnly = Quote("q_edge_1")
+unknown = Quote("q_not_in_data")

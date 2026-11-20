@@ -1,0 +1,2 @@
+root = Page([method])
+method = MethodSummary("Peer-reviewed paper", "[Randomised controlled trial](glossary:randomised-controlled-trial)", "{dp_test_trial_participants} adults aged over sixty", "{pd_test_trial_period}", "{q_test_trial_limitations}")

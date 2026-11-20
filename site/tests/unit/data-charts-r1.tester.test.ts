@@ -9,12 +9,12 @@
 import { JSDOM } from "jsdom";
 import { describe, expect, it } from "vitest";
 import { seriesFell, valueFell } from "../../src/components/ChartFigure/model";
-import { componentFixtureBundle, componentFixtures } from "../../src/renderer/fixtures/components.vite";
+import { componentFixtureBundle, componentFixtures } from "../../src/renderer/fixtures/component-pages";
 import { fixtureLibrary } from "../../src/renderer/fixtures/library";
 import { renderPage } from "../../src/renderer/render";
 
 const library = fixtureLibrary();
-const base = componentFixtures.find((f) => f.name === "LineChart" && f.fixture === "edge-cases");
+const base = componentFixtures.find((f) => f.component === "LineChart" && f.fixture === "edge-cases");
 if (!base) throw new Error("no LineChart/edge-cases fixture");
 
 const YEARS = ["pd_fx_2019", "pd_fx_2020", "pd_fx_2021", "pd_fx_2022", "pd_fx_2023", "pd_fx_2024"];

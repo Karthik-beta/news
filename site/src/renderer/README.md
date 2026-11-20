@@ -23,6 +23,8 @@ const result = renderPage(
 
 The fallback, option C in the ADR, is our own walk over the parse tree. Select it with `engine: "walker"`. It produces byte-identical HTML, and a test keeps it that way.
 
+`glossary` is the site glossary for `[words](glossary:slug)` terms in page copy (`GlossaryTerm`); without it, terms render as plain words and no definition is made up.
+
 `strict: true` throws on any data problem (unknown reference, missing value, broken link). Publishing uses strict mode. Fixture pages and previews leave it off, so they can show the missing states.
 
 ## The data-reference contract

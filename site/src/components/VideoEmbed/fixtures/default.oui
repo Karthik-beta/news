@@ -1,0 +1,2 @@
+root = Page([video])
+video = VideoEmbed("FOMC press conference, September 2024", "Federal Reserve", "https://www.federalreserve.gov/monetarypolicy/fomcpresconf20240918.htm", "aBcDeFgHiJk", "2024-09-18")

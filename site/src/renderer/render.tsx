@@ -12,6 +12,7 @@
 import { createParser, type ElementNode, type Library, Renderer, useRenderNode } from "@openuidev/react-lang";
 import { Fragment, type ReactNode } from "react";
 import type { AnyComponentSpec, ChartTable } from "../components/contract";
+import { type Glossary, GlossaryProvider } from "../components/GlossaryTerm/GlossaryTerm";
 import { type NewsLibrary, newsLibrary } from "../components/library";
 import { RefText } from "../components/SourceRef/RefText";
 import { formatDate } from "../format";
@@ -50,6 +51,11 @@ export interface RenderOptions {
   assets?: { stylesheets: string[]; script?: string; preloadFonts?: string[] };
   /** Language of the document. */
   lang?: string;
+  /**
+   * The site glossary, for glossary terms in page copy. Without it, terms render as plain text (a definition is
+   * never made up). Page templates (#14) pass the real one; fixture pages pass a fixture glossary.
+   */
+  glossary?: Glossary;
 }
 
 export interface ChartExport {
@@ -297,7 +303,9 @@ export function renderPage(input: PageBundleInput, options: RenderOptions = {}):
     );
   const article = staticMarkup(
     <PageDataProvider resolver={resolver}>
-      <Article head={input.head} body={body} sourceIds={() => sourceIdsInOrder(resolver)} resolver={resolver} />
+      <GlossaryProvider glossary={options.glossary ?? {}}>
+        <Article head={input.head} body={body} sourceIds={() => sourceIdsInOrder(resolver)} resolver={resolver} />
+      </GlossaryProvider>
     </PageDataProvider>,
   );
 

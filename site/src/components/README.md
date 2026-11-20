@@ -42,6 +42,18 @@ A component's spec (`defineNewsComponent`, see `contract.ts`):
 
 A primitive's spec (`definePrimitive`) has `name`, `purpose` and a TSX `example`. Primitives are building blocks for components, not part of the page writer's library or index.
 
+**Page-template parts are primitives too.** The site chrome (`SkipLink`, `Masthead`, `DateLine`, `RegionFilter`, `Footer`), the article head (`FlyTitle`, `Headline`, `Standfirst`, `PageMeta`), the sources (`SourcesPanel`, `Badge`, `Disclaimer`) and the inline `GlossaryTerm` are rendered by page templates from the page record, `head.json` and `sources.json`, never placed by the page writer, so they stay out of the library and the index. Their purpose says "Page-template part". Where `index.md` needs them, they export a Markdown helper (`pageMetaMarkdown`, `sourcesPanelMarkdown`) for the template to call.
+
+## Page copy
+
+`Prose`, `Note` and `MethodSummary` take the writer's copy with a small markup (`Prose/copy.tsx`):
+
+- one string per block; `## ` starts a section heading (h2, with an id from its words); lines that all start with `- ` are a list; a blank line splits a string into more blocks;
+- `{ref}` tokens for every number, period, quote and context line (RefText);
+- `[words](glossary:slug)` for a glossary term. The definition comes from the site glossary the renderer is given (`renderPage(…, { glossary })`); a slug the glossary doesn't define renders as plain words.
+
+Nothing else is markup: other brackets, asterisks and `#` print as typed.
+
 ## Rules every component follows
 
 1. **Data references, not numbers.** Read data with `usePageData()` (`src/renderer/data/context.tsx`). Write values with `SourceRef` or `formatValue`, and text with `RefText`. The contract is in [`src/renderer/README.md`](../renderer/README.md).
@@ -72,4 +84,6 @@ The shared formatters (numbers, currencies, units, fiscal labels, minus signs, d
 
 ## Fixture pages
 
-With `NEWS_FIXTURES=1` (test and CI builds), `/fixtures/primitives/<Name>/` shows every case in a primitive's `fixtures/cases.tsx`, `/fixtures/components/<Name>/<fixture>/` renders each component's `fixtures/<fixture>.oui` through the real renderer with the data of every fixture bundle merged (with its `index.md` and chart CSV and JSON beside it), and `/fixtures/renderer/<bundle>/` renders each fixture bundle in `src/renderer/fixtures/bundles/` through the real renderer. Production builds leave them out.
+With `NEWS_FIXTURES=1` (test and CI builds), `/fixtures/primitives/<Name>/` shows every case in a primitive's `fixtures/cases.tsx`, `/fixtures/components/<Name>/<fixture>/` renders each component's `fixtures/<fixture>.oui` through the real renderer (data from every fixture bundle merged, including `charts`, plus `src/renderer/fixtures/component-pages/`, the fixture glossary, and test images served at `/fixtures/images/`), with its `index.md` and chart CSV and JSON beside it, and `/fixtures/renderer/<bundle>/` renders each fixture bundle in `src/renderer/fixtures/bundles/`. Production builds leave them out. Each component fixture's `index.md` is snapshotted in `fixtures/__snapshots__/<fixture>.md`.
+
+Links in fixtures must resolve in the fixture build (the integration link check), so fixtures for parts that link to pages not built yet (hubs, methodology, the report form) pass links to the home page with a query string.

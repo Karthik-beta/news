@@ -1,5 +1,4 @@
-root = Page([sales, margin, plain, missing])
+root = Page([sales, margin, plain])
 sales = KeyFigure("Total net sales", "dp_aapl_net_sales_fy2024", "dv_aapl_net_sales_growth_fy2024", "pd_fy2023", "sr_aapl_net_sales_5y")
 margin = KeyFigure("Services gross margin, {pd_fy2024}", "dp_aapl_gm_services_fy2024", "dv_aapl_gm_services_change_fy2024", "pd_fy2023")
 plain = KeyFigure("Rupees, no change given", "dp_edge_inr")
-missing = KeyFigure("Not published", "dp_edge_null", "dv_edge_change_neg")

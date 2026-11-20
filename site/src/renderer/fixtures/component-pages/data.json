@@ -1,0 +1,56 @@
+{
+  "$schema": "../../../../../contracts/bundle/data.schema.json",
+  "version": 1,
+  "points": {
+    "dp_test_trial_participants": {
+      "label": "Participants randomised",
+      "value": "1204",
+      "value_text": "1,204",
+      "unit": "participants",
+      "currency": null,
+      "scale": null,
+      "decimals": 0,
+      "period": "pd_test_trial_period",
+      "source": "src_test_trial",
+      "locator": { "kind": "pdf", "page": 3, "table": 1 }
+    }
+  },
+  "derived": {},
+  "series": {},
+  "periods": {
+    "pd_test_trial_period": { "label": "March 2019 to June 2023", "start": "2019-03-01", "end": "2023-06-30" },
+    "pd_fomc_sep_2024": { "label": "September 2024", "start": "2024-09-17", "end": "2024-09-18" }
+  },
+  "quotes": {
+    "q_fomc_statement_sep_2024": {
+      "text": "In light of the progress on inflation and the balance of risks, the Committee decided to lower the target range for the federal funds rate by 1/2 percentage point to 4-3/4 to 5 percent.",
+      "source": "src_fomc_statement_sep_2024",
+      "speaker": "Federal Open Market Committee",
+      "role": null,
+      "said_on": "2024-09-18",
+      "locator": { "kind": "html", "paragraph": 2 }
+    },
+    "q_test_trial_limitations": {
+      "text": "Participants were not blinded to their group, and blood pressure was measured at clinics that knew the allocation.",
+      "source": "src_test_trial",
+      "speaker": "The study's authors",
+      "role": null,
+      "said_on": null,
+      "locator": { "kind": "pdf", "page": 9 }
+    },
+    "q_test_long": {
+      "text": "The committee judged that the risks to achieving its employment and inflation goals were roughly in balance, that the economic outlook was uncertain, and that it would carefully assess incoming data, the evolving outlook and the balance of risks before considering any further adjustments to the target range, while remaining strongly committed to supporting maximum employment and returning inflation to its objective over the medium term.",
+      "source": "src_test_trial",
+      "speaker": "A spokesperson for a very long-named international standards and statistics coordination organisation",
+      "role": "Head of communications and public engagement",
+      "said_on": "2026-09-30",
+      "locator": { "kind": "pdf", "page": 1 }
+    },
+    "q_test_bare": {
+      "text": "Rates were held.",
+      "source": "src_test_trial",
+      "locator": { "kind": "pdf", "page": 1 }
+    }
+  },
+  "context": {}
+}
