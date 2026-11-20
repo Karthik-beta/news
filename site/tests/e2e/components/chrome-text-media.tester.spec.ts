@@ -375,14 +375,23 @@ test.describe("ImageFigure failure in every engine", () => {
     await frame.scrollIntoViewIfNeeded();
     const shot = await frame.screenshot({ path: info.outputPath(`blocked-image-${browserName}.png`) });
     await info.attach(`blocked-image-${browserName}`, { body: shot, contentType: "image/png" });
-    // Chromium and Firefox draw the ::after fallback. WebKit computes ::after but does not draw it on a broken
-    // image, so there the attached screenshot is the evidence (reviewed by hand, see ImageFigure/SIGNOFF.md).
+    // Chromium and Firefox draw the ::after fallback over the broken image. WebKit computes ::after but does not
+    // draw it on a broken image; there the frame's ::before layer behind the image shows through (IMG-1). The
+    // attached screenshot is the evidence that it is drawn.
     const after = await page
       .locator(".image-frame__img")
       .first()
       .evaluate((el) => getComputedStyle(el, "::after").content);
     expect(after).toContain("elliptical orbit");
     expect(after).toContain("NASA/JPL-Caltech. Public domain.");
+    const behind = await frame.evaluate((el) => {
+      const s = getComputedStyle(el, "::before");
+      return { content: s.content, position: s.position, color: s.color, background: s.backgroundColor };
+    });
+    expect(behind.content).toContain("elliptical orbit");
+    expect(behind.content).toContain("NASA/JPL-Caltech. Public domain.");
+    expect(behind.position).toBe("absolute");
+    expect(behind.color).not.toBe(behind.background);
   });
 });
 

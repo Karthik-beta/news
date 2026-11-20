@@ -27,6 +27,38 @@
   border-radius: var(--radius-none);
 }
 
+/* The fallback behind the image: the same alt text and credit as the ::after below, drawn by the frame itself, so
+   it shows through a broken image in every engine (WebKit draws no ::after on a broken image). A loaded image
+   covers it. The "/ ''" alternative keeps screen readers from reading it twice: the image's alt already says it. */
+.image-frame::before {
+  content: attr(data-alt) "\A" attr(data-credit);
+}
+@supports (content: "" / "") {
+  .image-frame::before {
+    content: attr(data-alt) "\A" attr(data-credit) / "";
+  }
+}
+
+.image-frame::before,
+.image-frame__img::after {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  /* "safe": text longer than a small frame keeps its start in view and is cut at the end. */
+  align-items: safe center;
+  justify-content: safe center;
+  padding: var(--space-5);
+  background: var(--color-wash);
+  color: var(--color-ink-2);
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-label);
+  line-height: var(--font-line-height-ui);
+  text-align: center;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  overflow: hidden;
+}
+
 .image-frame__img {
   position: absolute;
   inset: 0;
@@ -43,21 +75,6 @@
    Fira 13.5 secondary ink. A loaded image is a replaced element and never draws ::after. */
 .image-frame__img::after {
   content: attr(alt) "\A" attr(data-credit);
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-5);
-  background: var(--color-wash);
-  color: var(--color-ink-2);
-  font-family: var(--font-family-sans);
-  font-size: var(--font-size-label);
-  line-height: var(--font-line-height-ui);
-  text-align: center;
-  white-space: pre-line;
-  overflow-wrap: anywhere;
-  overflow: hidden;
 }
 
 @media (forced-colors: active) {

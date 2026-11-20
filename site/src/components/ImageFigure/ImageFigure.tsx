@@ -3,8 +3,9 @@
 //
 // The frame reserves the image's aspect ratio before it loads, so the layout never shifts. If the image fails to
 // load (blocked, offline, gone), the frame shows the alt text and the credit, centred on the wash, at the same size.
-// No JavaScript: a broken image draws its ::after layer (Chromium, Firefox), which the stylesheet fills with the
-// alt text and credit; a loaded image never draws it. Static: 0 KB JS.
+// No JavaScript, two layers from the same data attributes: a broken image draws its own ::after over itself
+// (Chromium, Firefox; a loaded image never draws it), and the frame's ::before sits behind the image, where it
+// shows through a broken image in every engine, WebKit included, which draws no ::after on one. Static: 0 KB JS.
 import type { ComponentRenderer } from "@openuidev/react-lang";
 import type { CSSProperties } from "react";
 
@@ -49,7 +50,12 @@ export interface ImageFrameProps {
 /** The image in its fixed-ratio frame, with the failure fallback. Shared with the gallery. */
 export function ImageFrame({ image, loading = "lazy", className }: ImageFrameProps) {
   return (
-    <span className={`image-frame${className ? ` ${className}` : ""}`} style={frameStyle(image)}>
+    <span
+      className={`image-frame${className ? ` ${className}` : ""}`}
+      style={frameStyle(image)}
+      data-alt={image.alt}
+      data-credit={creditLine(image)}
+    >
       <img
         className="image-frame__img"
         src={image.src}
