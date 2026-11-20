@@ -42,3 +42,12 @@ updates:
     groups:
       bun:
         patterns: ["*"]
+    # 2026-11-20: hold TypeScript at 6.x. `astro check` (the site typecheck) refuses to run on TypeScript 7.0
+    # ("does not currently support TypeScript 7.0"). Remove this once Astro supports TypeScript 7.
+    ignore:
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+      # 2026-11-20: hold zustand at 4.x. ADR 0001 pins 4.5.7 and @openuidev/react-ui peers on ^4.5.5;
+      # no code imports zustand directly. Revisit when OpenUI moves to zustand 5.
+      - dependency-name: zustand
+        update-types: ["version-update:semver-major"]
