@@ -43,7 +43,7 @@ fn wide(s: &str) -> Vec<u16> {
 
 /// A NUL-terminated UTF-16 string.
 #[allow(unsafe_code)]
-unsafe fn from_wide_ptr(p: *const u16) -> String {
+pub(crate) unsafe fn from_wide_ptr(p: *const u16) -> String {
     let mut n = 0;
     // SAFETY: the caller passes a valid NUL-terminated UTF-16 string; we stop at the NUL.
     while unsafe { *p.add(n) } != 0 {
@@ -92,7 +92,7 @@ fn token_user_sid(token: HANDLE) -> io::Result<String> {
 }
 
 #[allow(unsafe_code)]
-fn sid_string(sid: PSID) -> io::Result<String> {
+pub(crate) fn sid_string(sid: PSID) -> io::Result<String> {
     let mut s: *mut u16 = null_mut();
     // SAFETY: `sid` points into a live token buffer; `s` receives a LocalAlloc'd string we free.
     if unsafe { ConvertSidToStringSidW(sid, &mut s) } == 0 {

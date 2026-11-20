@@ -205,6 +205,21 @@ pub fn lint(sources: &[Source]) -> Vec<LintIssue> {
                 );
             }
         }
+        // `none`: no images. `link`: pages link to the source's file. `rehost`: Press may copy the
+        // file to our own storage, which only a source that allows redistribution can offer; the
+        // connector decides per item (NASA: only NASA-credited images).
+        match s.image_policy.as_str() {
+            "none" | "link" => {}
+            "rehost" if s.redistribution && s.licence.as_deref() != Some("unclear") => {}
+            "rehost" => issue(
+                "image_policy",
+                "rehost needs redistribution = true and a clear licence".into(),
+            ),
+            other => issue(
+                "image_policy",
+                format!("{other:?} is not one of none, link, rehost"),
+            ),
+        }
         if s.max_concurrency < 1 {
             issue("concurrency", "max_concurrency must be at least 1".into());
         }
@@ -345,8 +360,63 @@ mod tests {
     fn the_repo_sources_pass_the_contacts_lint() {
         let sources = repo_sources();
         let ids: Vec<&str> = sources.iter().map(|s| s.source_id.as_str()).collect();
-        assert_eq!(ids, vec!["bls", "fred", "sec-edgar"]);
+        assert_eq!(
+            ids,
+            vec![
+                "abs",
+                "arxiv",
+                "bea",
+                "bls",
+                "cb-boc",
+                "cb-boe",
+                "cb-ecb",
+                "cb-fed",
+                "cb-rba",
+                "crossref",
+                "ecb",
+                "eurostat",
+                "fred",
+                "nasa",
+                "oecd",
+                "ons",
+                "openalex",
+                "sec-edgar",
+                "worldbank"
+            ]
+        );
         assert_eq!(lint(&sources), vec![]);
+        // A source whose recorded fixtures are synthetic (it needs a key or the contact e-mail
+        // Karthik has not set yet) ships disabled.
+        let disabled: Vec<&str> = sources
+            .iter()
+            .filter(|s| !s.enabled)
+            .map(|s| s.source_id.as_str())
+            .collect();
+        assert_eq!(disabled, vec!["bea", "crossref", "openalex", "sec-edgar"]);
+        // The 3-second arXiv pacing and the OECD hourly budget are stricter in the registry.
+        let rate = |id: &str| {
+            sources
+                .iter()
+                .find(|s| s.source_id == id)
+                .map(|s| s.rate_per_sec)
+                .unwrap()
+        };
+        assert!(
+            1.0 / rate("arxiv") >= 3.0,
+            "one arXiv request every 3 s at most"
+        );
+        assert!(
+            rate("oecd") * 3600.0 <= 60.0,
+            "OECD: at most 60 requests an hour"
+        );
+        assert_eq!(
+            sources
+                .iter()
+                .find(|s| s.source_id == "arxiv")
+                .unwrap()
+                .max_concurrency,
+            1
+        );
         // Every built connector has a Contacts row.
         for c in news_connectors::IDS {
             assert!(sources.iter().any(|s| s.connector == *c), "{c}");
@@ -441,6 +511,17 @@ mod tests {
         let mut s = good();
         s.connector = "nope".into();
         assert_eq!(rules(s), vec!["connector"]);
+        // Images: only none, link or rehost; rehost needs redistribution.
+        let mut s = good();
+        s.image_policy = "download".into();
+        assert_eq!(rules(s), vec!["image_policy"]);
+        let mut s = good();
+        s.image_policy = "rehost".into();
+        assert!(rules(s).is_empty());
+        let mut s = good();
+        s.image_policy = "rehost".into();
+        s.redistribution = false;
+        assert_eq!(rules(s), vec!["image_policy"]);
         let mut s = good();
         s.daily_quota = Some(600);
         s.documented_daily_quota = Some(500);

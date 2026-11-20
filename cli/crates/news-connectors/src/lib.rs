@@ -18,10 +18,25 @@ use serde_json::Value;
 
 pub use news_ledger::{DataPoint, Missing};
 
+pub mod abs;
+pub mod arxiv;
+pub mod bea;
 pub mod bls;
+pub mod centralbank;
+pub mod crossref;
+pub mod ecb;
+pub mod eurostat;
+pub mod feed;
 pub mod fred;
+pub mod nasa;
+pub mod oecd;
+pub mod ons;
+pub mod openalex;
+pub mod sdmx;
 pub mod sec;
+pub mod stat;
 mod util;
+pub mod worldbank;
 
 /// One request a connector wants made. The URL never carries a secret: a free API key is named by
 /// the env var that holds it and appended by the Runner at send time, so snapshots, logs and
@@ -51,6 +66,43 @@ impl Request {
             url: url.into(),
             secret: None,
             accept: vec!["application/json".into()],
+            max_bytes: 50 * MB,
+        }
+    }
+
+    /// An SDMX-JSON data message (ECB, OECD, ABS).
+    pub fn sdmx(url: impl Into<String>) -> Self {
+        Self::with_accept(url, &["application/vnd.sdmx.data+json", "application/json"])
+    }
+
+    /// RSS, Atom or OAI-PMH.
+    pub fn xml(url: impl Into<String>) -> Self {
+        Self::with_accept(
+            url,
+            &[
+                "application/rss+xml",
+                "application/atom+xml",
+                "application/xml",
+                "text/xml",
+            ],
+        )
+    }
+
+    /// A web page (release calendars, statements).
+    pub fn html(url: impl Into<String>) -> Self {
+        Self::with_accept(url, &["text/html", "application/xhtml+xml"])
+    }
+
+    /// An iCalendar file (some servers label it `text/plain`).
+    pub fn ics(url: impl Into<String>) -> Self {
+        Self::with_accept(url, &["text/calendar", "text/plain"])
+    }
+
+    pub fn with_accept(url: impl Into<String>, accept: &[&str]) -> Self {
+        Self {
+            url: url.into(),
+            secret: None,
+            accept: accept.iter().map(|a| (*a).to_owned()).collect(),
             max_bytes: 50 * MB,
         }
     }
@@ -101,6 +153,9 @@ pub struct CalendarEntry {
     pub title: String,
     pub expected_day: NaiveDate,
     pub expected_at: Option<DateTime<Utc>>,
+    /// Days either side of `expected_day` the release may fall in (`precision = "window"`).
+    #[serde(default)]
+    pub window_days: u16,
     /// `exact` | `day` | `window`.
     pub precision: String,
     /// `ics` | `api` | `html` | `derived`.
@@ -147,6 +202,23 @@ pub struct NeedsHuman {
     pub locator: Value,
 }
 
+/// An image a source publishes (Bureau §3.2, "Embeds and images"). Always recorded as URL, credit,
+/// licence and alt text. Whether Press copies the file to our own storage is decided by `rehost`,
+/// which a connector sets only when the source's licence permits re-hosting (public domain or CC BY,
+/// and `sources.image_policy = "rehost"`); otherwise pages link to the source's file.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ImageRef {
+    pub url: String,
+    /// Credit line as the source gives it (photographer, agency); `None` when the source gives none.
+    pub credit: Option<String>,
+    /// The source's licence, from the registry (`public-domain`, `cc-by-4.0`, `custom`, `unclear`).
+    pub licence: String,
+    pub alt: String,
+    pub width: Option<u32>,
+    pub height: Option<u32>,
+    pub rehost: bool,
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct Parsed {
     pub points: Vec<DataPoint>,
@@ -154,6 +226,8 @@ pub struct Parsed {
     pub entities: Vec<EntityRef>,
     pub candidates: Vec<CandidateDraft>,
     pub needs_human: Vec<NeedsHuman>,
+    #[serde(default)]
+    pub images: Vec<ImageRef>,
 }
 
 /// A parse failure with the locator where it failed. Never retried blindly: a parser fix plus the
@@ -223,6 +297,16 @@ pub struct Cx {
     pub fred_series: Vec<String>,
     /// BLS series ids to follow; each must be in [`bls::SERIES`].
     pub bls_series: Vec<String>,
+    /// What the other Stringers follow, by connector id (`ecb`, `eurostat`, `worldbank`, …): ids
+    /// from that connector's catalogue, search terms for `nasa`, or filters for `openalex`.
+    pub tracked: std::collections::BTreeMap<String, Vec<String>>,
+}
+
+impl Cx {
+    /// The ids tracked for connector `id`.
+    pub fn tracked(&self, id: &str) -> &[String] {
+        self.tracked.get(id).map(Vec::as_slice).unwrap_or(&[])
+    }
 }
 
 pub trait Connector: Send + Sync {
@@ -256,13 +340,55 @@ pub fn connector(id: &str) -> Option<&'static dyn Connector> {
     static SEC: sec::SecEdgar = sec::SecEdgar;
     static FRED: fred::Fred = fred::Fred;
     static BLS: bls::Bls = bls::Bls;
+    static ECB: ecb::Ecb = ecb::Ecb;
+    static EUROSTAT: eurostat::Eurostat = eurostat::Eurostat;
+    static OECD: oecd::Oecd = oecd::Oecd;
+    static ABS: abs::Abs = abs::Abs;
+    static WORLDBANK: worldbank::WorldBank = worldbank::WorldBank;
+    static ONS: ons::Ons = ons::Ons;
+    static BEA: bea::Bea = bea::Bea;
+    static NASA: nasa::Nasa = nasa::Nasa;
+    static OPENALEX: openalex::OpenAlex = openalex::OpenAlex;
+    static CROSSREF: crossref::Crossref = crossref::Crossref;
+    static ARXIV: arxiv::Arxiv = arxiv::Arxiv;
     match id {
         sec::ID => Some(&SEC),
         fred::ID => Some(&FRED),
         bls::ID => Some(&BLS),
-        _ => None,
+        ecb::ID => Some(&ECB),
+        eurostat::ID => Some(&EUROSTAT),
+        oecd::ID => Some(&OECD),
+        abs::ID => Some(&ABS),
+        worldbank::ID => Some(&WORLDBANK),
+        ons::ID => Some(&ONS),
+        bea::ID => Some(&BEA),
+        nasa::ID => Some(&NASA),
+        openalex::ID => Some(&OPENALEX),
+        crossref::ID => Some(&CROSSREF),
+        arxiv::ID => Some(&ARXIV),
+        other => centralbank::bank(other).map(|b| b as &dyn Connector),
     }
 }
 
 /// Every connector id built so far.
-pub const IDS: &[&str] = &[sec::ID, fred::ID, bls::ID];
+pub const IDS: &[&str] = &[
+    sec::ID,
+    fred::ID,
+    bls::ID,
+    ecb::ID,
+    eurostat::ID,
+    oecd::ID,
+    abs::ID,
+    worldbank::ID,
+    ons::ID,
+    bea::ID,
+    nasa::ID,
+    openalex::ID,
+    crossref::ID,
+    arxiv::ID,
+    "cb-fed",
+    "cb-ecb",
+    "cb-boe",
+    "cb-boc",
+    "cb-rba",
+];

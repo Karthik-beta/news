@@ -170,6 +170,27 @@ describe("DynamoTable", () => {
     expect(calls).toBe(3);
   });
 
+  it("batchWrite starts no retry once the caller's deadline has passed (a late write cannot land after the lease)", async () => {
+    let calls = 0;
+    let clock = 1_000;
+    const stuck = recording((body) => {
+      calls++;
+      clock += 1_000; // each call takes a second on the caller's clock
+      return Response.json({ UnprocessedItems: { news: (body.RequestItems as Record<string, unknown[]>).news } });
+    });
+    const t = new DynamoTable({ ...config, fetch: stuck.fetch });
+    const write = (deadline: number) => t.batchWrite([{ put: { PK: "a", SK: "b" } }], { deadline, now: () => clock });
+    // The deadline passes during the first call: its unprocessed writes are not retried.
+    await expect(write(1_500)).rejects.toBeInstanceOf(ThrottledError);
+    expect(calls).toBe(1);
+    // Already past: nothing is sent.
+    await expect(write(0)).rejects.toBeInstanceOf(ThrottledError);
+    expect(calls).toBe(1);
+    // Far ahead: the usual two retries.
+    await expect(write(clock + 60_000)).rejects.toBeInstanceOf(ThrottledError);
+    expect(calls).toBe(4);
+  });
+
   it("over the subrequest limit a write is a plain failure (never sent), not an unknown outcome", async () => {
     const limited = async () => {
       throw new Error("Too many subrequests.");

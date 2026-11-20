@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/service.stage.schema.json",
+  "title": "news service stage",
+  "description": "Stage a new build for `service.update` (ADR 0007 decision 12). Karthik runs it in his own terminal; it re-launches elevated, copies the file to `%ProgramFiles%\\News\\news.exe.new` in the administrators-only install folder and records its SHA-256 in `news.exe.new.sha256` beside it. The service refuses an update whose staged build has no recorded hash or does not match it. It is Windows administration, not a Hotline action.",
+  "x-news-tier": "W",
+  "x-news-status": "built",
+  "x-news-errors": ["usage", "precondition"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": ["path"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "staged": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": ["staged", "sha256", "text"],
+      "additionalProperties": false
+    }
+  }
+}

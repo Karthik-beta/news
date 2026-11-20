@@ -240,7 +240,7 @@ pub fn init_tracing() -> TracingGuard {
 
 fn otlp_provider(endpoint: &str) -> Option<opentelemetry_sdk::trace::SdkTracerProvider> {
     use opentelemetry_otlp::{WithExportConfig, WithHttpConfig};
-    let client = reqwest::blocking::Client::builder()
+    let client = reqwest_otlp::blocking::Client::builder()
         .timeout(Duration::from_secs(2))
         .build()
         .ok()?;

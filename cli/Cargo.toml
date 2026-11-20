@@ -35,6 +35,7 @@ news-service = { path = "crates/news-service" }
 news-win = { path = "crates/news-win" }
 news-ledger = { path = "crates/news-ledger" }
 news-connectors = { path = "crates/news-connectors" }
+news-board = { path = "crates/news-board" }
 
 # Third party. TLS only in the Runner (news-wire, rustls): PostgreSQL, ClickHouse and the OTel collector are
 # all on loopback.
@@ -43,16 +44,17 @@ chrono-tz = { version = "0.10", default-features = false, features = ["std"] }
 jsonschema = { version = "0.61", default-features = false }
 tokio-util = { version = "0.7", default-features = false }
 clap = { version = "4", features = ["derive"] }
-croner = "3"
+croner = "4"
 fastrand = "2"
 httpdate = "1"
 proptest = "1"
-sha2 = "0.10"
-toml = { version = "0.9", default-features = false, features = ["parse", "serde"] }
-zstd = { version = "0.13", default-features = false }
-opentelemetry = { version = "0.31", default-features = false, features = ["trace"] }
-opentelemetry_sdk = { version = "0.31", default-features = false, features = ["trace"] }
-opentelemetry-otlp = { version = "0.31", default-features = false, features = ["trace", "http-proto", "reqwest-blocking-client"] }
+roxmltree = "0.21"
+sha2 = "0.11"
+toml = { version = "1.2", default-features = false, features = ["parse", "serde"] }
+zstd = { version = "0.14", default-features = false }
+opentelemetry = { version = "0.33", default-features = false, features = ["trace"] }
+opentelemetry_sdk = { version = "0.33", default-features = false, features = ["trace"] }
+opentelemetry-otlp = { version = "0.33", default-features = false, features = ["trace", "http-proto", "reqwest-blocking-client"] }
 reqwest = { version = "0.12", default-features = false, features = ["blocking"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["raw_value"] }
@@ -60,9 +62,18 @@ sqlx = { version = "0.9", default-features = false, features = ["runtime-tokio",
 thiserror = "2"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "signal", "sync", "io-util", "net"] }
 tracing = "0.1"
-tracing-opentelemetry = { version = "0.32", default-features = false }
+tracing-opentelemetry = { version = "0.34", default-features = false }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["std", "fmt", "env-filter", "registry"] }
 uuid = { version = "1", features = ["v4", "serde"] }
+# Board (egui). `egui` alone is pure Rust and builds everywhere; `eframe` (the window) and the toast
+# crate are Windows-only target dependencies of news-board, so Linux CI never builds them.
+egui = { version = "=0.37.0", default-features = false, features = ["default_fonts"] }
+eframe = { version = "=0.37.0", default-features = false, features = ["glow", "default_fonts", "accesskit"] }
+tauri-winrt-notification = "=0.8.1"
+windows-service = "=0.8.1"
+unicode-normalization = "0.1"
+# Wipes the service password (news-win) when it is dropped.
+zeroize = "1.9"
 windows-sys = { version = "0.61", features = [
     "Win32_Foundation",
     "Win32_Security",
@@ -71,6 +82,13 @@ windows-sys = { version = "0.61", features = [
     "Win32_System_Threading",
     "Win32_System_JobObjects",
     "Win32_UI_Shell",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_System_Console",
+    "Win32_System_Com",
+    "Win32_System_Registry",
+    "Win32_System_Services",
+    "Win32_Security_Credentials",
+    "Win32_Security_Authentication_Identity",
     "Wdk_System_Threading",
 ] }
 

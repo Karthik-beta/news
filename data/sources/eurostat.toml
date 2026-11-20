@@ -1,0 +1,21 @@
+# Contacts row for Eurostat dissemination API (Bureau Design §3.1). Loaded by `news sources sync`; the Contacts lint checks it in CI.
+source_id = "eurostat"
+name = "Eurostat dissemination API"
+publisher = "Eurostat"
+connector = "eurostat"
+base_url = "https://ec.europa.eu/eurostat/api/dissemination/"
+source_tier = 1
+licence = "cc-by-4.0"
+attribution = "Source: Eurostat."
+redistribution = true
+image_policy = "none"
+rate_per_sec = 0.5
+documented_rate_per_sec = 1
+documented_limit = "No published request limit (unverified: 18 Nov 2026); the API returns 429 with Retry-After when overloaded"
+max_concurrency = 1
+robots_respect = true
+requires_contact_email = false
+regions = ["eu"]
+categories = ["economy"]
+enabled = true
+notes = "JSON-stat 2.0. Discovery: lastTimePeriod=1 probe per followed dataset; vintage is the dataset `updated` stamp. The release calendar is not synced (no ICS recorded): Diary relies on feed discovery for Eurostat."

@@ -4,6 +4,7 @@ import { type Cond, evaluate } from "./conditions";
 import {
   BATCH_WRITE_MAX,
   type BatchOp,
+  type BatchWriteOptions,
   ConditionFailedError,
   type Doc,
   DynamoError,
@@ -118,8 +119,11 @@ export class FakeTable implements Table {
     return { items: page.map(clone), ...(next ? { next } : {}) };
   }
 
-  async batchWrite(ops: BatchOp[]): Promise<void> {
+  async batchWrite(ops: BatchOp[], options: BatchWriteOptions = {}): Promise<void> {
+    const { deadline, now = Date.now } = options;
     for (let i = 0; i < ops.length; i += BATCH_WRITE_MAX) {
+      if (deadline !== undefined && now() > deadline)
+        throw new ThrottledError("batch write not started: past the caller's deadline");
       const chunk = ops.slice(i, i + BATCH_WRITE_MAX);
       const keys = chunk.map((op) => ("put" in op ? keyOf(op.put) : op.delete));
       this.#record("batchWrite", keys);

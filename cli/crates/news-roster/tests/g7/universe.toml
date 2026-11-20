@@ -1,0 +1,310 @@
+# The test universe for the G7 labelled mentions: a small Roster, written by hand (not the real seed).
+# Every entity has one identifier the labels refer to as `scheme:value`.
+
+# ---- countries ----------------------------------------------------------------------------------
+[[entity]]
+kind = "country"
+name = "United States"
+ids = [{ scheme = "iso3166", value = "US" }]
+aliases = ["United States of America", "USA", "U.S.", "America", "American"]
+
+[[entity]]
+kind = "country"
+name = "United Kingdom"
+ids = [{ scheme = "iso3166", value = "GB" }]
+aliases = ["UK", "Britain", "Great Britain", "British"]
+
+[[entity]]
+kind = "country"
+name = "China"
+ids = [{ scheme = "iso3166", value = "CN" }]
+aliases = ["PRC", "People's Republic of China", "Chinese"]
+
+[[entity]]
+kind = "country"
+name = "Japan"
+ids = [{ scheme = "iso3166", value = "JP" }]
+aliases = ["Japanese"]
+
+[[entity]]
+kind = "country"
+name = "Germany"
+ids = [{ scheme = "iso3166", value = "DE" }]
+aliases = ["German"]
+
+[[entity]]
+kind = "country"
+name = "France"
+ids = [{ scheme = "iso3166", value = "FR" }]
+aliases = ["French"]
+
+[[entity]]
+kind = "country"
+name = "India"
+ids = [{ scheme = "iso3166", value = "IN" }]
+aliases = ["Indian"]
+
+[[entity]]
+kind = "country"
+name = "Canada"
+ids = [{ scheme = "iso3166", value = "CA" }]
+aliases = ["Canadian"]
+
+[[entity]]
+kind = "country"
+name = "Australia"
+ids = [{ scheme = "iso3166", value = "AU" }]
+aliases = ["Australian"]
+
+[[entity]]
+kind = "country"
+name = "South Korea"
+ids = [{ scheme = "iso3166", value = "KR" }]
+aliases = ["Republic of Korea", "Korean"]
+
+[[entity]]
+kind = "country"
+name = "North Korea"
+ids = [{ scheme = "iso3166", value = "KP" }]
+aliases = ["DPRK", "Korean"]
+
+[[entity]]
+kind = "country"
+name = "Switzerland"
+ids = [{ scheme = "iso3166", value = "CH" }]
+aliases = ["Swiss"]
+
+[[entity]]
+kind = "country"
+name = "Brazil"
+ids = [{ scheme = "iso3166", value = "BR" }]
+aliases = ["Brazilian"]
+
+# ---- central banks ------------------------------------------------------------------------------
+[[entity]]
+kind = "central_bank"
+name = "Federal Reserve"
+ids = [{ scheme = "cb", value = "fed" }]
+aliases = ["the Fed", "Fed", "Federal Reserve Board", "Federal Open Market Committee"]
+
+[[entity]]
+kind = "central_bank"
+name = "European Central Bank"
+ids = [{ scheme = "cb", value = "ecb" }]
+aliases = ["ECB"]
+
+[[entity]]
+kind = "central_bank"
+name = "Bank of England"
+ids = [{ scheme = "cb", value = "boe" }]
+aliases = ["BoE"]
+
+[[entity]]
+kind = "central_bank"
+name = "Bank of Japan"
+ids = [{ scheme = "cb", value = "boj" }]
+aliases = ["BoJ"]
+
+[[entity]]
+kind = "central_bank"
+name = "People's Bank of China"
+ids = [{ scheme = "cb", value = "pboc" }]
+aliases = ["PBOC", "PBoC"]
+
+[[entity]]
+kind = "central_bank"
+name = "Bank of Canada"
+ids = [{ scheme = "cb", value = "boc" }]
+aliases = ["BoC"]
+
+[[entity]]
+kind = "central_bank"
+name = "Reserve Bank of Australia"
+ids = [{ scheme = "cb", value = "rba" }]
+aliases = ["RBA"]
+
+[[entity]]
+kind = "central_bank"
+name = "Reserve Bank of India"
+ids = [{ scheme = "cb", value = "rbi" }]
+aliases = ["RBI"]
+
+[[entity]]
+kind = "central_bank"
+name = "Swiss National Bank"
+ids = [{ scheme = "cb", value = "snb" }]
+aliases = ["SNB"]
+
+# ---- companies ----------------------------------------------------------------------------------
+[[entity]]
+kind = "company"
+name = "Apple Inc."
+ids = [{ scheme = "cik", value = "0000320193" }]
+
+[[entity]]
+kind = "company"
+name = "Apple Hospitality REIT, Inc."
+ids = [{ scheme = "cik", value = "0001418121" }]
+
+[[entity]]
+kind = "company"
+name = "Microsoft Corporation"
+ids = [{ scheme = "cik", value = "0000789019" }]
+
+[[entity]]
+kind = "company"
+name = "Alphabet Inc."
+ids = [{ scheme = "cik", value = "0001652044" }]
+aliases = ["Google"]
+
+[[entity]]
+kind = "company"
+name = "Amazon.com, Inc."
+ids = [{ scheme = "cik", value = "0001018724" }]
+aliases = ["Amazon"]
+
+[[entity]]
+kind = "company"
+name = "Meta Platforms, Inc."
+ids = [{ scheme = "cik", value = "0001326801" }]
+aliases = ["Meta", "Facebook"]
+
+[[entity]]
+kind = "company"
+name = "Tesla, Inc."
+ids = [{ scheme = "cik", value = "0001318605" }]
+
+[[entity]]
+kind = "company"
+name = "NVIDIA Corporation"
+ids = [{ scheme = "cik", value = "0001045810" }]
+
+[[entity]]
+kind = "company"
+name = "JPMorgan Chase & Co."
+ids = [{ scheme = "cik", value = "0000019617" }]
+aliases = ["JPMorgan", "JP Morgan"]
+
+[[entity]]
+kind = "company"
+name = "Bank of America Corporation"
+ids = [{ scheme = "cik", value = "0000070858" }]
+
+[[entity]]
+kind = "company"
+name = "The Bank of New York Mellon Corporation"
+ids = [{ scheme = "cik", value = "0001390777" }]
+aliases = ["BNY Mellon"]
+
+[[entity]]
+kind = "company"
+name = "Berkshire Hathaway Inc."
+ids = [{ scheme = "cik", value = "0001067983" }]
+
+[[entity]]
+kind = "company"
+name = "Exxon Mobil Corporation"
+ids = [{ scheme = "cik", value = "0000034088" }]
+aliases = ["ExxonMobil"]
+
+[[entity]]
+kind = "company"
+name = "Walmart Inc."
+ids = [{ scheme = "cik", value = "0000104169" }]
+
+[[entity]]
+kind = "company"
+name = "Visa Inc."
+ids = [{ scheme = "cik", value = "0001403161" }]
+
+[[entity]]
+kind = "company"
+name = "Mastercard Incorporated"
+ids = [{ scheme = "cik", value = "0001141391" }]
+
+[[entity]]
+kind = "company"
+name = "Delta Air Lines, Inc."
+ids = [{ scheme = "cik", value = "0000027904" }]
+aliases = ["Delta"]
+
+[[entity]]
+kind = "company"
+name = "Delta Apparel, Inc."
+ids = [{ scheme = "cik", value = "0001101396" }]
+aliases = ["Delta"]
+
+[[entity]]
+kind = "company"
+name = "General Electric Company"
+ids = [{ scheme = "cik", value = "0000040545" }]
+
+[[entity]]
+kind = "company"
+name = "General Motors Company"
+ids = [{ scheme = "cik", value = "0001467858" }]
+
+[[entity]]
+kind = "company"
+name = "Ford Motor Company"
+ids = [{ scheme = "cik", value = "0000037996" }]
+
+# ---- institutions and agencies ---------------------------------------------------------------------
+[[entity]]
+kind = "institution"
+name = "Massachusetts Institute of Technology"
+ids = [{ scheme = "ror", value = "042nb2s44" }]
+aliases = ["MIT"]
+
+[[entity]]
+kind = "institution"
+name = "Stanford University"
+ids = [{ scheme = "ror", value = "00f54p054" }]
+
+[[entity]]
+kind = "institution"
+name = "University of Oxford"
+ids = [{ scheme = "ror", value = "052gg0110" }]
+aliases = ["Oxford"]
+
+[[entity]]
+kind = "institution"
+name = "University of Cambridge"
+ids = [{ scheme = "ror", value = "013meh722" }]
+aliases = ["Cambridge"]
+
+[[entity]]
+kind = "institution"
+name = "International Monetary Fund"
+ids = [{ scheme = "ror", value = "03qvc5d77" }]
+aliases = ["IMF"]
+
+[[entity]]
+kind = "institution"
+name = "World Bank"
+ids = [{ scheme = "ror", value = "00ae7jd04" }]
+aliases = ["The World Bank Group"]
+
+[[entity]]
+kind = "agency"
+name = "U.S. Securities and Exchange Commission"
+ids = [{ scheme = "agency", value = "sec" }]
+aliases = ["SEC"]
+
+[[entity]]
+kind = "agency"
+name = "Bureau of Labor Statistics"
+ids = [{ scheme = "agency", value = "bls" }]
+aliases = ["BLS", "U.S. Bureau of Labor Statistics"]
+
+[[entity]]
+kind = "agency"
+name = "Bureau of Economic Analysis"
+ids = [{ scheme = "agency", value = "bea" }]
+aliases = ["BEA"]
+
+[[entity]]
+kind = "agency"
+name = "National Aeronautics and Space Administration"
+ids = [{ scheme = "agency", value = "nasa" }]
+aliases = ["NASA"]

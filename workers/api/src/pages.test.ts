@@ -251,7 +251,9 @@ describe("POST /v1/pages/{id}/withdraw", () => {
     expect(items.filter((i) => String(i.PK).startsWith("HUB#"))).toEqual([]);
     expect(h.bucket.objects.size).toBe(0);
     expect(h.search.rows.has("test-page")).toBe(false);
-    expect(h.purger.calls[1]).toEqual(expect.arrayContaining([`${ORIGIN}/2026/11/test-page`, `${ORIGIN}/`]));
+    expect(h.purger.calls.slice(1).flat()).toEqual(
+      expect.arrayContaining([`${ORIGIN}/2026/11/test-page`, `${ORIGIN}/`]),
+    );
     // Withdrawing again keeps the first reason and time; it only repeats the (idempotent) clean-up and purge.
     const before = JSON.stringify(h.table.dump());
     expect((await h.call("POST", "/v1/pages/test-page/withdraw", { body: { reason: "again" } })).status).toBe(200);

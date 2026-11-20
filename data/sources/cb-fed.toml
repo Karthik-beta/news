@@ -1,0 +1,22 @@
+# Contacts row for Federal Reserve press releases (monetary policy) (Bureau Design §3.1). Loaded by `news sources sync`; the Contacts lint checks it in CI.
+source_id = "cb-fed"
+name = "Federal Reserve press releases (monetary policy)"
+publisher = "Board of Governors of the Federal Reserve System"
+connector = "cb-fed"
+base_url = "https://www.federalreserve.gov/"
+source_tier = 1
+licence = "custom"
+attribution = "Source: Board of Governors of the Federal Reserve System."
+redistribution = false
+image_policy = "none"
+rate_per_sec = 0.2
+documented_rate_per_sec = 1
+documented_limit = "No published request limit (unverified: 18 Nov 2026); polite pacing"
+max_concurrency = 1
+robots_respect = true
+requires_contact_email = false
+regions = ["us"]
+categories = ["economy","monetary-policy"]
+calendar_kind = "html"
+enabled = true
+notes = "Statement Stringer: feed discovery, page fetch, event key policy:<bank>:<date>. Statement text is linked and summarised, never republished. Meeting dates: Diary (FOMC page parse and the yearly seed file)."

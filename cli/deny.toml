@@ -25,6 +25,12 @@ ignore = [
     { id = "RUSTSEC-2026-0543", reason = "chrono unmaintained; no drop-in for sqlx/croner; revisit by 2027-02-28" },
     # chrono-tz: unmaintained notice only, no vulnerability; Rota needs IANA zones. Revisit with chrono (jiff) by 2027-02-28.
     { id = "RUSTSEC-2026-0555", reason = "chrono-tz unmaintained; Rota time zones; revisit with chrono by 2027-02-28" },
+    # zbus_names, zvariant, zvariant_derive: unmaintained notices only. They come in through AccessKit's
+    # Linux AT-SPI backend (eframe, Board's window); Board runs on Windows only, where none is built.
+    # Revisit with eframe by 2027-02-28.
+    { id = "RUSTSEC-2026-0371", reason = "zbus_names unmaintained; Linux-only via AccessKit under eframe (Board is Windows-only); revisit by 2027-02-28" },
+    { id = "RUSTSEC-2026-0370", reason = "zvariant unmaintained; Linux-only via AccessKit under eframe (Board is Windows-only); revisit by 2027-02-28" },
+    { id = "RUSTSEC-2026-0372", reason = "zvariant_derive unmaintained; Linux-only via AccessKit under eframe (Board is Windows-only); revisit by 2027-02-28" },
 ]
 
 [licenses]
@@ -47,6 +53,10 @@ allow = [
     "Unicode-3.0",
     "Zlib",
     "CC0-1.0",
+    # egui's bundled default fonts (epaint_default_fonts, in Board's window): both licences allow
+    # redistributing the fonts inside a built binary.
+    "OFL-1.1",
+    "Ubuntu-font-1.0",
 ]
 
 [licenses.private]

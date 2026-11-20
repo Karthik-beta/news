@@ -44,7 +44,16 @@ const PERCENTS: &[&str] = &[
     "Percent Change",
     "Percent Change from Year Ago",
     "percent",
+    // ECB, OECD and Eurostat unit names as the sources write them.
+    "Percent per annum",
+    "Percentage change",
+    "Percent change, annualized",
+    "Percent change from preceding period",
+    "Annual rate of change",
+    "Percent, annual rate of change",
 ];
+/// Verbatim money units whose currency the unit text itself states.
+const MONEY: &[(&str, &str)] = &[("current US$", "USD")];
 
 /// Classify a verbatim unit. `None` = unknown: store it verbatim and flag `needs_human`.
 pub fn classify(unit: &str) -> Option<UnitInfo> {
@@ -76,7 +85,13 @@ pub fn classify(unit: &str) -> Option<UnitInfo> {
     if PERCENTS.contains(&unit) {
         return info(UnitClass::Percent);
     }
-    if unit.starts_with("Index ") || unit == "Index" {
+    if let Some((_, ccy)) = MONEY.iter().find(|(u, _)| *u == unit) {
+        return Some(UnitInfo {
+            class: UnitClass::Money,
+            currency: Some((*ccy).to_owned()),
+        });
+    }
+    if unit.starts_with("Index ") || unit.starts_with("Index:") || unit == "Index" {
         return info(UnitClass::Index);
     }
     if COUNTS.contains(&unit) {

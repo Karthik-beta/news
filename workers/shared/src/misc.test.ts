@@ -147,6 +147,13 @@ describe("search query building", () => {
     expect(toFtsQuery(input)).toBe(expected);
   });
 
+  it("keeps combining marks inside their word, as FTS5's unicode61 tokenizer does", () => {
+    expect(toFtsQuery("naïve")).toBe('"naïve"*');
+    expect(toFtsQuery("café naïve")).toBe('"café" "naïve"*');
+    expect(toFtsQuery("महंगाई दर")).toBe('"महंगाई" "दर"');
+    expect(toFtsQuery("́")).toBeNull();
+  });
+
   it("accepts 8 words, all required, and refuses more instead of dropping some", () => {
     expect(toFtsQuery("a b c d e f g h")?.split(" ")).toHaveLength(8);
     expect(() => toFtsQuery("alpha beta gamma delta epsilon zeta eta theta iota")).toThrow(QueryTooLongError);

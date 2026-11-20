@@ -4,7 +4,7 @@
   "title": "news entities show",
   "description": "One entity. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "R",
-  "x-news-status": "stub until #12",
+  "x-news-status": "built",
   "x-news-errors": ["not_found"],
   "$defs": {
     "input": {
@@ -50,9 +50,13 @@
           "items": {
             "type": "string"
           }
+        },
+        "text": {
+          "type": "string",
+          "description": "Code-rendered text, printed verbatim to Karthik"
         }
       },
-      "required": ["entity_id", "kind", "name", "ids", "aliases"],
+      "required": ["entity_id", "kind", "name", "ids", "aliases", "text"],
       "additionalProperties": false
     }
   }

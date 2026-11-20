@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/service.status.schema.json",
+  "title": "news service status",
+  "description": "The Service Control Manager's view of the Bureau service: installed, state and the last error with a readable reason (for example a log-on failure after a password change). `news run status` adds the service's own state from the Hotline.",
+  "x-news-tier": "R",
+  "x-news-status": "built",
+  "x-news-errors": ["precondition"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "installed": {
+          "type": "boolean"
+        },
+        "state": {
+          "type": "string"
+        },
+        "running": {
+          "type": "boolean"
+        },
+        "pid": {
+          "anyOf": [{ "type": "integer" }, { "type": "null" }]
+        },
+        "last_error": {
+          "anyOf": [{ "type": "string" }, { "type": "null" }]
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": ["installed", "text"],
+      "additionalProperties": false
+    }
+  }
+}
