@@ -73,7 +73,8 @@
 }
 
 /* Direct labels at the end of each line, in the room to the right of the plot. Ink, never the series colour,
-   except the highlight's name, which is bold and crimson (design/charts.md, "Labels"). */
+   except the highlight's name, which is bold and crimson, or bold in the neutral highlight when the subject fell
+   (design/charts.md, "Labels"). */
 .line-chart__end-label {
   position: absolute;
   left: calc(100% + var(--space-3));
@@ -92,6 +93,9 @@
 }
 .line-chart__end-label.is-highlight .line-chart__end-name {
   color: var(--chart-highlight);
+}
+.line-chart__end-label.is-highlight-neutral .line-chart__end-name {
+  color: var(--chart-neutral-highlight);
 }
 
 /* Event markers (decisions on a rate path): a 1px ink-3 line through the plot, a short label above it. */
@@ -127,11 +131,75 @@
   inset-inline-end: var(--space-2);
 }
 
+/* The end labels' place below the x axis, used only by a tight plot (below). */
+.line-chart__ends {
+  display: none;
+  flex-wrap: wrap;
+  column-gap: var(--space-5);
+  row-gap: var(--space-1);
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-label);
+  line-height: 1.35;
+  color: var(--color-ink);
+}
+.line-chart__ends-item {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.line-chart__ends-item.is-highlight .line-chart__end-name {
+  color: var(--chart-highlight);
+}
+.line-chart__ends-item.is-highlight-neutral .line-chart__end-name {
+  color: var(--chart-neutral-highlight);
+}
+.line-chart__end-period {
+  color: var(--color-ink-2);
+}
+
+/* A tight plot: narrower than 20em of its own text, which is a phone at 150-200% text size (design/charts.md,
+   "Responsive behaviour"). The end labels leave the right of the plot for a list below the x axis, so the lines
+   take the whole width; the one event label a phone shows wraps to the room between its line and the plot's edge,
+   in its own two-line row above the plot. Nothing is left outside the plot. */
+@container chart-plot (max-width: 20em) {
+  /* Just enough room for the last point's marker and its paper ring. */
+  .line-chart__plot > * {
+    --chart-end-room: calc(var(--chart-mark-marker) / 2 + var(--border-section));
+  }
+  .line-chart__end-label {
+    display: none;
+  }
+  .line-chart__ends {
+    display: flex;
+  }
+  .line-chart__event-label {
+    width: max-content;
+    max-width: calc(
+      var(--event-room, 100) * (100cqi - var(--chart-axis-inset) - var(--chart-end-room)) / 100 - var(--space-2)
+    );
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .line-chart__event-label.is-wide-only {
+    display: none;
+  }
+  .line-chart__event-label.line-chart__event-label--row-1 {
+    bottom: calc(100% + var(--space-6));
+  }
+  .line-chart--events-1 .chart-plot__frame,
+  .line-chart--events-2 .chart-plot__frame {
+    padding-top: calc(var(--space-6) + 2.7em + var(--space-2));
+  }
+}
+
 @media (forced-colors: active) {
   .line-chart__line {
     stroke: CanvasText;
   }
-  .line-chart__line.chart-colour--highlight {
+  .line-chart__line.chart-colour--highlight,
+  .line-chart__line.chart-colour--highlight-neutral {
     stroke: Highlight;
   }
   .line-chart__marker {

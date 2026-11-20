@@ -1,7 +1,7 @@
 // A data table drawn from a table model (design/charts.md, "Tables as charts"): numbers right-aligned in tabular
 // figures, text left-aligned, the header in secondary ink over a 1px ink rule, hairlines between rows, no zebra
 // stripes and no vertical lines. The first column stays put while a wide table scrolls. The highlighted row is
-// bold with a 3px crimson bar on its left. Every value cell carries its data reference. Static: no JavaScript.
+// bold with a 3px crimson bar on its left, or a neutral-highlight bar when its subject fell. Every value cell carries its data reference. Static: no JavaScript.
 import { formatCell, type TableModel, type TableStyle, unitLabel } from "../ChartFigure/model";
 
 export interface TableViewProps {
@@ -30,7 +30,10 @@ export function TableView({ model, style = "as-reported", labelledBy }: TableVie
       </thead>
       <tbody>
         {model.rows.map((r) => (
-          <tr key={r.key} className={r.highlight ? "data-table__row is-highlight" : "data-table__row"}>
+          <tr
+            key={r.key}
+            className={`data-table__row${r.highlight ? " is-highlight" : ""}${r.highlight && r.fell ? " is-fell" : ""}`}
+          >
             <th scope="row" className="data-table__row-head">
               {r.label}
             </th>

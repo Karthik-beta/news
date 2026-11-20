@@ -9,6 +9,7 @@ import {
   ChartLiveRegion,
   ChartTooltip,
   nearestStop,
+  subjectClass,
   type TooltipLine,
   tooltipText,
   useChartStepper,
@@ -35,6 +36,8 @@ export interface LineSeriesGeometry {
     x: number;
     y: number;
     name: string | null;
+    /** The latest point's period, which names the value in the list a tight plot shows below itself. */
+    period: string;
     value: string;
     labelY: number;
     highlight: boolean;
@@ -147,6 +150,9 @@ export default function LineChartPlot({
                 {ev.label ? (
                   <span
                     className={`line-chart__event-label line-chart__event-label--row-${ev.row}${ev.x > 70 ? " is-end" : ""}${ev.phone ? "" : " is-wide-only"}`}
+                    // The share of the plot's width the label has between its line and the plot's edge; a tight
+                    // plot wraps the label to it.
+                    style={{ "--event-room": Math.max(0, (ev.x > 70 ? ev.x : 100 - ev.x) - 2) } as CSSProperties}
                   >
                     {ev.label}
                   </span>
@@ -206,7 +212,7 @@ export default function LineChartPlot({
               s.end ? (
                 <span
                   key={`${s.key}-label`}
-                  className={`line-chart__end-label${s.end.highlight ? " is-highlight" : ""}`}
+                  className={`line-chart__end-label${s.end.highlight ? subjectClass(s.role) : ""}`}
                   style={{ top: `${s.end.labelY}%` }}
                 >
                   {s.end.name ? <span className="line-chart__end-name">{s.end.name}</span> : null}
@@ -232,6 +238,24 @@ export default function LineChartPlot({
         </div>
       </div>
       <XLabels labels={xLabels} pinEnds="position" />
+      {series.some((s) => s.end) ? (
+        // A tight plot (a phone at 150-200% text) has no room right of the lines: the end labels move here, below
+        // the x axis, and the plot takes the whole width. Hidden otherwise; the same text as the labels above.
+        <ul className="line-chart__ends" aria-hidden="true">
+          {series.map((s) =>
+            s.end ? (
+              <li key={`${s.key}-end-item`} className={`line-chart__ends-item${s.end.highlight ? subjectClass(s.role) : ""}`}>
+                {s.end.name ? (
+                  <span className="line-chart__end-name">{s.end.name}</span>
+                ) : (
+                  <span className="line-chart__end-period">{s.end.period}</span>
+                )}{" "}
+                <span className="line-chart__end-value text-tabular">{s.end.value}</span>
+              </li>
+            ) : null,
+          )}
+        </ul>
+      ) : null}
       <ChartLiveRegion text={stop ? tooltipText(stop.label, stop.tooltip) : ""} />
     </div>
   );

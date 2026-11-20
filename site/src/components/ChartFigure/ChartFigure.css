@@ -3,9 +3,14 @@
    ticks, labels and values use the label size (13.5px). */
 
 /* Colour roles: one custom property per mark, set by the role class (design/color.md, "Chart colours"). The role
-   comes from the page writer's choice of subject, never from the value: a fall is never crimson by itself. */
+   comes from the page writer's choice of subject, never from the value, except that a subject that fell takes the
+   neutral highlight: crimson never marks a fall. */
 .chart-colour--highlight {
   --chart-mark: var(--chart-highlight);
+}
+/* The subject when it fell: crimson never marks a fall (design/charts.md, "When the subject fell"). */
+.chart-colour--highlight-neutral {
+  --chart-mark: var(--chart-neutral-highlight);
 }
 .chart-colour--comparison {
   --chart-mark: var(--chart-comparison);
@@ -84,6 +89,9 @@
   --chart-plot-height: 15rem;
   --chart-axis-inset: calc(var(--chart-axis-width, 3ch) + var(--space-3));
   --chart-end-room: 0px;
+  /* A query container, so the plot can tell when it is tight: narrower than 20em of its own text (a phone at
+     150-200% text size), which no viewport media query can see. */
+  container: chart-plot / inline-size;
 }
 @media (min-width: 600px) {
   .chart-plot {
@@ -173,6 +181,34 @@
   }
   .chart-plot__x-label.is-phone-only {
     display: none;
+  }
+}
+
+/* A tight plot (narrower than 20em of its text): fewer x labels, chosen on the server for the room, each allowed to
+   wrap to half the way to its neighbours; the first and last pinned inside the plot. Two lines of room below. */
+@container chart-plot (max-width: 20em) {
+  .chart-plot__x {
+    height: calc(var(--space-2) + 2.7em);
+  }
+  .chart-plot__x .chart-plot__x-label {
+    display: none;
+  }
+  .chart-plot__x .chart-plot__x-label.is-tight {
+    display: block;
+    width: max-content;
+    max-width: var(--x-label-room, 100%);
+    translate: -50% 0;
+    text-align: center;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .chart-plot__x .chart-plot__x-label.is-tight-first {
+    translate: 0 0;
+    text-align: start;
+  }
+  .chart-plot__x .chart-plot__x-label.is-tight-last {
+    translate: -100% 0;
+    text-align: end;
   }
 }
 

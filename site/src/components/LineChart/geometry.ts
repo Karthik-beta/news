@@ -4,8 +4,10 @@ import { formatShortDate } from "../../format";
 import type { PageDataResolver } from "../../renderer/data/resolve";
 import type { LegendItem } from "../ChartFigure/ChartFigure";
 import {
+  type ColourRole,
   colourRoles,
   displayValue,
+  isSubjectRole,
   isThin,
   type Measure,
   modelSummary,
@@ -15,11 +17,12 @@ import {
   pointAt,
   resolveSeries,
   sameAxis,
+  seriesFell,
   seriesTable,
   type TableModel,
   tooltipSource,
 } from "../ChartFigure/model";
-import { axisWidth, displayExponent, niceScale, xLabelPlan } from "../ChartFigure/scale";
+import { axisWidth, displayExponent, niceScale, tightLabels, xLabelPlan } from "../ChartFigure/scale";
 import type { EventMarker, LineChartPlotProps, LineSeriesGeometry } from "./LineChartPlot.client";
 
 export interface LineChartData {
@@ -111,12 +114,22 @@ export interface LinePlotOptions {
   markers?: readonly string[];
 }
 
+/**
+ * Each series' colour role. The highlighted series is crimson unless it fell over the shown range (its last value
+ * below its first): then it takes the neutral highlight (design/charts.md, "When the subject fell").
+ */
+export function lineRoles(series: readonly OkSeries[], opts: LinePlotOptions): ColourRole[] {
+  const subject = opts.highlight ? series.find((s) => s.ref === opts.highlight) : undefined;
+  const fell = subject ? seriesFell(subject.points.map((p) => p.value)) : false;
+  return colourRoles(
+    series.map((s) => s.ref),
+    { highlight: opts.highlight, comparison: opts.comparison, fell },
+  );
+}
+
 /** Legend items for two or more series: the line keys in each series' colour. */
 export function lineLegend(series: readonly OkSeries[], opts: LinePlotOptions): LegendItem[] {
-  const roles = colourRoles(
-    series.map((s) => s.ref),
-    opts,
-  );
+  const roles = lineRoles(series, opts);
   return series.map((s, i) => ({ key: s.ref, label: s.label, role: roles[i] ?? "cat-1", shape: "line" }));
 }
 
@@ -137,10 +150,7 @@ export function linePlot(
     measure,
     { includeZero: opts.fromZero !== false, displayExponent: exponent },
   );
-  const roles = colourRoles(
-    series.map((s) => s.ref),
-    opts,
-  );
+  const roles = lineRoles(series, opts);
   const multi = series.length > 1;
   const labelled = series.length <= 4;
 
@@ -170,9 +180,10 @@ export function linePlot(
               x: xs[lastIndex] ?? 100,
               y: ys[lastIndex] as number,
               name: multi ? s.label : null,
+              period: lastSlot?.label ?? "",
               value: displayValue(lastPoint.value, s),
               labelY: ys[lastIndex] as number,
-              highlight: role === "highlight",
+              highlight: isSubjectRole(role),
               ref: lastPoint.ref,
             }
           : null,
@@ -270,7 +281,19 @@ export function linePlot(
     })),
     series: geometry,
     xLabels: yearLabels
-      ? yearLabels.map((y) => ({ ...y, phone: true, wide: true }))
+      ? (() => {
+          const tight = tightLabels(
+            yearLabels.map((y) => y.label),
+            yearLabels.map((y) => y.x),
+          );
+          return yearLabels.map((y, i) => ({
+            ...y,
+            phone: true,
+            wide: true,
+            tight: tight.has(i),
+            room: tight.get(i) ?? 0,
+          }));
+        })()
       : xLabelPlan(
           slots.map((s) => s.label),
           xs,

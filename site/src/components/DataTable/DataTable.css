@@ -72,6 +72,10 @@
   forced-color-adjust: none;
   print-color-adjust: exact;
 }
+/* Crimson never marks a subject that fell (design/charts.md, "When the subject fell"). */
+.data-table .is-highlight.is-fell > .data-table__row-head::before {
+  background: var(--chart-neutral-highlight);
+}
 @media (forced-colors: active) {
   .data-table .is-highlight > .data-table__row-head::before {
     background: Highlight;

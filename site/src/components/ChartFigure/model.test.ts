@@ -1,7 +1,16 @@
 // Builder's sanity checks for the shared table model: units written by code, colour by entity (never by value),
 // the CSV of exact decimals, and the accessible summary.
 import { describe, expect, it } from "vitest";
-import { colourRoles, modelSummary, modelToChartTable, type TableModel, unitLabel } from "./model";
+import {
+  colourRoles,
+  modelSummary,
+  modelToChartTable,
+  seriesFell,
+  seriesTable,
+  type TableModel,
+  unitLabel,
+  valueFell,
+} from "./model";
 
 const usd = { unit: "USD", currency: "USD", scale: "millions" as const };
 const pct = { unit: "Percent", currency: null, scale: null };
@@ -56,6 +65,64 @@ describe("colourRoles", () => {
   it("assigns categorical slots in the order given, never cycled", () => {
     expect(colourRoles(["a", "b", "c"])).toEqual(["cat-1", "cat-2", "cat-3"]);
     expect(colourRoles(["b", "a"])).toEqual(["cat-1", "cat-2"]);
+  });
+
+  it("gives a subject that fell the neutral highlight, never crimson; the others keep their roles", () => {
+    expect(colourRoles(["a", "b", "c"], { highlight: "b", comparison: "c", fell: true })).toEqual([
+      "context",
+      "highlight-neutral",
+      "comparison",
+    ]);
+    expect(colourRoles(["a", "b"], { highlight: "z", fell: true })).toEqual(["cat-1", "cat-2"]);
+  });
+});
+
+describe("what 'fell' means (design/charts.md, 'When the subject fell')", () => {
+  it("bars and columns: below zero, or below the comparison value when there is one", () => {
+    expect(valueFell("-0.1")).toBe(true);
+    expect(valueFell("-8.1")).toBe(true);
+    expect(valueFell("0")).toBe(false);
+    expect(valueFell("0.00")).toBe(false);
+    expect(valueFell("12.5")).toBe(false);
+    expect(valueFell(null)).toBe(false);
+    expect(valueFell(undefined)).toBe(false);
+    expect(valueFell("90", "100")).toBe(true);
+    expect(valueFell("100", "100")).toBe(false);
+    expect(valueFell("-5", "-10")).toBe(false);
+  });
+
+  it("lines: the last value in the shown range below the first, gaps skipped", () => {
+    expect(seriesFell(["3.1", "2.9", "2.7"])).toBe(true);
+    expect(seriesFell([null, "3.1", "3.5", "2.9", null])).toBe(true);
+    expect(seriesFell(["2.7", "3.4", "2.9"])).toBe(false);
+    expect(seriesFell(["2.0", "1.0", "2.0"])).toBe(false);
+    expect(seriesFell(["2.0"])).toBe(false);
+    expect(seriesFell([null, null])).toBe(false);
+    expect(seriesFell(["-1", "-3"])).toBe(true);
+  });
+
+  it("a highlighted period that fell marks its table row; a rise does not", () => {
+    const s = (values: (string | null)[]) => ({
+      ok: true as const,
+      ref: "sr_a",
+      label: "Output",
+      unit: "Percent",
+      currency: null,
+      scale: null,
+      sources: [],
+      points: values.map((v, i) => ({
+        ref: `dp_${i}`,
+        value: v,
+        period: { ref: `pd_${i}`, label: `P${i}`, period: { start: null, end: null } },
+      })),
+    });
+    const fell = seriesTable([s(["1.0", "-2.0"]) as never], { title: "", subtitle: "", highlight: "pd_1" });
+    expect(fell.rows.map((r) => [r.highlight, r.fell])).toEqual([
+      [false, false],
+      [true, true],
+    ]);
+    const rose = seriesTable([s(["1.0", "2.0"]) as never], { title: "", subtitle: "", highlight: "pd_1" });
+    expect(rose.rows[1]?.fell).toBe(false);
   });
 });
 

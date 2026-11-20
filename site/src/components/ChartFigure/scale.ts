@@ -139,8 +139,11 @@ export function bareNumber(value: string, measure: Measure, exponent: number): s
   return formatNumber(decimalToString(shifted), { decimals: places, sourceDecimals: available });
 }
 
-/** Roughly how many characters of x labels fit across the plot: a phone (about 290px) and a tablet or wider. */
-const X_CAPACITY = { phone: 40, wide: 72 } as const;
+/**
+ * Roughly how many characters of x labels fit across the plot: a phone (about 290px), a tablet or wider, and a
+ * "tight" plot narrower than 20em of its own text (a phone at 150-200% text size), where labels may also wrap.
+ */
+const X_CAPACITY = { phone: 40, wide: 72, tight: 16 } as const;
 
 /** Which of `count` stops to label for a given room: first, last and every step between, never crowding the last. */
 function labelledStops(count: number, maxLabels: number): Set<number> {
@@ -164,12 +167,46 @@ export function xLabelPlan(
   labels: readonly string[],
   xs: readonly number[],
   taken: { phone: number; wide: number } = { phone: 0, wide: 0 },
-): { x: number; label: string; phone: boolean; wide: boolean }[] {
+): { x: number; label: string; phone: boolean; wide: boolean; tight: boolean; room: number }[] {
   const longest = Math.max(1, ...labels.map((l) => l.length));
   const labelsFor = (room: number) => Math.max(2, Math.floor(room / (longest + 2)));
   const phone = labelledStops(labels.length, labelsFor(X_CAPACITY.phone - taken.phone));
   const wide = labelledStops(labels.length, labelsFor(X_CAPACITY.wide - taken.wide));
-  return labels.map((label, i) => ({ x: xs[i] ?? 0, label, phone: phone.has(i), wide: wide.has(i) }));
+  const tight = tightLabels(labels, xs);
+  return labels.map((label, i) => ({
+    x: xs[i] ?? 0,
+    label,
+    phone: phone.has(i),
+    wide: wide.has(i),
+    tight: tight.has(i),
+    room: tight.get(i) ?? 0,
+  }));
+}
+
+/**
+ * The labels a tight plot keeps (first, last and evenly between, for X_CAPACITY.tight characters), each with the
+ * widest it may wrap to, as a % of the x axis: half the way to its neighbours, so no two ever touch. A tight plot
+ * moves its end labels below, so it gives up no room to them.
+ */
+export function tightLabels(labels: readonly string[], xs: readonly number[]): Map<number, number> {
+  const longest = Math.max(1, ...labels.map((l) => l.length));
+  const shown = [...labelledStops(labels.length, Math.max(2, Math.floor(X_CAPACITY.tight / (longest + 2))))].sort(
+    (a, b) => a - b,
+  );
+  const rooms = new Map<number, number>();
+  const GAP = 2; // % of the axis between neighbouring labels
+  shown.forEach((i, k) => {
+    const x = xs[i] ?? 0;
+    const before = k > 0 ? x - (xs[shown[k - 1] as number] ?? 0) : null;
+    const after = k < shown.length - 1 ? (xs[shown[k + 1] as number] ?? 100) - x : null;
+    let room: number;
+    if (before === null && after === null) room = 100;
+    else if (before === null) room = (after as number) / 2; // the first label runs right from its stop
+    else if (after === null) room = before / 2; // the last runs left from its stop
+    else room = Math.min(before, after); // a middle label is centred on its stop
+    rooms.set(i, Math.max(0, Math.round((room - GAP) * 10) / 10));
+  });
+  return rooms;
 }
 
 /** The width of the axis labels, in ch, so marks start after them. */

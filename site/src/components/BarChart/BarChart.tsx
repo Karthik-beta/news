@@ -1,7 +1,7 @@
 // Horizontal bar chart (design/charts.md): ranking or comparing categories, sorted by value unless the order is
 // natural, bars from zero, 22px thick with 8px between rows, the value just past each bar's end. The highlighted
-// bar is crimson with a bold crimson label; the others are one colour (context, or blue when nothing is
-// highlighted). Never coloured by value. HTML and CSS, so long labels fit on phones; the plot is an island.
+// bar is crimson with a bold crimson label, or the neutral highlight when it fell (design/charts.md, "When the
+// subject fell"); the others are one colour (context, or blue when nothing is highlighted), never chosen by value. HTML and CSS, so long labels fit on phones; the plot is an island.
 import type { ComponentRenderer } from "@openuidev/react-lang";
 import { usePageData } from "../../renderer/data/context";
 import { MISSING_TEXT, type PageDataResolver, type ResolvedValue } from "../../renderer/data/resolve";
@@ -13,8 +13,10 @@ import {
   modelSummary,
   sameAxis,
   sourcesOf,
+  subjectRole,
   type TableModel,
   tooltipSource,
+  valueFell,
 } from "../ChartFigure/model";
 import BarChartPlot, { type BarChartPlotProps, type BarRow } from "./BarChartPlot.client";
 
@@ -79,6 +81,7 @@ export function barChartData(props: BarChartProps, data: PageDataResolver): BarC
       key: `${b.input.value}-${i}`,
       label: b.input.label,
       highlight: Boolean(b.input.highlight),
+      fell: Boolean(b.input.highlight) && valueFell(b.value?.value),
       cells: [{ ref: b.input.value, value: b.value?.value ?? null }],
     })),
     sources: sourcesOf(...okValues.map((v) => v.sources)),
@@ -97,7 +100,8 @@ export function barPlot(chart: BarChartData, data: PageDataResolver): BarChartPl
   const zero = x(0);
   const anyHighlight = chart.bars.some((b) => b.input.highlight);
   const rows: BarRow[] = chart.bars.map((b, i) => {
-    const role = b.input.highlight ? "highlight" : anyHighlight ? "context" : "cat-1";
+    // The highlighted bar is crimson unless it fell (below zero): then the neutral highlight, never crimson.
+    const role = b.input.highlight ? subjectRole(valueFell(b.value?.value)) : anyHighlight ? "context" : "cat-1";
     const shown = b.value ? displayValue(b.value.value, measure) : MISSING_TEXT;
     const tooltip = [
       {

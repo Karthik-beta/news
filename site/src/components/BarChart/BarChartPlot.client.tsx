@@ -6,6 +6,7 @@ import {
   alignFor,
   ChartLiveRegion,
   ChartTooltip,
+  subjectClass,
   type TooltipLine,
   tooltipText,
   useChartStepper,
@@ -97,7 +98,7 @@ export default function BarChartPlot({ summary, rows, zero, room }: BarChartPlot
                     data-ref={r.ref ?? undefined}
                   />
                   <span
-                    className={`bar-chart__value text-tabular${r.negative ? " is-negative" : ""}${r.highlight ? " is-highlight" : ""}`}
+                    className={`bar-chart__value text-tabular${r.negative ? " is-negative" : ""}${subjectClass(r.role)}`}
                     style={r.negative ? { right: `${100 - r.start}%` } : { left: `${r.start + r.width}%` }}
                     data-ref={r.ref ?? undefined}
                   >

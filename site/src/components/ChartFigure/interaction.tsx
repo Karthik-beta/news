@@ -161,3 +161,10 @@ export function ChartLiveRegion({ text }: { text: string }) {
 
 /** Tooltip alignment near the plot's edges, so it never runs off the chart. */
 export const alignFor = (x: number): "start" | "center" | "end" => (x < 20 ? "start" : x > 80 ? "end" : "center");
+
+/**
+ * The class that makes the subject's label bold in its colour: " is-highlight" (crimson) or " is-highlight-neutral"
+ * when the subject fell; "" for every other role, whose labels stay in ink.
+ */
+export const subjectClass = (role: string): string =>
+  role === "highlight" ? " is-highlight" : role === "highlight-neutral" ? " is-highlight-neutral" : "";

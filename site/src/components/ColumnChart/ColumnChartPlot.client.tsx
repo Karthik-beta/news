@@ -7,6 +7,7 @@ import {
   alignFor,
   ChartLiveRegion,
   ChartTooltip,
+  subjectClass,
   type TooltipLine,
   tooltipText,
   useChartStepper,
@@ -128,7 +129,7 @@ export default function ColumnChartPlot({
                       )}
                       {m.label !== null && m.show !== "never" && m.top !== null && m.height !== null ? (
                         <span
-                          className={`column-chart__value text-tabular column-chart__value--${m.show}${m.negative ? " is-negative" : ""}${m.role === "highlight" ? " is-highlight" : ""}${edge(i, m.label) === "start" ? " is-first" : edge(i, m.label) === "end" ? " is-last" : ""}`}
+                          className={`column-chart__value text-tabular column-chart__value--${m.show}${m.negative ? " is-negative" : ""}${subjectClass(m.role)}${edge(i, m.label) === "start" ? " is-first" : edge(i, m.label) === "end" ? " is-last" : ""}`}
                           style={m.negative ? { top: `${m.top + m.height}%` } : { bottom: `${100 - m.top}%` }}
                           data-ref={m.ref ?? undefined}
                         >

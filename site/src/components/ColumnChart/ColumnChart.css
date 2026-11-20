@@ -1,6 +1,6 @@
 /* Column chart (design/charts.md, "Marks"): columns up to 48px wide, square ends, 2px paper gaps between grouped
    columns, bars from zero, negative columns below the baseline in the same colour. Value labels sit just past the
-   column end in ink; the highlighted one is bold and crimson. Columns are HTML so the 48px cap and the 2px gap
+   column end in ink; the highlighted one is bold and crimson, or bold in the neutral highlight when it fell. Columns are HTML so the 48px cap and the 2px gap
    are exact at every width and every label stays at full size. */
 .column-chart__band {
   position: absolute;
@@ -68,6 +68,10 @@
   font-weight: var(--font-weight-bold);
   color: var(--chart-highlight);
 }
+.column-chart__value.is-highlight-neutral {
+  font-weight: var(--font-weight-bold);
+  color: var(--chart-neutral-highlight);
+}
 
 /* Value labels that are not the highlighted or latest column show only where every label fits. */
 .column-chart__value--room {
@@ -91,7 +95,8 @@
   .column-chart__fill:not(.chart-hatch) {
     background: CanvasText;
   }
-  .column-chart__fill.chart-colour--highlight {
+  .column-chart__fill.chart-colour--highlight,
+  .column-chart__fill.chart-colour--highlight-neutral {
     background: Highlight;
   }
 }

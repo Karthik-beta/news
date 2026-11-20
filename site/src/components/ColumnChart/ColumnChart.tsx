@@ -1,6 +1,6 @@
 // Column chart (design/charts.md): change over time in discrete periods, columns from zero, one value axis, solid
 // horizontal gridlines. One series is blue; naming a period as the highlight makes that column crimson with a bold
-// label and the rest context. Two or three series are grouped columns in the categorical colours, with a legend.
+// label (the neutral highlight when it fell) and the rest context. Two or three series are grouped columns in the categorical colours, with a legend.
 // The plot is an island for its tooltips; the frame, legend, source line and data table are static HTML.
 import type { ComponentRenderer } from "@openuidev/react-lang";
 import { usePageData } from "../../renderer/data/context";
@@ -8,6 +8,7 @@ import type { PageDataResolver } from "../../renderer/data/resolve";
 import { Island } from "../../renderer/islands/Island";
 import { ChartFigure, type LegendItem } from "../ChartFigure/ChartFigure";
 import {
+  type ColourRole,
   colourRoles,
   displayValue,
   type Measure,
@@ -18,8 +19,10 @@ import {
   resolveSeries,
   sameAxis,
   seriesTable,
+  subjectRole,
   type TableModel,
   tooltipSource,
+  valueFell,
 } from "../ChartFigure/model";
 import { axisWidth, bareNumber, displayExponent, niceScale, xLabelPlan } from "../ChartFigure/scale";
 import ColumnChartPlot, { type ColumnBand, type ColumnChartPlotProps } from "./ColumnChartPlot.client";
@@ -69,10 +72,17 @@ export function columnPlot(
   const single = series.length === 1;
   const highlight = single ? (props.highlight ?? null) : null;
   // Grouped columns: categorical colours by series, in the order given. One series: blue, or the highlighted
-  // period in crimson and the rest context. Never chosen by the value.
+  // period in crimson and the rest context; a highlighted period that fell (below zero) takes the neutral
+  // highlight, never crimson (design/charts.md, "When the subject fell"). Otherwise never chosen by the value.
   const roles = colourRoles(series.map((s) => s.ref));
-  const roleOf = (j: number, isHighlight: boolean) =>
-    !single ? (roles[j] ?? "cat-1") : highlight === null ? "cat-1" : isHighlight ? "highlight" : "context";
+  const roleOf = (j: number, isHighlight: boolean, value: string | null | undefined): ColourRole =>
+    !single
+      ? (roles[j] ?? "cat-1")
+      : highlight === null
+        ? "cat-1"
+        : isHighlight
+          ? subjectRole(valueFell(value))
+          : "context";
   const n = slots.length;
   const lastWithValue = (() => {
     for (let i = n - 1; i >= 0; i--) {
@@ -91,7 +101,7 @@ export function columnPlot(
       highlight: isHighlight,
       marks: series.map((s, j) => {
         const p = pointAt(s, slot.ref);
-        const role = roleOf(j, isHighlight);
+        const role = roleOf(j, isHighlight, p?.value);
         if (!p || p.value === null) {
           return {
             series: s.ref,
@@ -126,7 +136,7 @@ export function columnPlot(
         return {
           value: p?.value == null ? null : displayValue(p.value, s),
           series: single ? null : s.label,
-          role: roleOf(j, isHighlight),
+          role: roleOf(j, isHighlight, p?.value),
           ref: p?.ref ?? null,
           source: p?.value == null ? null : tooltipSource(data, p.ref),
         };

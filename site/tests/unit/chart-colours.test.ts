@@ -46,6 +46,34 @@ describe.each(["light", "dark"] as const)("%s theme", (theme) => {
     expect(check(r, "Normal-vision floor"), JSON.stringify(r.report)).toBe("pass");
   });
 
+  it("the neutral highlight (a subject that fell) is distinct from comparison and context, and from the hatch", () => {
+    const roles = ["--chart-neutral-highlight", "--chart-comparison", "--chart-context"].map((n) => value(n, theme));
+    const r = run(roles, { mode: theme, surface, pairs: "all" });
+    // Achromatic on purpose, so the categorical lightness band and chroma floor do not apply; separation does.
+    expect(check(r, "CVD separation"), JSON.stringify(r.report)).toBe("pass");
+    expect(check(r, "Normal-vision floor"), JSON.stringify(r.report)).toBe("pass");
+    const hatch = run([value("--chart-neutral-highlight", theme), value("--chart-neutral", theme)], { mode: theme, surface });
+    expect(check(hatch, "Normal-vision floor"), JSON.stringify(hatch.report)).toBe("pass");
+  });
+
+  it("the neutral highlight reads as bold label text on paper and wash (4.5:1)", () => {
+    const lum = (hex: string) => {
+      const [r, g, b] = [1, 3, 5].map((i) => {
+        const c = Number.parseInt(hex.slice(i, i + 2), 16) / 255;
+        return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+      }) as [number, number, number];
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+    const ratio = (a: string, b: string) => {
+      const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x) as [number, number];
+      return (hi + 0.05) / (lo + 0.05);
+    };
+    const ink = value("--chart-neutral-highlight", theme);
+    for (const bg of ["--color-paper", "--color-wash"]) {
+      expect(ratio(ink, value(bg, theme)), bg).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
   it("the sparkline's line and its latest-point dot are distinct", () => {
     const r = run([value("--chart-comparison", theme), value("--chart-highlight", theme)], { mode: theme, surface });
     expect(check(r, "CVD separation")).toBe("pass");

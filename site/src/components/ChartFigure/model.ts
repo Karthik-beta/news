@@ -32,6 +32,8 @@ export interface TableRow {
   /** The period label as the source writes it, or the category label the page writer gave. */
   label: string;
   highlight: boolean;
+  /** The highlighted row's subject fell: its row bar takes the neutral highlight, never crimson. */
+  fell?: boolean;
   cells: TableCell[];
 }
 
@@ -214,17 +216,22 @@ export function seriesTable(
     subtitle: opts.subtitle,
     head: opts.head ?? "Period",
     columns: all.map((s) => ({ key: s.ref, label: s.label, unit: s.unit, currency: s.currency, scale: s.scale })),
-    rows: slots.map((slot) => ({
-      key: slot.ref,
-      label: slot.label,
-      highlight: Boolean(opts.highlight) && slot.ref === opts.highlight,
-      cells: all.map((s) => {
+    rows: slots.map((slot) => {
+      const highlight = Boolean(opts.highlight) && slot.ref === opts.highlight;
+      const cells = all.map((s) => {
         const p = pointAt(s, slot.ref);
         return { ref: p?.ref ?? null, value: p?.value ?? null };
-      }),
-    })),
+      });
+      return { key: slot.ref, label: slot.label, highlight, fell: highlight && periodFell(cells), cells };
+    }),
     sources: sourcesOf(...all.map((s) => s.sources)),
   };
+}
+
+/** A highlighted period fell when it has values and every one is below zero (the column rule, row by row). */
+function periodFell(cells: readonly TableCell[]): boolean {
+  const present = cells.filter((c) => c.value !== null);
+  return present.length > 0 && present.every((c) => valueFell(c.value));
 }
 
 /** The same table turned so each series is a row and each period a column (segments by year). */
@@ -242,15 +249,15 @@ export function transposedSeriesTable(
     subtitle: opts.subtitle,
     head: opts.head ?? "Series",
     columns: slots.map((slot) => ({ key: slot.ref, label: slot.label, ...measure })),
-    rows: all.map((s) => ({
-      key: s.ref,
-      label: s.label,
-      highlight: Boolean(opts.highlight) && s.ref === opts.highlight,
-      cells: slots.map((slot) => {
+    rows: all.map((s) => {
+      const highlight = Boolean(opts.highlight) && s.ref === opts.highlight;
+      const cells = slots.map((slot) => {
         const p = pointAt(s, slot.ref);
         return { ref: p?.ref ?? null, value: p?.value ?? null };
-      }),
-    })),
+      });
+      // A series as a row fell by the line rule: its last value below its first.
+      return { key: s.ref, label: s.label, highlight, fell: highlight && seriesFell(cells.map((c) => c.value)), cells };
+    }),
     sources: sourcesOf(...all.map((s) => s.sources)),
   };
 }
@@ -265,12 +272,15 @@ export const scaleExponent = (m: Measure) => SCALE_EXPONENT[m.scale ?? "units"];
 
 /**
  * Colour roles (design/color.md, "Chart colours"). Assigned by entity, from the page writer's choices, never by
- * value or rank: a falling series is never crimson unless it is the chart's named subject.
- *   highlight given: the subject is crimson, one comparison may be blue, the rest are context.
+ * rank. Crimson never marks a subject that fell (Karthik, 16 Nov 2026): a highlighted subject that fell takes the
+ * neutral highlight ("highlight-neutral") instead. What "fell" means per chart is in design/charts.md, "When the
+ * subject fell", and in `valueFell` and `seriesFell` below.
+ *   highlight given: the subject is crimson (neutral if it fell), one comparison may be blue, the rest are context.
  *   no highlight: one series is blue (single series); 2-8 equal series take the categorical slots in order.
  */
 export type ColourRole =
   | "highlight"
+  | "highlight-neutral"
   | "comparison"
   | "context"
   | "neutral"
@@ -285,18 +295,52 @@ export type ColourRole =
 
 export function colourRoles(
   keys: readonly string[],
-  { highlight, comparison }: { highlight?: string | null; comparison?: string | null } = {},
+  {
+    highlight,
+    comparison,
+    fell = false,
+  }: { highlight?: string | null; comparison?: string | null; fell?: boolean } = {},
 ): ColourRole[] {
   const hasHighlight = Boolean(highlight) && keys.includes(highlight as string);
   const hasComparison = Boolean(comparison) && keys.includes(comparison as string) && comparison !== highlight;
   if (hasHighlight || hasComparison) {
-    return keys.map((k) => (k === highlight ? "highlight" : k === comparison ? "comparison" : "context"));
+    return keys.map((k) => (k === highlight ? subjectRole(fell) : k === comparison ? "comparison" : "context"));
   }
   if (keys.length === 1) return ["cat-1"];
   return keys.map((_, i) => `cat-${Math.min(i + 1, 8)}` as ColourRole);
 }
 
-/** Line width role: highlight, comparison and categorical lines are 2.5px; context lines 1.5px. */
+/** The highlighted subject's role: crimson, or the neutral highlight when it fell. */
+export const subjectRole = (fell: boolean): ColourRole => (fell ? "highlight-neutral" : "highlight");
+
+/** True for either highlight role: the subject's label is bold in its colour. */
+export const isSubjectRole = (role: string) => role === "highlight" || role === "highlight-neutral";
+
+/**
+ * Bars and columns: the subject fell when its value is below zero (a change, a loss) or, when the chart names a
+ * comparison value, below that value. Exact decimals are compared as numbers; they are never shown from here.
+ */
+export function valueFell(value: string | null | undefined, comparison?: string | null): boolean {
+  if (value === null || value === undefined) return false;
+  const v = Number(value);
+  if (!Number.isFinite(v)) return false;
+  if (comparison !== null && comparison !== undefined && Number.isFinite(Number(comparison))) {
+    return v < Number(comparison);
+  }
+  return v < 0;
+}
+
+/**
+ * Lines: the subject fell when its last value in the shown range is below its first (gaps skipped). A flat line, a
+ * single point or no values never fell.
+ */
+export function seriesFell(values: readonly (string | null)[]): boolean {
+  const present = values.filter((v): v is string => v !== null && Number.isFinite(Number(v)));
+  if (present.length < 2) return false;
+  return Number(present[present.length - 1]) < Number(present[0]);
+}
+
+/** Line width role: highlight (either), comparison and categorical lines are 2.5px; context lines 1.5px. */
 export const isThin = (role: ColourRole) => role === "context" || role === "neutral";
 
 /**

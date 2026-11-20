@@ -103,11 +103,24 @@ Zero. Bars and segments have square ends, like the rest of the site's content.
 
 The default chart has one highlighted subject:
 
-- The subject of the title is in `chart.highlight` (crimson).
+- The subject of the title is in `chart.highlight` (crimson), or `chart.neutral-highlight` when it fell (below).
 - One comparison series, if needed, is in `chart.comparison` (blue).
 - Everything else is `chart.context` (pale blue-grey) or `chart.neutral` (grey).
 
 Only use the categorical palette when every series matters equally and the title is about all of them. If a chart needs more than 8 colours, it is the wrong chart.
+
+### When the subject fell
+
+Crimson never marks a subject that fell (Karthik, 16 Nov 2026). A highlighted subject that fell is drawn in `chart.neutral-highlight` (charcoal in light mode, pale grey in dark) with its label bold in the same colour; everything else about it (line weight, end marker, the bold row in the data table) stays the highlight's. The chart code decides from the data, never the page writer:
+
+| Chart | The subject fell when |
+|---|---|
+| Bar chart | The highlighted bar's value is below zero, or below the comparison value when the chart names one |
+| Column chart | The highlighted column's value is below zero, or below the comparison value when the chart names one |
+| Line and step-line chart | The highlighted series' last value in the shown range is below its first (gaps skipped; a single point or a flat line did not fall) |
+| Data table | A highlighted period: every value in the row is below zero. A highlighted series (rows are series): the line rule |
+
+Today neither the bar nor the column chart takes a comparison value, so for both the rule is "below zero". A missing value never fell. A rise, a flat line and a zero are crimson as usual.
 
 ## Specific chart types
 
@@ -128,7 +141,7 @@ Only use the categorical palette when every series matters equally and the title
 
 ### Bar charts
 - Sorted by value unless the categories have a natural order (time, size bands).
-- The highlighted bar is crimson; all others are one colour (context, or blue for a single series). Never colour bars by their value.
+- The highlighted bar is crimson (the neutral highlight when it fell); all others are one colour (context, or blue for a single series). Never colour bars by their value otherwise.
 
 ### Maps
 - Equal Earth projection for world maps; national projections for single countries.
@@ -143,7 +156,7 @@ Only use the categorical palette when every series matters equally and the title
 ### Tables as charts
 - Tables follow the same anatomy (rule and tag, title, subtitle, source).
 - Numbers right-aligned, tabular figures; text left-aligned. Header row in `ink-2`, 13px, with a 1px ink rule below. Rows separated by hairlines. No zebra stripes, no vertical lines.
-- The highlighted row: bold text and a 3px crimson inset bar on the left.
+- The highlighted row: bold text and a 3px crimson inset bar on the left (`chart.neutral-highlight` when its subject fell).
 - "As reported" tables keep the source's scale and precision.
 - Wide tables scroll sideways inside their container, with the first column fixed.
 
@@ -167,6 +180,7 @@ Charts are interactive, quietly:
 - Charts are re-laid out for narrow screens, not just scaled down. Text in a chart never renders smaller than 12px.
 - Horizontal bars and waterfalls are built in HTML/CSS so labels stay full size; line and column charts are SVG with a viewBox sized for the phone layout first.
 - On phones: fewer x-axis labels, end labels may move above the line, legends wrap, Sankeys fall back to waterfalls, maps fall back to ranked bars plus a small map.
+- **Large text.** A plot narrower than 20em of its own text is *tight*: a phone with the reader's text at 150–200%, which no viewport media query sees, so line, step-line and column plots are CSS query containers and switch on their width in em. A tight plot keeps fewer x labels (chosen by code for about 16 characters of room), lets each wrap to half the way to its neighbours, and pins the first and last inside the plot; line end labels move to a row below the x axis ("Services 73.9%", or the period and the value for one series) so the lines take the full width; a step line's one event label wraps between its line and the plot's edge. Nothing leaves the plot and the page never scrolls sideways. At 100% text no phone plot is tight.
 - Very wide charts (long timelines) scroll sideways inside their own container with a visible fade at the edge.
 
 ## Dark mode
@@ -189,7 +203,7 @@ For manual sharing (and later auto-posting), any chart can be exported as a 1200
 
 - [ ] The title states a finding the chart actually shows.
 - [ ] The subtitle names the measure, the period and the unit.
-- [ ] One highlight at most; crimson used for nothing else in the chart.
+- [ ] One highlight at most; crimson used for nothing else in the chart, and never for a subject that fell.
 - [ ] Bars start at zero; one y-axis.
 - [ ] No legend for one series; a legend plus direct labels for 2–4.
 - [ ] No red/green for up/down; negatives in the same colour.

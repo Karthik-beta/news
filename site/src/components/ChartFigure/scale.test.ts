@@ -2,7 +2,15 @@
 // axes with 4 to 6 gridlines that include zero for bars, bare labels written from exact decimals, and x labels
 // thinned rather than rotated.
 import { describe, expect, it } from "vitest";
-import { axisWidth, bareNumber, displayExponent, largestMagnitude, niceScale, xLabelPlan } from "./scale";
+import {
+  axisWidth,
+  bareNumber,
+  displayExponent,
+  largestMagnitude,
+  niceScale,
+  tightLabels,
+  xLabelPlan,
+} from "./scale";
 
 const usdMillions = { unit: "USD", currency: "USD", scale: "millions" as const };
 const percent = { unit: "Percent", currency: null, scale: null };
@@ -100,6 +108,33 @@ describe("x labels", () => {
   it("labels every period when they fit", () => {
     const plan = xLabelPlan(["2020", "2021", "2022", "2023", "2024"], [0, 25, 50, 75, 100]);
     expect(plan.every((p) => p.wide && p.phone)).toBe(true);
+  });
+
+  it("keeps fewer labels for a tight plot (large text on a phone), each with room that never meets a neighbour's", () => {
+    const labels = ["fiscal 2020", "fiscal 2021", "fiscal 2022", "fiscal 2023", "fiscal 2024"];
+    const xs = [10, 30, 50, 70, 90];
+    const plan = xLabelPlan(labels, xs);
+    const tight = plan.filter((p) => p.tight);
+    expect(tight.map((p) => p.label)).toEqual(["fiscal 2020", "fiscal 2024"]);
+    // First and last are pinned and run towards each other: each may take at most half the gap between them.
+    for (const p of tight) expect(p.room).toBeLessThanOrEqual((90 - 10) / 2);
+    expect(plan.filter((p) => !p.tight).every((p) => p.room === 0)).toBe(true);
+  });
+
+  it("gives a tight middle label the smaller gap to a neighbour, centred on its stop", () => {
+    const labels = Array.from({ length: 13 }, (_, i) => `M${i}`);
+    const xs = labels.map((_, i) => (i / 12) * 100);
+    const rooms = tightLabels(labels, xs);
+    const shown = [...rooms.keys()].sort((a, b) => a - b);
+    expect(shown[0]).toBe(0);
+    expect(shown[shown.length - 1]).toBe(12);
+    expect(shown.length).toBeGreaterThan(2);
+    const mid = shown[1] as number;
+    const gap = Math.min(
+      (xs[mid] as number) - (xs[shown[0] as number] as number),
+      (xs[shown[2] as number] as number) - (xs[mid] as number),
+    );
+    expect(rooms.get(mid)).toBeLessThanOrEqual(gap);
   });
 
   it("measures the axis labels in ch", () => {
