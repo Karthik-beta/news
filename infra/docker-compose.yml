@@ -42,11 +42,12 @@ services:
     restart: unless-stopped
     command: ["--config=/etc/otelcol/config.yaml"]
     environment:
-      NEWS_CH_OTEL_ENDPOINT: ${NEWS_CH_OTEL_ENDPOINT:-http://host.docker.internal:8123}
+      # The shared ClickHouse by container name, over the shorts project's network (below). Not host.docker.internal:
+      # under Kiri, ports published on 127.0.0.1 are not reachable from containers through the host gateway.
+      NEWS_CH_OTEL_ENDPOINT: ${NEWS_CH_OTEL_ENDPOINT:-http://shorts-clickhouse-1:8123}
       NEWS_CH_USER: ${NEWS_CH_USER:-news}
       NEWS_CH_PASSWORD: ${NEWS_CH_PASSWORD:?set NEWS_CH_PASSWORD in .env (run bun run setup)}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    networks: [default, shorts]
     ports:
       - "127.0.0.1:4317:4317" # OTLP gRPC (Claude Code telemetry)
       - "127.0.0.1:4318:4318" # OTLP HTTP
@@ -78,3 +79,9 @@ services:
 
 volumes:
   news-pg-data:
+
+networks:
+  # The shorts project's network, where the shared ClickHouse (shorts-clickhouse-1) lives; start shorts first.
+  shorts:
+    name: shorts_default
+    external: true

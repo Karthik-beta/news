@@ -10,9 +10,9 @@ import { fileURLToPath } from "node:url";
 import Ajv2020 from "ajv/dist/2020.js";
 import standaloneCode from "ajv/dist/standalone/index.js";
 
-const CONTRACTS = fileURLToPath(new URL("../../../contracts", import.meta.url));
-export const OUTPUT = fileURLToPath(new URL("../src/generated/validators.js", import.meta.url));
-export const OUTPUT_TYPES = fileURLToPath(new URL("../src/generated/validators.d.ts", import.meta.url));
+const CONTRACTS = fileURLToPath(new URL("../../../contracts", import.meta.url).href);
+export const OUTPUT = fileURLToPath(new URL("../src/generated/validators.js", import.meta.url).href);
+export const OUTPUT_TYPES = fileURLToPath(new URL("../src/generated/validators.d.ts", import.meta.url).href);
 const BASE = "https://news.karthik.nz/contracts";
 
 /** Exported validator name → schema reference. */
