@@ -621,7 +621,7 @@ async function fallbackVisible(page: Page, frame: Locator): Promise<boolean> {
     content: ".image-frame::before, .image-frame__img::after { content: none !important; }",
   });
   const without = await frame.screenshot({ animations: "disabled" });
-  await style.evaluate((el) => el.remove());
+  await style.evaluate((el) => el.parentNode?.removeChild(el));
   const again = await frame.screenshot({ animations: "disabled" });
   expect(again.equals(withLayer), "the frame renders the same twice (a stable comparison)").toBe(true);
   return !withLayer.equals(without);
