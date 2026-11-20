@@ -1,6 +1,7 @@
-root = Page([gaps, single, undated, unknown, badmarker])
+root = Page([gaps, single, undated, unknown, badmarker, fell])
 gaps = StepLineChart("A path with a missing decision", "Policy rate, %", ["sr_fx_step_gaps"], ["pd_fomc_20220615"])
 single = StepLineChart("A single decision", "Turnout, %", ["sr_fx_single"])
 undated = StepLineChart("Periods without dates are spaced evenly", "Growth, %", ["sr_fx_other"], ["pd_fx_2022"])
 unknown = StepLineChart("An unknown series", "Nothing to plot", ["sr_fx_not_in_data"])
 badmarker = StepLineChart("A marker the series does not have", "Federal funds target range, upper limit, %", ["sr_fed_funds_upper"], ["pd_fy2024"])
+fell = StepLineChart("Inflation ended 2024 lower than it began", "Consumer prices, change on a year earlier, 2024, %", ["sr_us_cpi_2024"], [], "sr_us_cpi_2024")
