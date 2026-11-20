@@ -19,8 +19,8 @@ Major company, economic and science reports, turned into visual, fully sourced p
 |---|---|---|
 | Bun | 1.4.x | Runtime and package manager; Astro runs under Bun |
 | Rust | stable (rustup) | `cli/rust-toolchain.toml` adds rustfmt, clippy, rust-analyzer |
-| Docker Desktop | 29.x | PostgreSQL + pgvector, the OTel Collector and DynamoDB Local |
-| Shared ClickHouse | `shorts-clickhouse-1` | Another project's container; News gets its own database and user |
+| [Kiri](https://runkiri.com) | 0.2.x | The container engine (replaced Docker Desktop on 19 Nov 2026): PostgreSQL + pgvector, the OTel Collector and DynamoDB Local. Kiri is docker's default context, so `docker` and `bun run infra:*` work unchanged |
+| Shared ClickHouse | `shorts-clickhouse-1` | Another project's container; News gets its own database and user. Start the shorts stack first: `news-otel` joins its `shorts_default` network and reaches ClickHouse by container name (under Kiri, `host.docker.internal` cannot reach ports published on 127.0.0.1) |
 | Git, GitHub CLI, Claude Code | | |
 | Optional | gitleaks, Tesseract | Local secret scan; scanned PDFs (Phase 5) |
 
@@ -41,11 +41,12 @@ This is safe to re-run. It:
 
 | Command | Does |
 |---|---|
+| `news board` · `news service install` | Board, the desktop app, and the Bureau service's one-time install (you run it in your own terminal; `--dry-run` first). See `cli/crates/news-board/README.md` and `cli/crates/news-service/README.md` |
 | `bun run doctor` | Checks tools, `.env`, containers and services (`-- --e2e` adds the telemetry round trip) |
 | `bun run dev` | Site at http://127.0.0.1:4321 |
 | `bun run typecheck` · `bun run test` · `bun run lint` | Checks across all workspaces (`bun run test` is the unit level) |
 | `bun run test:integration` | Integration level, needs `bun run infra:up`: the site build checks, the Workers against D1/R2 in Miniflare and DynamoDB Local, then the CLI's PostgreSQL tests |
-| `bun run test:e2e` | E2E level: site smoke tests (Playwright; first time: `bunx playwright install chromium` in `site/`), each Worker under the Wrangler harness, the dashboard process |
+| `bun run test:e2e` | E2E level: site smoke tests (Playwright; first time: `bunx playwright install chromium` in `site/`), each Worker under the Wrangler harness |
 | `bun test scripts/tests` · `bun run validate` | The setup scripts' tests; config, skill and agent file checks |
 | `bun run infra:up` · `infra:down` · `infra:logs` | Local containers |
 | `bun run clickhouse:setup` | Re-apply the ClickHouse database, user and tables |
@@ -60,7 +61,6 @@ cli/        Rust `news` binary: the CLI, the Bureau service and Board, its deskt
 contracts/  JSON Schemas: the CLI envelope, every command, the AI step outputs
 workers/    Cloudflare Workers: api, search, mcp (Phase 6)
 pipeline/   page-call settings and golden sets (Phase 7; Ghost, the AI runner, is Rust in cli/)
-dashboard/  skeleton only; replaced by Board and removed by the Board shell PR (ADR 0007)
 infra/      docker-compose, ClickHouse SQL, OTel config, PostgreSQL init
 skills/     runtime skills for the page writers
 design/     design system (done)

@@ -32,10 +32,13 @@ news-press = { workspace = true }
 news-critic = { workspace = true }
 news-standing = { workspace = true }
 news-service = { workspace = true }
+news-board = { workspace = true }
+news-win = { workspace = true }
 chrono = { workspace = true }
 clap = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+sqlx = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 uuid = { workspace = true }
@@ -52,4 +55,3 @@ news-rota = { workspace = true }
 news-connectors = { workspace = true }
 postgres = "0.19.14"
 predicates = "3.1.4"
-sqlx = { workspace = true }

@@ -13,13 +13,17 @@ export const ORIGIN = "https://news.test";
 /** R2 metadata of a file written by the publish path for version 1 (the fixture page's live version). */
 export const STAMP_V1 = { customMetadata: { version: "1", bundle_sha256: "a".repeat(64) } };
 
-/** A D1 stand-in for unit tests: records every statement and answers search queries from a fixed row list. */
+/**
+ * A D1 stand-in for unit tests: records every statement and answers search queries from a fixed row list (no
+ * filtering, but the statement's LIMIT is honoured).
+ */
 export class RecordingD1 {
   readonly statements: string[] = [];
   constructor(readonly rows: Record<string, unknown>[]) {}
   prepare(sql: string) {
     this.statements.push(sql);
-    const rows = this.rows;
+    const limit = /\bLIMIT (\d+)\s*$/.exec(sql)?.[1];
+    const rows = limit === undefined ? this.rows : this.rows.slice(0, Number(limit));
     const stmt = {
       bind: () => stmt,
       all: async () => ({ results: rows, success: true, meta: {} }),

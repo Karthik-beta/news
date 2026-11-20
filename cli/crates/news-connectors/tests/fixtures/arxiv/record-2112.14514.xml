@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/" 
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/ http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd">
+    <responseDate>2026-11-18T06:09:15Z</responseDate>
+                <request verb="GetRecord" identifier="oai:arXiv.org:2112.14514" metadataPrefix="arXiv">http://oaipmh.arxiv.org/oai</request>
+
+
+    <GetRecord>
+                <record>
+                <header>
+        <identifier>oai:arXiv.org:2112.14514</identifier>
+        <datestamp>2026-11-16</datestamp>
+            <setSpec>econ:econ:GN</setSpec>
+            <setSpec>q-fin:q-fin:EC</setSpec>
+    </header>
+
+            <metadata>
+                        <arXiv xmlns="http://arxiv.org/OAI/arXiv/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://arxiv.org/OAI/arXiv/ https://oaipmh.arxiv.org/OAI/arXiv.xsd">
+        <id>2112.14514</id>
+        <created>2026-11-13</created>
+            <updated>2026-11-16</updated>
+        <authors>
+                <author>
+                    <keyname>Ogasawara</keyname>
+                        <forenames>Kota</forenames>
+                </author>
+        </authors>
+        <title>Coal Mining, Women&#39;s Work, and Local Demographic Change: Evidence from Interwar Japan</title>
+            <categories>econ.GN q-fin.EC</categories>
+            <license>http://arxiv.org/licenses/nonexclusive-distrib/1.0/</license>
+            <abstract>This paper examines how coal mining shaped local demographic change in interwar Japan, focusing on the role of women&#39;s work. Coal mines initially employed married couples as underground teams, offering women wages well above those in textile mills. The mechanization of haulage and the subsequent revision of labor regulations, enforced in 1933, removed most women from the pits. Linking mine locations with municipal-level census and vital statistics, I find that coal mining substantially increased local populations, mainly through the inflow of workers, whereas marriage and fertility rates in mining areas were lower than in surrounding areas. After women were removed from the pits, these gaps narrowed. Early-life mortality was higher in mining areas and increased with the number of female miners, consistent with occupational hazards to pregnant women, whereas there is little evidence of pollution channels.</abstract>
+    </arXiv>
+
+            </metadata>
+        </record>
+
+    </GetRecord>
+</OAI-PMH>

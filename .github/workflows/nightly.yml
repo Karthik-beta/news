@@ -30,7 +30,7 @@ jobs:
       matrix:
         shard: [1, 2, 3, 4]
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
@@ -41,7 +41,7 @@ jobs:
       # across the four jobs. Playwright's webServer builds the site once per job, then serves it.
       - run: bun run test:e2e:full -- --shard=${{ matrix.shard }}/4
         working-directory: site
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
           name: site-full-report-shard-${{ matrix.shard }}
@@ -57,7 +57,7 @@ jobs:
     outputs:
       version: ${{ steps.read.outputs.version }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       # The screenshot image must match the locked @playwright/test exactly (see site/TESTING.md, "Screenshots").
@@ -84,7 +84,7 @@ jobs:
       # start as root in another user's home. The Playwright docs' fix for GitHub Actions containers.
       HOME: /root
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       # The same steps as site/scripts/visual.ts: Bun from npm at the pinned version, then a frozen install.
@@ -94,7 +94,7 @@ jobs:
       # Each test still opens its browser before reaching the fixme, so a browser that cannot start fails the job.
       - run: bunx playwright test --grep @visual
         working-directory: site
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
           name: site-visual-report

@@ -4,7 +4,7 @@ import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
-const CONTRACTS = fileURLToPath(new URL("../../../contracts", import.meta.url));
+const CONTRACTS = fileURLToPath(new URL("../../../contracts", import.meta.url).href);
 
 const files = (dir: string): string[] =>
   readdirSync(dir, { withFileTypes: true }).flatMap((e) =>

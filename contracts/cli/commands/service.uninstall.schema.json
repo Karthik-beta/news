@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/service.uninstall.schema.json",
+  "title": "news service uninstall",
+  "description": "Stop and remove the Bureau service and Board's log-on entry (ADR 0007 decision 12). Karthik runs it in his own terminal; it re-launches elevated.",
+  "x-news-tier": "W",
+  "x-news-status": "built",
+  "x-news-errors": ["precondition"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "uninstalled": {
+          "const": true
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": ["uninstalled", "text"],
+      "additionalProperties": false
+    }
+  }
+}

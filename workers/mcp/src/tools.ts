@@ -20,7 +20,7 @@ export const CAPS = {
 /** A failure the model can act on: reported as a tool result with isError, not as a protocol error. */
 export class ToolError extends Error {}
 
-/** A passing state ("being updated"): reported like a ToolError but never cached, so the next call reads again. */
+/** A passing state ("being updated"): reported like a ToolError but cached only briefly (cache.ts, RETRY_LATER_TTL). */
 export class RetryLaterError extends ToolError {}
 
 export interface ToolOutput {
@@ -76,13 +76,30 @@ async function readLiveFile(
 }
 
 /**
- * The live records of listed pages, in list order, keeping only published ones. Search rows and hub entries are
- * written before a publish commits, so a list shows a page only once its LATEST exists, with LATEST's metadata.
+ * The live records of listed pages, in list order, keeping only published ones that still `match` the list's filter.
+ * Search rows and hub entries are written before a publish commits, so a list shows a page only once its LATEST
+ * exists, with LATEST's metadata; and a publish that failed before its commit can leave a row or entry saying what
+ * the live version is not (another region or entity), so the filter is checked again on LATEST.
  */
-async function committedPages(deps: Deps, ids: string[]): Promise<PageRecord[]> {
+async function committedPages(
+  deps: Deps,
+  ids: string[],
+  match: (p: PageRecord) => boolean = () => true,
+): Promise<PageRecord[]> {
   if (ids.length === 0) return [];
   const live = await deps.reader().getPages(ids);
-  return ids.map((id) => live.get(id)).filter((p): p is PageRecord => p?.status === "published");
+  return ids.map((id) => live.get(id)).filter((p): p is PageRecord => p?.status === "published" && match(p));
+}
+
+/** Search hits asked for beyond `limit`, so dropping a few uncommitted or stale ones still fills the list. */
+const SEARCH_EXTRA = 10;
+
+/** The search filters that can differ between a stale search row and the live record (dates never change). */
+function matchesSearch(p: PageRecord, args: { category?: string; region?: string; page_type?: string }): boolean {
+  if (args.region !== undefined && p.region !== args.region) return false;
+  if (args.page_type !== undefined && p.page_type !== args.page_type) return false;
+  if (args.category !== undefined && !p.categories.flatMap(categoryLineage).includes(args.category)) return false;
+  return true;
 }
 
 const summaryOf = (deps: Deps, p: PageRecord) => ({
@@ -132,18 +149,22 @@ export const TOOLS: Tool[] = [
     async run(deps, args) {
       const shards = deps.shards();
       if (shards.length === 0) throw new Error("no search shard is bound");
+      const limit = Number(args.limit ?? 10);
       let hits: Awaited<ReturnType<typeof searchPages>>;
       try {
-        hits = await searchPages(shards, { ...(args as { query: string }), limit: Number(args.limit ?? 10) });
+        hits = await searchPages(shards, { ...(args as { query: string }), limit: limit + SEARCH_EXTRA });
       } catch (e) {
         if (e instanceof QueryTooLongError)
           throw new ToolError(`Use at most ${MAX_TERMS} words; every word must match.`);
         throw e;
       }
-      const pages = await committedPages(
-        deps,
-        hits.map((h) => h.page_id),
-      );
+      const pages = (
+        await committedPages(
+          deps,
+          hits.map((h) => h.page_id),
+          (p) => matchesSearch(p, args as Parameters<typeof matchesSearch>[1]),
+        )
+      ).slice(0, limit);
       return {
         structured: {
           results: pages.map((p) => ({
@@ -234,6 +255,7 @@ export const TOOLS: Tool[] = [
       const pages = await committedPages(
         deps,
         hub.items.map((e) => e.page_id),
+        (p) => p.entities.some((e) => e.id === id),
       );
       return {
         structured: {

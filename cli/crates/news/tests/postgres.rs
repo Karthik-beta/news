@@ -20,10 +20,14 @@
 
 // The news schema, Dispatch and the CLI against a real database. Async tests use sqlx through
 // `news_store`; each makes and drops its own schema (see `fixture`).
+#[path = "postgres/board.rs"]
+mod board;
 #[path = "postgres/chief.rs"]
 mod chief;
 #[path = "postgres/cli_db.rs"]
 mod cli_db;
+#[path = "postgres/diary_roster.rs"]
+mod diary_roster;
 #[path = "postgres/dispatch.rs"]
 mod dispatch;
 #[path = "postgres/fixture.rs"]

@@ -255,7 +255,7 @@ pub struct Peer {
     pub pid: u32,
     pub same_user: bool,
     pub integrity: Integrity,
-    /// The client's image path equals the service's own `current_exe()`.
+    /// The client's image path is the installed, admin-only `%ProgramFiles%\News\news.exe`.
     pub image_is_ours: bool,
     /// argv[1] is `board` (a hint, not a proof).
     pub argv1_is_board: bool,

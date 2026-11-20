@@ -1,0 +1,76 @@
+# Hand-checked decision dates for central banks whose calendars are not machine-readable (Bureau Design §3.3).
+# Every entry names the page it was read from and the day a person checked it; Diary refuses an entry without them.
+# Fed dates come from the FOMC page itself (parsed live), not from this file. Not yet seeded: ECB (the calendar page
+# loads its dates by script), Bank of Canada, RBA, BoJ and RBI: add them here once checked against the bank's own page.
+
+[[event]]
+source_id = "cb-boe"
+bank = "boe"
+title = "Bank of England MPC decision (Monetary Policy Summary)"
+date = "2026-12-17"
+page = "https://www.bankofengland.co.uk/monetary-policy/upcoming-mpc-dates"
+checked_on = "2026-11-18"
+
+[[event]]
+source_id = "cb-boe"
+bank = "boe"
+title = "Bank of England MPC decision (Monetary Policy Summary)"
+date = "2027-02-04"
+page = "https://www.bankofengland.co.uk/monetary-policy/upcoming-mpc-dates"
+checked_on = "2026-11-18"
+
+[[event]]
+source_id = "cb-boe"
+bank = "boe"
+title = "Bank of England MPC decision (Monetary Policy Summary)"
+date = "2027-03-18"
+page = "https://www.bankofengland.co.uk/monetary-policy/upcoming-mpc-dates"
+checked_on = "2026-11-18"
+
+[[event]]
+source_id = "cb-boe"
+bank = "boe"
+title = "Bank of England MPC decision (Monetary Policy Summary)"
+date = "2027-04-29"
+page = "https://www.bankofengland.co.uk/monetary-policy/upcoming-mpc-dates"
+checked_on = "2026-11-18"
+
+[[event]]
+source_id = "cb-boe"
+bank = "boe"
+title = "Bank of England MPC decision (Monetary Policy Summary)"
+date = "2027-06-17"
+page = "https://www.bankofengland.co.uk/monetary-policy/upcoming-mpc-dates"
+checked_on = "2026-11-18"
+
+[[event]]
+source_id = "cb-boe"
+bank = "boe"
+title = "Bank of England MPC decision (Monetary Policy Summary)"
+date = "2027-07-29"
+page = "https://www.bankofengland.co.uk/monetary-policy/upcoming-mpc-dates"
+checked_on = "2026-11-18"
+
+[[event]]
+source_id = "cb-boe"
+bank = "boe"
+title = "Bank of England MPC decision (Monetary Policy Summary)"
+date = "2027-09-16"
+page = "https://www.bankofengland.co.uk/monetary-policy/upcoming-mpc-dates"
+checked_on = "2026-11-18"
+
+[[event]]
+source_id = "cb-boe"
+bank = "boe"
+title = "Bank of England MPC decision (Monetary Policy Summary)"
+date = "2027-11-04"
+page = "https://www.bankofengland.co.uk/monetary-policy/upcoming-mpc-dates"
+checked_on = "2026-11-18"
+
+[[event]]
+source_id = "cb-boe"
+bank = "boe"
+title = "Bank of England MPC decision (Monetary Policy Summary)"
+date = "2027-12-16"
+page = "https://www.bankofengland.co.uk/monetary-policy/upcoming-mpc-dates"
+checked_on = "2026-11-18"

@@ -99,6 +99,8 @@ pub enum Command {
     /// The Bureau service
     #[command(subcommand)]
     Service(ServiceCmd),
+    /// Board: the desktop app (opens a window; every control action goes through it)
+    Board(BoardArgs),
     /// Dispatch: the job queue
     #[command(subcommand)]
     Jobs(JobsCmd),
@@ -187,10 +189,60 @@ pub enum StandingCmd {
 pub enum ServiceCmd {
     /// Run the Bureau service in this console until Ctrl-C
     Run {
-        /// Console mode (the only mode until #29 registers the service)
+        /// Console mode: do not talk to the Service Control Manager (the SCM runs it without this)
         #[arg(long)]
         console: bool,
     },
+    /// Register the service under your own account (asks for your Windows password)
+    Install {
+        /// Print the plan and change nothing
+        #[arg(long)]
+        dry_run: bool,
+        /// Account to run as (default: the current user, `.\name`)
+        #[arg(long)]
+        account: Option<String>,
+        /// Set by the elevated re-launch
+        #[arg(long, hide = true)]
+        elevated: bool,
+        /// Set by the elevated re-launch
+        #[arg(long, hide = true)]
+        sid: Option<String>,
+    },
+    /// Stop and remove the service and Board's log-on entry
+    Uninstall {
+        /// Set by the elevated re-launch
+        #[arg(long, hide = true)]
+        elevated: bool,
+    },
+    /// Stage a new build for `service.update`: copies it into the install folder and records its
+    /// SHA-256 (asks for administrator)
+    Stage {
+        /// The new news.exe
+        path: std::path::PathBuf,
+        /// Set by the elevated re-launch
+        #[arg(long, hide = true)]
+        elevated: bool,
+    },
+    /// Start the installed service
+    Start,
+    /// Stop the installed service
+    Stop,
+    /// The SCM's view of the service, with the last error
+    Status,
+}
+
+/// `news board` is handled before this parser runs (`main`): the window needs the main thread and no
+/// envelope. The command exists here so `news --help` lists it.
+#[derive(Args, Debug)]
+pub struct BoardArgs {
+    /// Start minimised (the log-on entry uses this)
+    #[arg(long)]
+    pub minimized: bool,
+    /// Open on an item, e.g. `gate:r_51d2.plan` or `run:r_51d2` (a toast's click)
+    #[arg(long, value_name = "KIND:ID")]
+    pub open: Option<String>,
+    /// `autostart on|off|status`: Board's log-on entry
+    pub action: Vec<String>,
 }
 
 #[derive(Subcommand, Debug)]

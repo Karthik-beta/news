@@ -8,12 +8,15 @@
 //   - a deadline, DEADLINE_MS after the lock was taken (20 s before anyone may take over): no page write starts later;
 //   - every storage call has a timeout (DynamoDB 8 s in its client, R2 and D1 `timeoutMs` here), so a call started
 //     before the deadline is answered or abandoned before the lease ends; an abandoned write is an unknown outcome,
-//     and then the lock is kept until it is stale instead of being given back;
+//     and then the lock is kept until it is stale instead of being given back. A batch write gets the deadline too,
+//     so its retries of unprocessed writes stop there. Worst case: a call started just before the deadline runs its
+//     10 s timeout, which leaves 10 s of the 20 s margin for an abandoned R2 or D1 write to land and for clocks;
 //   - the commit (moving LATEST, or the withdraw and index status change) is a transaction with a check that the lock
 //     still names this request as its owner, so a holder that lost its lock can never change the live record.
 import { randomHex } from "@news/worker-shared/crypto";
 import { type Cond, eq, lt, notExists, or } from "@news/worker-shared/dynamo/conditions";
 import {
+  type BatchWriteOptions,
   ConditionFailedError,
   type Doc,
   type Key,
@@ -82,9 +85,24 @@ export class Fence {
     readonly timeoutMs: number = STORAGE_TIMEOUT_MS,
   ) {}
 
+  /** Epoch ms after which no page write starts; undefined without a lock. */
+  get deadline(): number | undefined {
+    return this.lock && this.lock.acquiredAt + DEADLINE_MS;
+  }
+
   /** Throws lock_expired once past the deadline. Called before every step and every batch of page writes. */
   check(): void {
-    if (this.lock && this.now().getTime() > this.lock.acquiredAt + DEADLINE_MS) throw lockExpired();
+    const deadline = this.deadline;
+    if (deadline !== undefined && this.now().getTime() > deadline) throw lockExpired();
+  }
+
+  /**
+   * Options for Table.batchWrite: the deadline on this fence's clock, so a retry of unprocessed writes never starts
+   * after it either (a retry started near the deadline could otherwise land after the lease).
+   */
+  batchOptions(): BatchWriteOptions {
+    const deadline = this.deadline;
+    return deadline === undefined ? {} : { deadline, now: () => this.now().getTime() };
   }
 
   /**

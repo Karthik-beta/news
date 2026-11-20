@@ -118,7 +118,8 @@ export function tableContract(label: string, getTable: () => Table): void {
       const t = getTable();
       const pk = `PAGE#${uid()}`;
       const keys = Array.from({ length: 120 }, (_, i) => ({ PK: `${pk}-${i}`, SK: "LATEST" }));
-      for (const k of keys.slice(0, 110)) await t.put({ ...k, n: Number(k.PK.split("-").pop()) });
+      // Seeded in batches (5 calls, not 110), so the run against DynamoDB Local stays well inside the test timeout.
+      await t.batchWrite(keys.slice(0, 110).map((k) => ({ put: { ...k, n: Number(k.PK.split("-").pop()) } })));
       const got = await t.batchGet([...keys, keys[0] as (typeof keys)[0]]);
       expect(got).toHaveLength(110);
       expect(new Set(got.map((d) => d.PK)).size).toBe(110);

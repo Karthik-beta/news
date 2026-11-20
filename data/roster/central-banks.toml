@@ -1,0 +1,75 @@
+# Central banks: the Stringers emit ("cb", <key>) identifiers (cli/crates/news-connectors/src/centralbank.rs),
+# so Roster needs these entities before the first statement arrives. Hand-written; loaded with
+# news_roster::store::apply.
+
+[[entity]]
+kind = "central_bank"
+name = "Federal Reserve"
+region = "us"
+prominence = 1
+ids = [{ scheme = "cb", value = "fed" }]
+aliases = ["The Fed", "Fed", "Federal Reserve System", "Federal Reserve Board", "Federal Open Market Committee", "FOMC"]
+
+[[entity]]
+kind = "central_bank"
+name = "European Central Bank"
+region = "eu"
+prominence = 1
+ids = [{ scheme = "cb", value = "ecb" }]
+aliases = ["ECB"]
+
+[[entity]]
+kind = "central_bank"
+name = "Bank of England"
+region = "uk"
+prominence = 1
+ids = [{ scheme = "cb", value = "boe" }]
+aliases = ["BoE", "Monetary Policy Committee"]
+
+[[entity]]
+kind = "central_bank"
+name = "Bank of Japan"
+region = "jp"
+prominence = 1
+ids = [{ scheme = "cb", value = "boj" }]
+aliases = ["BoJ"]
+
+[[entity]]
+kind = "central_bank"
+name = "People's Bank of China"
+region = "cn"
+prominence = 1
+ids = [{ scheme = "cb", value = "pboc" }]
+aliases = ["PBOC", "PBoC"]
+
+[[entity]]
+kind = "central_bank"
+name = "Bank of Canada"
+region = "ca"
+prominence = 2
+ids = [{ scheme = "cb", value = "boc" }]
+aliases = ["BoC"]
+
+[[entity]]
+kind = "central_bank"
+name = "Reserve Bank of Australia"
+region = "au"
+prominence = 2
+ids = [{ scheme = "cb", value = "rba" }]
+aliases = ["RBA"]
+
+[[entity]]
+kind = "central_bank"
+name = "Reserve Bank of India"
+region = "in"
+prominence = 2
+ids = [{ scheme = "cb", value = "rbi" }]
+aliases = ["RBI"]
+
+[[entity]]
+kind = "central_bank"
+name = "Swiss National Bank"
+region = "ch"
+prominence = 2
+ids = [{ scheme = "cb", value = "snb" }]
+aliases = ["SNB"]

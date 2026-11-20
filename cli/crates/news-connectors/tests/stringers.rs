@@ -33,6 +33,7 @@ fn cx() -> Cx {
         sec_ciks: vec!["320193".into()],
         fred_series: vec!["CPIAUCSL".into()],
         bls_series: vec!["CUUR0000SA0".into()],
+        tracked: Default::default(),
     }
 }
 

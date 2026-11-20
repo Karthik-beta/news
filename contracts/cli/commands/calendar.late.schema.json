@@ -4,7 +4,7 @@
   "title": "news calendar late",
   "description": "Releases that did not arrive. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "R",
-  "x-news-status": "stub until #12",
+  "x-news-status": "built",
   "x-news-errors": [],
   "$defs": {
     "input": {
@@ -49,12 +49,16 @@
             "additionalProperties": false
           }
         },
+        "text": {
+          "type": "string",
+          "description": "Code-rendered text, printed verbatim to Karthik"
+        },
         "next_cursor": {
           "type": "string",
           "description": "Present when truncated: pass to --cursor"
         }
       },
-      "required": ["items"],
+      "required": ["items", "text"],
       "additionalProperties": false
     }
   }

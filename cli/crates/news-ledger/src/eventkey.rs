@@ -22,6 +22,23 @@ pub fn macro_release(country: &str, family: &str, reference_period: &str) -> Opt
         .then(|| format!("macro:{country}.{family}:{reference_period}"))
 }
 
+/// `policy:<central_bank>:<decision_date>`, e.g. `policy:fed:2026-12-09`. The decision date is the day
+/// the bank announces, as its own statement dates it.
+pub fn policy(central_bank: &str, decision_date: chrono::NaiveDate) -> Option<String> {
+    let ok = !central_bank.is_empty()
+        && central_bank
+            .bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_');
+    ok.then(|| format!("policy:{central_bank}:{decision_date}"))
+}
+
+/// `paper:doi:<doi>` (lower case, as DOIs compare), or `paper:<scheme>:<id>` for a repository id
+/// (`paper:arxiv:2112.14514`, `paper:openalex:W123`).
+pub fn paper(scheme: &str, id: &str) -> Option<String> {
+    let ok = matches!(scheme, "doi" | "arxiv" | "openalex") && !id.trim().is_empty();
+    ok.then(|| format!("paper:{scheme}:{}", id.trim().to_lowercase()))
+}
+
 /// `YYYY`, `YYYY-MM`, `YYYY-Qn` or `YYYY-MM-DD`.
 fn valid_period(p: &str) -> bool {
     let b = p.as_bytes();
