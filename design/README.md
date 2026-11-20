@@ -66,6 +66,7 @@ When documents disagree, `tokens.json` wins for values and `principles.md` wins 
 | 16 Nov 2026 | Figures show the source's own digits: rates, points and basis points are never rounded (6.50% stays 6.50%) |
 | 16 Nov 2026 | Citation and glossary popovers open on click, tap, Enter or Space only, not on hover or focus |
 | 16 Nov 2026 | Crimson never marks a subject that fell (chart highlight rules follow with the chart components, issue #8) |
+| 20 Nov 2026 | New token `chart.neutral-highlight` (`#3D3D3A` light, `#B0B0AB` dark) for a highlighted subject that fell; what "fell" means per chart is in [charts.md](charts.md#when-the-subject-fell) (issue #8) |
 | 18 Nov 2026 | Board (the egui desktop app) shares only the tokens with the site: `cli/crates/news-board/build.rs` generates Rust tables (both palettes, type sizes, spacing, radii, borders) from `tokens.json`, and a test fails on literal colours in Board code. It follows the Windows light or dark setting with a manual override. Board uses egui's bundled face until Literata and Fira Sans files are added to it; the sizes are the tokens'. Section rules (2px ink) and the crimson current-nav underline carry over; radius 0 on content, 5px on controls |
 
 ## Open items

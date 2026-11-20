@@ -90,12 +90,13 @@ describe("fixture pages", () => {
     expect(injected({})).toEqual([]);
   });
 
-  it("NEWS_FIXTURES=1 adds the renderer and primitive fixture pages; OPENUI_SPIKE=1 the spike's", () => {
+  it("NEWS_FIXTURES=1 adds the renderer, primitive and component fixture pages; OPENUI_SPIKE=1 the spike's", () => {
     expect(injected({ NEWS_FIXTURES: "1" })).toEqual([
       "/fixtures/renderer/[bundle]",
       "/fixtures/renderer/[bundle]/[...file]",
       "/fixtures/primitives/[name]",
       "/fixtures/components/[name]/[fixture]",
+      "/fixtures/components/[name]/[fixture]/[...file]",
       "/fixtures/images/[file]",
     ]);
     expect(injected({ OPENUI_SPIKE: "1" })).toEqual(["/fixtures/openui-ssr/[approach]"]);
@@ -110,6 +111,7 @@ describe("fixture pages", () => {
       "apple-fy2024",
       "edge-cases",
       "static",
+      "charts",
     ]);
   });
 });

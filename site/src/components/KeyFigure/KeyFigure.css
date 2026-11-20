@@ -1,0 +1,35 @@
+/* One key figure (design/components.md, "Key figures"): a 1px ink rule on top with 10px above the label; the
+   label in ink-2; the value as a figure in ink with lining numerals and the cited figure's dotted underline; the
+   change in words in ink-2, never coloured; the sparkline to the right of the value, under it when there is no
+   room. The spec's 13px change text has no token: it uses the 13.5px label size. */
+.key-figure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  padding-top: calc(var(--space-3) + var(--space-1));
+  border-top: var(--border-hairline) solid var(--color-ink);
+}
+.key-figure__label,
+.key-figure__value,
+.key-figure__change {
+  margin: 0;
+}
+.key-figure__value {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--space-4);
+  row-gap: var(--space-2);
+  color: var(--color-ink);
+}
+.key-figure__figure {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.key-figure__change {
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-label);
+  line-height: 1.35;
+  color: var(--color-ink-2);
+}

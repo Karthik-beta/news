@@ -23,7 +23,7 @@ export const galleryNames = () => Object.keys(galleries).sort();
 export function renderGallery(name: string): string {
   const cases = galleries[name];
   if (!cases) throw new Error(`No fixture cases for ${name}`);
-  const merged = mergeBundleData(fixtureBundles["apple-fy2024"], fixtureBundles["edge-cases"]);
+  const merged = mergeBundleData(fixtureBundles["apple-fy2024"], fixtureBundles["edge-cases"], fixtureBundles.charts);
   const resolver = new PageDataResolver(PageData.parse(merged.data), PageSources.parse(merged.sources));
   const allSources = Object.keys(resolver.sources.sources);
   return staticMarkup(

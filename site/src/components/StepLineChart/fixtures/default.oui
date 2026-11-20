@@ -1,0 +1,3 @@
+root = Page([path, unmarked])
+path = StepLineChart("The Fed has cut three times since {pd_fomc_20240918}", "Federal funds target range, upper limit, %", ["sr_fed_funds_upper"], ["pd_fomc_20220316", "pd_fomc_20230726", "pd_fomc_20240918", "pd_fomc_20241107", "pd_fomc_20241218"])
+unmarked = StepLineChart("Rates held for over a year at their peak", "Federal funds target range, upper limit, %", ["sr_fed_funds_upper"])

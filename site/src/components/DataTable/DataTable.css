@@ -1,0 +1,84 @@
+/* Tables as charts (design/charts.md): numbers right-aligned in tabular figures, text left-aligned; the header in
+   ink-2 over a 1px ink rule; hairlines between rows; no zebra stripes, no vertical lines. The highlighted row is
+   bold with a 3px crimson bar on its left (the spec's 3px has no token). The first column stays put while a wide
+   table scrolls inside its own container. Used for standalone tables and inside "Show the data table". */
+.data-table__scroll {
+  overflow-x: auto;
+  max-width: 100%;
+}
+.data-table__scroll:focus-visible {
+  outline: var(--border-focus) solid var(--color-focus);
+  outline-offset: var(--space-1);
+}
+.data-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-label);
+  line-height: 1.35;
+  color: var(--color-ink);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.data-table .data-table__head,
+.data-table .data-table__row-head,
+.data-table .data-table__cell {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: var(--border-hairline) solid var(--color-rule);
+  text-align: start;
+  vertical-align: bottom;
+  background: var(--color-paper);
+}
+.data-table .data-table__head {
+  color: var(--color-ink-2);
+  font-weight: var(--font-weight-regular);
+  border-bottom-color: var(--color-ink);
+}
+.data-table .data-table__row-head {
+  font-weight: var(--font-weight-regular);
+}
+.data-table .is-number {
+  text-align: end;
+  white-space: nowrap;
+}
+.data-table .data-table__label,
+.data-table .data-table__unit {
+  display: block;
+}
+.data-table .data-table__unit {
+  color: var(--color-ink-3);
+}
+.data-table .is-missing {
+  color: var(--color-ink-2);
+}
+/* The first column stays in place while the rest scroll. */
+.data-table .data-table__head:first-child,
+.data-table .data-table__row-head {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 1;
+}
+.data-table .is-highlight > .data-table__row-head,
+.data-table .is-highlight > .data-table__cell {
+  font-weight: var(--font-weight-bold);
+}
+.data-table .is-highlight > .data-table__row-head::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 3px;
+  background: var(--chart-highlight);
+  forced-color-adjust: none;
+  print-color-adjust: exact;
+}
+/* Crimson never marks a subject that fell (design/charts.md, "When the subject fell"). */
+.data-table .is-highlight.is-fell > .data-table__row-head::before {
+  background: var(--chart-neutral-highlight);
+}
+@media (forced-colors: active) {
+  .data-table .is-highlight > .data-table__row-head::before,
+  .data-table .is-highlight.is-fell > .data-table__row-head::before {
+    background: Highlight;
+  }
+}

@@ -75,11 +75,15 @@ Nothing else is markup: other brackets, asterisks and `#` print as typed.
 | `Rule` | Hairline, ink, section and brand rules, as an element or as `ruleTop(kind)` classes |
 | `VisuallyHidden` | Screen-reader-only text; `focusable` for skip links |
 | `Icon` | The eight icons, 1em, in `currentColor`, hidden from assistive technology unless labelled |
+| `ChartFigure` | The data-aware chart wrapper: `FigureFrame` filled from one table model (`ChartFigure/model.ts`), so the data table, CSV, JSON, Markdown and accessible summary agree; legend keys; "No data". Also holds the shared chart parts: `scale.ts` (axis, bare labels, x-label thinning), `interaction.tsx` (keys, taps, tooltip, live region, client-safe) and `plot.tsx` |
+| `SourcePopover` | The citation popover for one cited value; `SourceRef` renders every cited figure through it |
+| `DataLinks` | The downloads row: CSV, JSON and Markdown as text links |
+| `Sparkline` | A 120×36 static trend line from an `sr_` series, latest point as a crimson dot |
 
 The shared formatters (numbers, currencies, units, fiscal labels, minus signs, dates) are in `src/format/`.
 
 ## Fixture pages
 
-With `NEWS_FIXTURES=1` (test and CI builds), `/fixtures/primitives/<Name>/` shows every case in a primitive's `fixtures/cases.tsx`, `/fixtures/components/<Name>/<fixture>/` renders each component's `fixtures/<fixture>.oui` through the real renderer (data from every fixture bundle plus `src/renderer/fixtures/component-pages/`, the fixture glossary, and test images served at `/fixtures/images/`), and `/fixtures/renderer/<bundle>/` renders each fixture bundle in `src/renderer/fixtures/bundles/`. Production builds leave them out. Each component fixture's `index.md` is snapshotted in `fixtures/__snapshots__/<fixture>.md`.
+With `NEWS_FIXTURES=1` (test and CI builds), `/fixtures/primitives/<Name>/` shows every case in a primitive's `fixtures/cases.tsx`, `/fixtures/components/<Name>/<fixture>/` renders each component's `fixtures/<fixture>.oui` through the real renderer (data from every fixture bundle merged, including `charts`, plus `src/renderer/fixtures/component-pages/`, the fixture glossary, and test images served at `/fixtures/images/`), with its `index.md` and chart CSV and JSON beside it, and `/fixtures/renderer/<bundle>/` renders each fixture bundle in `src/renderer/fixtures/bundles/`. Production builds leave them out. Each component fixture's `index.md` is snapshotted in `fixtures/__snapshots__/<fixture>.md`.
 
 Links in fixtures must resolve in the fixture build (the integration link check), so fixtures for parts that link to pages not built yet (hubs, methodology, the report form) pass links to the home page with a query string.

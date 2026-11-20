@@ -1,0 +1,268 @@
+/* Shared chart parts (design/charts.md): colour roles, legend keys, the value axis, x labels, tooltips and the
+   missing state. Every chart type builds on these classes; tokens only. Text in a chart is never under 12px:
+   ticks, labels and values use the label size (13.5px). */
+
+/* Colour roles: one custom property per mark, set by the role class (design/color.md, "Chart colours"). The role
+   comes from the page writer's choice of subject, never from the value, except that a subject that fell takes the
+   neutral highlight: crimson never marks a fall. */
+.chart-colour--highlight {
+  --chart-mark: var(--chart-highlight);
+}
+/* The subject when it fell: crimson never marks a fall (design/charts.md, "When the subject fell"). */
+.chart-colour--highlight-neutral {
+  --chart-mark: var(--chart-neutral-highlight);
+}
+.chart-colour--comparison {
+  --chart-mark: var(--chart-comparison);
+}
+.chart-colour--context {
+  --chart-mark: var(--chart-context);
+}
+.chart-colour--neutral {
+  --chart-mark: var(--chart-neutral);
+}
+.chart-colour--cat-1 {
+  --chart-mark: var(--chart-cat-1);
+}
+.chart-colour--cat-2 {
+  --chart-mark: var(--chart-cat-2);
+}
+.chart-colour--cat-3 {
+  --chart-mark: var(--chart-cat-3);
+}
+.chart-colour--cat-4 {
+  --chart-mark: var(--chart-cat-4);
+}
+.chart-colour--cat-5 {
+  --chart-mark: var(--chart-cat-5);
+}
+.chart-colour--cat-6 {
+  --chart-mark: var(--chart-cat-6);
+}
+.chart-colour--cat-7 {
+  --chart-mark: var(--chart-cat-7);
+}
+.chart-colour--cat-8 {
+  --chart-mark: var(--chart-cat-8);
+}
+
+/* Legend: a row of small keys above the plot, left-aligned, text in ink-2. */
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--space-5);
+  row-gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.chart-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* Keys: a 10×10 square for bars, a 14×2.5px line for lines (design/charts.md, "Anatomy"). */
+.chart-key {
+  display: inline-block;
+  flex: none;
+  background: var(--chart-mark);
+  forced-color-adjust: none;
+  print-color-adjust: exact;
+}
+.chart-key--square {
+  width: 10px;
+  height: 10px;
+}
+.chart-key--line {
+  width: 14px;
+  height: var(--chart-mark-line-width);
+}
+
+/* The plot box: phone first, taller from tablet up. The value axis sits on the left, labels above their
+   gridlines; the marks start after the axis labels so a tall mark never covers one. */
+.chart-plot {
+  position: relative;
+  /* The plot's own font, so the ch lengths below measure its labels. */
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-label);
+  --chart-plot-height: 15rem;
+  --chart-axis-inset: calc(var(--chart-axis-width, 3ch) + var(--space-3));
+  --chart-end-room: 0px;
+  /* A query container, so the plot can tell when it is tight: narrower than 20em of its own text (a phone at
+     150-200% text size), which no viewport media query can see. */
+  container: chart-plot / inline-size;
+}
+@media (min-width: 600px) {
+  .chart-plot {
+    --chart-plot-height: 18rem;
+  }
+}
+.chart-plot__frame {
+  position: relative;
+  padding-top: var(--space-6);
+}
+.chart-plot__inner {
+  position: relative;
+  height: var(--chart-plot-height);
+}
+.chart-plot__gridline {
+  position: absolute;
+  inset-inline: 0;
+  height: 0;
+  border-top: var(--border-hairline) solid var(--chart-grid);
+}
+.chart-plot__gridline.is-baseline {
+  /* 1.25px in the spec; browsers draw a 1px line either way at 1x, so the ink colour carries the difference. */
+  border-top-color: var(--chart-baseline);
+  z-index: 1;
+}
+.chart-plot__tick {
+  position: absolute;
+  inset-inline-start: 0;
+  bottom: var(--space-1);
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-label);
+  line-height: 1.35;
+  color: var(--color-ink-3);
+  font-variant-numeric: tabular-nums lining-nums;
+  white-space: nowrap;
+}
+.chart-plot__area {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: var(--chart-axis-inset);
+  inset-inline-end: var(--chart-end-room);
+  touch-action: pan-y;
+}
+.chart-plot__area:focus-visible {
+  outline: var(--border-focus) solid var(--color-focus);
+  outline-offset: var(--space-1);
+}
+.chart-plot__overlay {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: var(--chart-axis-inset);
+  inset-inline-end: var(--chart-end-room);
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* X labels under the baseline: periods as the source labels them, never rotated; thinned on phones. */
+.chart-plot__x {
+  position: relative;
+  height: var(--space-7);
+  margin-inline-start: var(--chart-axis-inset);
+  margin-inline-end: var(--chart-end-room);
+}
+.chart-plot__x-label {
+  position: absolute;
+  top: var(--space-2);
+  translate: -50% 0;
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-label);
+  line-height: 1.35;
+  color: var(--color-ink-2);
+  font-variant-numeric: tabular-nums lining-nums;
+  white-space: nowrap;
+}
+.chart-plot__x-label.is-first {
+  translate: 0 0;
+}
+.chart-plot__x-label.is-last {
+  translate: -100% 0;
+}
+.chart-plot__x-label.is-wide-only {
+  display: none;
+}
+@media (min-width: 600px) {
+  .chart-plot__x-label.is-wide-only {
+    display: block;
+  }
+  .chart-plot__x-label.is-phone-only {
+    display: none;
+  }
+}
+
+/* A tight plot (narrower than 20em of its text): fewer x labels, chosen on the server for the room, each allowed to
+   wrap to half the way to its neighbours; the first and last pinned inside the plot. The labels share one grid cell,
+   each offset to its stop, so the axis is as tall as its tallest label however many lines that one wraps to. */
+@container chart-plot (max-width: 20em) {
+  .chart-plot__x {
+    display: grid;
+    /* One column the axis's full width, so the labels' left and max-width percentages are of the axis. */
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+    padding-top: var(--space-2);
+  }
+  .chart-plot__x .chart-plot__x-label {
+    display: none;
+  }
+  .chart-plot__x .chart-plot__x-label.is-tight {
+    display: block;
+    grid-area: 1 / 1;
+    justify-self: start;
+    position: relative;
+    top: 0;
+    width: max-content;
+    max-width: var(--x-label-room, 100%);
+    translate: -50% 0;
+    text-align: center;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .chart-plot__x .chart-plot__x-label.is-tight-first {
+    translate: 0 0;
+    text-align: start;
+  }
+  .chart-plot__x .chart-plot__x-label.is-tight-last {
+    translate: -100% 0;
+    text-align: end;
+  }
+}
+
+/* Tooltip lines: a short key in the series colour, the value, then the series name. */
+.chart-tooltip {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.chart-tooltip__line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.chart-tooltip__series {
+  color: var(--color-ink-2);
+}
+
+/* Missing data: said in words, the plot's height kept so nothing jumps. */
+.chart-figure__missing {
+  margin: 0;
+  padding-block: var(--space-9);
+  color: var(--color-ink-2);
+}
+
+/* A mark with no data: a neutral hatch (design/charts.md, "Missing data"). The hatch is texture, not decoration. */
+.chart-hatch {
+  background-color: transparent;
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--chart-neutral) 0 var(--border-hairline),
+    transparent var(--border-hairline) var(--space-2)
+  );
+  outline: var(--border-hairline) solid var(--chart-neutral);
+  outline-offset: calc(-1 * var(--border-hairline));
+  forced-color-adjust: none;
+  print-color-adjust: exact;
+}
+
+@media (forced-colors: active) {
+  .chart-key,
+  .chart-hatch {
+    forced-color-adjust: none;
+  }
+  .chart-plot__gridline.is-baseline {
+    border-top-color: CanvasText;
+  }
+}

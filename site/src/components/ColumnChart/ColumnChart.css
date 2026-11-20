@@ -1,0 +1,125 @@
+/* Column chart (design/charts.md, "Marks"): columns up to 48px wide, square ends, 2px paper gaps between grouped
+   columns, bars from zero, negative columns below the baseline in the same colour. Value labels sit just past the
+   column end in ink; the highlighted one is bold and crimson, or bold in the neutral highlight when it fell. Columns are HTML so the 48px cap and the 2px gap
+   are exact at every width and every label stays at full size. */
+.column-chart__band {
+  position: absolute;
+  inset-block: 0;
+  cursor: default;
+}
+.column-chart__group {
+  position: absolute;
+  inset-block: 0;
+  inset-inline: 12%;
+  display: flex;
+  justify-content: center;
+  gap: var(--chart-mark-bar-gap);
+}
+.column-chart__slot {
+  position: relative;
+  flex: 0 1 48px;
+  min-width: 0;
+  height: 100%;
+}
+.column-chart__fill {
+  position: absolute;
+  inset-inline: 0;
+  background-color: var(--chart-mark);
+  forced-color-adjust: none;
+  print-color-adjust: exact;
+}
+.column-chart__fill.chart-hatch {
+  background-color: transparent;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .column-chart__fill {
+    transition: opacity var(--motion-fast);
+  }
+}
+/* The hovered or focused column lightens slightly; the others stay as they are. */
+.column-chart__band.is-active .column-chart__fill:not(.chart-hatch) {
+  opacity: 0.8;
+}
+
+.column-chart__value {
+  position: absolute;
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  padding-block: var(--space-1);
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-label);
+  line-height: 1.2;
+  color: var(--color-ink);
+  white-space: nowrap;
+  z-index: 2;
+}
+/* Narrow columns or long labels: the first and last labels align to the column's outer edge, so they stay inside
+   the plot rather than overhanging the page. */
+.column-chart__value.is-first {
+  inset-inline-start: 0;
+  translate: 0 0;
+}
+.column-chart__value.is-last {
+  inset-inline-start: auto;
+  inset-inline-end: 0;
+  translate: 0 0;
+}
+.column-chart__value.is-highlight {
+  font-weight: var(--font-weight-bold);
+  color: var(--chart-highlight);
+}
+.column-chart__value.is-highlight-neutral {
+  font-weight: var(--font-weight-bold);
+  color: var(--chart-neutral-highlight);
+}
+
+/* Value labels that are not the highlighted or latest column show only where every label fits. */
+.column-chart__value--room {
+  display: none;
+}
+.column-chart--n5 .column-chart__value--room {
+  display: block;
+}
+@media (min-width: 600px) {
+  .column-chart--n8 .column-chart__value--room {
+    display: block;
+  }
+}
+@media (min-width: 980px) {
+  .column-chart--n12 .column-chart__value--room {
+    display: block;
+  }
+}
+
+/* A tight plot (narrower than 20em of its text: a phone at 150-200% text size; design/charts.md, "Responsive
+   behaviour") has room only for the highlighted and latest values: the others are left to the tooltip and the data
+   table. The first and last columns' values align to their column's outer edge so they stay inside the plot, and
+   the frame has room above the tallest column for a value at this text size. */
+@container chart-plot (max-width: 20em) {
+  .column-chart__plot .column-chart__band .column-chart__value--room {
+    display: none;
+  }
+  .column-chart__band:nth-child(1 of .column-chart__band) .column-chart__value {
+    inset-inline-start: 0;
+    inset-inline-end: auto;
+    translate: 0 0;
+  }
+  .column-chart__band:nth-last-child(1 of .column-chart__band) .column-chart__value {
+    inset-inline-start: auto;
+    inset-inline-end: 0;
+    translate: 0 0;
+  }
+  .column-chart__plot .chart-plot__frame {
+    padding-top: max(var(--space-6), calc(1.2em + 2 * var(--space-1)));
+  }
+}
+
+@media (forced-colors: active) {
+  .column-chart__fill:not(.chart-hatch) {
+    background: CanvasText;
+  }
+  .column-chart__fill.chart-colour--highlight,
+  .column-chart__fill.chart-colour--highlight-neutral {
+    background: Highlight;
+  }
+}

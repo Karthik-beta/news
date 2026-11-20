@@ -1,0 +1,32 @@
+/* Key figures row (design/components.md, "Key figures"): two across on phones, the whole row (up to four) from
+   600px up, one source line under the row. No boxes: each figure has a 1px ink rule on top. */
+.key-figures {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.key-figures__list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: var(--space-6);
+  row-gap: var(--space-6);
+  margin: 0;
+}
+.key-figures--n1 .key-figures__list {
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 600px) {
+  .key-figures--n3 .key-figures__list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .key-figures--n4 .key-figures__list {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+.key-figures__source {
+  margin: 0;
+}
+.key-figures__source a {
+  color: inherit;
+}

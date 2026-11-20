@@ -3,6 +3,9 @@
 import type { IslandLoaders } from "../renderer/islands/types";
 
 export const islands: IslandLoaders = {
+  BarChartPlot: () => import("./BarChart/BarChartPlot.client"),
+  ColumnChartPlot: () => import("./ColumnChart/ColumnChartPlot.client"),
   ImageGallery: () => import("./ImageGallery/ImageGallery.client"),
+  LineChartPlot: () => import("./LineChart/LineChartPlot.client"),
   VideoEmbed: () => import("./VideoEmbed/VideoEmbed.client"),
 };

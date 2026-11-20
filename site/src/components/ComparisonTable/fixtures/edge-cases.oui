@@ -1,0 +1,4 @@
+root = Page([missing, nochange, restricted])
+missing = ComparisonTable("Missing, unknown, zero and negative values", "Synthetic values", ["Before", "After"], [{label: "Unpublished", a: "dp_edge_null", b: "dp_edge_percent", change: "dv_edge_change_neg"}, {label: "Unknown", a: "dp_edge_not_in_data", b: "dp_edge_zero", change: "dv_edge_not_in_data"}, {label: "Very large", a: "dp_edge_very_large", b: "dp_edge_very_large"}, {label: "Very small", a: "dp_edge_very_small", b: "dp_edge_very_small"}, {label: "Negative", a: "dp_edge_negative", b: "dp_edge_negative"}])
+nochange = ComparisonTable("Without a change column", "Synthetic values, %", ["{pd_fx_2023}", "{pd_fx_2024}"], [{label: "Growth", a: "dp_fx_gaps_2023", b: "dp_fx_gaps_2024"}])
+restricted = ComparisonTable("A licence that forbids downloads", "Licensed measure, %", ["{pd_fx_2023}", "{pd_fx_2024}"], [{label: "Licensed measure", a: "dp_fx_restricted_2023", b: "dp_fx_restricted_2024"}])

@@ -15,6 +15,7 @@
   --color-selection: #D9EAFC;
   --color-error: #C8213A;
   --chart-highlight: #C8213A;
+  --chart-neutral-highlight: #3D3D3A;
   --chart-comparison: #065DA0;
   --chart-context: #8DAECB;
   --chart-neutral: #B6B6AF;
@@ -133,6 +134,7 @@
     --color-selection: #085491;
     --color-error: #F4687C;
     --chart-highlight: #F4687C;
+    --chart-neutral-highlight: #B0B0AB;
     --chart-comparison: #4E90D2;
     --chart-context: #45556A;
     --chart-neutral: #4C4E53;
@@ -165,6 +167,7 @@
   --color-selection: #085491;
   --color-error: #F4687C;
   --chart-highlight: #F4687C;
+  --chart-neutral-highlight: #B0B0AB;
   --chart-comparison: #4E90D2;
   --chart-context: #45556A;
   --chart-neutral: #4C4E53;

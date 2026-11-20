@@ -10,7 +10,7 @@ export interface RawBundle {
   sources?: string;
 }
 
-export const FIXTURE_BUNDLES = ["apple-fy2024", "edge-cases", "static"] as const;
+export const FIXTURE_BUNDLES = ["apple-fy2024", "edge-cases", "static", "charts"] as const;
 export type FixtureBundleName = (typeof FIXTURE_BUNDLES)[number];
 const DATA_FROM: Partial<Record<FixtureBundleName, FixtureBundleName>> = { static: "apple-fy2024" };
 
