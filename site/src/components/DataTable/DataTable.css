@@ -77,7 +77,8 @@
   background: var(--chart-neutral-highlight);
 }
 @media (forced-colors: active) {
-  .data-table .is-highlight > .data-table__row-head::before {
+  .data-table .is-highlight > .data-table__row-head::before,
+  .data-table .is-highlight.is-fell > .data-table__row-head::before {
     background: Highlight;
   }
 }

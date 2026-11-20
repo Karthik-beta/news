@@ -127,6 +127,29 @@ export default function LineChartPlot({
       ref={rootRef}
       style={style}
     >
+      {events.some((ev) => ev.phone && ev.label) ? (
+        // A tight plot (a phone at 150-200% text) wraps the phone's one event label to the room between its line and
+        // the plot's edge; here, in a row of its own above the plot, so the row is as tall as the label however many
+        // lines it takes. Hidden otherwise; the same text as the label in the plot.
+        <div className="line-chart__events" aria-hidden="true">
+          {events
+            .filter((ev) => ev.phone && ev.label)
+            .map((ev) => (
+              <span
+                key={`${ev.key}-row`}
+                className={`line-chart__events-label${ev.x > 70 ? " is-end" : ""}`}
+                style={
+                  {
+                    left: `${ev.x}%`,
+                    "--event-room": Math.max(0, (ev.x > 70 ? ev.x : 100 - ev.x) - 2),
+                  } as CSSProperties
+                }
+              >
+                {ev.label}
+              </span>
+            ))}
+        </div>
+      ) : null}
       <div className="chart-plot__frame">
         <div className="chart-plot__inner">
           <ValueAxis ticks={ticks} />
@@ -150,9 +173,6 @@ export default function LineChartPlot({
                 {ev.label ? (
                   <span
                     className={`line-chart__event-label line-chart__event-label--row-${ev.row}${ev.x > 70 ? " is-end" : ""}${ev.phone ? "" : " is-wide-only"}`}
-                    // The share of the plot's width the label has between its line and the plot's edge; a tight
-                    // plot wraps the label to it.
-                    style={{ "--event-room": Math.max(0, (ev.x > 70 ? ev.x : 100 - ev.x) - 2) } as CSSProperties}
                   >
                     {ev.label}
                   </span>

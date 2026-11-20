@@ -185,16 +185,25 @@
 }
 
 /* A tight plot (narrower than 20em of its text): fewer x labels, chosen on the server for the room, each allowed to
-   wrap to half the way to its neighbours; the first and last pinned inside the plot. Two lines of room below. */
+   wrap to half the way to its neighbours; the first and last pinned inside the plot. The labels share one grid cell,
+   each offset to its stop, so the axis is as tall as its tallest label however many lines that one wraps to. */
 @container chart-plot (max-width: 20em) {
   .chart-plot__x {
-    height: calc(var(--space-2) + 2.7em);
+    display: grid;
+    /* One column the axis's full width, so the labels' left and max-width percentages are of the axis. */
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+    padding-top: var(--space-2);
   }
   .chart-plot__x .chart-plot__x-label {
     display: none;
   }
   .chart-plot__x .chart-plot__x-label.is-tight {
     display: block;
+    grid-area: 1 / 1;
+    justify-self: start;
+    position: relative;
+    top: 0;
     width: max-content;
     max-width: var(--x-label-room, 100%);
     translate: -50% 0;

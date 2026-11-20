@@ -159,10 +159,16 @@
   color: var(--color-ink-2);
 }
 
+/* The phone's event label in a row of its own above the plot, used only by a tight plot (below). */
+.line-chart__events {
+  display: none;
+}
+
 /* A tight plot: narrower than 20em of its own text, which is a phone at 150-200% text size (design/charts.md,
    "Responsive behaviour"). The end labels leave the right of the plot for a list below the x axis, so the lines
-   take the whole width; the one event label a phone shows wraps to the room between its line and the plot's edge,
-   in its own two-line row above the plot. Nothing is left outside the plot. */
+   take the whole width. The one event label a phone shows wraps to the room between its line and the plot's edge,
+   in a row above the plot that grows with it, so however many lines it takes it never reaches the legend or the
+   title above. Nothing is left outside the plot. */
 @container chart-plot (max-width: 20em) {
   /* Just enough room for the last point's marker and its paper ring. */
   .line-chart__plot > * {
@@ -174,26 +180,37 @@
   .line-chart__ends {
     display: flex;
   }
-  .line-chart__event-label {
-    width: max-content;
-    max-width: calc(
-      var(--event-room, 100) *
-      (100cqi - var(--chart-axis-inset) - var(--chart-end-room)) /
-      100 -
-      var(--space-2)
-    );
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-  .line-chart__event-label.is-wide-only {
+  .line-chart__plot .line-chart__event-label {
     display: none;
   }
-  .line-chart__event-label.line-chart__event-label--row-1 {
-    bottom: calc(100% + var(--space-6));
+  .line-chart__events {
+    display: grid;
+    /* One column the axis's full width, so the labels' left and max-width percentages are of the axis. */
+    grid-template-columns: minmax(0, 1fr);
+    margin-inline-start: var(--chart-axis-inset);
+    margin-inline-end: var(--chart-end-room);
   }
+  .line-chart__events-label {
+    grid-area: 1 / 1;
+    justify-self: start;
+    position: relative;
+    width: max-content;
+    max-width: calc(var(--event-room, 100) * 1% - var(--space-2));
+    translate: var(--space-2) 0;
+    font-family: var(--font-family-sans);
+    font-size: var(--font-size-label);
+    line-height: 1.35;
+    color: var(--color-ink-2);
+    overflow-wrap: anywhere;
+  }
+  .line-chart__events-label.is-end {
+    translate: calc(-100% - var(--space-2)) 0;
+    text-align: end;
+  }
+  /* The row above holds the label now: the frame keeps only the gap between the label and the plot. */
   .line-chart--events-1 .chart-plot__frame,
   .line-chart--events-2 .chart-plot__frame {
-    padding-top: calc(var(--space-6) + 2.7em + var(--space-2));
+    padding-top: var(--space-6);
   }
 }
 
