@@ -201,8 +201,10 @@ export function tightLabels(labels: readonly string[], xs: readonly number[]): M
     const after = k < shown.length - 1 ? (xs[shown[k + 1] as number] ?? 100) - x : null;
     let room: number;
     if (before === null && after === null) room = 100;
-    else if (before === null) room = (after as number) / 2; // the first label runs right from its stop
-    else if (after === null) room = before / 2; // the last runs left from its stop
+    else if (before === null)
+      room = (after as number) / 2; // the first label runs right from its stop
+    else if (after === null)
+      room = before / 2; // the last runs left from its stop
     else room = Math.min(before, after); // a middle label is centred on its stop
     rooms.set(i, Math.max(0, Math.round((room - GAP) * 10) / 10));
   });

@@ -2,15 +2,7 @@
 // axes with 4 to 6 gridlines that include zero for bars, bare labels written from exact decimals, and x labels
 // thinned rather than rotated.
 import { describe, expect, it } from "vitest";
-import {
-  axisWidth,
-  bareNumber,
-  displayExponent,
-  largestMagnitude,
-  niceScale,
-  tightLabels,
-  xLabelPlan,
-} from "./scale";
+import { axisWidth, bareNumber, displayExponent, largestMagnitude, niceScale, tightLabels, xLabelPlan } from "./scale";
 
 const usdMillions = { unit: "USD", currency: "USD", scale: "millions" as const };
 const percent = { unit: "Percent", currency: null, scale: null };

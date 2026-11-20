@@ -244,7 +244,11 @@ export default function LineChartPlot({
         <ul className="line-chart__ends" aria-hidden="true">
           {series.map((s) =>
             s.end ? (
-              <li key={`${s.key}-end-item`} className={`line-chart__ends-item${s.end.highlight ? subjectClass(s.role) : ""}`}>
+              <li
+                key={`${s.key}-end-item`}
+                className={`line-chart__ends-item${s.end.highlight ? subjectClass(s.role) : ""}`}
+                data-ref={s.end.ref ?? undefined}
+              >
                 {s.end.name ? (
                   <span className="line-chart__end-name">{s.end.name}</span>
                 ) : (

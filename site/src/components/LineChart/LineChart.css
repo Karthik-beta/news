@@ -177,7 +177,10 @@
   .line-chart__event-label {
     width: max-content;
     max-width: calc(
-      var(--event-room, 100) * (100cqi - var(--chart-axis-inset) - var(--chart-end-room)) / 100 - var(--space-2)
+      var(--event-room, 100) *
+      (100cqi - var(--chart-axis-inset) - var(--chart-end-room)) /
+      100 -
+      var(--space-2)
     );
     white-space: normal;
     overflow-wrap: anywhere;

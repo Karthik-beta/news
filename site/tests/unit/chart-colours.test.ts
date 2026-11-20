@@ -52,7 +52,10 @@ describe.each(["light", "dark"] as const)("%s theme", (theme) => {
     // Achromatic on purpose, so the categorical lightness band and chroma floor do not apply; separation does.
     expect(check(r, "CVD separation"), JSON.stringify(r.report)).toBe("pass");
     expect(check(r, "Normal-vision floor"), JSON.stringify(r.report)).toBe("pass");
-    const hatch = run([value("--chart-neutral-highlight", theme), value("--chart-neutral", theme)], { mode: theme, surface });
+    const hatch = run([value("--chart-neutral-highlight", theme), value("--chart-neutral", theme)], {
+      mode: theme,
+      surface,
+    });
     expect(check(hatch, "Normal-vision floor"), JSON.stringify(hatch.report)).toBe("pass");
   });
 
