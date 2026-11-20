@@ -3,6 +3,7 @@
 // page runs the same areas (reads at this size, axe in both themes, zoom, fonts blocked, motion, forced colours,
 // print, no layout shift, JS only for the islands). Then the interactions Karthik decided: popovers open on click,
 // tap, Enter and Space only; the gallery overlay and the video by keyboard and pointer; image failure in each engine.
+import { deflateSync } from "node:zlib";
 import type { Locator, Page } from "@playwright/test";
 import {
   cumulativeLayoutShift,
@@ -313,7 +314,11 @@ test.describe("VideoEmbed", () => {
         const play = await fr.locator(".video-embed__play").boundingBox();
         if (!play) throw new Error("no play button");
         expect(Math.round(play.width)).toBe(56);
-        for (const t of await fr.locator("p").all()) {
+        // Since VID-1 the text is the caption under the box (a <p> inside the box would be a regression).
+        await expect(fr.locator("p")).toHaveCount(0);
+        const caption = fr.locator("xpath=ancestor::figure[1]/figcaption/*");
+        expect(await caption.count()).toBe(3);
+        for (const t of await caption.all()) {
           const tb = await t.boundingBox();
           if (!tb) continue;
           const overlap =
@@ -505,5 +510,260 @@ test.describe("chrome parts", () => {
     const ids = await page.locator(".sources-panel__change").evaluateAll((els) => els.map((e) => e.id));
     expect(ids.length).toBeGreaterThan(0);
     for (const id of ids) expect(id).toMatch(/change-note$/);
+  });
+});
+
+// Re-test of issue #7's fix round (VID-1, IMG-1, PROSE-1), by a tester that did not build the fixes. Test names
+// carry the defect id, so `-g "VID-1|IMG-1|PROSE-1"` runs just these.
+
+/** Every caption line of every embedded video: below the 16:9 box, on screen, not clipped, clear of the button. */
+async function expectVideoCaptionsClear(page: Page, label: string) {
+  const vp = page.viewportSize();
+  if (!vp) throw new Error("no viewport");
+  const figures = await page.locator("figure.video-embed").all();
+  expect(figures.length, `${label}: embedded videos on the page`).toBeGreaterThan(0);
+  for (const fig of figures) {
+    await fig.scrollIntoViewIfNeeded();
+    const frame = await pageBox(fig.locator(".video-embed__frame"));
+    const play = await pageBox(fig.locator(".video-embed__play, iframe.video-embed__player").first());
+    const lines = fig.locator("figcaption.video-embed__caption > *");
+    await expect(lines).toHaveCount(3);
+    for (const line of await lines.all()) {
+      const text = (await line.innerText()).slice(0, 40);
+      await expect(line, `${label}: "${text}" visible`).toBeVisible();
+      const b = await pageBox(line);
+      expect(b.y, `${label}: "${text}" sits under the box`).toBeGreaterThanOrEqual(frame.y + frame.height - 0.5);
+      expect(b.y >= play.y + play.height || b.y + b.height <= play.y, `${label}: "${text}" clear of the button`).toBe(
+        true,
+      );
+      expect(b.x, `${label}: "${text}" starts on screen`).toBeGreaterThanOrEqual(-0.5);
+      expect(b.x + b.width, `${label}: "${text}" ends on screen`).toBeLessThanOrEqual(vp.width + 0.5);
+      // Cut means a box that hides overflow (the line, the caption or the figure) is smaller than its content.
+      // Glyphs reaching a pixel or two past a visible-overflow line box (Literata's descenders) are not cut.
+      const clip = await line.evaluate((el) => {
+        const cut: string[] = [];
+        for (let n: HTMLElement | null = el as HTMLElement; n && n.tagName !== "MAIN"; n = n.parentElement) {
+          const s = getComputedStyle(n);
+          if (!/hidden|clip/.test(s.overflowX + s.overflowY)) continue;
+          if (n.scrollWidth > n.clientWidth + 1 || n.scrollHeight > n.clientHeight + 1) cut.push(n.className);
+        }
+        return { cut, clamp: getComputedStyle(el).webkitLineClamp };
+      });
+      expect(clip.cut, `${label}: "${text}" cut by an overflow box`).toEqual([]);
+      expect(clip.clamp, `${label}: "${text}" line-clamped`).toMatch(/^(none|)$/);
+    }
+  }
+}
+
+test.describe("Fix round VID-1: the video's text is a caption under the box", () => {
+  for (const f of ["default", "edge-cases"]) {
+    test(`VID-1 ${f}: caption under the box, whole, on screen, at 100% and 200% text`, async ({ page }) => {
+      await gotoPage(page, fixture("VideoEmbed", f));
+      await expectVideoCaptionsClear(page, "100% text");
+      await setTextSize(page, 200);
+      await expectVideoCaptionsClear(page, "200% text");
+      await expectNoSidewaysScroll(page);
+    });
+
+    test(`VID-1 ${f}: caption readable in forced colours, button still visible`, {
+      tag: "@forced-colors",
+    }, async ({ page }) => {
+      await gotoPage(page, fixture("VideoEmbed", f));
+      await expectVideoCaptionsClear(page, "forced colours");
+      for (const line of await page.locator("figcaption.video-embed__caption > *").all()) {
+        const c = await line.evaluate((el) => {
+          let bg = "rgba(0, 0, 0, 0)";
+          for (let n: Element | null = el; n && /rgba\(0, 0, 0, 0\)|transparent/.test(bg); n = n.parentElement)
+            bg = getComputedStyle(n).backgroundColor;
+          return { color: getComputedStyle(el).color, bg };
+        });
+        expect(c.color).not.toBe(c.bg);
+      }
+      for (const play of await page.locator(".video-embed__play").all()) await expect(play).toBeVisible();
+      await setTextSize(page, 200);
+      await expectVideoCaptionsClear(page, "forced colours, 200% text");
+    });
+
+    test(`VID-1 ${f}: print keeps the title, publisher and date only`, { tag: "@print" }, async ({ page }) => {
+      await gotoPage(page, fixture("VideoEmbed", f));
+      await page.emulateMedia({ media: "print" });
+      for (const fig of await page.locator("figure.video-embed").all()) {
+        await expect(fig.locator(".video-embed__frame")).toBeHidden();
+        await expect(fig.locator(".video-embed__notice")).toBeHidden();
+        await expect(fig.locator(".video-embed__title")).toBeVisible();
+        await expect(fig.locator(".video-embed__meta")).toBeVisible();
+      }
+      for (const a of await page.locator("p.video-embed--link a").all()) await expect(a).toBeVisible();
+      await expectNoSidewaysScroll(page);
+    });
+  }
+
+  test("VID-1: after the click the caption stays under the player", { tag: "@interaction" }, async ({ page }) => {
+    await page.route("https://www.youtube-nocookie.com/**", (route) =>
+      route.fulfill({ status: 200, contentType: "text/html", body: "<!doctype html><title>player</title>" }),
+    );
+    await gotoPage(page, fixture("VideoEmbed", "default"));
+    await hydrated(page, "VideoEmbed");
+    const caption = page.locator("figcaption.video-embed__caption");
+    const before = await pageBox(caption);
+    await page.getByRole("button", { name: /^Load video from YouTube: / }).click();
+    await expect(page.locator("iframe.video-embed__player")).toBeVisible();
+    expect(await pageBox(caption)).toEqual(before);
+    await expectVideoCaptionsClear(page, "player loaded");
+  });
+});
+
+/** True when the frame's fallback text is visible: the frame looks different with both fallback layers removed. */
+async function fallbackVisible(page: Page, frame: Locator): Promise<boolean> {
+  await frame.scrollIntoViewIfNeeded();
+  const withLayer = await frame.screenshot({ animations: "disabled" });
+  const style = await page.addStyleTag({
+    content: ".image-frame::before, .image-frame__img::after { content: none !important; }",
+  });
+  const without = await frame.screenshot({ animations: "disabled" });
+  await style.evaluate((el) => el.remove());
+  const again = await frame.screenshot({ animations: "disabled" });
+  expect(again.equals(withLayer), "the frame renders the same twice (a stable comparison)").toBe(true);
+  return !withLayer.equals(without);
+}
+
+/** A 300 x 150 PNG, transparent except an opaque black square in the middle (a logo or a chart on no background). */
+function transparentPng(): Buffer {
+  const w = 300;
+  const h = 150;
+  const table = Array.from({ length: 256 }, (_, n) => {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    return c >>> 0;
+  });
+  const crc = (b: Buffer) => {
+    let c = 0xffffffff;
+    for (const x of b) c = table[(c ^ x) & 0xff] ^ (c >>> 8);
+    return (c ^ 0xffffffff) >>> 0;
+  };
+  const chunk = (type: string, data: Buffer) => {
+    const len = Buffer.alloc(4);
+    len.writeUInt32BE(data.length);
+    const body = Buffer.concat([Buffer.from(type), data]);
+    const sum = Buffer.alloc(4);
+    sum.writeUInt32BE(crc(body));
+    return Buffer.concat([len, body, sum]);
+  };
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(w, 0);
+  ihdr.writeUInt32BE(h, 4);
+  ihdr[8] = 8; // bit depth
+  ihdr[9] = 6; // RGBA
+  const raw = Buffer.alloc((w * 4 + 1) * h);
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++)
+      if (x > w * 0.4 && x < w * 0.6 && y > h * 0.3 && y < h * 0.7) raw[y * (w * 4 + 1) + 1 + x * 4 + 3] = 255;
+  const sig = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+  return Buffer.concat([sig, chunk("IHDR", ihdr), chunk("IDAT", deflateSync(raw)), chunk("IEND", Buffer.alloc(0))]);
+}
+
+test.describe("Fix round IMG-1: the image fallback layer", () => {
+  const IMAGES = /\/fixtures\/images\//;
+
+  test.describe(() => {
+    test.use({ allowedConsoleErrors: [[/fixtures\/images/, /Failed to load resource/], { scope: "test" }] as never });
+
+    test("IMG-1: a blocked image shows its alt text and credit in its frame, in this engine", async ({
+      page,
+      browserName,
+    }, info) => {
+      await page.route(IMAGES, (route) => route.abort());
+      await gotoPage(page, fixture("ImageFigure", "default"));
+      const frame = page.locator(".image-frame").first();
+      expect(await fallbackVisible(page, frame), `fallback drawn in ${browserName}`).toBe(true);
+      const shot = await frame.screenshot();
+      await info.attach(`blocked-image-${browserName}`, { body: shot, contentType: "image/png" });
+      // The frame keeps the image's ratio; the text is Fira 13.5 secondary ink on the wash.
+      const box = await frame.boundingBox();
+      if (!box) throw new Error("no frame");
+      expect(box.width / box.height).toBeCloseTo(1600 / 900, 1);
+    });
+
+    test("IMG-1: a blocked gallery image (natural and square crops) shows its fallback, in this engine", async ({
+      page,
+    }) => {
+      await page.route(IMAGES, (route) => route.abort());
+      await gotoPage(page, fixture("ImageGallery", "default"));
+      expect(await fallbackVisible(page, page.locator(".image-gallery__grid .image-frame").first())).toBe(true);
+      await gotoPage(page, fixture("ImageGallery", "edge-cases"));
+      expect(await fallbackVisible(page, page.locator(".image-gallery__grid .image-frame--square").first())).toBe(true);
+    });
+  });
+
+  test("IMG-1: a loaded opaque image hides the fallback completely", async ({ page }) => {
+    await gotoPage(page, fixture("ImageFigure", "edge-cases"));
+    for (const frame of await page.locator(".image-frame").all()) {
+      await frame.locator("img").evaluate((img: HTMLImageElement) => img.decode());
+      expect(await fallbackVisible(page, frame)).toBe(false);
+    }
+  });
+
+  test("IMG-1: hovering a gallery image does not show the fallback text through it", async ({ page, hasTouch }) => {
+    test.skip(hasTouch, "no hover on touch screens");
+    await gotoPage(page, fixture("ImageGallery", "default"));
+    const link = page.locator(".image-gallery__open").first();
+    await link.locator("img").evaluate((img: HTMLImageElement) => img.decode());
+    await link.hover();
+    expect(await fallbackVisible(page, link.locator(".image-frame"))).toBe(false);
+  });
+
+  test("IMG-1: while an image is still loading its frame shows the alt text (documented), then the image", async ({
+    page,
+  }) => {
+    let release: () => void = () => {};
+    const gate = new Promise<void>((r) => {
+      release = r;
+    });
+    await page.route(IMAGES, async (route) => {
+      await gate;
+      await route.continue();
+    });
+    await page.goto(fixture("ImageFigure", "default"), { waitUntil: "domcontentloaded" });
+    const frame = page.locator(".image-frame").first();
+    const before = await frame.boundingBox();
+    expect(await frame.locator("img").evaluate((img: HTMLImageElement) => img.complete)).toBe(false);
+    // Fonts may wait for the page's load event, which the held image delays: compare by computed layer instead.
+    const layer = await frame.evaluate((el) => getComputedStyle(el, "::before").content);
+    expect(layer).toContain("elliptical orbit");
+    release();
+    await frame.locator("img").evaluate((img: HTMLImageElement) => img.decode());
+    await page.evaluate(() => document.fonts.ready.then(() => undefined));
+    expect(await frame.boundingBox()).toEqual(before);
+    expect(await fallbackVisible(page, frame)).toBe(false);
+  });
+
+  test("IMG-1 (b): a loaded transparent PNG must not show the fallback text through it", async ({ page }) => {
+    test.fail(true, "IMG-1b open: the ::before layer shows through transparent pixels in every engine");
+    await page.route(IMAGES, (route) =>
+      route.fulfill({ status: 200, contentType: "image/png", body: transparentPng() }),
+    );
+    await gotoPage(page, fixture("ImageFigure", "default"));
+    const frame = page.locator(".image-frame").first();
+    await frame.locator("img").evaluate((img: HTMLImageElement) => img.decode());
+    expect(await fallbackVisible(page, frame)).toBe(false);
+  });
+});
+
+test.describe("Fix round PROSE-1: heading ids in the browser", () => {
+  test("PROSE-1: every id on the Prose fixture pages is unique and each heading link lands on its heading", async ({
+    page,
+  }) => {
+    for (const f of ["default", "edge-cases"]) {
+      await gotoPage(page, fixture("Prose", f));
+      const ids = await page.evaluate(() => [...document.querySelectorAll("[id]")].map((e) => e.id));
+      expect(
+        ids.filter((v, i) => ids.indexOf(v) !== i),
+        `${f}: duplicate ids`,
+      ).toEqual([]);
+      for (const h of await page.locator("main h2[id^='section-']").all()) {
+        const id = await h.getAttribute("id");
+        expect(await page.evaluate((x) => document.getElementById(x as string)?.tagName, id)).toBe("H2");
+      }
+    }
   });
 });

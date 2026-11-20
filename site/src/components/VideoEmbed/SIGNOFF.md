@@ -1,13 +1,53 @@
 # VideoEmbed: test sign-off
 
-Status: **not signed off: open defect** (18 November 2026)
+Status: **signed off** (20 November 2026, fix round for VID-1)
 
 Tester: Opus 5.5 component tester (not the builder) · Builder: Opus 5.5 component builder (issue #7) · Date: 18 November 2026
 Branch / commit: `phase-3/components/chrome-text`, components at bfa6181, tests and fixes in the sign-off commit
 
 Fixture: `/fixtures/components/VideoEmbed/default/` and `/edge-cases/`.
 
-## All areas
+## Fix round re-test (20 November 2026)
+
+Tester: Opus 5.5 component tester, not the builder of the fixes · Branch `phase-3/components/chrome-text`, fixes 4281269 (PROSE-1), 8ec1393 (IMG-1), 36eb33b (VID-1); tests and the gallery hover fix in the re-test commit on top
+
+VID-1 is fixed: the title, publisher and date and the privacy line are a figcaption under the 16:9 box, which holds only the play button.
+
+| Area re-tested | Result | Tests | Notes |
+|---|---|---|---|
+| Rendering | ☑ pass | `tests/component/chrome-text-media.tester.test.tsx` ("Fix round: …"), `tests/e2e/components/chrome-text-media.tester.spec.ts` ("Fix round VID-1 / IMG-1 / PROSE-1") | Figcaption is the figure's last child: title (trimmed), "Federal Reserve, 18 September 2024", the privacy line, in that order; figure named "Video: …"; publisher alone without a date; the link line for a video that can't be embedded is unchanged |
+| Server rendering | ☑ pass | Vitest; `tests/ssr/` | The caption is static page markup outside the island; the island's text is empty and its props are only id, title and url; island hydrates without a warning |
+| Content edge cases, zoom | ☑ pass | "VID-1 …: caption under the box, whole, on screen, at 100% and 200% text" | The 300-character title and long publisher sit under the box, on screen, clear of the play button, not line-clamped and not cut by any overflow box, at 100% and 200% text |
+| Themes: forced colours, print | ☑ pass | "VID-1 …: caption readable in forced colours", "VID-1 …: print keeps the title, publisher and date only" | Forced colours: caption text differs from its background, button visible, nothing cut at 200% text; print: box and privacy line hidden, title, publisher and date shown |
+| Interaction | ☑ pass | "VID-1: after the click the caption stays under the player"; existing Space/tap/offline tests | The caption does not move when the player loads |
+| Accessibility, motion, performance, cross-browser | ☑ pass | per-fixture checks | axe zero violations in both themes and forced colours; nothing animates; layout shift < 0.001; JS only for the island |
+
+The old check "the play button overlaps no text" looked for `<p>` inside the box, which no longer exists, so it passed vacuously; it now asserts there is no `<p>` in the box and checks the three caption lines instead.
+
+| Screen | Result |
+|---|---|
+| Chromium 320, 360, 430, 768, 1440, 1920, light and dark | ☑ |
+| Chromium 200% text (every width) and 200% zoom (from 640px) | ☑ |
+| Chromium forced colours, light and dark | ☑ |
+| Chromium print | ☑ |
+| Firefox 360 light, 1440 dark (with 200% text) | ☑ |
+| WebKit 360 light, 1440 dark (with 200% text) | ☑ |
+| Not re-run this round | 390, 600, 980, 1120, landscape, `*-motion`: unchanged areas, signed in the first round; Firefox and WebKit at the other widths (Karthik's lighter run) |
+
+### Runs (fix round)
+
+Against the fixture build of this branch served by `astro preview`; both browser specs, filtered to these components (`-g "Prose|ImageFigure|ImageGallery|VideoEmbed|VID-1|IMG-1|PROSE-1"`). "Skipped" is by design (200% browser zoom below 640px, hover and keyboard-only tests on touch screens, CLS outside Chromium).
+
+- **Chromium**, 2 workers: `chromium-{light,dark}-{320,360,430,768,1440,1920}`, `chromium-forced-colors-{light,dark}`, `chromium-print`: 786 runs, 724 passed, 62 skipped, 0 failed (28.9 min). 200% text and 200% zoom run in every width project.
+- **Firefox**, `firefox-light-360` + `firefox-dark-1440`: first run with 2 workers timed out (axe and page loads, CPU at 100% from other jobs; 17 timeouts, no assertion failures); re-run with 1 worker and a 180 s limit: 126 runs, 117 passed, 9 skipped, 0 failed (19.6 min). The 200% text run is the per-fixture zoom test in both projects.
+- **WebKit**, `webkit-light-360` + `webkit-dark-1440`, 1 worker, 180 s limit: 126 runs, 116 passed, 10 skipped, 0 failed (13.5 min).
+- The IMG-1 (b) transparent-image test is marked `test.fail` and failed as expected in all three engines (counted as passed above); it flips to a failure once fixed.
+- **Vitest**, `tests/component/chrome-text-media.tester.test.tsx` (`--maxWorkers=1`): 53 passed, including the 13 new fix-round tests. The full unit/component/astro and SSR suites were started and stopped unfinished on Karthik's request to cut the day's runs; they are not re-run this round (the builder's fix commits ran them).
+- Not re-run on request: Firefox and WebKit at other widths, `*-motion`, landscape.
+
+The first round's record follows unchanged, apart from the issue states.
+
+## All areas (first round, 18 November)
 
 | Area | Result | Tests | Notes |
 |---|---|---|---|
@@ -62,7 +102,7 @@ Screenshot baselines: none generated or accepted in this round (`@visual` compar
 
 | # | Area / screen | Problem | Expected (spec), failing test, state |
 |---|---|---|---|
-| VID-1 | Content edge cases, Zoom, forced colours / 320 light, 390 dark (Firefox), 1440, landscape; Chromium, Firefox and WebKit | The placeholder clips the title: `.video-embed__title` is line-clamped (3 lines, 2 under 420px) inside a fixed 16:9 box with `overflow: hidden`, so long titles end in an ellipsis and are lost on screen (only the button's accessible name has them); at 320px the 56px play button overlaps the title of the default fixture; at 200% text the box clips the title, meta and notice | components.md: the title, publisher and date and the notice are shown; accessibility.md: no content lost at 200% text. Failing tests: `chrome-text-media.tester.spec.ts` "VideoEmbed/default" and "/edge-cases: nothing outside the screen or clipped", "…: reflows at 200% text and 200% zoom", "VideoEmbed › the box is 16:9; the play button is a 56px circle that overlaps no text". Not a few-line fix (a 288×162 box cannot hold the text and a 56px button): suggested, move the title, meta and notice under the box as its caption on narrow screens (needs a components.md change, Karthik's call). **Open, back to the builder** |
+| VID-1 | Content edge cases, Zoom, forced colours / 320 light, 390 dark (Firefox), 1440, landscape; Chromium, Firefox and WebKit | The placeholder clips the title: `.video-embed__title` is line-clamped (3 lines, 2 under 420px) inside a fixed 16:9 box with `overflow: hidden`, so long titles end in an ellipsis and are lost on screen (only the button's accessible name has them); at 320px the 56px play button overlaps the title of the default fixture; at 200% text the box clips the title, meta and notice | components.md: the title, publisher and date and the notice are shown; accessibility.md: no content lost at 200% text. Failing tests: `chrome-text-media.tester.spec.ts` "VideoEmbed/default" and "/edge-cases: nothing outside the screen or clipped", "…: reflows at 200% text and 200% zoom", "VideoEmbed › the box is 16:9; the play button is a 56px circle that overlaps no text". Not a few-line fix (a 288×162 box cannot hold the text and a 56px button): suggested, move the title, meta and notice under the box as its caption on narrow screens (needs a components.md change, Karthik's call). **Fixed** in 36eb33b; re-tested 20 November (see Fix round) |
 
 ## Accepted exceptions and open questions
 
@@ -72,5 +112,5 @@ Screenshot baselines: none generated or accepted in this round (`@visual` compar
 
 ## Sign-off
 
-☐ Every area and every screen above is passed or has an accepted exception; see Issues for what is open.
-Signed: Opus 5.5 component tester, 18 November 2026
+☑ Every area and every screen is passed or has an accepted exception.
+Signed: Opus 5.5 component tester (not the builder), 20 November 2026, at the head in the Fix round section

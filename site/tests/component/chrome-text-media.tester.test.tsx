@@ -1,6 +1,6 @@
 // Tester's rendering, data, formatting and hydration tests for the #7 family (news-component-testing). The builder's
 // sanity checks are in chrome-text-media.test.tsx and tests/unit/chrome-text-media.test.ts.
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import type React from "react";
 import { describe, expect, it } from "vitest";
 import { BADGES, Badge, typeBadge } from "../../src/components/Badge/Badge";
@@ -414,5 +414,164 @@ describe("Server rendering: islands hydrate with identical markup and no warning
     expect(html).not.toMatch(/youtube-nocookie|<iframe/);
     // The swap from link to button is a deliberate second render, not a hydration mismatch.
     expect(warnings.filter((w) => !w.startsWith("markup changed on hydration"))).toEqual([]);
+  });
+});
+
+// Re-test of issue #7's fix round (VID-1, IMG-1, PROSE-1), by a tester that did not build the fixes.
+describe("Fix round: Prose heading ids (PROSE-1)", () => {
+  const ids = (html: string) => [...html.matchAll(/<h2[^>]* id="(section-[^"]+)"/g)].map((m) => m[1]);
+
+  it("three blocks with the same heading: -2 and -3 in document order, every id unique", () => {
+    const { article } = renderOui(
+      'root = Page([a, b, c])\na = Prose(["## Outlook", "One."])\nb = Prose(["## Outlook", "Two."])\nc = Prose(["## Outlook", "Three."])',
+    );
+    expect(ids(article)).toEqual(["section-outlook", "section-outlook-2", "section-outlook-3"]);
+  });
+
+  it("a suffix never collides with a heading whose own words end in a number", () => {
+    const { article } = renderOui('root = Page([a])\na = Prose(["## Outlook", "## Outlook", "## Outlook 2", "x"])');
+    const got = ids(article);
+    expect(got).toEqual(["section-outlook", "section-outlook-2", "section-outlook-2-2"]);
+    expect(new Set(got).size).toBe(got.length);
+  });
+
+  it("headings that differ only in punctuation or case share a base and are suffixed", () => {
+    const { article } = renderOui('root = Page([a])\na = Prose(["## Outlook!", "## outlook", "x"])');
+    expect(ids(article)).toEqual(["section-outlook", "section-outlook-2"]);
+  });
+
+  it("an empty heading is section-untitled, and a second one is -2", () => {
+    const { article } = renderOui('root = Page([a])\na = Prose(["## ...", "## ???", "x"])');
+    expect(ids(article)).toEqual(["section-untitled", "section-untitled-2"]);
+  });
+
+  it("each page starts its own count: a second, different page does not inherit the first page's ids", () => {
+    renderOui('root = Page([a])\na = Prose(["## Outlook", "## Outlook", "x"])');
+    const { article } = renderOui('root = Page([a])\na = Prose(["## Outlook", "x"])');
+    expect(ids(article)).toEqual(["section-outlook"]);
+  });
+
+  it("the fallback walker gives the same ids as OpenUI's renderer", () => {
+    const base = componentFixtureData();
+    const input = {
+      oui: 'root = Page([a, b])\na = Prose(["## Outlook", "One."])\nb = Prose(["## Outlook", "Two."])',
+      data: base.data,
+      sources: base.sources,
+      head: { flyTitle: "Test", headline: "Test page", summary: "A test page." },
+    };
+    const opts = { library: fixtureLibrary(), glossary: fixtureGlossary };
+    const openui = ids(renderPage(input, opts).article);
+    const walker = ids(renderPage(input, { ...opts, engine: "walker" }).article);
+    expect(openui).toEqual(["section-outlook", "section-outlook-2"]);
+    expect(walker).toEqual(openui);
+  });
+
+  it("no id on the page is used twice (Prose headings, Note and the sources panel together)", () => {
+    const { article } = renderOui(
+      'root = Page([a, n, b])\na = Prose(["## Sources", "One."])\nn = Note("Sources", ["A note."])\nb = Prose(["## Sources", "Two."])',
+    );
+    const all = [...article.matchAll(/ id="([^"]+)"/g)].map((m) => m[1]);
+    expect(all.length).toBeGreaterThan(2);
+    expect(all.filter((v, i) => all.indexOf(v) !== i)).toEqual([]);
+  });
+});
+
+describe("Fix round: VideoEmbed caption under the box (VID-1)", () => {
+  const FED =
+    'root = Page([v])\nv = VideoEmbed("  FOMC press conference, September 2024 ", "Federal Reserve", "https://www.federalreserve.gov/", "aBcDeFgHiJk", "2024-09-18")';
+  const dom = (html: string) => {
+    const host = document.createElement("div");
+    host.innerHTML = html;
+    return host;
+  };
+
+  it("title, publisher and date, then the privacy line, in a figcaption that is the figure's last child", () => {
+    const host = dom(renderOui(FED).article);
+    const figure = host.querySelector("figure.video-embed");
+    const caption = figure?.querySelector(":scope > figcaption.video-embed__caption");
+    expect(caption).not.toBeNull();
+    expect(figure?.lastElementChild).toBe(caption);
+    expect([...(caption?.children ?? [])].map((c) => [c.className, c.textContent])).toEqual([
+      ["video-embed__title text-headline-s", "FOMC press conference, September 2024"],
+      ["video-embed__meta text-label", "Federal Reserve, 18 September 2024"],
+      ["video-embed__notice text-source", "Loads from YouTube. YouTube will receive your IP address."],
+    ]);
+    expect(figure?.getAttribute("aria-label")).toBe("Video: FOMC press conference, September 2024");
+  });
+
+  it("the caption is static page markup, outside the island; the 16:9 box holds only the play link", () => {
+    const host = dom(renderOui(FED).article);
+    const island = host.querySelector('[data-island="VideoEmbed"]');
+    expect(island).not.toBeNull();
+    expect(island?.querySelector("figcaption, p, .video-embed__title, .video-embed__notice")).toBeNull();
+    expect(island?.textContent?.trim()).toBe("");
+    const frame = island?.querySelector(".video-embed__frame");
+    expect(frame?.children.length).toBe(1);
+    expect(frame?.firstElementChild?.getAttribute("aria-label")).toBe(
+      "Load video from YouTube: FOMC press conference, September 2024",
+    );
+    // The island gets only what it needs; the caption's text is not sent twice.
+    expect(JSON.parse(island?.getAttribute("data-props") ?? "{}")).toEqual({
+      youtubeId: "aBcDeFgHiJk",
+      title: "FOMC press conference, September 2024",
+      url: "https://www.federalreserve.gov/",
+    });
+  });
+
+  it("the caption stays after the player loads", async () => {
+    const { container } = render(
+      <figure className="video-embed">
+        <VideoEmbedIsland youtubeId="aBcDeFgHiJk" title="FOMC" url="https://www.federalreserve.gov/" />
+        <figcaption className="video-embed__caption">FOMC</figcaption>
+      </figure>,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "Load video from YouTube: FOMC" }));
+    expect(container.querySelector("iframe")).not.toBeNull();
+    expect(container.querySelector("figcaption")?.textContent).toBe("FOMC");
+  });
+
+  it("without a date the meta is the publisher alone; a video that can't be embedded is still a link line", () => {
+    const host = dom(
+      renderOui(
+        'root = Page([a, b])\na = VideoEmbed("Launch", "NASA", "https://www.nasa.gov/", "Lm_NoPq-RsT")\nb = VideoEmbed("Webcast", "Apple", "https://investor.apple.com/")',
+      ).article,
+    );
+    expect(host.querySelector(".video-embed__meta")?.textContent).toBe("NASA");
+    const link = host.querySelector("p.video-embed--link");
+    expect(link?.textContent).toContain("Watch “Webcast” on the Apple site");
+    expect(link?.querySelector("figcaption")).toBeNull();
+    expect(host.querySelectorAll("figcaption.video-embed__caption")).toHaveLength(1);
+  });
+});
+
+describe("Fix round: image fallback layer (IMG-1)", () => {
+  const IMG =
+    'root = Page([i])\ni = ImageFigure("/fixtures/images/orbit-1600x900.svg", "Diagram of the orbit.", 1600, 900, "NASA/JPL-Caltech", "Public domain", "The orbit.")';
+
+  it("the frame carries the alt text and credit for its ::before layer, the same as the image's", () => {
+    const host = document.createElement("div");
+    host.innerHTML = renderOui(IMG).article;
+    const frame = host.querySelector(".image-frame");
+    const img = frame?.querySelector("img");
+    expect(frame?.getAttribute("data-alt")).toBe("Diagram of the orbit.");
+    expect(frame?.getAttribute("data-alt")).toBe(img?.getAttribute("alt"));
+    expect(frame?.getAttribute("data-credit")).toBe("NASA/JPL-Caltech. Public domain.");
+    expect(frame?.getAttribute("data-credit")).toBe(img?.getAttribute("data-credit"));
+    // The layer's text is not in the accessibility tree twice: the frame has no role or label of its own.
+    expect(frame?.getAttribute("role")).toBeNull();
+    expect(frame?.getAttribute("aria-label")).toBeNull();
+  });
+
+  it("the gallery's frames carry the same layer data, escaped in the attribute", async () => {
+    const images = [
+      { src: "/a.svg", alt: 'Alt with "quotes" & <angle>.', width: 10, height: 10, credit: "A", licence: "B" },
+    ];
+    const { html } = await hydrateAndCollectWarnings(
+      <ImageGalleryIsland images={images} crop={false} labelledBy="c" />,
+    );
+    const host = document.createElement("div");
+    host.innerHTML = html;
+    expect(host.querySelector(".image-frame")?.getAttribute("data-alt")).toBe('Alt with "quotes" & <angle>.');
+    expect(host.querySelector(".image-frame")?.getAttribute("data-credit")).toBe("A. B.");
   });
 });

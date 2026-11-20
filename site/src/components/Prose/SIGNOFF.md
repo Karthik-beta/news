@@ -1,13 +1,48 @@
 # Prose: test sign-off
 
-Status: **not signed off: open defect** (18 November 2026)
+Status: **signed off** (20 November 2026, fix round for PROSE-1)
 
 Tester: Opus 5.5 component tester (not the builder) · Builder: Opus 5.5 component builder (issue #7) · Date: 18 November 2026
 Branch / commit: `phase-3/components/chrome-text`, components at bfa6181, tests and fixes in the sign-off commit
 
 Fixture: `/fixtures/components/Prose/default/` and `/edge-cases/`.
 
-## All areas
+## Fix round re-test (20 November 2026)
+
+Tester: Opus 5.5 component tester, not the builder of the fixes · Branch `phase-3/components/chrome-text`, fixes 4281269 (PROSE-1), 8ec1393 (IMG-1), 36eb33b (VID-1); tests and the gallery hover fix in the re-test commit on top
+
+PROSE-1 is fixed: heading ids are unique on the page, with -2, -3 in document order.
+
+| Area re-tested | Result | Tests | Notes |
+|---|---|---|---|
+| Data (heading ids) | ☑ pass | `tests/component/chrome-text-media.tester.test.tsx` ("Fix round: …"), `tests/e2e/components/chrome-text-media.tester.spec.ts` ("Fix round VID-1 / IMG-1 / PROSE-1") | Three blocks with the same heading → `section-outlook`, `-2`, `-3`; a suffix never collides with a heading whose words end in a number (`Outlook 2` after two `Outlook`s → `section-outlook-2-2`); punctuation and case share a base; empty headings → `section-untitled`, `-2`; each page starts its own count; the fallback walker gives the same ids as OpenUI's renderer; no id used twice with Note and Prose headings together; the builder's two tests (suffix order, same ids on every render) |
+| Server rendering | ☑ pass | `tests/ssr/`; Vitest | Ids come from the page's own resolver (one per `renderPage`), so a render never inherits another page's count |
+| Rendering, accessibility, themes, zoom, cross-browser | ☑ pass | per-fixture checks in `chrome-text-media.tester.spec.ts` and `chrome-text-media.spec.ts` | Every id on the Prose fixture pages is unique and each resolves to its `h2` (PROSE-1 browser test) |
+
+| Screen | Result |
+|---|---|
+| Chromium 320, 360, 430, 768, 1440, 1920, light and dark | ☑ |
+| Chromium 200% text (every width) and 200% zoom (from 640px) | ☑ |
+| Chromium forced colours, light and dark | ☑ |
+| Chromium print | ☑ |
+| Firefox 360 light, 1440 dark (with 200% text) | ☑ |
+| WebKit 360 light, 1440 dark (with 200% text) | ☑ |
+| Not re-run this round | 390, 600, 980, 1120, landscape, `*-motion`: unchanged areas, signed in the first round; Firefox and WebKit at the other widths (Karthik's lighter run) |
+
+### Runs (fix round)
+
+Against the fixture build of this branch served by `astro preview`; both browser specs, filtered to these components (`-g "Prose|ImageFigure|ImageGallery|VideoEmbed|VID-1|IMG-1|PROSE-1"`). "Skipped" is by design (200% browser zoom below 640px, hover and keyboard-only tests on touch screens, CLS outside Chromium).
+
+- **Chromium**, 2 workers: `chromium-{light,dark}-{320,360,430,768,1440,1920}`, `chromium-forced-colors-{light,dark}`, `chromium-print`: 786 runs, 724 passed, 62 skipped, 0 failed (28.9 min). 200% text and 200% zoom run in every width project.
+- **Firefox**, `firefox-light-360` + `firefox-dark-1440`: first run with 2 workers timed out (axe and page loads, CPU at 100% from other jobs; 17 timeouts, no assertion failures); re-run with 1 worker and a 180 s limit: 126 runs, 117 passed, 9 skipped, 0 failed (19.6 min). The 200% text run is the per-fixture zoom test in both projects.
+- **WebKit**, `webkit-light-360` + `webkit-dark-1440`, 1 worker, 180 s limit: 126 runs, 116 passed, 10 skipped, 0 failed (13.5 min).
+- The IMG-1 (b) transparent-image test is marked `test.fail` and failed as expected in all three engines (counted as passed above); it flips to a failure once fixed.
+- **Vitest**, `tests/component/chrome-text-media.tester.test.tsx` (`--maxWorkers=1`): 53 passed, including the 13 new fix-round tests. The full unit/component/astro and SSR suites were started and stopped unfinished on Karthik's request to cut the day's runs; they are not re-run this round (the builder's fix commits ran them).
+- Not re-run on request: Firefox and WebKit at other widths, `*-motion`, landscape.
+
+The first round's record follows unchanged, apart from the issue states.
+
+## All areas (first round, 18 November)
 
 | Area | Result | Tests | Notes |
 |---|---|---|---|
@@ -62,7 +97,7 @@ Screenshot baselines: none generated or accepted in this round (`@visual` compar
 
 | # | Area / screen | Problem | Expected (spec), failing test, state |
 |---|---|---|---|
-| PROSE-1 | Data / all screens | Two section headings with the same words get the same id (`headingId()` is per heading, not per page), so the page has duplicate ids and an "On this page" link reaches only the first | HTML ids are unique; components.md "On this page" links each section. Failing test: `chrome-text-media.tester.test.tsx` "two Prose headings with the same words get distinct ids" (marked `it.fails` so the suite stays green; it flips when fixed). Needs per-page id bookkeeping in the renderer, not a few lines. **Open, back to the builder** |
+| PROSE-1 | Data / all screens | Two section headings with the same words get the same id (`headingId()` is per heading, not per page), so the page has duplicate ids and an "On this page" link reaches only the first | HTML ids are unique; components.md "On this page" links each section. Failing test: `chrome-text-media.tester.test.tsx` "two Prose headings with the same words get distinct ids" (marked `it.fails` so the suite stays green; it flips when fixed). Needs per-page id bookkeeping in the renderer, not a few lines. **Fixed** in 4281269; re-tested 20 November (see Fix round) |
 
 ## Accepted exceptions and open questions
 
@@ -73,5 +108,5 @@ Screenshot baselines: none generated or accepted in this round (`@visual` compar
 
 ## Sign-off
 
-☐ Every area and every screen above is passed or has an accepted exception; see Issues for what is open.
-Signed: Opus 5.5 component tester, 18 November 2026
+☑ Every area and every screen is passed or has an accepted exception.
+Signed: Opus 5.5 component tester (not the builder), 20 November 2026, at the head in the Fix round section

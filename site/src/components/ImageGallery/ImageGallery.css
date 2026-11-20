@@ -30,7 +30,9 @@
   display: block;
   text-decoration: none;
 }
-.image-gallery__open:hover .image-frame__img {
+/* The whole frame fades, not the image alone: a translucent image would let the fallback layer behind it (the alt
+   text, ImageFigure.css) show through on hover. */
+.image-gallery__open:hover .image-frame {
   opacity: 0.9;
 }
 
