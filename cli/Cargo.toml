@@ -44,17 +44,17 @@ chrono-tz = { version = "0.10", default-features = false, features = ["std"] }
 jsonschema = { version = "0.61", default-features = false }
 tokio-util = { version = "0.7", default-features = false }
 clap = { version = "4", features = ["derive"] }
-croner = "3"
+croner = "4"
 fastrand = "2"
 httpdate = "1"
 proptest = "1"
 roxmltree = "0.21"
-sha2 = "0.10"
-toml = { version = "0.9", default-features = false, features = ["parse", "serde"] }
-zstd = { version = "0.13", default-features = false }
-opentelemetry = { version = "0.31", default-features = false, features = ["trace"] }
-opentelemetry_sdk = { version = "0.31", default-features = false, features = ["trace"] }
-opentelemetry-otlp = { version = "0.31", default-features = false, features = ["trace", "http-proto", "reqwest-blocking-client"] }
+sha2 = "0.11"
+toml = { version = "1.2", default-features = false, features = ["parse", "serde"] }
+zstd = { version = "0.14", default-features = false }
+opentelemetry = { version = "0.33", default-features = false, features = ["trace"] }
+opentelemetry_sdk = { version = "0.33", default-features = false, features = ["trace"] }
+opentelemetry-otlp = { version = "0.33", default-features = false, features = ["trace", "http-proto", "reqwest-blocking-client"] }
 reqwest = { version = "0.12", default-features = false, features = ["blocking"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["raw_value"] }
@@ -62,7 +62,7 @@ sqlx = { version = "0.9", default-features = false, features = ["runtime-tokio",
 thiserror = "2"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "signal", "sync", "io-util", "net"] }
 tracing = "0.1"
-tracing-opentelemetry = { version = "0.32", default-features = false }
+tracing-opentelemetry = { version = "0.34", default-features = false }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["std", "fmt", "env-filter", "registry"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 # Board (egui). `egui` alone is pure Rust and builds everywhere; `eframe` (the window) and the toast
