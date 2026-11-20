@@ -92,3 +92,23 @@ export function headingId(text: string, data: PageDataResolver): string {
     .replace(/^-+|-+$/g, "");
   return `section-${words.slice(0, 60).replace(/-+$/, "") || "untitled"}`;
 }
+
+/** The heading ids already given out on each page, keyed by that page's resolver (one per render). */
+const issuedIds = new WeakMap<PageDataResolver, Set<string>>();
+
+/**
+ * A heading's id, unique on its page: the first "Outlook" is section-outlook, the next section-outlook-2, then
+ * section-outlook-3. Headings render in document order, so the same page always gets the same ids.
+ */
+export function uniqueHeadingId(text: string, data: PageDataResolver): string {
+  let issued = issuedIds.get(data);
+  if (!issued) {
+    issued = new Set();
+    issuedIds.set(data, issued);
+  }
+  const base = headingId(text, data);
+  let id = base;
+  for (let n = 2; issued.has(id); n++) id = `${base}-${n}`;
+  issued.add(id);
+  return id;
+}

@@ -3,7 +3,7 @@
 // Numbers only arrive as {ref} tokens and are cited through SourceRef; glossary terms open their definition.
 import type { ComponentRenderer } from "@openuidev/react-lang";
 import { usePageData } from "../../renderer/data/context";
-import { type Block, CopyText, headingId, parseBlocks } from "./copy";
+import { type Block, CopyText, parseBlocks, uniqueHeadingId } from "./copy";
 
 export interface ProseProps {
   blocks: string[];
@@ -14,7 +14,7 @@ function ProseBlock({ block }: { block: Block }) {
   switch (block.type) {
     case "heading":
       return (
-        <h2 className="prose__heading text-headline-l" id={headingId(block.text, data)}>
+        <h2 className="prose__heading text-headline-l" id={uniqueHeadingId(block.text, data)}>
           <CopyText text={block.text} cite="plain" />
         </h2>
       );

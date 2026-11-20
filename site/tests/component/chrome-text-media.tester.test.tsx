@@ -308,15 +308,23 @@ describe("Text components: data and content edge cases", () => {
     expect(result.article).not.toContain("glossary-term");
   });
 
-  // Defect PROSE-1 (open, see Prose/SIGNOFF.md): headingId() is per heading, not per page, so two sections with
-  // the same words get the same id. it.fails keeps the suite green and flips to a failure once it is fixed.
-  it.fails("two Prose headings with the same words get distinct ids", () => {
+  // Defect PROSE-1 (fixed): heading ids are unique on the page, with -2, -3 suffixes in document order.
+  it("two Prose headings with the same words get distinct ids", () => {
     const { article } = renderOui(
       'root = Page([a, b])\na = Prose(["## Outlook", "One."])\nb = Prose(["## Outlook", "Two."])',
     );
     const ids = [...article.matchAll(/<h2[^>]* id="(section-[^"]+)"/g)].map((m) => m[1]);
     expect(ids.length).toBe(2);
     expect(new Set(ids).size, `heading ids ${ids.join(", ")}`).toBe(2);
+  });
+
+  it("duplicate heading ids get -2, -3 in document order, the same on every render", () => {
+    const oui =
+      'root = Page([a, b])\na = Prose(["## Outlook", "One.", "## Outlook 2", "## Outlook"])\nb = Prose(["## Outlook", "Two."])';
+    const ids = (html: string) => [...html.matchAll(/<h2[^>]* id="(section-[^"]+)"/g)].map((m) => m[1]);
+    const first = ids(renderOui(oui).article);
+    expect(first).toEqual(["section-outlook", "section-outlook-2", "section-outlook-3", "section-outlook-4"]);
+    expect(ids(renderOui(oui).article)).toEqual(first);
   });
 
   it("Quote: unknown reference reads No data, and a typed quote is refused", () => {
@@ -400,12 +408,7 @@ describe("Server rendering: islands hydrate with identical markup and no warning
 
   it("VideoEmbed island (the link becomes a button after hydration, without a mismatch warning)", async () => {
     const { html, warnings } = await hydrateAndCollectWarnings(
-      <VideoEmbedIsland
-        youtubeId="aBcDeFgHiJk"
-        title="FOMC"
-        meta="Federal Reserve"
-        url="https://www.federalreserve.gov/"
-      />,
+      <VideoEmbedIsland youtubeId="aBcDeFgHiJk" title="FOMC" url="https://www.federalreserve.gov/" />,
     );
     expect(html).toContain('href="https://www.federalreserve.gov/"');
     expect(html).not.toMatch(/youtube-nocookie|<iframe/);
