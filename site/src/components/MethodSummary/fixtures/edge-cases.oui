@@ -1,0 +1,4 @@
+root = Page([partial, long, missing])
+partial = MethodSummary("Preprint, not yet peer-reviewed", null, null, "{pd_test_trial_period}")
+long = MethodSummary("Dataset", "Observational cohort drawn from national health records, linked to pharmacy dispensing data and death registrations, with follow-up through the end of the study period", "Every adult registered with a general practice in the participating regions, excluding those who opted out of data sharing, which the authors say may bias the sample towards healthier people", "{pd_test_trial_period}", "{q_test_long}")
+missing = MethodSummary(null, null, "{dp_edge_null} participants; an unknown count {dp_edge_not_in_data}", "{pd_not_in_data}", null)

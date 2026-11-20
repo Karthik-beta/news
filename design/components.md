@@ -113,6 +113,7 @@ For science pages.
 ### Prose (`Prose`)
 - `type.body`, max 66ch, 14px between paragraphs. Section headings `type.headline-l`, 28px above, 10px below.
 - Lists: 20px indent, 6px between items. No decorative bullets: default discs in ink-2.
+- Each section heading gets an id from its words ("section-why-sales-fell") for links to the section. Ids are unique on the page: a second heading with the same words gets "-2", a third "-3", in document order, so the same page always gets the same ids.
 
 ### Glossary term (`GlossaryTerm`)
 - A dotted 1px `ink-3` underline. Click, tap, Enter or Space opens a popover (same style and placement as the citation popover) with the definition and a link to the glossary entry; hover and focus alone do not.
@@ -139,15 +140,17 @@ For commentary and context in Claude's own words.
 ### Image with credit (`ImageFigure`)
 - The image at full column width (or its natural width if smaller), no border, no radius, no shadow.
 - Caption below: one sentence in Fira 13.5, ink-2; then the credit and licence in Fira 12.5, ink-3 ("NASA/JPL-Caltech. Public domain.").
-- **Fallback when the image fails to load**: a `color.wash` box at the same aspect ratio showing the alt text and the credit, centred, in Fira 13.5, ink-2. The layout never shifts.
+- **Fallback when the image fails to load**: a `color.wash` box at the same aspect ratio showing the alt text and the credit, centred, in Fira 13.5, ink-2. The layout never shifts. No JavaScript: the text sits on a layer behind the image, so it shows through a blocked or broken image in every engine (Safari draws its small broken-image mark on top) and also while a slow image is still loading; Chromium and Firefox also draw the same text over the broken image itself. The gallery uses the same frame.
 - Images are only used when they carry information (a spacecraft, a chart from a paper, an official photo of a facility). Never decoration.
 
 ### Gallery (`ImageGallery`)
 - 2 columns on phone, 3 on desktop, 8px gaps, square crops only when the source allows. Each image opens full size in a simple overlay with its caption and credit. No carousels.
 
 ### Video (`VideoEmbed`)
-- Click-to-load. Before loading: a `color.wash` 16:9 box with the video title (Literata 600, 18px), the publisher and date (Fira 13.5, ink-2), a play button (a 56px ink circle with a paper triangle), and the line "Loads from YouTube. YouTube will receive your IP address." in Fira 12.5, ink-3.
-- After click: the `youtube-nocookie.com` embed at the same size.
+- Click-to-load. Before loading: a `color.wash` 16:9 box with a play button (a 56px ink circle with a paper triangle) in its centre.
+- Caption under the box, always shown: the video title (Literata 600, 18px), the publisher and date (Fira 13.5, ink-2), and the line "Loads from YouTube. YouTube will receive your IP address." in Fira 12.5, ink-3. The text is never inside the 16:9 box, so it is never clipped or covered by the play button at any width, zoom or text size, and it stays readable in forced colours.
+- After click: the `youtube-nocookie.com` embed at the same size; the caption stays.
+- In print: the caption's title, publisher and date only (no box, no button, no privacy line).
 - Video that can't be embedded becomes a link line: "Watch the webcast on the company's site".
 
 ---

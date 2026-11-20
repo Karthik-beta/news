@@ -1,0 +1,2 @@
+root = Page([statement])
+statement = Quote("q_fomc_statement_sep_2024")

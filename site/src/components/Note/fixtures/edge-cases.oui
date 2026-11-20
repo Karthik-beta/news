@@ -1,0 +1,4 @@
+root = Page([plain, several, missing])
+plain = Note("What a basis point is", ["A [basis point](glossary:basis-point) is one hundredth of a percentage point. Central banks move rates in steps of a quarter point or more."])
+several = Note("What the committee and the trial reports have in common, and why that matters for reading this page with a very long heading", ["The committee said {q_fomc_statement_sep_2024}", "The trial enrolled {dp_test_trial_participants}; its authors wrote {q_test_trial_limitations}"])
+missing = Note("A note whose figure is missing", ["The value reads {dp_edge_null} and an unknown one {dp_edge_not_in_data}."])

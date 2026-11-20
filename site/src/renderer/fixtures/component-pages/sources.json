@@ -1,0 +1,36 @@
+{
+  "$schema": "../../../../../contracts/bundle/sources.schema.json",
+  "version": 1,
+  "sources": {
+    "src_fomc_statement_sep_2024": {
+      "title": "Federal Reserve issues FOMC statement, 18 September 2024",
+      "short": "FOMC statement",
+      "publisher": "Board of Governors of the Federal Reserve System",
+      "connector": "federal-reserve",
+      "type": "statement",
+      "primary": true,
+      "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20240918a.htm",
+      "licence": {
+        "name": "Public domain (US government work)",
+        "redistribution": true
+      },
+      "published_at": "2024-09-18",
+      "retrieved_at": "2024-09-18"
+    },
+    "src_test_trial": {
+      "title": "A test trial of a daily walking programme, fixture paper",
+      "short": "Test trial paper",
+      "publisher": "News test fixtures",
+      "connector": "fixture",
+      "type": "paper",
+      "primary": true,
+      "url": "https://example.org/papers/test-walking-trial",
+      "licence": {
+        "name": "CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/",
+        "redistribution": true
+      },
+      "retrieved_at": "2026-11-13"
+    }
+  }
+}

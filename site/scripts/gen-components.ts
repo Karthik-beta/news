@@ -58,10 +58,16 @@ export function generate(dir = componentsDir): Generated {
   const problems = folders.flatMap((name) => folderProblems(dir, name));
   const ident = (name: string) => `${name.charAt(0).toLowerCase()}${name.slice(1)}Spec`;
 
+  // Biome sorts imports by path, ignoring case, so "./contract" sits among the component folders (after Badge, say),
+  // and it puts a blank line under the header comment when the first import is not the one the comment attaches to.
+  const imports = [
+    { path: "./contract", line: 'import type { AnySpec } from "./contract";' },
+    ...folders.map((name) => ({ path: `./${name}/spec`, line: `import ${ident(name)} from "./${name}/spec";` })),
+  ].sort((a, b) => (a.path.toLowerCase() < b.path.toLowerCase() ? -1 : 1));
   const registry = [
     `// ${HEADER}`,
-    'import type { AnySpec } from "./contract";',
-    ...folders.map((name) => `import ${ident(name)} from "./${name}/spec";`),
+    ...(imports[0]?.path === "./contract" ? [] : [""]),
+    ...imports.map((i) => i.line),
     "",
     specsLine(folders.map(ident)),
     "",

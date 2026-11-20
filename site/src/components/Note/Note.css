@@ -1,0 +1,40 @@
+/* Note (design/components.md, "Note"): the wash background, 16px 20px padding, no border, no radius, no shadow.
+   Heading Fira 600 15px; text in Literata (type.body-s, "note text" in design/typography.md); attribution in
+   type.source (Fira 12.5, tertiary ink). The one tinted block on an article page (design/layout.md). */
+.note {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: var(--layout-article);
+  padding: var(--space-5) var(--space-6);
+  background: var(--color-wash);
+  color: var(--color-ink);
+  border-radius: var(--radius-none);
+}
+
+.note__heading {
+  font-family: var(--font-family-sans);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-ui);
+  line-height: var(--font-line-height-ui);
+  overflow-wrap: anywhere;
+}
+
+.note .note__text {
+  max-width: var(--layout-prose);
+  /* components.md, "Note": line height 1.6, and never under 24px, so cited figures and glossary terms in the text
+     are full targets at the phone size (15px). */
+  line-height: max(1.6em, var(--space-7));
+  overflow-wrap: anywhere;
+}
+
+.note__attribution {
+  margin-top: var(--space-1);
+}
+
+/* Forced colours drop the wash; keep the block's edge. */
+@media (forced-colors: active) {
+  .note {
+    border: var(--border-hairline) solid CanvasText;
+  }
+}

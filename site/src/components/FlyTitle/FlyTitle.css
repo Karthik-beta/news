@@ -1,0 +1,13 @@
+/* Fly title: type.fly (Fira 600, 15px, crimson; Text.css). Crimson is the fly title's own colour, never emphasis
+   elsewhere. Long single words wrap rather than push the page sideways. */
+.fly-title {
+  overflow-wrap: anywhere;
+}
+
+.fly-title__link {
+  color: inherit;
+  text-decoration: none;
+}
+.fly-title__link:hover {
+  text-decoration: underline;
+}

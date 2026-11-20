@@ -1,0 +1,30 @@
+/* Quote (design/components.md, "Quote"): Literata 400, 20px, line height 1.45, ink, indented 20px with a 2px ink
+   rule on the left; the attribution in Fira 13.5, secondary ink. The standfirst tokens are the same size and line
+   height (20px / 1.45, 18px on phones). */
+.quote {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: var(--layout-prose);
+  padding-inline-start: var(--space-6);
+  border-inline-start: var(--border-section) solid var(--color-ink);
+}
+
+.quote__text {
+  font-family: var(--font-family-serif);
+  font-weight: var(--font-weight-regular);
+  font-size: var(--font-size-standfirst-responsive);
+  line-height: var(--font-line-height-standfirst);
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+
+.quote__attribution {
+  overflow-wrap: anywhere;
+}
+
+/* An unknown quote reference: said in words, without the rule, never an empty quote. */
+.quote--missing {
+  border-inline-start: 0;
+  padding-inline-start: 0;
+}
