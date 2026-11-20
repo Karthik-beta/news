@@ -1,7 +1,11 @@
-/* Video (design/components.md, "Video"): before loading, a wash 16:9 box with the title (Literata, headline-s),
-   publisher and date (Fira 13.5, secondary ink), a 56px ink play circle with a paper triangle, and the privacy
-   line (Fira 12.5, tertiary ink). After the click, the player at the same size. */
+/* Video (design/components.md, "Video"): before loading, a wash 16:9 box with a 56px ink play circle and a paper
+   triangle in its centre; after the click, the player at the same size. The caption under the box holds the
+   title (Literata, headline-s), publisher and date (Fira 13.5, secondary ink) and the privacy line (Fira 12.5,
+   tertiary ink), so it grows with the text and nothing is clipped or covered at any width, zoom or text size. */
 .video-embed {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
   max-width: var(--layout-article);
 }
 
@@ -21,38 +25,11 @@
   border: 0;
 }
 
-.video-embed__placeholder {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-end;
-  gap: var(--space-2);
-  padding: var(--space-5);
-  overflow: hidden;
-}
-
-.video-embed__title {
-  max-width: 40ch;
-  overflow-wrap: anywhere;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
-  overflow: hidden;
-}
-
-.video-embed__meta {
-  overflow-wrap: anywhere;
-}
-
 /* The play button: centred in the box, a 56px ink circle with a paper triangle. */
 .video-embed__play {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  translate: -50% -70%;
+  inset: 0;
+  margin: auto;
   display: grid;
   place-items: center;
   width: var(--space-11);
@@ -74,18 +51,16 @@
   vertical-align: 0;
 }
 
-/* On narrow phones the box is short: keep the play button clear of the text. */
-@media (max-width: 420px) {
-  .video-embed__title {
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-  }
-  .video-embed__play {
-    translate: -50% -85%;
-  }
-  .video-embed__placeholder {
-    padding: var(--space-4);
-  }
+.video-embed__caption {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  max-width: var(--layout-prose);
+  overflow-wrap: anywhere;
+}
+
+.video-embed__title {
+  color: var(--color-ink);
 }
 
 @media (forced-colors: active) {
@@ -107,8 +82,9 @@
   overflow-wrap: anywhere;
 }
 
+/* On paper the box and the privacy line mean nothing: the caption prints the title, publisher and date. */
 @media print {
-  .video-embed__play,
+  .video-embed__frame,
   .video-embed__notice {
     display: none;
   }

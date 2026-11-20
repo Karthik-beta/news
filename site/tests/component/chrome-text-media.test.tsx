@@ -33,7 +33,6 @@ describe("VideoEmbed island", () => {
   const props = {
     youtubeId: "aBcDeFgHiJk",
     title: "FOMC press conference",
-    meta: "Federal Reserve, 18 September 2024",
     url: "https://www.federalreserve.gov/",
   };
 
