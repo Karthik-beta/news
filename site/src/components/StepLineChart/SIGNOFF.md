@@ -1,6 +1,6 @@
 # StepLineChart — test sign-off
 
-Status: **FAIL: DC-2 open (DC-1 shared code path)**
+Status: **signed off after the #8 fix round re-test (20 Nov 2026); see the last section**
 
 Tester: Opus 5.5 component tester (not the builder) · Builder: Opus 5.5 component builder (issue #8) · Date: 18 November 2026
 Branch / commit: `phase-3/components/data-charts-1`, components at e1d5d0c; tests, fixes and this sign-off in the commit after it
@@ -92,3 +92,50 @@ tree are asserted instead, and axe runs in both themes on every screen run.
 
 ☐ Not signed off: DC-2 (and DC-1, which reaches step lines through the same LineChart geometry when a page highlights a falling series) open (sent back to the builder). Re-test the affected areas and screens after the fix.
 Signed (fail): Opus 5.5 component tester, 18 November 2026
+
+## Re-test: #8 fix round (20 November 2026)
+
+Status after re-test: **pass, signed off with the open exceptions below**
+
+Tester: Opus 5.5 component tester (not the builder) · Fix round at e603b79; re-test fixes, tests and this section in the commits after it on `phase-3/components/data-charts-1`.
+Scope: only what the fix round changed (DC-1, DC-2, the citation tests). The other areas stand as signed above.
+
+DC-1: same rule and checks as LineChart, with a new `fell` edge fixture (US CPI 2024). DC-2: fixed in this round (R1-2 three-line x label over the end row; R1-3 event label over the title).
+
+| Item | Result | Tests |
+|---|---|---|
+| DC-1 rules and edge cases | ☑ pass | `tests/unit/data-charts-r1.tester.test.ts` (57) |
+| DC-1 colours in the browser, light and dark (system and `data-theme`), forced colours | ☑ pass after R1-1 | `tests/e2e/components/data-charts-r1.tester.spec.ts` "DC-1" |
+| `chart.neutral-highlight` contrast | ☑ pass | 9.89 / 8.95 on paper / wash (light), 8.16 / 7.14 (dark); `chart-colours.test.ts` |
+| Distinct from comparison and context (dataviz validator, `--pairs all`) | ☑ pass | CVD worst ΔE 16.7 light, 14.3 dark; normal vision 17.4 / 17.2; vs `chart.neutral` hatch ≥ 33 |
+| DC-2 at 100% and 200% text, 320–1440 | ☑ pass after R1-2…R1-4 | same spec, "DC-2" |
+| At 100% text nothing changes | ☑ pass | label audit identical on the pre-fix build (6018247) and after, at 320, 360, 430, 768, 1440 |
+| Whole Vitest suite at e603b79 (citation tests) | ☑ pass | 848 Vitest + 73 Bun SSR, 0 failed |
+
+The validator FAILs lightness band and chroma floor for the neutral highlight (and for context). Those are categorical-palette checks; the neutral highlight is a single achromatic role, always directly labelled and backed by the table, so they do not apply. Every pair check passes. It is never on a chart with crimson (one highlight), so the crimson pair (CVD ΔE 7.0 dark) does not arise.
+
+Issues found and fixed in this round (small, inside the fix's scope; pushed as normal commits):
+
+| # | Area / screen | Problem | Fix |
+|---|---|---|---|
+| R1-1 | Themes: forced colours, Chromium light and dark | A fallen highlighted table row kept its neutral bar instead of `Highlight` (the `.is-fell` rule outranked the forced-colours rule) | DataTable.css forced-colours selector covers `.is-fell`. Test: "forced colours: the fallen subject is drawn in Highlight" |
+| R1-2 | Zoom: 320 and 360, 200% text | A tight x label that wraps to three lines ("26 January 2022") ran into the end-label row: the axis reserved two lines | Tight x axis is one grid cell its labels share, as tall as its tallest label |
+| R1-3 | Zoom: 320 and 360, 200% text | The phone event label on a tight step line wrapped to four lines and ran over the title above the plot | Tight plots show it in a row above the plot that grows with it |
+| R1-4 | Zoom: 320–430, 200% text | Tight column charts kept every value label: values overlapped and the last ran past the plot and above it | Tight column charts show only the highlighted and latest values, edge-aligned, with room above the tallest column |
+
+This component: R1-2, R1-3.
+
+Open exceptions (listed in `tests/e2e/components/data-charts-r1.known.json`; all measured identical on the pre-fix build except the last):
+- 768 and 1440 at 200% text: plots are 20em or wider, so not tight; x labels chosen for 100% text overlap and sit below the axis. Not part of DC-2 (phones); needs its own fix.
+- 100% text, unchanged by design: last x label or end label a few px past the plot edge at 320–430; a negative column's value over the first x label at 768/1440; x labels of the 1e17 and 1e-8 edge fixtures touching at 320.
+- 320 at 200% text: the 1e-8 edge fixture's latest value (eleven digits) is wider than the 114px left for the columns and crosses an axis tick. The figure stays in the tooltip and the table.
+- Rule question for Karthik: bars and columns "fell" only below zero, so a column chart of levels whose highlighted period is lower than the one before stays crimson. Sparkline's latest-point dot is crimson whatever the direction (outside this fix).
+- Screen readers not checked by hand; no visual baselines (Linux Docker only).
+
+Runs (laptop under load, 2 workers):
+- Chromium re-test spec: DC-2 at 320, 360, 430, 768, 1440 × light, dark: 120 passed; DC-1 at light 320/430, dark 360/1440, forced colours light and dark: 30 passed.
+- Regression, existing builder and tester specs for these charts: Chromium light 360 + dark 1440: 118 passed, 12 skipped (by design). Firefox and WebKit light 360 + dark 1440, with the re-test spec (includes 200% text): Firefox 158 passed, 10 skipped; WebKit 156 passed, 12 skipped.
+- One trace-file write error at 768 (ColumnChart edge cases, 100%) in an early run: load-flaky; passed in the full run.
+- Vitest: fall-rule tests (re-test file, model, chart colours) after the fixes: 90 passed.
+
+Signed (pass, with the exceptions above): Opus 5.5 component tester, 20 November 2026
