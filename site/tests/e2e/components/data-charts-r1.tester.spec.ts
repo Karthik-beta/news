@@ -291,7 +291,9 @@ test.describe("DC-2: chart labels stay inside their plots at 100% and 200% text"
             ...(plot.tight !== null && plot.tight !== plot.em <= 20
               ? [{ key: `${plot.title}: tight`, text: `${where}: tight is ${plot.tight}` }]
               : []),
-            ...(size === 100 && plot.em <= 20 ? [{ key: `${plot.title}: tight`, text: `${where}: tight at 100%` }] : []),
+            ...(size === 100 && plot.em <= 20
+              ? [{ key: `${plot.title}: tight`, text: `${where}: tight at 100%` }]
+              : []),
           ];
         });
         const known = new Set(KNOWN[`${page.viewportSize()?.width} ${size}%`] ?? []);

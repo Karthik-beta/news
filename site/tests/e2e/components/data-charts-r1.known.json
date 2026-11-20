@@ -9,18 +9,14 @@
     "undated-title: overlap: chart-plot__x-label \"2019\" x chart-plot__x-label \"2020\"",
     "undated-title: overlap: chart-plot__x-label \"2023\" x chart-plot__x-label \"2024\""
   ],
-  "320 200%": [
-    "small-title: overlap: chart-plot__tick \"0.000000015\" x column-chart__value \"0.000000014\""
-  ],
+  "320 200%": ["small-title: overlap: chart-plot__tick \"0.000000015\" x column-chart__value \"0.000000014\""],
   "360 100%": [
     "equal-title: outside: line-chart__end-label \"Change in the index0.4%\"",
     "grouped-title: outside: chart-plot__x-label \"fiscal 2024\"",
     "sales-title: outside: chart-plot__x-label \"fiscal 2024\"",
     "services-title: outside: chart-plot__x-label \"fiscal 2024\""
   ],
-  "430 100%": [
-    "equal-title: outside: line-chart__end-label \"Change in the index0.4%\""
-  ],
+  "430 100%": ["equal-title: outside: line-chart__end-label \"Change in the index0.4%\""],
   "768 100%": [
     "fell-title: overlap: column-chart__value \"−5.7\" x chart-plot__x-label \"2019\"",
     "negative-title: overlap: column-chart__value \"−5.7\" x chart-plot__x-label \"2019\""
