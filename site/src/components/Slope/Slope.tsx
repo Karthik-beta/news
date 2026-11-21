@@ -3,7 +3,9 @@
 // at zero (positions, not lengths). The highlighted item is crimson, or the neutral highlight when its second value
 // is below its first (design/charts.md, "When the subject fell"), and the rest context; with nothing highlighted,
 // up to 8 items take the categorical colours in order. Values on the left; values and names on the right, nudged
-// apart so no two labels overlap. The plot is an island.
+// apart so no two labels overlap. A tight plot (a phone at 150-200% text size) keeps only the second values beside
+// the lines, so the lines take most of the width, and lists each item's name and two values below the plot. The
+// plot is an island.
 import type { ComponentRenderer } from "@openuidev/react-lang";
 import { usePageData } from "../../renderer/data/context";
 import { MISSING_TEXT, type PageDataResolver, type ResolvedValue } from "../../renderer/data/resolve";
@@ -133,22 +135,23 @@ export function slopePlot(chart: SlopeData, data: PageDataResolver): SlopePlotPr
       const t = r.to.value ? yAt(Number(r.to.value.value), h) : null;
       return { from: f ?? (t as number), to: t ?? (f as number) };
     });
+  // One side's labels stacked top to bottom so none overlaps; `lines` is each label's height in lines.
+  const side = (at: { from: number; to: number }[], h: number, key: "from" | "to", lines: (i: number) => number) => {
+    const order = shown.map((_, i) => i).sort((a, b) => (at[a]?.[key] ?? 0) - (at[b]?.[key] ?? 0));
+    const placed = stackLabels(
+      order.map((i) => ({ centre: at[i]?.[key] ?? 0, h: lines(i) * line })),
+      h,
+    );
+    const out: number[] = [];
+    order.forEach((i, j) => {
+      out[i] = placed.tops[j] as number;
+    });
+    return { tops: out, need: placed.need };
+  };
   for (let attempt = 0; attempt < 6; attempt++) {
     const at = ends(height);
-    const side = (key: "from" | "to", lines: (i: number) => number) => {
-      const order = shown.map((_, i) => i).sort((a, b) => (at[a]?.[key] ?? 0) - (at[b]?.[key] ?? 0));
-      const placed = stackLabels(
-        order.map((i) => ({ centre: at[i]?.[key] ?? 0, h: lines(i) * line })),
-        height,
-      );
-      const out: number[] = [];
-      order.forEach((i, j) => {
-        out[i] = placed.tops[j] as number;
-      });
-      return { tops: out, need: placed.need };
-    };
-    const left = side("from", () => 1);
-    const right = side("to", (i) => {
+    const left = side(at, height, "from", () => 1);
+    const right = side(at, height, "to", (i) => {
       const r = shown[i] as (typeof shown)[number];
       return wrapLines(`${text(r.to)} ${r.input.label}`, SLOPE.lineChars);
     });
@@ -158,7 +161,13 @@ export function slopePlot(chart: SlopeData, data: PageDataResolver): SlopePlotPr
     height = Math.ceil(need);
   }
   const at = ends(height);
+  // A tight plot (narrower than 20em of its text: a phone at 150-200% text size) has no room for names on the
+  // right, so each right-hand label there is its value alone: one line, stacked again for one line a label. One
+  // line a label never needs more height than the labels above did, so the same height holds.
+  const tight = side(at, height, "to", () => 1).tops;
   const pct = (v: number) => (v / height) * 100;
+  // The tight plot's right gutter: the widest right-hand value, in characters (digits are tabular, 1ch each).
+  const endRoom = Math.max(0, ...shown.map((r) => [...text(r.to)].length));
   const items: SlopeItem[] = shown.map((r, i) => ({
     key: `item-${chart.items.indexOf(r)}`,
     label: r.input.label,
@@ -177,6 +186,7 @@ export function slopePlot(chart: SlopeData, data: PageDataResolver): SlopePlotPr
       value: text(r.to),
       ref: r.to.ref,
     },
+    tightTop: pct(tight[i] ?? 0),
     tooltip: [r.from, r.to].map((c, j) => ({
       value: c.value ? displayValue(c.value.value, measure) : null,
       series: chart.periods[j] || null,
@@ -185,7 +195,13 @@ export function slopePlot(chart: SlopeData, data: PageDataResolver): SlopePlotPr
       source: c.value ? tooltipSource(data, c.ref) : null,
     })),
   }));
-  return { summary: chart.model ? modelSummary(chart.model) : "", height, periods: chart.periods, items };
+  return {
+    summary: chart.model ? modelSummary(chart.model) : "",
+    height,
+    periods: chart.periods,
+    items,
+    endRoom,
+  };
 }
 
 export const Slope: ComponentRenderer<SlopeProps> = ({ props, statementId }) => {

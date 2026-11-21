@@ -1,12 +1,16 @@
 /* Slope chart (design/charts.md, "Marks"): 2.5px lines for the highlight, comparison and categorical items, 1.5px
    for context; round caps; 8px end dots with a 2px paper ring; the two periods' names above the ends; values in ink
    on the left, values and names on the right (the highlight's value bold in its colour, its name bold). No
-   gridlines and no axis: every end carries its value. The left gutter holds a value, the right a value and name. */
+   gridlines and no axis: every end carries its value. The left gutter holds a value, the right a value and name;
+   a tight plot lists the names and left-hand values below itself instead (at the end of this file). */
 .slope__plot {
   position: relative;
   font-family: var(--font-family-sans);
   font-size: var(--font-size-label);
   line-height: 1.35;
+  /* A query container, so the plot can tell when it is tight: narrower than 20em of its own text (a phone at
+     150-200% text size), which no viewport media query can see. */
+  container: slope / inline-size;
 }
 .slope__periods {
   display: flex;
@@ -78,6 +82,7 @@
   white-space: nowrap;
 }
 .slope__label--end {
+  top: var(--slope-label-top);
   left: 100%;
   width: max-content;
   max-width: 10em;
@@ -100,6 +105,70 @@
 .slope__label.is-missing,
 .slope__value.is-missing {
   color: var(--color-ink-2);
+}
+
+/* The names' place below the plot, used only by a tight plot (below). */
+.slope__names {
+  display: none;
+  flex-wrap: wrap;
+  column-gap: var(--space-5);
+  row-gap: var(--space-1);
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--color-ink);
+}
+.slope__names-item {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.slope__names-item.is-highlight-item .slope__names-name {
+  font-weight: var(--font-weight-bold);
+}
+.slope__names-value.is-highlight {
+  font-weight: var(--font-weight-bold);
+  color: var(--chart-highlight);
+}
+.slope__names-value.is-highlight-neutral {
+  font-weight: var(--font-weight-bold);
+  color: var(--chart-neutral-highlight);
+}
+.slope__names-value.is-missing {
+  color: var(--color-ink-2);
+}
+
+/* A tight plot: narrower than 20em of its own text, which is a phone at 150-200% text size (design/charts.md,
+   "Responsive behaviour"). The 4.5em and 10em gutters would leave the lines no room, so the left-hand values and
+   the names move to a list below the plot (each item's name and both its values, in the order of the right-hand
+   values), the right-hand labels keep their values only (stacked on the server for one line each) in a gutter as
+   wide as the widest of them, and the lines take the rest. The periods' names sit at the plot's two edges.
+   Nothing is left outside the plot. */
+@container slope (max-width: 20em) {
+  .slope__periods {
+    margin-inline: 0;
+  }
+  .slope__period,
+  .slope__period--end {
+    translate: none;
+  }
+  .slope__area {
+    inset-inline: calc(var(--chart-mark-marker) / 2 + var(--chart-mark-bar-gap))
+      calc(var(--slope-end-room) + var(--space-4));
+  }
+  .slope__label--start {
+    display: none;
+  }
+  .slope__label--end {
+    top: var(--slope-tight-top);
+    max-width: none;
+    white-space: nowrap;
+  }
+  .slope__label--end .slope__name {
+    display: none;
+  }
+  .slope__names {
+    display: flex;
+  }
 }
 
 @media (forced-colors: active) {

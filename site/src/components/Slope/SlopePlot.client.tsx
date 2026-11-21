@@ -2,7 +2,7 @@
 // dots and every label are HTML at full size: values on the left, values and names on the right. The server
 // renders it complete, so it reads with JavaScript off. Once hydrated, a pointer picks the nearest line, each item
 // is a tap target, and the arrow keys step through the items from one tab stop (design/charts.md, "Interaction").
-import type { PointerEvent } from "react";
+import type { CSSProperties, PointerEvent } from "react";
 import {
   ChartLiveRegion,
   ChartTooltip,
@@ -29,6 +29,8 @@ export interface SlopeItem {
   highlight: boolean;
   from: SlopeEnd;
   to: SlopeEnd;
+  /** The right-hand label's top in a tight plot, where it is the value alone: % of the plot's height. */
+  tightTop: number;
   tooltip: TooltipLine[];
 }
 
@@ -40,9 +42,11 @@ export interface SlopePlotProps {
   periods: [string, string];
   /** Items in drawing order: the highlight last, so it is drawn on top. */
   items: SlopeItem[];
+  /** The widest right-hand value, in characters: a tight plot's right gutter. */
+  endRoom: number;
 }
 
-export default function SlopePlot({ summary, height, periods, items }: SlopePlotProps) {
+export default function SlopePlot({ summary, height, periods, items, endRoom }: SlopePlotProps) {
   const { active, setActive, rootRef, plotRef, onKeyDown, onBlur } = useChartStepper(items.length);
   const item = active === null ? null : items[active];
 
@@ -72,9 +76,13 @@ export default function SlopePlot({ summary, height, periods, items }: SlopePlot
   };
 
   const tipY = item ? Math.min(item.from.y ?? 100, item.to.y ?? 100) : 0;
+  // A tight plot's right gutter: the widest right-hand value and a character to spare.
+  const style = { "--slope-end-room": `${endRoom + 1}ch` } as CSSProperties;
+  // The items a tight plot lists below itself, in the order of the right-hand values, top to bottom.
+  const named = [...items].sort((a, b) => a.tightTop - b.tightTop);
 
   return (
-    <div className="slope__plot" ref={rootRef}>
+    <div className="slope__plot" ref={rootRef} style={style}>
       <div className="slope__periods" aria-hidden="true">
         <span className="slope__period">{periods[0]}</span>
         <span className="slope__period slope__period--end">{periods[1]}</span>
@@ -141,7 +149,9 @@ export default function SlopePlot({ summary, height, periods, items }: SlopePlot
               </span>
               <span
                 className={`slope__label slope__label--end${it.highlight ? " is-highlight-item" : ""}`}
-                style={{ top: `${it.to.labelTop}%` }}
+                style={
+                  { "--slope-label-top": `${it.to.labelTop}%`, "--slope-tight-top": `${it.tightTop}%` } as CSSProperties
+                }
               >
                 <span
                   className={`slope__value text-tabular${subjectClass(it.role)}${it.to.y === null ? " is-missing" : ""}`}
@@ -156,6 +166,29 @@ export default function SlopePlot({ summary, height, periods, items }: SlopePlot
           {item ? <ChartTooltip title={item.label} lines={item.tooltip} x="50%" y={`${tipY}%`} align="center" /> : null}
         </div>
       </div>
+      {/* A tight plot (a phone at 150-200% text) has room for the right-hand values only: the names and the
+          left-hand values move here, below the plot, each item with both its values. Hidden otherwise; the same
+          text as the labels. */}
+      <ul className="slope__names" aria-hidden="true">
+        {named.map((it) => (
+          <li key={`${it.key}-name`} className={`slope__names-item${it.highlight ? " is-highlight-item" : ""}`}>
+            <span className="slope__names-name">{it.label}</span>{" "}
+            <span
+              className={`slope__names-value text-tabular${it.from.y === null ? " is-missing" : ""}`}
+              data-ref={it.from.y === null ? undefined : (it.from.ref ?? undefined)}
+            >
+              {it.from.value}
+            </span>{" "}
+            to{" "}
+            <span
+              className={`slope__names-value text-tabular${subjectClass(it.role)}${it.to.y === null ? " is-missing" : ""}`}
+              data-ref={it.to.y === null ? undefined : (it.to.ref ?? undefined)}
+            >
+              {it.to.value}
+            </span>
+          </li>
+        ))}
+      </ul>
       <ChartLiveRegion text={item ? tooltipText(item.label, item.tooltip) : ""} />
     </div>
   );
