@@ -12,10 +12,7 @@ chrono = { workspace = true }
 opentelemetry = { workspace = true }
 opentelemetry_sdk = { workspace = true }
 opentelemetry-otlp = { workspace = true }
-reqwest = { workspace = true }
-# opentelemetry-http 0.33 implements its HttpClient for reqwest 0.13 only; the OTLP exporter needs that
-# version, while the ClickHouse client and news-wire stay on the workspace reqwest 0.12.
-reqwest-otlp = { package = "reqwest", version = "0.13", default-features = false, features = ["blocking"] }
+reqwest = { workspace = true, features = ["query"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
 tracing = { workspace = true }
