@@ -2952,6 +2952,23 @@
         "series": "dp_fx_rank_16"
       }
     },
+    "dp_aapl_net_sales_fy2024": {
+      "label": "Total net sales",
+      "value": "391035",
+      "value_text": "391,035",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "decimals": 0,
+      "period": "pd_fy2024",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "xbrl",
+        "accn": "0000320193-24-000123",
+        "tag": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "context": "FY2024"
+      }
+    },
     "dp_aapl_sales_products_fy2024": {
       "label": "Products net sales",
       "value": "294866",

@@ -1,0 +1,109 @@
+{
+  "note": "Recorded from SEC XBRL companyfacts (undimensioned facts only) by the component tester to check the charts fixture. Values in USD, as SEC serves them.",
+  "url": "https://data.sec.gov/api/xbrl/companyfacts/CIK0000320193.json",
+  "retrieved_at": "2026-11-21",
+  "entity": "Apple Inc.",
+  "cik": 320193,
+  "accn": "0000320193-24-000123",
+  "facts": {
+    "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax": {
+      "val": 391035000000,
+      "start": "2023-10-01",
+      "end": "2024-09-28",
+      "form": "10-K",
+      "fy": 2024,
+      "fp": "FY",
+      "filed": "2024-11-01"
+    },
+    "us-gaap:CostOfGoodsAndServicesSold": {
+      "val": 210352000000,
+      "start": "2023-10-01",
+      "end": "2024-09-28",
+      "form": "10-K",
+      "fy": 2024,
+      "fp": "FY",
+      "filed": "2024-11-01"
+    },
+    "us-gaap:GrossProfit": {
+      "val": 180683000000,
+      "start": "2023-10-01",
+      "end": "2024-09-28",
+      "form": "10-K",
+      "fy": 2024,
+      "fp": "FY",
+      "filed": "2024-11-01"
+    },
+    "us-gaap:ResearchAndDevelopmentExpense": {
+      "val": 31370000000,
+      "start": "2023-10-01",
+      "end": "2024-09-28",
+      "form": "10-K",
+      "fy": 2024,
+      "fp": "FY",
+      "filed": "2024-11-01"
+    },
+    "us-gaap:SellingGeneralAndAdministrativeExpense": {
+      "val": 26097000000,
+      "start": "2023-10-01",
+      "end": "2024-09-28",
+      "form": "10-K",
+      "fy": 2024,
+      "fp": "FY",
+      "filed": "2024-11-01"
+    },
+    "us-gaap:OperatingExpenses": {
+      "val": 57467000000,
+      "start": "2023-10-01",
+      "end": "2024-09-28",
+      "form": "10-K",
+      "fy": 2024,
+      "fp": "FY",
+      "filed": "2024-11-01"
+    },
+    "us-gaap:OperatingIncomeLoss": {
+      "val": 123216000000,
+      "start": "2023-10-01",
+      "end": "2024-09-28",
+      "form": "10-K",
+      "fy": 2024,
+      "fp": "FY",
+      "filed": "2024-11-01"
+    },
+    "us-gaap:NonoperatingIncomeExpense": {
+      "val": 269000000,
+      "start": "2023-10-01",
+      "end": "2024-09-28",
+      "form": "10-K",
+      "fy": 2024,
+      "fp": "FY",
+      "filed": "2024-11-01"
+    },
+    "us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest": {
+      "val": 123485000000,
+      "start": "2023-10-01",
+      "end": "2024-09-28",
+      "form": "10-K",
+      "fy": 2024,
+      "fp": "FY",
+      "filed": "2024-11-01"
+    },
+    "us-gaap:IncomeTaxExpenseBenefit": {
+      "val": 29749000000,
+      "start": "2023-10-01",
+      "end": "2024-09-28",
+      "form": "10-K",
+      "fy": 2024,
+      "fp": "FY",
+      "filed": "2024-11-01"
+    },
+    "us-gaap:NetIncomeLoss": {
+      "val": 93736000000,
+      "start": "2023-10-01",
+      "end": "2024-09-28",
+      "form": "10-K",
+      "fy": 2024,
+      "fp": "FY",
+      "filed": "2024-11-01"
+    }
+  }
+}

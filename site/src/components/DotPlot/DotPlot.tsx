@@ -134,25 +134,24 @@ export function dotPlot(chart: DotData, data: PageDataResolver): DotPlotPlotProp
   const rows: DotRow[] = chart.rows.map((r, ri) => {
     const xs = r.cells.map((c) => (c.value ? x(Number(c.value.value)) : null));
     const present = xs.filter((v): v is number => v !== null);
+    // "No data" sits past the end of the track away from the other dot, in that side's label room, and the other
+    // dot's value goes on its far side, so the two never meet however narrow the track.
+    const missingSide: "left" | "right" = present[0] !== undefined && present[0] < 50 ? "right" : "left";
+    const anyMissing = present.length < xs.length;
     const dots: DotMark[] = r.cells.map((c, i) => {
       const role = roleOf(chart, r, i, anyHighlight);
       const xi = xs[i] ?? null;
       if (xi === null) {
-        // "No data" sits at the end of the track away from the other dot.
-        const other = present[0];
-        return {
-          key: `${ri}-${i}`,
-          role,
-          x: null,
-          value: MISSING_TEXT,
-          side: other !== undefined && other < 50 ? "right" : "left",
-          ref: c.ref || null,
-        };
+        return { key: `${ri}-${i}`, role, x: null, value: MISSING_TEXT, side: missingSide, ref: c.ref || null };
       }
-      // Two dots: the smaller value's label on its left, the larger's on its right. One dot: on its right.
+      // Two dots: the smaller value's label on its left, the larger's on its right. One dot: on its right, unless
+      // the row's other value is missing (then away from the "No data").
       const otherX = xs[1 - i];
-      const side: "left" | "right" =
-        chart.dumbbell && otherX !== null && otherX !== undefined && (xi < otherX || (xi === otherX && i === 0))
+      const side: "left" | "right" = anyMissing
+        ? missingSide === "right"
+          ? "left"
+          : "right"
+        : chart.dumbbell && otherX !== null && otherX !== undefined && (xi < otherX || (xi === otherX && i === 0))
           ? "left"
           : "right";
       return {
@@ -184,10 +183,7 @@ export function dotPlot(chart: DotData, data: PageDataResolver): DotPlotPlotProp
     };
   });
   const widest = (side: "left" | "right") =>
-    Math.max(
-      0,
-      ...rows.flatMap((r) => r.dots.filter((d) => d.side === side && d.x !== null).map((d) => d.value.length)),
-    );
+    Math.max(0, ...rows.flatMap((r) => r.dots.filter((d) => d.side === side).map((d) => d.value.length)));
   return {
     summary: chart.model ? modelSummary(chart.model) : "",
     rows,

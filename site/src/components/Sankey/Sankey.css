@@ -71,6 +71,22 @@
     display: none;
   }
 }
+@container sankey (min-width: 74em) {
+  .sankey--c9 .sankey__flows {
+    display: block;
+  }
+  .sankey--c9 .sankey__fallback {
+    display: none;
+  }
+}
+@container sankey (min-width: 81.5em) {
+  .sankey--c10 .sankey__flows {
+    display: block;
+  }
+  .sankey--c10 .sankey__fallback {
+    display: none;
+  }
+}
 
 .sankey__plot {
   position: relative;

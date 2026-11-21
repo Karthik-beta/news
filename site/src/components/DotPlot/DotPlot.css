@@ -94,8 +94,8 @@
   font-weight: var(--font-weight-bold);
   color: var(--chart-neutral-highlight);
 }
+/* "No data" sits in the label room past the track's end, away from the row's other dot. */
 .dot-plot__value--missing {
-  padding-inline: 0;
   color: var(--color-ink-2);
 }
 

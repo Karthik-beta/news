@@ -46,7 +46,9 @@
 .stacked-bar__segment {
   position: absolute;
   inset-block: 0;
-  background: var(--chart-mark);
+  /* background-color, not the shorthand: this file loads after ChartFigure.css, and the shorthand would wipe the
+     hatch that a row with no parts takes from .chart-hatch. */
+  background-color: var(--chart-mark);
   /* The 2px paper gap after each segment. */
   border-inline-end: var(--chart-mark-bar-gap) solid var(--color-paper);
   forced-color-adjust: none;
@@ -67,6 +69,9 @@
 .stacked-bar__row.is-active .stacked-bar__segment,
 .stacked-bar__segment.is-active {
   opacity: 0.8;
+}
+.stacked-bar__segment.chart-hatch {
+  background-color: transparent;
 }
 .stacked-bar__segment--missing {
   left: 0;
@@ -124,7 +129,8 @@
     background: CanvasText;
     border-inline-end-color: Canvas;
   }
-  .stacked-bar__segment.chart-colour--highlight {
+  .stacked-bar__segment.chart-colour--highlight,
+  .stacked-bar__segment.chart-colour--highlight-neutral {
     background: Highlight;
   }
 }

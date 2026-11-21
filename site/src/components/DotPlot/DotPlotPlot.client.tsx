@@ -89,7 +89,7 @@ export default function DotPlotPlot({ summary, rows, room }: DotPlotPlotProps) {
                   <span
                     key={d.key}
                     className="dot-plot__value dot-plot__value--missing"
-                    style={d.side === "left" ? { left: "0%" } : { right: "0%" }}
+                    style={d.side === "left" ? { right: "100%" } : { left: "100%" }}
                   >
                     {d.value}
                   </span>

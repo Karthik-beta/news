@@ -23,6 +23,9 @@ import {
 import { columnX, flowPath, type SankeyLineInput, type SankeyNode, type SankeyResult, sankeyLayout } from "./layout";
 import SankeyPlot, { type SankeyPlotProps } from "./SankeyPlot.client";
 
+/** The most columns Sankey.css has a width for (`.sankey--c2` to `.sankey--c10`). */
+export const SANKEY_MAX_COLUMNS = 10;
+
 export interface SankeySegmentInput {
   label: string;
   value: string;
@@ -139,10 +142,12 @@ export function sankeyPlot(chart: SankeyData, data: PageDataResolver): SankeyPlo
 export const Sankey: ComponentRenderer<SankeyProps> = ({ props, statementId }) => {
   const data = usePageData();
   const chart = sankeyData(props, data);
-  const plot = sankeyPlot(chart, data);
+  const columns = chart.layout?.ok ? chart.layout.layout.columns : 0;
+  // Sankey.css has a width for 2 to 10 columns (16 rows with segments and a cost after the result make at most
+  // 10); anything wider shows its waterfall rather than the flows at a width meant for fewer columns.
+  const plot = columns <= SANKEY_MAX_COLUMNS ? sankeyPlot(chart, data) : null;
   const plotted = chart.rows.some((l) => l.value !== null);
   const note = mismatchNote(chart.waterfall);
-  const columns = chart.layout?.ok ? chart.layout.layout.columns : 0;
   return (
     <ChartFigure
       statementId={statementId}
@@ -152,7 +157,7 @@ export const Sankey: ComponentRenderer<SankeyProps> = ({ props, statementId }) =
       sourceNote={note ? <span className="waterfall__note">{note}</span> : undefined}
     >
       {plotted ? (
-        <div className={plot ? `sankey sankey--c${Math.min(columns, 8)}` : "sankey sankey--fallback-only"}>
+        <div className={plot ? `sankey sankey--c${columns}` : "sankey sankey--fallback-only"}>
           {plot ? (
             <div className="sankey__flows">
               <Island name="SankeyPlot" component={SankeyPlot} props={plot} />
