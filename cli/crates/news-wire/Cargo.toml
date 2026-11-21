@@ -12,7 +12,9 @@ news-connectors = { workspace = true }
 chrono = { workspace = true }
 httpdate = { workspace = true }
 # The only crate with TLS: the Runner talks to SEC, FRED and BLS over HTTPS.
-reqwest = { workspace = true, features = ["rustls-tls-native-roots", "gzip", "brotli"] }
+reqwest = { workspace = true, features = ["rustls-no-provider", "gzip", "brotli"] }
+# reqwest 0.13 picks its own TLS provider (aws-lc) unless told otherwise; we use ring (already in the tree).
+rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
 sha2 = { workspace = true }
 sqlx = { workspace = true }
 thiserror = { workspace = true }
