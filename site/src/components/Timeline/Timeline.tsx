@@ -27,11 +27,13 @@ export interface TimelineProps {
 export const Timeline: ComponentRenderer<TimelineProps> = ({ props }) => {
   const data = usePageData();
   if (props.events.length === 0) return null;
+  // One key event at most: when two events share the highlighted date, the first is the key one.
+  const keyIndex = props.highlight == null ? -1 : props.events.findIndex((e) => e.date === props.highlight);
   return (
     <ol className="timeline">
       {props.events.map((event, i) => {
         const period = data.period(event.date);
-        const key = props.highlight != null && event.date === props.highlight;
+        const key = i === keyIndex;
         const sources = textSources(data, event.text);
         return (
           <li

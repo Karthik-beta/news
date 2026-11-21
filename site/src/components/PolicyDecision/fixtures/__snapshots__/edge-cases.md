@@ -27,7 +27,7 @@ Source: News test fixtures, Policy statement.
 Source: Board of Governors of the Federal Reserve System, FOMC statements.
 
 - **Not published:** No data
-- **Unknown fact:** no data
+- **Unknown fact:** No data
 - **A period with no start date:** Early 2020s, as the source puts it
 
 - **Federal funds rate, upper limit, with a quoted stance:** 4.50%, cut by 0.25 points

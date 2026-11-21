@@ -41,7 +41,15 @@
 .policy-decision__facts--n1 {
   grid-template-columns: minmax(0, 1fr);
 }
+/* A quoted stance is reading text: on phones it takes the whole row, since half of 360px holds about 17
+   characters a line. From 600px it sits in the row like the other facts. */
+.policy-decision__fact--q {
+  grid-column: 1 / -1;
+}
 @media (min-width: 600px) {
+  .policy-decision__fact--q {
+    grid-column: auto;
+  }
   .policy-decision__facts--n3 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }

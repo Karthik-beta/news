@@ -33,9 +33,10 @@ export default defineNewsComponent({
   component: Timeline,
   markdown: ({ props, data }) =>
     props.events
-      .map((e) => {
+      .map((e, i, all) => {
         const date = data.period(e.date)?.label ?? MISSING_TEXT;
-        const key = props.highlight != null && e.date === props.highlight ? " (key event)" : "";
+        const keyIndex = props.highlight == null ? -1 : all.findIndex((x) => x.date === props.highlight);
+        const key = i === keyIndex ? " (key event)" : "";
         return `- **${escapeMarkdown(date)}${key}:** ${copyMarkdown(e.text, data)}`;
       })
       .join("\n"),

@@ -3,7 +3,14 @@ import { formatValue, MISSING_TEXT } from "../../renderer/data/resolve";
 import { escapeMarkdown } from "../../renderer/markdown";
 import { defineNewsComponent } from "../contract";
 import stepLineChart from "../StepLineChart/spec";
-import { decisionChange, decisionFacts, decisionSources, isStepLine, PolicyDecision } from "./PolicyDecision";
+import {
+  decisionChange,
+  decisionFacts,
+  decisionSources,
+  factPlainText,
+  isStepLine,
+  PolicyDecision,
+} from "./PolicyDecision";
 
 const valueRef = z.string().regex(/^(dp|dv)_[a-z0-9]+(_[a-z0-9]+)*$/);
 const factRef = z.string().regex(/^(dp|dv|pd|q|cx)_[a-z0-9]+(_[a-z0-9]+)*$/);
@@ -43,7 +50,7 @@ path = StepLineChart("The Fed cut for the third meeting in a row", "Federal fund
     const lines = [
       `- **${escapeMarkdown(data.plainText(props.label))}:** ${rate.ok ? escapeMarkdown(formatValue(rate)) : MISSING_TEXT}${change ? `, ${escapeMarkdown(lowerFirst(change))}` : ""}`,
       ...decisionFacts(props).map(
-        (f) => `- **${escapeMarkdown(data.plainText(f.label))}:** ${escapeMarkdown(data.plainText(`{${f.value}}`))}`,
+        (f) => `- **${escapeMarkdown(data.plainText(f.label))}:** ${escapeMarkdown(factPlainText(data, f))}`,
       ),
     ];
     const sources = decisionSources(data, props);

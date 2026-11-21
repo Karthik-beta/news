@@ -63,7 +63,8 @@ export interface StoryListProps {
 /** A hub or search list: story items with a date column, hairlines between them. Missing pages are left out. */
 export function StoryList({ pageIds, variant = "hub", level = 2 }: StoryListProps) {
   const listings = useListings();
-  const ids = pageIds.filter((id) => listings.get(id) !== null);
+  // A page is listed once, even if the list names it twice.
+  const ids = [...new Set(pageIds)].filter((id) => listings.get(id) !== null);
   if (ids.length === 0) return null;
   return (
     <ol className={`story-list story-list--${variant}`}>

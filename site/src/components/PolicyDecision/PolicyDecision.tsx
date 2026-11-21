@@ -7,7 +7,13 @@
 import type { ComponentRenderer, ElementNode } from "@openuidev/react-lang";
 import { isNegative, isZeroValue } from "../../format";
 import { usePageData } from "../../renderer/data/context";
-import { type CitedSource, type PageDataResolver, type ResolvedValue, refKind } from "../../renderer/data/resolve";
+import {
+  type CitedSource,
+  MISSING_TEXT,
+  type PageDataResolver,
+  type ResolvedValue,
+  refKind,
+} from "../../renderer/data/resolve";
 import { SourceLine } from "../ChartFigure/ChartFigure";
 import { sourcesOf } from "../ChartFigure/model";
 import { changeSize } from "../KeyFigure/change";
@@ -51,6 +57,19 @@ export function decisionChange(data: PageDataResolver, change: string | null | u
 /** At most three facts, in the writer's order. */
 export const decisionFacts = (props: PolicyDecisionProps): DecisionFact[] => (props.facts ?? []).slice(0, 3);
 
+/**
+ * True when a fact's reference does not resolve at all (an unknown ID). A fact value stands alone, like the rate,
+ * so it says "No data" with a capital, not the lower-case "no data" that RefText writes inside a sentence.
+ */
+export function factMissing(data: PageDataResolver, fact: DecisionFact): boolean {
+  const segments = data.text(`{${fact.value}}`);
+  return segments.length === 1 && segments[0]?.type === "missing";
+}
+
+/** A fact's value as plain text (the Markdown): the resolved text, or "No data" when the reference is unknown. */
+export const factPlainText = (data: PageDataResolver, fact: DecisionFact): string =>
+  factMissing(data, fact) ? MISSING_TEXT : data.plainText(`{${fact.value}}`);
+
 /** Every source behind the decision and its facts (not the rate path, which has its own source line). */
 export function decisionSources(data: PageDataResolver, props: PolicyDecisionProps): CitedSource[] {
   const lists: CitedSource[][] = [];
@@ -90,19 +109,29 @@ export const PolicyDecision: ComponentRenderer<PolicyDecisionProps> = ({ props, 
       </dl>
       {facts.length > 0 ? (
         <dl className={`policy-decision__facts policy-decision__facts--n${facts.length}`}>
-          {facts.map((fact) => (
-            <div key={`${fact.label}-${fact.value}`} className="policy-decision__fact">
-              <dt className="policy-decision__fact-label text-label">
-                <RefText text={fact.label} cite="plain" />
-              </dt>
-              <dd
-                className={`policy-decision__fact-value policy-decision__fact-value--${refKind(fact.value) ?? "other"}`}
-                data-ref={fact.value}
+          {facts.map((fact) => {
+            const kind = refKind(fact.value) ?? "other";
+            return (
+              <div
+                key={`${fact.label}-${fact.value}`}
+                className={`policy-decision__fact${kind === "q" ? " policy-decision__fact--q" : ""}`}
               >
-                <RefText text={`{${fact.value}}`} />
-              </dd>
-            </div>
-          ))}
+                <dt className="policy-decision__fact-label text-label">
+                  <RefText text={fact.label} cite="plain" />
+                </dt>
+                <dd
+                  className={`policy-decision__fact-value policy-decision__fact-value--${kind}`}
+                  data-ref={fact.value}
+                >
+                  {factMissing(data, fact) ? (
+                    <span className="source-ref--missing">{MISSING_TEXT}</span>
+                  ) : (
+                    <RefText text={`{${fact.value}}`} />
+                  )}
+                </dd>
+              </div>
+            );
+          })}
         </dl>
       ) : null}
       <SourceLine sources={decisionSources(data, props)} className="policy-decision__source" />

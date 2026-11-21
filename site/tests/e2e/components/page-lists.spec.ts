@@ -61,7 +61,9 @@ test("static parts ship no JavaScript; the decision's rate path is the only isla
 
 test("the keyboard reaches Newer, the page numbers and Older in reading order", {
   tag: ["@smoke", "@interaction"],
-}, async ({ page }) => {
+}, async ({ page, browserName }) => {
+  // Playwright's WebKit on Windows never moves to links with Tab (Safari's default; see SourceRef.spec.ts).
+  test.skip(browserName === "webkit", "WebKit does not tab to links by default");
   await gotoPage(page, "/fixtures/primitives/Pagination/");
   const nav = page.getByRole("navigation", { name: "Pages, long-run case" });
   const links = nav.getByRole("link");

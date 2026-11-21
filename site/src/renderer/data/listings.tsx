@@ -96,12 +96,21 @@ export const PAGE_TYPE_LABELS: Record<PageType, string> = {
   explainer: "Explainer",
 };
 
-/** "North America" for "north-america": the region filter's label, or the code's words for a region it lacks. */
+/** Words a region's name keeps in lower case after its first word ("Middle East and North Africa"). */
+const MINOR_WORDS = new Set(["and", "of", "the"]);
+
+/**
+ * "North America" for "north-america": the region filter's label, or, for a region it lacks, the code's words as a
+ * place name, each capitalised but "and", "of" and "the" ("latin-america" is "Latin America", not "Latin america").
+ */
 export function regionLabel(code: string): string {
   const known = REGIONS.find((r) => r.slug === code);
   if (known) return known.label;
-  const words = code.replaceAll("-", " ");
-  return words.charAt(0).toUpperCase() + words.slice(1);
+  return code
+    .split("-")
+    .filter((w) => w.length > 0)
+    .map((w, i) => (i > 0 && MINOR_WORDS.has(w) ? w : w.charAt(0).toUpperCase() + w.slice(1)))
+    .join(" ");
 }
 
 const isElement = (v: unknown): v is ElementNode =>

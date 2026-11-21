@@ -13,8 +13,15 @@ export interface SectionHeadProps {
   id?: string;
 }
 
-/** "All economy pages": the hub link's words, from the category name. */
-export const allPagesText = (name: string) => `All ${name.toLowerCase()} pages`;
+/**
+ * "All economy pages": the hub link's words, from the category name in lower case mid-sentence. Words in capitals
+ * stay as they are ("AI and robotics" gives "All AI and robotics pages").
+ */
+export const allPagesText = (name: string) =>
+  `All ${name
+    .split(" ")
+    .map((w) => (w.length > 1 && w === w.toUpperCase() && /\p{Lu}/u.test(w) ? w : w.toLowerCase()))
+    .join(" ")} pages`;
 
 export function SectionHead({ name, href, level = 2, id }: SectionHeadProps) {
   const Tag = `h${level}` as "h2";

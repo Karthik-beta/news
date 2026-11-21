@@ -152,7 +152,7 @@ describe("home components show only the page record's own text and data", () => 
     ]);
     expect([...container.querySelectorAll(".story-item__meta")].map((m) => m.textContent)).toEqual([
       "Economic data, North America",
-      "Report, Latin america",
+      "Report, Latin America",
       "Policy decision, North America",
     ]);
     expect(lists[1]?.querySelector(".slot-figure")).toBeNull();

@@ -32,7 +32,8 @@ export const latestWhen = (publishedAt: string, now: string) =>
 export function LatestList({ pageIds, now, allHref = "/latest/" }: LatestListProps) {
   const headingId = `latest-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   const listings = useListings();
-  const pages = pageIds
+  // A page is listed once, even if the list names it twice.
+  const pages = [...new Set(pageIds)]
     .map((id) => listings.get(id))
     .filter((p): p is ListedPage => p !== null)
     .slice(0, LATEST_MAX);

@@ -38,9 +38,10 @@ export function pageWindow(current: number, total: number): (number | "gap")[] {
 }
 
 export function Pagination({ current, total, base = "/", href, label = "Pages" }: PaginationProps) {
-  const pages = Math.max(0, Math.floor(total));
+  // A count or page number that is not a finite number shows nothing, or page 1, never "Page NaN".
+  const pages = Number.isFinite(total) ? Math.max(0, Math.floor(total)) : 0;
   if (pages <= 1) return null;
-  const at = Math.min(Math.max(1, Math.floor(current)), pages);
+  const at = Math.min(Math.max(1, Number.isFinite(current) ? Math.floor(current) : 1), pages);
   const link = (n: number) => (href ? href(n) : pageHref(base, n));
   return (
     <nav className="pagination" aria-label={label}>
