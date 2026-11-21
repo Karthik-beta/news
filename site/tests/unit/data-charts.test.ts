@@ -11,7 +11,18 @@ import { fixtureLibrary } from "../../src/renderer/fixtures/library";
 import { parsePage, renderPage } from "../../src/renderer/render";
 
 const library = fixtureLibrary();
-const CHART_NAMES = ["ColumnChart", "BarChart", "LineChart", "StepLineChart", "DataTable", "ComparisonTable"];
+const CHARTS_2 = ["Waterfall", "Sankey", "StackedBar", "SegmentedBar", "DotPlot", "Slope"];
+const CHART_NAMES = [
+  "ColumnChart",
+  "BarChart",
+  "LineChart",
+  "StepLineChart",
+  "DataTable",
+  "ComparisonTable",
+  ...CHARTS_2,
+];
+/** Charts whose result is the highlight by design (design/charts.md, "Waterfall"), with no highlight prop. */
+const RESULT_HIGHLIGHT = ["Waterfall", "Sankey"];
 const DATA_NAMES = [...CHART_NAMES, "KeyFigure", "KeyFigures"];
 
 const pages = componentFixtures
@@ -72,6 +83,12 @@ describe("every rendered figure carries its source ID", () => {
     ".article__head",
     ".article__sources",
     ".chart-legend",
+    ".stacked-bar__label",
+    ".dot-plot__label",
+    ".slope__period",
+    ".slope__name",
+    ".sankey__name",
+    ".segmented-bar__name",
   ].join(", ");
 
   it.each(pages.map((p) => [p.id, p] as const))("%s: every number on the page is cited", (_id, p) => {
@@ -318,7 +335,9 @@ describe("colour never follows the value", () => {
   it("no fixture shows crimson unless the page writer named the subject, and no fall is crimson", () => {
     for (const p of pages) {
       const crimson = p.doc.querySelectorAll(".chart-colour--highlight, .is-highlight");
-      if (!namesHighlight(parsePage(p.f.oui, library.library))) expect(crimson.length, p.id).toBe(0);
+      if (!namesHighlight(parsePage(p.f.oui, library.library)) && !RESULT_HIGHLIGHT.includes(p.f.component)) {
+        expect(crimson.length, p.id).toBe(0);
+      }
       for (const el of p.doc.querySelectorAll(".is-negative")) {
         expect(el.classList.contains("is-highlight"), `${p.id}: ${el.textContent}`).toBe(false);
       }

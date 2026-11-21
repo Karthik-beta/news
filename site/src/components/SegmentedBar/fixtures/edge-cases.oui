@@ -1,0 +1,5 @@
+root = Page([missing, fell, tiny, unknown])
+missing = SegmentedBar("A missing part is in the key as No data, never a zero", "Synthetic shares, %", [{label: "Other", value: "dp_fx_other_2022"}, {label: "Not published", value: "dp_fx_gaps_2022"}, {label: "Zero", value: "dp_fx_zero_2021"}, {label: "Third", value: "dp_fx_third_2022"}, {label: "Unknown reference", value: "dp_fx_gaps_not_in_data"}])
+fell = SegmentedBar("A highlighted part below zero is not crimson and is not drawn", "Synthetic shares, %", [{label: "Positive", value: "dp_fx_other_2023"}, {label: "Negative", value: "dp_fx_zero_2022", highlight: true}, {label: "Third", value: "dp_fx_third_2023"}])
+tiny = SegmentedBar("A very small part keeps its key and value", "Synthetic shares, %", [{label: "Large part with a long name that wraps on a phone", value: "dp_fx_other_2022"}, {label: "Very small", value: "dp_fx_third_2020"}, {label: "Medium", value: "dp_fx_fourth_2022"}])
+unknown = SegmentedBar("Every part unknown", "Nothing to plot", [{label: "One", value: "dp_fx_bar_not_in_data"}, {label: "Two", value: "dp_fx_bar_not_in_data_either"}])

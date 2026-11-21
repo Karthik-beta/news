@@ -85,7 +85,19 @@ describe.each(["light", "dark"] as const)("%s theme", (theme) => {
 });
 
 describe("component styles", () => {
-  const folders = ["ChartFigure", "ColumnChart", "BarChart", "LineChart", "Sparkline", "DataTable", "KeyFigure"];
+  const folders = [
+    "ChartFigure",
+    "ColumnChart",
+    "BarChart",
+    "LineChart",
+    "Sparkline",
+    "DataTable",
+    "KeyFigure",
+    "Sankey",
+    "StackedBar",
+    "DotPlot",
+    "Slope",
+  ];
   const css = folders.map((f) => {
     const path = join(siteRoot, "src/components", f, `${f}.css`);
     return { f, text: readFileSync(path, "utf8") };

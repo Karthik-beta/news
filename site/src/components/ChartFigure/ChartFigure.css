@@ -78,6 +78,12 @@
   width: 14px;
   height: var(--chart-mark-line-width);
 }
+/* Dot plots and slope ends: the 8px point marker. */
+.chart-key--dot {
+  width: var(--chart-mark-marker);
+  height: var(--chart-mark-marker);
+  border-radius: 50%;
+}
 
 /* The plot box: phone first, taller from tablet up. The value axis sits on the left, labels above their
    gridlines; the marks start after the axis labels so a tall mark never covers one. */

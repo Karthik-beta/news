@@ -14,8 +14,8 @@ export interface LegendItem {
   key: string;
   label: string;
   role: ColourRole;
-  /** A 10×10 square for bars and columns, a 14×2.5 line for lines (design/charts.md, "Anatomy"). */
-  shape: "square" | "line";
+  /** A 10×10 square for bars and columns, a 14×2.5 line for lines (design/charts.md, "Anatomy"), an 8px dot for dots. */
+  shape: "square" | "line" | "dot";
 }
 
 /** The legend: only for two or more series, above the plot, keys in the series colour and text in ink-2. */

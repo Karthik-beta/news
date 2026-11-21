@@ -119,6 +119,11 @@ Crimson never marks a subject that fell (Karthik, 16 Nov 2026). A highlighted su
 | Column chart | The highlighted column's value is below zero, or below the comparison value when the chart names one |
 | Line and step-line chart | The highlighted series' last value in the shown range is below its first (gaps skipped; a single point or a flat line did not fall) |
 | Data table | A highlighted period: every value in the row is below zero. A highlighted series (rows are series): the line rule |
+| Waterfall and Sankey | The result (the last total, usually net income) is below zero: a loss. A Sankey cannot draw a loss as a flow, so it shows its waterfall |
+| Dot plot | One value per row: the bar rule. A dumbbell: the highlighted row's second value is below its first |
+| Slope chart | The highlighted item's second value is below its first |
+| Stacked bar | The highlighted part's value in the last row is below its value in the first row (the line rule, across rows) |
+| Segmented bar | The highlighted part is below zero (it cannot be drawn, so it is in the key and the table only) |
 
 Today neither the bar nor the column chart takes a comparison value, so for both the rule is "below zero". A missing value never fell. A rise, a flat line and a zero are crimson as usual.
 
@@ -128,12 +133,34 @@ Today neither the bar nor the column chart takes a comparison value, so for both
 - Rows from net sales down to net income. Totals (net sales, gross margin, operating income) in `chart.comparison`; deductions (cost of sales, operating expenses, taxes and other) in `chart.neutral`, floating between their start and end; the final result (net income) in `chart.highlight`.
 - Horizontal layout (labels on the left, bars to the right) so it reads on phones. Value labels at each bar's end; deductions shown with a minus sign.
 - Labels use the company's own line names.
+- Each row says what it does, and its value stays as the source publishes it: a **total** runs from zero (the first row is one; the last total is the result); a **deduction** subtracts its value (a cost published as 210,352 goes down, a tax credit published as −20 goes up); an **addition** adds its value (other income of 269 goes up, −565 goes down). Labels carry the effect's sign ("−$210.4bn", "+$269m"); the data table keeps the published values.
+- The running amount is exact. When the lines shown do not add up to a total (a line left out), the bars stay where the source puts them and a line under the chart says so ("The lines shown do not add up to Operating income: the source has lines not shown here."). After a line with no value, the lines up to the next total cannot be placed: they are hatched, with their values.
+- The plot is the horizontal bar chart's island, so a waterfall adds no JavaScript.
 
 ### Sankey (Tier 1 earnings)
 - Revenue segments on the left flowing into total revenue, then splitting into costs and profit.
 - Revenue flows in `chart.context`; cost flows in `chart.neutral`; the profit path in `chart.highlight`.
 - Node labels in ink with values; flows have no outlines. Minimum flow thickness 2px; flows below 1% of the total fold into "Other".
 - On phones, fall back to the waterfall: a Sankey can't be read at 360px.
+- Built from the same rows as the waterfall (totals, deductions, additions) plus optional revenue segments that add up to the first total, so the two can never tell different stories. Nodes: totals in `chart.comparison` and the result in `chart.highlight`, segments and additions in `chart.context`, costs in `chart.neutral`. Each column runs additions, then the total, then the costs, so the profit path stays along the top and no two flows cross. Nodes are the hover and keyboard stops; a flow shows its node's tooltip.
+- **Folding.** Siblings under 1% of total revenue (segments, the costs leaving one total, the additions joining one) fold into one "Other" node in `chart.neutral` when two or more are that small; a single small flow keeps its name and is drawn at the 2px minimum. "Other" writes no number on the plot (its sum would be ours, not the source's); its tooltip lists each line folded into it, and the data table lists every line.
+- **When it shows.** The Sankey needs its plot to be at least 7em for each label gutter plus 7.5em per gap between columns, measured in the plot's own text (a container query, so it also holds at 200% text). Narrower, which includes every phone, the waterfall of the same rows shows instead, by CSS alone; both are rendered on the server. With five columns (segments, revenue, gross margin, operating income, net income) the Sankey shows from a 44em plot, about 600px. The widths are written for 2 to 10 columns, the most 16 rows can make.
+- **When it can't flow.** A loss, a missing or unknown value, segments that do not add up to revenue, or totals the lines above them do not add up to: the waterfall shows at every width.
+- Labels are nudged apart in each column so none overlaps another, and the plot grows when they need more height. Labels between columns sit on a paper ground so they read over the flows.
+
+### Stacked and segmented bars (part of a whole)
+- **Stacked bar:** one 22px bar per row, each split into the same 2–8 parts: the categorical colours in the given order, or one highlighted part in crimson and the rest context. A legend names the parts; a row's total, when the source publishes one, is written past the bar's end; every part's value is in the tooltip and the table. A negative part cannot be stacked: it is left out of the bar and kept in the tooltip and the table.
+- **Segmented bar:** one 28px bar for one whole in 2–6 parts. Under the bar a key lists every part in block order with its value, so no label squeezes inside a narrow block; the key is the legend. Each part is its own hover and keyboard stop.
+- Square ends and a 2px paper gap after every segment, as in stacked columns.
+
+### Dot plots and dumbbells
+- One row per item: 8px dots with a 2px paper ring on a shared scale that need not start at zero (positions, not lengths), so there is no axis and every dot carries its value. A hairline guide runs along each row.
+- One value per row: dots in `chart.cat.1`, or the highlighted row in crimson and the rest context. Two values (a dumbbell: before and after, guidance and actual): the first in `chart.context`, the second in `chart.comparison`, joined by a 2px context line; the highlighted row's second dot is crimson. The legend names the two values. The smaller value's label sits left of its dot, the larger's right.
+
+### Slope charts
+- One line per item from its first value to its second, on one scale that need not start at zero, with 8px end dots. Values on the left; values and names on the right, so no legend is needed. The two points' names sit above the ends.
+- A tight slope (narrower than 20em of its own text; see "Large text" below) has no room for both gutters: the right-hand labels keep only their values, in a gutter as wide as the widest of them, and the lines take the rest of the width. Each item's name and both values ("Europe $94.3bn to $101.3bn") move to a list below the plot, in the order of the right-hand values, the highlight's name bold and its value in its colour. The two points' names sit at the plot's edges.
+- The highlighted item is crimson (2.5px) and the rest context (1.5px); with nothing highlighted, up to 8 items take the categorical colours in order and any beyond are neutral. Labels on each side are nudged apart, and the plot grows when they need more room. A pointer picks the nearest line.
 
 ### Line charts and step lines
 - Up to 4 labelled lines; context lines thinner. End labels show the series name (bold, in its colour) and the latest value (in ink).
@@ -180,7 +207,7 @@ Charts are interactive, quietly:
 - Charts are re-laid out for narrow screens, not just scaled down. Text in a chart never renders smaller than 12px.
 - Horizontal bars and waterfalls are built in HTML/CSS so labels stay full size; line and column charts are SVG with a viewBox sized for the phone layout first.
 - On phones: fewer x-axis labels, end labels may move above the line, legends wrap, Sankeys fall back to waterfalls, maps fall back to ranked bars plus a small map.
-- **Large text.** A plot narrower than 20em of its own text is *tight*: a phone with the reader's text at 150–200%, which no viewport media query sees, so line, step-line and column plots are CSS query containers and switch on their width in em. A tight plot keeps fewer x labels (chosen by code for about 16 characters of room), lets each wrap to half the way to its neighbours, and pins the first and last inside the plot; line end labels move to a row below the x axis ("Services 73.9%", or the period and the value for one series) so the lines take the full width; a step line's one event label wraps between its line and the plot's edge, in a row above the plot that grows with it; a tight column chart shows only the highlighted and latest values, the first and last aligned to their column's outer edge. The x axis and the event row grow to their tallest label, so a label that wraps to three lines never runs into the text beside it. Nothing leaves the plot and the page never scrolls sideways. At 100% text no phone plot is tight.
+- **Large text.** A plot narrower than 20em of its own text is *tight*: a phone with the reader's text at 150–200%, which no viewport media query sees, so line, step-line, column and slope plots are CSS query containers and switch on their width in em. A tight plot keeps fewer x labels (chosen by code for about 16 characters of room), lets each wrap to half the way to its neighbours, and pins the first and last inside the plot; line end labels move to a row below the x axis ("Services 73.9%", or the period and the value for one series) so the lines take the full width; a step line's one event label wraps between its line and the plot's edge, in a row above the plot that grows with it; a tight column chart shows only the highlighted and latest values, the first and last aligned to their column's outer edge. The x axis and the event row grow to their tallest label, so a label that wraps to three lines never runs into the text beside it. Nothing leaves the plot and the page never scrolls sideways. At 100% text no phone plot is tight.
 - Very wide charts (long timelines) scroll sideways inside their own container with a visible fade at the edge.
 
 ## Dark mode

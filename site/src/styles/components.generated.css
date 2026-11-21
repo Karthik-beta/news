@@ -7,6 +7,7 @@
 @import "../components/DataTable/DataTable.css";
 @import "../components/DateLine/DateLine.css";
 @import "../components/Disclaimer/Disclaimer.css";
+@import "../components/DotPlot/DotPlot.css";
 @import "../components/FigureFrame/FigureFrame.css";
 @import "../components/Finding/Finding.css";
 @import "../components/FlyTitle/FlyTitle.css";
@@ -35,11 +36,14 @@
 @import "../components/RegionFilter/RegionFilter.css";
 @import "../components/RelatedPages/RelatedPages.css";
 @import "../components/Rule/Rule.css";
+@import "../components/Sankey/Sankey.css";
 @import "../components/SectionHead/SectionHead.css";
 @import "../components/SkipLink/SkipLink.css";
+@import "../components/Slope/Slope.css";
 @import "../components/SourceRef/SourceRef.css";
 @import "../components/SourcesPanel/SourcesPanel.css";
 @import "../components/Sparkline/Sparkline.css";
+@import "../components/StackedBar/StackedBar.css";
 @import "../components/Standfirst/Standfirst.css";
 @import "../components/StoryItem/StoryItem.css";
 @import "../components/Text/Text.css";

@@ -88,7 +88,9 @@ export default function BarChartPlot({ summary, rows, zero, room }: BarChartPlot
               {r.start === null || r.width === null ? (
                 <>
                   <span className="bar-chart__bar bar-chart__bar--missing chart-hatch" data-ref={r.ref ?? undefined} />
-                  <span className="bar-chart__value bar-chart__value--missing">{r.value}</span>
+                  <span className="bar-chart__value bar-chart__value--missing" data-ref={r.ref ?? undefined}>
+                    {r.value}
+                  </span>
                 </>
               ) : (
                 <>

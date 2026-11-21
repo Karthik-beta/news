@@ -2,7 +2,16 @@
 // move between points (or bars); Home and End jump to the ends; the tooltip follows focus; Escape closes it; a
 // pointer or a tap shows a mark's tooltip, and a tap outside the chart closes it. No zoom, pan or animation.
 // Client-safe: islands import this, so it must never import server-only code (the resolver, the renderer).
-import { type KeyboardEvent, type ReactNode, type RefObject, useCallback, useEffect, useRef, useState } from "react";
+import {
+  type KeyboardEvent,
+  type ReactNode,
+  type RefObject,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 /** One line of a tooltip: a value, its series and period, and where it comes from. */
 export interface TooltipLine {
@@ -127,10 +136,30 @@ export function ChartTooltip({
   align: "start" | "center" | "end";
   placement?: "above" | "below";
 }): ReactNode {
+  // Alignment by the anchor's place in the plot keeps most tooltips inside it, but on a narrow screen a tooltip
+  // wider than the plot (a floating waterfall line, a middle segment) can still run past the viewport. Once laid
+  // out, it is nudged sideways just enough to stay on screen, with the page's gutter to spare.
+  const ref = useRef<HTMLSpanElement | null>(null);
+  const [shift, setShift] = useState(0);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    if (r.width === 0) return; // not laid out (hidden, or no layout engine): nothing to keep on screen
+    const gutter = 8;
+    const viewport = document.documentElement.clientWidth;
+    const left = r.left - shift;
+    const right = r.right - shift;
+    let next = 0;
+    if (left < gutter) next = gutter - left;
+    else if (right > viewport - gutter) next = Math.max(viewport - gutter - right, gutter - left);
+    if (Math.abs(next - shift) > 0.5) setShift(next);
+  });
   return (
     <span
+      ref={ref}
       className={`popover popover--tooltip popover--${placement} popover--align-${align} chart-tooltip`}
-      style={{ left: x, top: y }}
+      style={{ left: x, top: y, marginInlineStart: shift ? `${shift}px` : undefined }}
       aria-hidden="true"
     >
       {lines.map((l) => (

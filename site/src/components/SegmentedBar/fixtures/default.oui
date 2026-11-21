@@ -1,0 +1,3 @@
+root = Page([mix, plain])
+mix = SegmentedBar("iPhone brought in about half of Apple's sales in {pd_fy2024}", "Net sales by category, fiscal 2024, US$ bn", [{label: "iPhone", value: "dp_aapl_sales_iphone_fy2024", highlight: true}, {label: "Services", value: "dp_aapl_sales_services_fy2024"}, {label: "Wearables, Home and Accessories", value: "dp_aapl_sales_wearables_fy2024"}, {label: "Mac", value: "dp_aapl_sales_mac_fy2024"}, {label: "iPad", value: "dp_aapl_sales_ipad_fy2024"}])
+plain = SegmentedBar("Products made up most of Apple's sales", "Net sales, fiscal 2024, US$ bn", [{label: "Products", value: "dp_aapl_sales_products_fy2024"}, {label: "Services", value: "dp_aapl_sales_services_fy2024"}])
