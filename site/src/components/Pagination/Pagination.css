@@ -1,0 +1,59 @@
+/* Pagination (design/components.md, "Pagination"): Fira at the UI size (15px); page numbers and "Newer"/"Older"
+   in ink-2 with no underline at rest; the current page in ink, weight 600, with a 2px crimson underline, like the
+   region filter's selected region. Every link is at least 24px square. Wraps on narrow screens. */
+.pagination__list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--space-4);
+  row-gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-ui);
+  line-height: var(--font-line-height-ui);
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.pagination__page,
+.pagination__end {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--space-7);
+  min-height: var(--space-7);
+  color: var(--color-ink-2);
+  text-decoration: none;
+  border-bottom: var(--border-section) solid transparent;
+}
+.pagination__page:hover,
+.pagination__end:hover {
+  color: var(--color-ink);
+  border-bottom-color: var(--color-rule);
+}
+.pagination__page[aria-current="page"] {
+  color: var(--color-ink);
+  font-weight: var(--font-weight-semibold);
+  border-bottom-color: var(--color-brand);
+}
+.pagination__end {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.pagination__gap {
+  color: var(--color-ink-3);
+}
+
+@media (forced-colors: active) {
+  .pagination__page[aria-current="page"] {
+    border-bottom-color: LinkText;
+  }
+}
+
+@media print {
+  .pagination {
+    display: none;
+  }
+}

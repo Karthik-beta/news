@@ -1,0 +1,123 @@
+/* Timeline (design/components.md, "Timeline"): the date in Fira 600 13.5, ink; the event in Literata at the small
+   body size (15.5px; the spec's 16px has no token); a 1px rule-coloured line joins the events; 8px ink dots, the
+   key event's crimson with a 1px crimson ring. Phones: the dot and line at the left edge, the date above the
+   text. From 600px: the date in a 7em column, then the line and dots, then the text. The first event's line
+   starts at its dot and the last one's ends there. */
+.timeline {
+  --timeline-dot: var(--chart-mark-marker);
+  --timeline-dot-top: calc(var(--font-size-label) * var(--font-line-height-ui) / 2 - var(--timeline-dot) / 2);
+  --timeline-axis: 0px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.timeline__event {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  padding-inline-start: calc(var(--timeline-axis) + var(--timeline-dot) + var(--space-5));
+  padding-bottom: var(--space-6);
+}
+.timeline__event:last-child {
+  padding-bottom: 0;
+}
+
+/* The line, centred on the dots. */
+.timeline__event::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: calc(var(--timeline-axis) + (var(--timeline-dot) - var(--border-hairline)) / 2);
+  top: 0;
+  bottom: 0;
+  border-inline-start: var(--border-hairline) solid var(--color-rule);
+}
+.timeline__event:first-child::before {
+  top: var(--timeline-dot-top);
+}
+.timeline__event:last-child::before {
+  bottom: auto;
+  height: var(--timeline-dot-top);
+}
+.timeline__event:only-child::before {
+  content: none;
+}
+
+/* The dot. */
+.timeline__event::after {
+  content: "";
+  position: absolute;
+  inset-inline-start: var(--timeline-axis);
+  top: var(--timeline-dot-top);
+  width: var(--timeline-dot);
+  height: var(--timeline-dot);
+  border-radius: 50%;
+  background: var(--color-ink);
+  print-color-adjust: exact;
+}
+.timeline__event--key::after {
+  background: var(--color-brand);
+  outline: var(--border-hairline) solid var(--color-brand);
+  outline-offset: var(--space-1);
+}
+
+.timeline__date,
+.timeline__text {
+  margin: 0;
+}
+.timeline__date {
+  font-family: var(--font-family-sans);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-label);
+  line-height: var(--font-line-height-ui);
+  font-variant-numeric: lining-nums tabular-nums;
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+
+.timeline__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.timeline__text {
+  font-family: var(--font-family-serif);
+  font-size: var(--font-size-body-s);
+  line-height: var(--font-line-height-summary);
+  color: var(--color-ink);
+  max-width: var(--layout-prose);
+  overflow-wrap: anywhere;
+}
+.timeline__source {
+  margin: 0;
+}
+.timeline__source a {
+  color: inherit;
+}
+
+@media (min-width: 600px) {
+  .timeline {
+    --timeline-axis: calc(var(--font-size-label) * 7 + var(--space-5));
+  }
+  .timeline__event {
+    display: grid;
+    grid-template-columns: calc(var(--font-size-label) * 7) minmax(0, 1fr);
+    column-gap: calc(var(--space-5) + var(--timeline-dot) + var(--space-5));
+    padding-inline-start: 0;
+  }
+}
+
+@media (forced-colors: active) {
+  .timeline__event::after {
+    forced-color-adjust: none;
+    background: CanvasText;
+  }
+  .timeline__event--key::after {
+    background: Highlight;
+    outline-color: Highlight;
+  }
+}

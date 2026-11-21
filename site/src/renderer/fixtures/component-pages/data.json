@@ -12,14 +12,217 @@
       "decimals": 0,
       "period": "pd_test_trial_period",
       "source": "src_test_trial",
-      "locator": { "kind": "pdf", "page": 3, "table": 1 }
+      "locator": {
+        "kind": "pdf",
+        "page": 3,
+        "table": 1
+      }
+    },
+    "dp_fed_change_20241218": {
+      "label": "Change in the target range for the federal funds rate",
+      "value": "-0.25",
+      "value_text": "1/4 percentage point",
+      "unit": "percentage points",
+      "currency": null,
+      "scale": null,
+      "decimals": 2,
+      "period": "pd_fomc_20241218",
+      "source": "src_fomc_statement_dec_2024",
+      "locator": {
+        "kind": "html",
+        "paragraph": 2
+      }
+    },
+    "dp_fed_change_20240918": {
+      "label": "Change in the target range for the federal funds rate",
+      "value": "-0.50",
+      "value_text": "1/2 percentage point",
+      "unit": "percentage points",
+      "currency": null,
+      "scale": null,
+      "decimals": 2,
+      "period": "pd_fomc_20240918",
+      "source": "src_fomc_statement_sep_2024",
+      "locator": {
+        "kind": "html",
+        "paragraph": 2
+      }
+    },
+    "dp_fomc_votes_for_20241218": {
+      "label": "Votes for the monetary policy action",
+      "value": "11",
+      "value_text": "11",
+      "unit": "votes",
+      "currency": null,
+      "scale": null,
+      "decimals": 0,
+      "period": "pd_fomc_20241218",
+      "source": "src_fomc_statement_dec_2024",
+      "locator": {
+        "kind": "html",
+        "paragraph": 5
+      }
+    },
+    "dp_fomc_votes_against_20241218": {
+      "label": "Votes against the action",
+      "value": "1",
+      "value_text": "1",
+      "unit": "votes",
+      "currency": null,
+      "scale": null,
+      "decimals": 0,
+      "period": "pd_fomc_20241218",
+      "source": "src_fomc_statement_dec_2024",
+      "locator": {
+        "kind": "html",
+        "paragraph": 5
+      }
+    },
+    "dp_test_policy_rate": {
+      "label": "Policy repo rate",
+      "value": "6.50",
+      "value_text": "6.50",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "decimals": 2,
+      "period": "pd_test_policy_meeting",
+      "source": "src_test_policy",
+      "locator": {
+        "kind": "pdf",
+        "page": 1
+      }
+    },
+    "dp_test_policy_change_bp": {
+      "label": "Change in the policy repo rate",
+      "value": "50",
+      "value_text": "50",
+      "unit": "basis points",
+      "currency": null,
+      "scale": null,
+      "decimals": 0,
+      "period": "pd_test_policy_meeting",
+      "source": "src_test_policy",
+      "locator": {
+        "kind": "pdf",
+        "page": 1
+      }
+    },
+    "dp_test_policy_change_zero": {
+      "label": "Change in the policy repo rate",
+      "value": "0",
+      "value_text": "0",
+      "unit": "percentage points",
+      "currency": null,
+      "scale": null,
+      "decimals": 2,
+      "period": "pd_test_policy_meeting",
+      "source": "src_test_policy",
+      "locator": {
+        "kind": "pdf",
+        "page": 1
+      }
+    },
+    "dp_test_policy_rate_null": {
+      "label": "Policy repo rate",
+      "value": null,
+      "value_text": null,
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "decimals": 2,
+      "period": "pd_test_policy_meeting",
+      "source": "src_test_policy",
+      "locator": {
+        "kind": "pdf",
+        "page": 1
+      }
+    },
+    "dp_test_bp_walking": {
+      "label": "Mean systolic blood pressure at 12 months, walking group",
+      "value": "128.3",
+      "value_text": "128.3",
+      "unit": "mmHg",
+      "currency": null,
+      "scale": null,
+      "decimals": 1,
+      "period": "pd_test_trial_period",
+      "source": "src_test_trial",
+      "locator": {
+        "kind": "pdf",
+        "page": 6,
+        "table": 2
+      }
+    },
+    "dp_test_bp_control": {
+      "label": "Mean systolic blood pressure at 12 months, control group",
+      "value": "132.4",
+      "value_text": "132.4",
+      "unit": "mmHg",
+      "currency": null,
+      "scale": null,
+      "decimals": 1,
+      "period": "pd_test_trial_period",
+      "source": "src_test_trial",
+      "locator": {
+        "kind": "pdf",
+        "page": 6,
+        "table": 2
+      }
+    },
+    "dp_test_preprint_share": {
+      "label": "Share of samples with the variant",
+      "value": "3.2",
+      "value_text": "3.2",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "decimals": 1,
+      "period": "pd_test_trial_period",
+      "source": "src_test_preprint",
+      "locator": {
+        "kind": "pdf",
+        "page": 4
+      }
     }
   },
-  "derived": {},
+  "derived": {
+    "dv_test_bp_change": {
+      "label": "Difference in mean systolic blood pressure, walking group less control group",
+      "value": "-4.1",
+      "unit": "mmHg",
+      "currency": null,
+      "scale": null,
+      "formula": "diff",
+      "inputs": ["dp_test_bp_walking", "dp_test_bp_control"],
+      "rounding": 1
+    }
+  },
   "series": {},
   "periods": {
-    "pd_test_trial_period": { "label": "March 2019 to June 2023", "start": "2019-03-01", "end": "2023-06-30" },
-    "pd_fomc_sep_2024": { "label": "September 2024", "start": "2024-09-17", "end": "2024-09-18" }
+    "pd_test_trial_period": {
+      "label": "March 2019 to June 2023",
+      "start": "2019-03-01",
+      "end": "2023-06-30"
+    },
+    "pd_fomc_sep_2024": {
+      "label": "September 2024",
+      "start": "2024-09-17",
+      "end": "2024-09-18"
+    },
+    "pd_fomc_20250129": {
+      "label": "29 January 2025",
+      "start": "2025-01-29",
+      "end": "2025-01-29"
+    },
+    "pd_test_policy_meeting": {
+      "label": "9 October 2024",
+      "start": "2024-10-09",
+      "end": "2024-10-09"
+    },
+    "pd_test_no_start": {
+      "label": "Early 2020s, as the source puts it"
+    }
   },
   "quotes": {
     "q_fomc_statement_sep_2024": {
@@ -28,7 +231,10 @@
       "speaker": "Federal Open Market Committee",
       "role": null,
       "said_on": "2024-09-18",
-      "locator": { "kind": "html", "paragraph": 2 }
+      "locator": {
+        "kind": "html",
+        "paragraph": 2
+      }
     },
     "q_test_trial_limitations": {
       "text": "Participants were not blinded to their group, and blood pressure was measured at clinics that knew the allocation.",
@@ -36,7 +242,10 @@
       "speaker": "The study's authors",
       "role": null,
       "said_on": null,
-      "locator": { "kind": "pdf", "page": 9 }
+      "locator": {
+        "kind": "pdf",
+        "page": 9
+      }
     },
     "q_test_long": {
       "text": "The committee judged that the risks to achieving its employment and inflation goals were roughly in balance, that the economic outlook was uncertain, and that it would carefully assess incoming data, the evolving outlook and the balance of risks before considering any further adjustments to the target range, while remaining strongly committed to supporting maximum employment and returning inflation to its objective over the medium term.",
@@ -44,13 +253,36 @@
       "speaker": "A spokesperson for a very long-named international standards and statistics coordination organisation",
       "role": "Head of communications and public engagement",
       "said_on": "2026-09-30",
-      "locator": { "kind": "pdf", "page": 1 }
+      "locator": {
+        "kind": "pdf",
+        "page": 1
+      }
     },
     "q_test_bare": {
       "text": "Rates were held.",
       "source": "src_test_trial",
-      "locator": { "kind": "pdf", "page": 1 }
+      "locator": {
+        "kind": "pdf",
+        "page": 1
+      }
+    },
+    "q_fomc_stance_dec_2024": {
+      "text": "In considering the extent and timing of additional adjustments to the target range for the federal funds rate, the Committee will carefully assess incoming data, the evolving outlook, and the balance of risks.",
+      "source": "src_fomc_statement_dec_2024",
+      "speaker": "Federal Open Market Committee",
+      "role": null,
+      "said_on": "2024-12-18",
+      "locator": {
+        "kind": "html",
+        "paragraph": 3
+      }
     }
   },
-  "context": {}
+  "context": {
+    "cx_fomc_vote_20241218": {
+      "text": "11 to 1",
+      "rule": "Votes for and against the monetary policy action, from the statement",
+      "inputs": ["dp_fomc_votes_for_20241218", "dp_fomc_votes_against_20241218"]
+    }
+  }
 }
