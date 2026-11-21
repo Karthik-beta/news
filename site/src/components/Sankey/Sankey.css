@@ -1,0 +1,184 @@
+/* Sankey (design/charts.md, "Sankey"): flows without outlines, revenue in context, costs in neutral, the profit
+   path in the highlight; nodes are 8px bars in their role's colour; labels in ink with the value under the name,
+   the result's bold (its value in the highlight colour). The first column's labels sit in a gutter on the left, the
+   last column's on the right, the rest beside their node on a paper ground so they read over the flows.
+
+   A Sankey cannot be read narrow, so it shows only when its plot has room for its columns: 7em for each gutter
+   and 7.5em between columns, measured in the plot's own text so it also holds at 200% text size. Below that, on
+   every phone, the waterfall of the same rows shows instead (design/charts.md, "Responsive behaviour"). */
+.sankey {
+  container: sankey / inline-size;
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-label);
+  line-height: 1.35;
+}
+.sankey__flows {
+  display: none;
+}
+@container sankey (min-width: 21.5em) {
+  .sankey--c2 .sankey__flows {
+    display: block;
+  }
+  .sankey--c2 .sankey__fallback {
+    display: none;
+  }
+}
+@container sankey (min-width: 29em) {
+  .sankey--c3 .sankey__flows {
+    display: block;
+  }
+  .sankey--c3 .sankey__fallback {
+    display: none;
+  }
+}
+@container sankey (min-width: 36.5em) {
+  .sankey--c4 .sankey__flows {
+    display: block;
+  }
+  .sankey--c4 .sankey__fallback {
+    display: none;
+  }
+}
+@container sankey (min-width: 44em) {
+  .sankey--c5 .sankey__flows {
+    display: block;
+  }
+  .sankey--c5 .sankey__fallback {
+    display: none;
+  }
+}
+@container sankey (min-width: 51.5em) {
+  .sankey--c6 .sankey__flows {
+    display: block;
+  }
+  .sankey--c6 .sankey__fallback {
+    display: none;
+  }
+}
+@container sankey (min-width: 59em) {
+  .sankey--c7 .sankey__flows {
+    display: block;
+  }
+  .sankey--c7 .sankey__fallback {
+    display: none;
+  }
+}
+@container sankey (min-width: 66.5em) {
+  .sankey--c8 .sankey__flows {
+    display: block;
+  }
+  .sankey--c8 .sankey__fallback {
+    display: none;
+  }
+}
+
+.sankey__plot {
+  position: relative;
+  /* The height is set inline in rem from the layout, so it grows with the reader's text size. */
+}
+.sankey__area {
+  position: absolute;
+  inset-block: 0;
+  inset-inline: 7em;
+  touch-action: pan-y;
+}
+.sankey__area:focus-visible {
+  outline: var(--border-focus) solid var(--color-focus);
+  outline-offset: var(--space-1);
+}
+.sankey__svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.sankey__flow {
+  fill: var(--chart-mark);
+  forced-color-adjust: none;
+  print-color-adjust: exact;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .sankey__flow {
+    transition: opacity var(--motion-fast);
+  }
+}
+.sankey__flow.is-active {
+  opacity: 0.8;
+}
+
+/* Nodes: 8px bars centred on their column; the first and last columns sit just inside the area. Each node's
+   target is at least 24px each way. */
+.sankey__node {
+  position: absolute;
+  width: var(--space-3);
+  translate: -50% 0;
+  background: var(--chart-mark);
+  forced-color-adjust: none;
+  print-color-adjust: exact;
+}
+.sankey__node--start {
+  translate: 0 0;
+}
+.sankey__node--end {
+  translate: -100% 0;
+}
+.sankey__node::before {
+  content: "";
+  position: absolute;
+  inset-inline: calc(-1 * var(--space-3));
+  inset-block: min(0%, calc(50% - var(--space-7) / 2));
+}
+
+.sankey__label {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  width: max-content;
+  max-width: 7em;
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+.sankey__label--start {
+  translate: -100% 0;
+  padding-inline-end: var(--space-3);
+  align-items: flex-end;
+  text-align: end;
+}
+.sankey__label--end {
+  padding-inline-start: var(--space-3);
+}
+.sankey__label--middle {
+  margin-inline-start: calc(var(--space-3) / 2 + var(--space-2));
+  padding-inline: var(--space-1);
+  background: var(--color-paper);
+}
+.sankey__label.is-result .sankey__name {
+  font-weight: var(--font-weight-bold);
+}
+.sankey__value {
+  color: var(--color-ink);
+}
+.sankey__value.is-highlight {
+  font-weight: var(--font-weight-bold);
+  color: var(--chart-highlight);
+}
+.sankey__value.is-highlight-neutral {
+  font-weight: var(--font-weight-bold);
+  color: var(--chart-neutral-highlight);
+}
+
+@media (forced-colors: active) {
+  .sankey__flow {
+    fill: GrayText;
+  }
+  .sankey__flow.chart-colour--highlight {
+    fill: Highlight;
+  }
+  .sankey__node {
+    background: CanvasText;
+  }
+  .sankey__label--middle {
+    background: Canvas;
+  }
+}

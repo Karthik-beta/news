@@ -2951,6 +2951,512 @@
         "kind": "json",
         "series": "dp_fx_rank_16"
       }
+    },
+    "dp_aapl_sales_products_fy2024": {
+      "label": "Products net sales",
+      "value": "294866",
+      "value_text": "294,866",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "decimals": 0,
+      "period": "pd_fy2024",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "xbrl",
+        "accn": "0000320193-24-000123",
+        "tag": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "context": "FY2024 Products"
+      }
+    },
+    "dp_aapl_cost_of_sales_fy2024": {
+      "label": "Total cost of sales",
+      "value": "210352",
+      "value_text": "210,352",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "decimals": 0,
+      "period": "pd_fy2024",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "xbrl",
+        "accn": "0000320193-24-000123",
+        "tag": "us-gaap:CostOfGoodsAndServicesSold",
+        "context": "FY2024"
+      }
+    },
+    "dp_aapl_gross_margin_fy2024": {
+      "label": "Gross margin",
+      "value": "180683",
+      "value_text": "180,683",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "decimals": 0,
+      "period": "pd_fy2024",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "xbrl",
+        "accn": "0000320193-24-000123",
+        "tag": "us-gaap:GrossProfit",
+        "context": "FY2024"
+      }
+    },
+    "dp_aapl_rnd_fy2024": {
+      "label": "Research and development",
+      "value": "31370",
+      "value_text": "31,370",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "decimals": 0,
+      "period": "pd_fy2024",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "xbrl",
+        "accn": "0000320193-24-000123",
+        "tag": "us-gaap:ResearchAndDevelopmentExpense",
+        "context": "FY2024"
+      }
+    },
+    "dp_aapl_sga_fy2024": {
+      "label": "Selling, general and administrative",
+      "value": "26097",
+      "value_text": "26,097",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "decimals": 0,
+      "period": "pd_fy2024",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "xbrl",
+        "accn": "0000320193-24-000123",
+        "tag": "us-gaap:SellingGeneralAndAdministrativeExpense",
+        "context": "FY2024"
+      }
+    },
+    "dp_aapl_operating_income_fy2024": {
+      "label": "Operating income",
+      "value": "123216",
+      "value_text": "123,216",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "decimals": 0,
+      "period": "pd_fy2024",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "xbrl",
+        "accn": "0000320193-24-000123",
+        "tag": "us-gaap:OperatingIncomeLoss",
+        "context": "FY2024"
+      }
+    },
+    "dp_aapl_other_income_fy2024": {
+      "label": "Other income/(expense), net",
+      "value": "269",
+      "value_text": "269",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "decimals": 0,
+      "period": "pd_fy2024",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "xbrl",
+        "accn": "0000320193-24-000123",
+        "tag": "us-gaap:NonoperatingIncomeExpense",
+        "context": "FY2024"
+      }
+    },
+    "dp_aapl_pretax_income_fy2024": {
+      "label": "Income before provision for income taxes",
+      "value": "123485",
+      "value_text": "123,485",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "decimals": 0,
+      "period": "pd_fy2024",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "xbrl",
+        "accn": "0000320193-24-000123",
+        "tag": "us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest",
+        "context": "FY2024"
+      }
+    },
+    "dp_aapl_tax_fy2024": {
+      "label": "Provision for income taxes",
+      "value": "29749",
+      "value_text": "29,749",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "decimals": 0,
+      "period": "pd_fy2024",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "xbrl",
+        "accn": "0000320193-24-000123",
+        "tag": "us-gaap:IncomeTaxExpenseBenefit",
+        "context": "FY2024"
+      }
+    },
+    "dp_aapl_net_income_fy2024": {
+      "label": "Net income",
+      "value": "93736",
+      "value_text": "93,736",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "decimals": 0,
+      "period": "pd_fy2024",
+      "source": "src_aapl_10k_2024",
+      "locator": {
+        "kind": "xbrl",
+        "accn": "0000320193-24-000123",
+        "tag": "us-gaap:NetIncomeLoss",
+        "context": "FY2024"
+      }
+    },
+    "dp_fx_wf_revenue": {
+      "label": "Revenue",
+      "value": "1000",
+      "value_text": "1000",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_wf_revenue"
+      }
+    },
+    "dp_fx_wf_cost": {
+      "label": "Cost of revenue",
+      "value": "700",
+      "value_text": "700",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_wf_cost"
+      }
+    },
+    "dp_fx_wf_gross": {
+      "label": "Gross profit",
+      "value": "300",
+      "value_text": "300",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_wf_gross"
+      }
+    },
+    "dp_fx_wf_opex": {
+      "label": "Operating expenses",
+      "value": "450",
+      "value_text": "450",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_wf_opex"
+      }
+    },
+    "dp_fx_wf_operating": {
+      "label": "Operating loss",
+      "value": "-150",
+      "value_text": "-150",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_wf_operating"
+      }
+    },
+    "dp_fx_wf_tax": {
+      "label": "Income tax",
+      "value": "-20",
+      "value_text": "-20",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_wf_tax"
+      }
+    },
+    "dp_fx_wf_net": {
+      "label": "Net loss",
+      "value": "-130",
+      "value_text": "-130",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_wf_net"
+      }
+    },
+    "dp_fx_wf_null": {
+      "label": "Restructuring charges",
+      "value": null,
+      "value_text": null,
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_wf_null"
+      }
+    },
+    "dp_fx_sk_seg_a": {
+      "label": "Segment A",
+      "value": "600",
+      "value_text": "600",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_sk_seg_a"
+      }
+    },
+    "dp_fx_sk_seg_b": {
+      "label": "Segment B",
+      "value": "250",
+      "value_text": "250",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_sk_seg_b"
+      }
+    },
+    "dp_fx_sk_seg_c": {
+      "label": "Segment C",
+      "value": "120",
+      "value_text": "120",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_sk_seg_c"
+      }
+    },
+    "dp_fx_sk_seg_d": {
+      "label": "Segment D",
+      "value": "15",
+      "value_text": "15",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_sk_seg_d"
+      }
+    },
+    "dp_fx_sk_seg_e": {
+      "label": "Segment E",
+      "value": "8",
+      "value_text": "8",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_sk_seg_e"
+      }
+    },
+    "dp_fx_sk_seg_f": {
+      "label": "Segment F",
+      "value": "4",
+      "value_text": "4",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_sk_seg_f"
+      }
+    },
+    "dp_fx_sk_seg_g": {
+      "label": "Segment G",
+      "value": "3",
+      "value_text": "3",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_sk_seg_g"
+      }
+    },
+    "dp_fx_sk_revenue": {
+      "label": "Revenue",
+      "value": "1000",
+      "value_text": "1000",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_sk_revenue"
+      }
+    },
+    "dp_fx_sk_cost": {
+      "label": "Cost of revenue",
+      "value": "550",
+      "value_text": "550",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_sk_cost"
+      }
+    },
+    "dp_fx_sk_gross": {
+      "label": "Gross profit",
+      "value": "450",
+      "value_text": "450",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_sk_gross"
+      }
+    },
+    "dp_fx_sk_opex": {
+      "label": "Operating expenses",
+      "value": "200",
+      "value_text": "200",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_sk_opex"
+      }
+    },
+    "dp_fx_sk_small_1": {
+      "label": "Impairment",
+      "value": "6",
+      "value_text": "6",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_sk_small_1"
+      }
+    },
+    "dp_fx_sk_small_2": {
+      "label": "Litigation",
+      "value": "4",
+      "value_text": "4",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_sk_small_2"
+      }
+    },
+    "dp_fx_sk_operating": {
+      "label": "Operating profit",
+      "value": "240",
+      "value_text": "240",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_sk_operating"
+      }
+    },
+    "dp_fx_sk_tax": {
+      "label": "Tax",
+      "value": "50",
+      "value_text": "50",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_sk_tax"
+      }
+    },
+    "dp_fx_sk_net": {
+      "label": "Net profit",
+      "value": "190",
+      "value_text": "190",
+      "unit": "USD",
+      "currency": "USD",
+      "scale": "millions",
+      "period": "pd_fx_2024",
+      "source": "src_fixture_synthetic",
+      "locator": {
+        "kind": "json",
+        "series": "dp_fx_sk_net"
+      }
     }
   },
   "derived": {

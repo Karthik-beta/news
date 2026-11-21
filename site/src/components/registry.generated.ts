@@ -10,6 +10,7 @@ import dataLinksSpec from "./DataLinks/spec";
 import dataTableSpec from "./DataTable/spec";
 import dateLineSpec from "./DateLine/spec";
 import disclaimerSpec from "./Disclaimer/spec";
+import dotPlotSpec from "./DotPlot/spec";
 import figureFrameSpec from "./FigureFrame/spec";
 import flyTitleSpec from "./FlyTitle/spec";
 import footerSpec from "./Footer/spec";
@@ -31,16 +32,21 @@ import proseSpec from "./Prose/spec";
 import quoteSpec from "./Quote/spec";
 import regionFilterSpec from "./RegionFilter/spec";
 import ruleSpec from "./Rule/spec";
+import sankeySpec from "./Sankey/spec";
+import segmentedBarSpec from "./SegmentedBar/spec";
 import skipLinkSpec from "./SkipLink/spec";
+import slopeSpec from "./Slope/spec";
 import sourcePopoverSpec from "./SourcePopover/spec";
 import sourceRefSpec from "./SourceRef/spec";
 import sourcesPanelSpec from "./SourcesPanel/spec";
 import sparklineSpec from "./Sparkline/spec";
+import stackedBarSpec from "./StackedBar/spec";
 import standfirstSpec from "./Standfirst/spec";
 import stepLineChartSpec from "./StepLineChart/spec";
 import textSpec from "./Text/spec";
 import videoEmbedSpec from "./VideoEmbed/spec";
 import visuallyHiddenSpec from "./VisuallyHidden/spec";
+import waterfallSpec from "./Waterfall/spec";
 
 export const specs: readonly AnySpec[] = [
   badgeSpec,
@@ -52,6 +58,7 @@ export const specs: readonly AnySpec[] = [
   dataTableSpec,
   dateLineSpec,
   disclaimerSpec,
+  dotPlotSpec,
   figureFrameSpec,
   flyTitleSpec,
   footerSpec,
@@ -73,14 +80,19 @@ export const specs: readonly AnySpec[] = [
   quoteSpec,
   regionFilterSpec,
   ruleSpec,
+  sankeySpec,
+  segmentedBarSpec,
   skipLinkSpec,
+  slopeSpec,
   sourcePopoverSpec,
   sourceRefSpec,
   sourcesPanelSpec,
   sparklineSpec,
+  stackedBarSpec,
   standfirstSpec,
   stepLineChartSpec,
   textSpec,
   videoEmbedSpec,
   visuallyHiddenSpec,
+  waterfallSpec,
 ];

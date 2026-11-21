@@ -1,0 +1,117 @@
+/* Slope chart (design/charts.md, "Marks"): 2.5px lines for the highlight, comparison and categorical items, 1.5px
+   for context; round caps; 8px end dots with a 2px paper ring; the two periods' names above the ends; values in ink
+   on the left, values and names on the right (the highlight's value bold in its colour, its name bold). No
+   gridlines and no axis: every end carries its value. The left gutter holds a value, the right a value and name. */
+.slope__plot {
+  position: relative;
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-label);
+  line-height: 1.35;
+}
+.slope__periods {
+  display: flex;
+  justify-content: space-between;
+  margin-inline: 4.5em 10em;
+  margin-block-end: var(--space-3);
+  color: var(--color-ink-2);
+}
+.slope__period {
+  translate: -50% 0;
+}
+.slope__period--end {
+  translate: 50% 0;
+  text-align: end;
+}
+.slope__frame {
+  position: relative;
+}
+.slope__area {
+  position: absolute;
+  inset-block: 0;
+  inset-inline: 4.5em 10em;
+  touch-action: pan-y;
+}
+.slope__area:focus-visible {
+  outline: var(--border-focus) solid var(--color-focus);
+  outline-offset: var(--space-1);
+}
+.slope__svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.slope__line {
+  stroke: var(--chart-mark);
+  stroke-width: var(--chart-mark-line-width);
+  stroke-linecap: round;
+  fill: none;
+  forced-color-adjust: none;
+  print-color-adjust: exact;
+}
+.slope__line.is-thin {
+  stroke-width: var(--chart-mark-line-width-context);
+}
+.slope__line.is-active {
+  opacity: 0.8;
+}
+.slope__dot {
+  position: absolute;
+  width: calc(var(--chart-mark-marker) + 2 * var(--chart-mark-bar-gap));
+  height: calc(var(--chart-mark-marker) + 2 * var(--chart-mark-bar-gap));
+  translate: -50% -50%;
+  border: var(--chart-mark-bar-gap) solid var(--color-paper);
+  border-radius: 50%;
+  background: var(--chart-mark);
+  z-index: 1;
+  forced-color-adjust: none;
+  print-color-adjust: exact;
+}
+.slope__label {
+  position: absolute;
+  color: var(--color-ink);
+}
+.slope__label--start {
+  right: 100%;
+  padding-inline-end: var(--space-4);
+  white-space: nowrap;
+}
+.slope__label--end {
+  left: 100%;
+  width: max-content;
+  max-width: 10em;
+  padding-inline-start: var(--space-4);
+  overflow-wrap: anywhere;
+}
+.slope__label.is-highlight,
+.slope__value.is-highlight {
+  font-weight: var(--font-weight-bold);
+  color: var(--chart-highlight);
+}
+.slope__label.is-highlight-neutral,
+.slope__value.is-highlight-neutral {
+  font-weight: var(--font-weight-bold);
+  color: var(--chart-neutral-highlight);
+}
+.slope__label--end.is-highlight-item .slope__name {
+  font-weight: var(--font-weight-bold);
+}
+.slope__label.is-missing,
+.slope__value.is-missing {
+  color: var(--color-ink-2);
+}
+
+@media (forced-colors: active) {
+  .slope__line {
+    stroke: CanvasText;
+  }
+  .slope__line.chart-colour--highlight,
+  .slope__line.chart-colour--highlight-neutral {
+    stroke: Highlight;
+  }
+  .slope__dot {
+    background: CanvasText;
+    border-color: Canvas;
+  }
+}

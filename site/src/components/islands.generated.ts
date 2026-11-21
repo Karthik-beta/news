@@ -5,7 +5,11 @@ import type { IslandLoaders } from "../renderer/islands/types";
 export const islands: IslandLoaders = {
   BarChartPlot: () => import("./BarChart/BarChartPlot.client"),
   ColumnChartPlot: () => import("./ColumnChart/ColumnChartPlot.client"),
+  DotPlotPlot: () => import("./DotPlot/DotPlotPlot.client"),
   ImageGallery: () => import("./ImageGallery/ImageGallery.client"),
   LineChartPlot: () => import("./LineChart/LineChartPlot.client"),
+  SankeyPlot: () => import("./Sankey/SankeyPlot.client"),
+  SlopePlot: () => import("./Slope/SlopePlot.client"),
+  StackedBarPlot: () => import("./StackedBar/StackedBarPlot.client"),
   VideoEmbed: () => import("./VideoEmbed/VideoEmbed.client"),
 };
