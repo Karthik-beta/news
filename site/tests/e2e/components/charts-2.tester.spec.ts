@@ -576,3 +576,176 @@ test.describe("in context: the charts article fixture", () => {
     await expectAccessible(page);
   });
 });
+
+test.describe("Slope's tight layout at large text sizes (C2-4 re-test)", () => {
+  const SLOPES = ["Slope/default", "Slope/edge-cases"];
+
+  /** Every Slope plot's tight-layout facts, measured in the page. */
+  const tightFacts = (page: Page) =>
+    page.locator("main .slope__plot").evaluateAll((plots) =>
+      plots.map((plot) => {
+        const names = plot.querySelector<HTMLElement>(".slope__names");
+        const tight = !!names && getComputedStyle(names).display !== "none";
+        const ar = plot.querySelector(".slope__area")?.getBoundingClientRect();
+        const pr = plot.getBoundingClientRect();
+        /** The horizontal extent of an element's rendered text. */
+        const textSpan = (el: Element) => {
+          const range = document.createRange();
+          let left = Number.POSITIVE_INFINITY;
+          let right = Number.NEGATIVE_INFINITY;
+          const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+          for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+            if (!n.textContent?.trim() || (n.parentElement as HTMLElement).offsetParent === null) continue;
+            range.selectNodeContents(n);
+            for (const r of range.getClientRects()) {
+              left = Math.min(left, r.left);
+              right = Math.max(right, r.right);
+            }
+          }
+          return { left, right };
+        };
+        const items = [...plot.querySelectorAll<HTMLElement>("[data-item]")].map((it) => {
+          const end = it.querySelector(".slope__label--end") as HTMLElement;
+          const start = it.querySelector(".slope__label--start") as HTMLElement;
+          const value = end.querySelector(".slope__value") as HTMLElement;
+          return {
+            top: end.getBoundingClientRect().top,
+            text: `${end.querySelector(".slope__name")?.textContent} ${start.textContent} to ${value.textContent}`,
+            startShown: start.offsetParent !== null && getComputedStyle(start).display !== "none",
+            span: textSpan(end),
+            lines: value.getClientRects().length,
+          };
+        });
+        const listed = [...plot.querySelectorAll<HTMLElement>(".slope__names-item")].map((li) => ({
+          text: li.textContent?.replace(/\s+/g, " ").trim(),
+          values: [...li.querySelectorAll<HTMLElement>(".slope__names-value")].map((v) => ({
+            missing: v.classList.contains("is-missing"),
+            ref: v.dataset.ref ?? null,
+            size: Number.parseFloat(getComputedStyle(v).fontSize),
+          })),
+        }));
+        return {
+          tight,
+          plot: { right: pr.right, width: pr.width },
+          area: { right: ar?.right ?? 0, width: ar?.width ?? 0 },
+          items,
+          listed,
+          hidden: names?.getAttribute("aria-hidden") ?? null,
+        };
+      }),
+    );
+
+  for (const p of SLOPES) {
+    test(`${p}: no plot is tight at 100% text, on any screen`, async ({ page }) => {
+      await gotoPage(page, url(p));
+      await hydrateVisible(page);
+      const facts = await tightFacts(page);
+      expect(facts.length).toBeGreaterThan(0);
+      for (const f of facts) {
+        expect(f.tight, "names list hidden").toBe(false);
+        expect(
+          f.items.every((i) => i.startShown),
+          "left-hand values shown",
+        ).toBe(true);
+      }
+    });
+
+    test(`${p}: at 200% text a tight plot keeps its values inside itself and lists every item below`, {
+      tag: "@zoom",
+    }, async ({ page }) => {
+      await gotoPage(page, url(p));
+      await hydrateVisible(page);
+      await setTextSize(page, 200);
+      await hydrateVisible(page);
+      await expectNoSidewaysScroll(page);
+      await expectNoCollisions(page);
+      const vw = page.viewportSize()?.width ?? 0;
+      const facts = await tightFacts(page);
+      // Every phone plot is tight at 200% text; wider screens may keep the wide layout.
+      if (vw <= 430)
+        expect(
+          facts.every((f) => f.tight),
+          "tight on phones at 200% text",
+        ).toBe(true);
+      for (const f of facts.filter((x) => x.tight)) {
+        expect(f.area.width / f.plot.width, "the lines keep a quarter of the plot or more").toBeGreaterThanOrEqual(
+          0.25,
+        );
+        expect(
+          f.items.some((i) => i.startShown),
+          "left-hand values hidden",
+        ).toBe(false);
+        for (const it of f.items) {
+          expect(it.span.right, `${it.text}: right-hand value inside the plot`).toBeLessThanOrEqual(f.plot.right + 0.5);
+          expect(it.span.left, `${it.text}: right-hand value clear of the lines`).toBeGreaterThanOrEqual(
+            f.area.right - 0.5,
+          );
+          expect(it.lines, `${it.text}: the value on one line`).toBe(1);
+        }
+        // The list reads top to bottom in the order of the right-hand values, one item each, in plain words.
+        const order = [...f.items].sort((a, b) => a.top - b.top).map((i) => i.text);
+        expect(f.listed.map((l) => l.text)).toEqual(order);
+        expect(f.hidden, "the list repeats the table, so screen readers skip it").toBe("true");
+        for (const l of f.listed) {
+          for (const v of l.values) {
+            expect(v.size, `${l.text}: text 12px or more`).toBeGreaterThanOrEqual(12);
+            if (!v.missing) expect(v.ref, `${l.text}: every value carries its source`).toMatch(/^dp_/);
+          }
+        }
+      }
+    });
+  }
+
+  test("tight list: the highlight is crimson on a rise, the neutral highlight on a fall, No data in ink 2", {
+    tag: "@zoom",
+  }, async ({ page, theme }) => {
+    test.skip((page.viewportSize()?.width ?? 0) > 430, "tight at 200% text on phones");
+    for (const { p, statement, colour, other } of [
+      { p: "Slope/default", statement: "europe", colour: "--chart-highlight", other: "--chart-neutral-highlight" },
+      { p: "Slope/edge-cases", statement: "fell", colour: "--chart-neutral-highlight", other: "--chart-highlight" },
+    ]) {
+      await gotoPage(page, url(p));
+      await hydrateVisible(page);
+      await setTextSize(page, 200);
+      const fig = figureOf(page, statement);
+      for (const t of [theme, theme === "light" ? "dark" : "light"] as const) {
+        await setTheme(page, t);
+        const item = fig.locator(".slope__names-item.is-highlight-item");
+        await expect(item, `${statement}: one highlighted item`).toHaveCount(1);
+        expect(await item.locator(".slope__names-name").evaluate((el) => getComputedStyle(el).fontWeight)).toBe("700");
+        const to = item.locator(".slope__names-value").last();
+        expect(await to.evaluate((el) => getComputedStyle(el).color), `${t}: ${statement}`).toBe(
+          rgb(tokenValue(colour, t)),
+        );
+        const colours = await fig
+          .locator(".slope__names, .slope__names *")
+          .evaluateAll((els) => els.map((el) => getComputedStyle(el).color));
+        expect(colours, `${t}: ${statement} never takes the other highlight`).not.toContain(rgb(tokenValue(other, t)));
+      }
+    }
+    await gotoPage(page, url("Slope/edge-cases"));
+    await hydrateVisible(page);
+    await setTextSize(page, 200);
+    const missing = figureOf(page, "gaps").locator(".slope__names-value.is-missing");
+    expect(await missing.count(), "No data listed").toBeGreaterThan(0);
+    for (const m of await missing.all()) {
+      await expect(m).toHaveText("No data");
+      expect(await m.evaluate((el) => getComputedStyle(el).color)).toBe(rgb(tokenValue("--color-ink-2", theme)));
+    }
+  });
+
+  test("a tight plot passes axe and reads from its summary and table", { tag: "@zoom" }, async ({ page }) => {
+    test.skip((page.viewportSize()?.width ?? 0) > 430, "tight at 200% text on phones");
+    for (const p of SLOPES) {
+      await gotoPage(page, url(p));
+      await hydrateVisible(page);
+      await setTextSize(page, 200);
+      await expectAccessible(page);
+      for (const fig of await page.locator("main figure:has(.slope__plot)").all()) {
+        const label = await fig.locator(".slope__area[role='img']").getAttribute("aria-label");
+        expect(label?.length ?? 0, `${p}: the plot has a summary`).toBeGreaterThan(0);
+        await expect(fig.locator("table"), `${p}: a data table`).toHaveCount(1);
+      }
+    }
+  });
+});

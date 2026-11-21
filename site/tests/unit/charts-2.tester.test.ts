@@ -880,6 +880,25 @@ describe("Slope", () => {
     expect(plot.items.at(-1)?.highlight).toBe(true);
   });
 
+  it("tight layout (C2-4): one-line right-hand values stack apart inside the plot, in value order, with room sized to the widest", () => {
+    const plot = slopePlot(slopeData(many(12, 4), data), data);
+    const unit = (pct: number) => (pct / 100) * plot.height;
+    const sorted = [...plot.items].sort((a, b) => a.tightTop - b.tightTop);
+    for (let i = 1; i < sorted.length; i++) {
+      const prev = sorted[i - 1] as (typeof sorted)[number];
+      expect(unit((sorted[i] as (typeof sorted)[number]).tightTop), prev.label).toBeGreaterThanOrEqual(
+        unit(prev.tightTop) + SANKEY.lineHeight - 1e-6,
+      );
+    }
+    expect(unit((sorted.at(-1) as (typeof sorted)[number]).tightTop) + SANKEY.lineHeight).toBeLessThanOrEqual(
+      plot.height + 1e-6,
+    );
+    // Top to bottom is highest value to lowest, so the list below the plot reads in the same order.
+    const ys = sorted.map((it) => it.to.y ?? 0);
+    expect(ys).toEqual([...ys].sort((a, b) => a - b));
+    expect(plot.endRoom).toBe(Math.max(...plot.items.map((it) => [...it.to.value].length)));
+  });
+
   it("the fell rule: the highlighted item's second value below its first", () => {
     const two = (from: string, to: string): SlopeProps => ({
       title: "T",
