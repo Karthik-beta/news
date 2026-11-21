@@ -1,0 +1,96 @@
+/* Story item (design/components.md, "Story item"): fly title, headline, an optional figure, the summary in body-s
+   ink-2, the meta line in Fira ink-3 (the spec's 13px has no token: the 13.5px label size, as in KeyFigure). No box.
+   Hub and search items: the date (Fira 13.5, ink-3, tabular) above the item on phones, in a 7em column on the left
+   from 600px; a StoryList puts hairlines between them. */
+.story-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.story-item__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.story-item p,
+.story-item .headline {
+  margin: 0;
+}
+
+.story-item__summary {
+  color: var(--color-ink-2);
+  overflow-wrap: anywhere;
+}
+.story-item__meta,
+.story-item__date {
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-label);
+  line-height: var(--font-line-height-ui);
+  color: var(--color-ink-3);
+}
+.story-item__date {
+  font-variant-numeric: lining-nums tabular-nums;
+  white-space: nowrap;
+}
+
+@media (min-width: 600px) {
+  .story-item--hub,
+  .story-item--search {
+    display: grid;
+    grid-template-columns: calc(var(--font-size-label) * 7) minmax(0, 1fr);
+    column-gap: var(--space-6);
+    align-items: baseline;
+  }
+}
+
+.story-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.story-list__item {
+  padding-block: var(--space-5);
+}
+.story-list__item:first-child {
+  padding-top: 0;
+}
+.story-list__item + .story-list__item {
+  border-top: var(--border-hairline) solid var(--color-rule);
+}
+
+/* A slot's figure or mini chart: the label in ink-2, the value as a figure in ink with its sparkline beside it
+   (under it when there is no room), and for a mini chart the latest value's period. */
+.slot-figure,
+.slot-figure dt,
+.slot-figure dd {
+  margin: 0;
+}
+.slot-figure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.slot-figure__label {
+  overflow-wrap: anywhere;
+}
+.slot-figure__value {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--space-4);
+  row-gap: var(--space-2);
+  color: var(--color-ink);
+}
+.slot-figure__figure {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.slot-figure__period {
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-label);
+  line-height: var(--font-line-height-ui);
+  color: var(--color-ink-3);
+}

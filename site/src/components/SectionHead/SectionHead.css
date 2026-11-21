@@ -1,0 +1,32 @@
+/* Section head (design/components.md, "Section head"): a 2px ink rule; the name in headline-l, ink; the hub link
+   in Fira, ink-2, underlined (the spec's 14px has no token: the 13.5px label size), on the right where there is
+   room, under the name where there is not. */
+.section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  column-gap: var(--space-6);
+  row-gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: var(--border-section) solid var(--color-ink);
+}
+.section-head__name {
+  margin: 0;
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+.section-head__all {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--space-7);
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-label);
+  line-height: var(--font-line-height-ui);
+  color: var(--color-ink-2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.section-head__all:hover {
+  color: var(--color-ink);
+}

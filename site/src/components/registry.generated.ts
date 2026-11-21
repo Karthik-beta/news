@@ -11,6 +11,7 @@ import dataTableSpec from "./DataTable/spec";
 import dateLineSpec from "./DateLine/spec";
 import disclaimerSpec from "./Disclaimer/spec";
 import figureFrameSpec from "./FigureFrame/spec";
+import findingSpec from "./Finding/spec";
 import flyTitleSpec from "./FlyTitle/spec";
 import footerSpec from "./Footer/spec";
 import glossaryTermSpec from "./GlossaryTerm/spec";
@@ -20,17 +21,24 @@ import imageFigureSpec from "./ImageFigure/spec";
 import imageGallerySpec from "./ImageGallery/spec";
 import keyFigureSpec from "./KeyFigure/spec";
 import keyFiguresSpec from "./KeyFigures/spec";
+import latestListSpec from "./LatestList/spec";
+import leadStorySpec from "./LeadStory/spec";
 import lineChartSpec from "./LineChart/spec";
 import mastheadSpec from "./Masthead/spec";
 import methodSummarySpec from "./MethodSummary/spec";
 import noteSpec from "./Note/spec";
 import pageSpec from "./Page/spec";
+import pageContentsSpec from "./PageContents/spec";
 import pageMetaSpec from "./PageMeta/spec";
+import paginationSpec from "./Pagination/spec";
+import policyDecisionSpec from "./PolicyDecision/spec";
 import popoverSpec from "./Popover/spec";
 import proseSpec from "./Prose/spec";
 import quoteSpec from "./Quote/spec";
 import regionFilterSpec from "./RegionFilter/spec";
+import relatedPagesSpec from "./RelatedPages/spec";
 import ruleSpec from "./Rule/spec";
+import sectionHeadSpec from "./SectionHead/spec";
 import skipLinkSpec from "./SkipLink/spec";
 import sourcePopoverSpec from "./SourcePopover/spec";
 import sourceRefSpec from "./SourceRef/spec";
@@ -38,7 +46,9 @@ import sourcesPanelSpec from "./SourcesPanel/spec";
 import sparklineSpec from "./Sparkline/spec";
 import standfirstSpec from "./Standfirst/spec";
 import stepLineChartSpec from "./StepLineChart/spec";
+import storyItemSpec from "./StoryItem/spec";
 import textSpec from "./Text/spec";
+import timelineSpec from "./Timeline/spec";
 import videoEmbedSpec from "./VideoEmbed/spec";
 import visuallyHiddenSpec from "./VisuallyHidden/spec";
 
@@ -53,6 +63,7 @@ export const specs: readonly AnySpec[] = [
   dateLineSpec,
   disclaimerSpec,
   figureFrameSpec,
+  findingSpec,
   flyTitleSpec,
   footerSpec,
   glossaryTermSpec,
@@ -62,17 +73,24 @@ export const specs: readonly AnySpec[] = [
   imageGallerySpec,
   keyFigureSpec,
   keyFiguresSpec,
+  latestListSpec,
+  leadStorySpec,
   lineChartSpec,
   mastheadSpec,
   methodSummarySpec,
   noteSpec,
   pageSpec,
+  pageContentsSpec,
   pageMetaSpec,
+  paginationSpec,
+  policyDecisionSpec,
   popoverSpec,
   proseSpec,
   quoteSpec,
   regionFilterSpec,
+  relatedPagesSpec,
   ruleSpec,
+  sectionHeadSpec,
   skipLinkSpec,
   sourcePopoverSpec,
   sourceRefSpec,
@@ -80,7 +98,9 @@ export const specs: readonly AnySpec[] = [
   sparklineSpec,
   standfirstSpec,
   stepLineChartSpec,
+  storyItemSpec,
   textSpec,
+  timelineSpec,
   videoEmbedSpec,
   visuallyHiddenSpec,
 ];

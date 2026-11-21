@@ -1,0 +1,42 @@
+/* On this page (design/components.md, "On this page"): a 2px ink rule; the heading in Literata 700 at the body
+   size (17.5px; the spec's 17px has no token); plain text links in Fira at the UI size, ink-2, ink on hover, no
+   numbering and no bullets, each at least 24px tall. */
+.page-contents {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  padding-top: var(--space-3);
+  border-top: var(--border-section) solid var(--color-ink);
+}
+.page-contents__heading {
+  margin: 0;
+  font-family: var(--font-family-serif);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-body);
+  line-height: var(--font-line-height-heading);
+  color: var(--color-ink);
+}
+.page-contents__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.page-contents__link {
+  display: flex;
+  align-items: center;
+  min-height: var(--space-7);
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-ui);
+  line-height: var(--font-line-height-ui);
+  color: var(--color-ink-2);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.page-contents__link:hover {
+  color: var(--color-ink);
+  text-decoration: underline;
+}

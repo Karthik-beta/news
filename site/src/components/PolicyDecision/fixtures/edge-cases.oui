@@ -1,0 +1,6 @@
+root = Page([raised, held, bare, missing, stance])
+raised = PolicyDecision("Policy repo rate", "dp_test_policy_rate", "dp_test_policy_change_bp", [{label: "Decided on", value: "pd_test_policy_meeting"}])
+held = PolicyDecision("Policy repo rate, the decision written as unchanged", "dp_test_policy_rate", "dp_test_policy_change_zero", [{label: "Vote", value: "cx_fomc_vote_20241218"}, {label: "Next meeting", value: "pd_fomc_20250129"}])
+bare = PolicyDecision("Federal funds rate, upper limit, with no change, facts or path", "dp_fed_upper_20241218")
+missing = PolicyDecision("Not published", "dp_test_policy_rate_null", "dp_test_not_in_data", [{label: "Unknown fact", value: "pd_test_not_in_data"}, {label: "A period with no start date", value: "pd_test_no_start"}])
+stance = PolicyDecision("Federal funds rate, upper limit, with a quoted stance", "dp_fed_upper_20241218", "dp_fed_change_20241218", [{label: "Stance", value: "q_fomc_stance_dec_2024"}, {label: "Vote", value: "cx_fomc_vote_20241218"}])

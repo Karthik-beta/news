@@ -9,6 +9,7 @@ export {
   formatMonthYear,
   formatPeriodLabel,
   formatShortDate,
+  formatTimeOfDay,
   parseIsoDate,
 } from "./dates";
 export { DECIMAL_PATTERN, type Decimal, isDecimal } from "./decimal";
