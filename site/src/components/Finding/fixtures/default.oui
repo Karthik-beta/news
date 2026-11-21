@@ -1,0 +1,3 @@
+root = Page([walking, method])
+walking = Finding("Adults who walked daily had lower blood pressure after a year than those who did not, in a trial of {dp_test_trial_participants} people", "dv_test_bp_change", "Difference in systolic blood pressure, mmHg", "Peer-reviewed paper, {dp_test_trial_participants} participants, randomised controlled trial, {pd_test_trial_period}")
+method = Finding("The authors note that {q_test_trial_limitations}", null, null, "Peer-reviewed paper, limitations as the authors state them")

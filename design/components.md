@@ -92,6 +92,7 @@ For central-bank and government decisions.
   - The decision as a figure: "6.50%" (`type.figure`) with the label "Policy repo rate" and the change in words: "Unchanged", "Cut by 25 basis points".
   - Up to three supporting facts in a row of small key figures (vote split, stance, next meeting date).
   - The step-line rate path chart below, when there is history.
+- The change is written in the unit the data states it in ("Cut by 0.25 points" for a percentage-point change, "Cut by 25 basis points" for a basis-point one); it is never converted. One source line sits under the decision and its facts; the rate path keeps its own.
 
 ### Finding (`Finding`)
 For science pages.
@@ -101,6 +102,7 @@ For science pages.
 ### Timeline (`Timeline`)
 - A vertical list. Each event: the date in Fira 600, 13.5, ink (left column, 7em wide on desktop, above the text on phone); the event in Literata 16; an optional source link.
 - A 1px `color.rule` vertical line connects the events; event dots are 8px circles in `ink`, and the key event's dot is crimson.
+- So the key event is not told by colour alone, its dot also has a 1px crimson ring 2px out, and screen readers hear "Key event" before its date.
 - Horizontal timelines only inside charts.
 
 ### Map (`MapFigure`)
@@ -180,6 +182,8 @@ For commentary and context in Claude's own words.
 ### Story item (`StoryItem`)
 - Used in home rows, hubs and search results: fly title, headline (`type.headline-s`), an optional key figure (`type.figure-s`) with an optional sparkline, a one-sentence summary (`type.body-s`, ink-2), the page type and region (Fira 13, ink-3).
 - In hub lists, a date column on the left (Fira 13.5, ink-3), and items separated by hairlines.
+- Search results use the hub layout without a figure (search hits carry no data). On phones the date sits above the item.
+- A slot's mini chart is one of the page's own charts shown small: its title, its latest value and period, and a sparkline of its series.
 
 ### Section head (`SectionHead`)
 - A 2px ink rule; the section name (`type.headline-l`) on the left; a link "All economy pages" on the right (Fira 14, ink-2, underlined).

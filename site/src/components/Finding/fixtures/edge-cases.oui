@@ -1,0 +1,6 @@
+root = Page([sentence, preprint, mixed, missing, labelFromData])
+sentence = Finding("A finding stated in words only, with no figure, no method line and no cited source")
+preprint = Finding("The variant was found in {dp_test_preprint_share} of samples, in a study not yet peer reviewed", "dp_test_preprint_share", "Share of samples with the variant", "Preprint, not peer reviewed")
+mixed = Finding("Two sources of two types back this finding: {dp_test_preprint_share} and {dp_test_trial_participants}", "dp_test_trial_participants", "Participants", "Preprint and peer-reviewed paper")
+missing = Finding("A figure the source did not publish shows as missing", "dp_test_not_in_data", "Unknown figure")
+labelFromData = Finding("Without a label the figure takes the data point's own label: {dp_test_bp_walking}", "dp_test_bp_walking")

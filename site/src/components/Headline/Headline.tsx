@@ -12,6 +12,8 @@ export interface HeadlineProps {
   /** The heading level: 1 on the article page; lists choose theirs. */
   level?: 1 | 2 | 3 | 4;
   href?: string;
+  /** The text is final: a page record's title in a list. Written exactly as stored; needs no page data. */
+  plain?: boolean;
 }
 
 const CLASS: Record<HeadlineSize, string> = {
@@ -21,9 +23,9 @@ const CLASS: Record<HeadlineSize, string> = {
   s: "text-headline-s",
 };
 
-export function Headline({ text, size = "xl", level = 1, href }: HeadlineProps) {
+export function Headline({ text, size = "xl", level = 1, href, plain = false }: HeadlineProps) {
   const Tag = `h${level}` as "h1";
-  const words = <RefText text={text} cite="plain" />;
+  const words = plain ? text : <RefText text={text} cite="plain" />;
   return (
     <Tag className={`headline headline--${size} ${CLASS[size]}`}>
       {href ? (

@@ -1,0 +1,3 @@
+root = Page([decision])
+decision = PolicyDecision("Federal funds rate, upper limit", "dp_fed_upper_20241218", "dp_fed_change_20241218", [{label: "Vote", value: "cx_fomc_vote_20241218"}, {label: "Rate before", value: "dp_fed_upper_20241107"}, {label: "Next meeting", value: "pd_fomc_20250129"}], path)
+path = StepLineChart("The Fed cut for the third meeting in a row on {pd_fomc_20241218}", "Federal funds target range, upper limit, %", ["sr_fed_funds_upper"], ["pd_fomc_20220316", "pd_fomc_20230726", "pd_fomc_20240918", "pd_fomc_20241107", "pd_fomc_20241218"])

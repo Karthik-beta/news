@@ -1,0 +1,87 @@
+/* Latest list (design/components.md, "Latest list"): a 2px ink section rule; "Latest" in Literata 700 at the body
+   size (17.5px; the spec's 17px has no token); one line per page with the time or date in a fixed column (Fira,
+   ink-3, tabular; 13.5px for the spec's 13px), the fly title (Fira 600, crimson, the 15px fly size for the spec's
+   14px) and the headline (Literata, the 15.5px small body size for the spec's 16px); hairlines between items.
+   The link underlines its headline on hover only. */
+.latest-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  padding-top: var(--space-3);
+  border-top: var(--border-section) solid var(--color-ink);
+}
+.latest-list__label,
+.latest-list__all {
+  margin: 0;
+}
+.latest-list__label {
+  font-family: var(--font-family-serif);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-body);
+  line-height: var(--font-line-height-heading);
+  color: var(--color-ink);
+}
+
+.latest-list__items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.latest-list__item {
+  display: grid;
+  grid-template-columns: calc(var(--font-size-label) * 6) minmax(0, 1fr);
+  column-gap: var(--space-4);
+  align-items: baseline;
+  padding-block: var(--space-3);
+}
+.latest-list__item + .latest-list__item {
+  border-top: var(--border-hairline) solid var(--color-rule);
+}
+
+.latest-list__when {
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-label);
+  line-height: var(--font-line-height-ui);
+  font-variant-numeric: lining-nums tabular-nums;
+  color: var(--color-ink-3);
+  white-space: nowrap;
+}
+
+.latest-list__link {
+  min-width: 0;
+  min-height: var(--space-7);
+  color: var(--color-ink);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.latest-list__fly {
+  font-family: var(--font-family-sans);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-ui);
+  line-height: var(--font-line-height-ui);
+  color: var(--color-brand);
+}
+.latest-list__headline {
+  font-family: var(--font-family-serif);
+  font-size: var(--font-size-body-s);
+  line-height: var(--font-line-height-summary);
+}
+.latest-list__link:hover .latest-list__headline {
+  text-decoration: underline;
+}
+
+.latest-list__all a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--space-7);
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-label);
+  line-height: var(--font-line-height-ui);
+  color: var(--color-ink-2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.latest-list__all a:hover {
+  color: var(--color-ink);
+}

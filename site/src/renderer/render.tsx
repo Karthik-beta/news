@@ -116,6 +116,17 @@ export function parsePage(oui: string, library: Library): ElementNode {
   return result.root;
 }
 
+/** True when a prop path runs into a child element: the element's own props are checked when it is visited. */
+function insideElement(props: unknown, path: readonly PropertyKey[]): boolean {
+  let value: unknown = props;
+  for (const key of path.slice(0, -1)) {
+    if (!value || typeof value !== "object") return false;
+    value = (value as Record<PropertyKey, unknown>)[key];
+    if (value && typeof value === "object" && (value as ElementNode).type === "element") return true;
+  }
+  return false;
+}
+
 /**
  * Checks every element's props against its component's zod schema. OpenUI's parser checks types and required
  * arguments but not refinements, so a typed number where a reference belongs ("391.0" for a dp_… prop) is caught
@@ -143,6 +154,8 @@ export function checkProps(root: ElementNode, library: Library): void {
       for (const issue of result.error?.issues ?? []) {
         // Child elements are checked on their own; the number of children (KeyFigures' 2-4) is checked here.
         if (issue.path[0] === "children" && issue.path.length > 1) continue;
+        // So is a single child element in another prop (PolicyDecision's StepLineChart `path`).
+        if (insideElement(node.props, issue.path)) continue;
         problems.push(`${node.statementId ?? node.typeName}.${issue.path.join(".")}: ${issue.message}`);
       }
     }

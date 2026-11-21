@@ -44,6 +44,8 @@ A primitive's spec (`definePrimitive`) has `name`, `purpose` and a TSX `example`
 
 **Page-template parts are primitives too.** The site chrome (`SkipLink`, `Masthead`, `DateLine`, `RegionFilter`, `Footer`), the article head (`FlyTitle`, `Headline`, `Standfirst`, `PageMeta`), the sources (`SourcesPanel`, `Badge`, `Disclaimer`) and the inline `GlossaryTerm` are rendered by page templates from the page record, `head.json` and `sources.json`, never placed by the page writer, so they stay out of the library and the index. Their purpose says "Page-template part". Where `index.md` needs them, they export a Markdown helper (`pageMetaMarkdown`, `sourcesPanelMarkdown`) for the template to call.
 
+**Lists show other pages by ID.** The home, hub, search and rail parts (`LeadStory`, `StoryItem` and `StoryList`, `LatestList`, `RelatedPages`) take page IDs, and on the home page one figure or chart ID per slot (`StoryItem/slot.ts`, the curation's slot). They read every word from the page's record through `<ListingsProvider>` (`src/renderer/data/listings.tsx`), which the template fills from page records, hub entries or search hits, plus each slot page's own `data.json` and the figures and charts its `page.oui` places (`listingParts`). Record text is final and printed as stored (`FlyTitle`/`Headline` with `plain`). No list part has a prop for text, so a curator can never put words on a page. A page that is not in the listings is left out, never shown as an empty slot. `SectionHead`, `PageContents` and `Pagination` take the taxonomy name, the page's own headings and chart titles, and page numbers.
+
 ## Page copy
 
 `Prose`, `Note` and `MethodSummary` take the writer's copy with a small markup (`Prose/copy.tsx`):

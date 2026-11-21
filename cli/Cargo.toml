@@ -55,7 +55,7 @@ zstd = { version = "0.14", default-features = false }
 opentelemetry = { version = "0.33", default-features = false, features = ["trace"] }
 opentelemetry_sdk = { version = "0.33", default-features = false, features = ["trace"] }
 opentelemetry-otlp = { version = "0.33", default-features = false, features = ["trace", "http-proto", "reqwest-blocking-client"] }
-reqwest = { version = "0.12", default-features = false, features = ["blocking"] }
+reqwest = { version = "0.13", default-features = false, features = ["blocking"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["raw_value"] }
 sqlx = { version = "0.9", default-features = false, features = ["runtime-tokio", "tls-none", "postgres", "migrate", "json", "uuid", "chrono", "derive", "macros"] }

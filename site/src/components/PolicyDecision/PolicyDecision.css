@@ -1,0 +1,91 @@
+/* Policy decision (design/components.md, "Decision"): no box, a 2px ink rule on top; the label in ink-2, the rate
+   as a figure in ink, the change in words in ink-2 (never coloured; the spec's 13px has no token, so the 13.5px
+   label size, as in KeyFigure); a row of up to three small figures, each under a 1px ink rule (two across on
+   phones, the whole row from 600px); one source line; the rate path below. */
+.policy-decision {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-width: 0;
+  padding-top: var(--space-4);
+  border-top: var(--border-section) solid var(--color-ink);
+}
+
+.policy-decision dl,
+.policy-decision dt,
+.policy-decision dd {
+  margin: 0;
+}
+
+.policy-decision__decision {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.policy-decision__rate {
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+.policy-decision__change {
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-label);
+  line-height: var(--font-line-height-ui);
+  color: var(--color-ink-2);
+}
+
+.policy-decision__facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5) var(--space-6);
+}
+.policy-decision__facts--n1 {
+  grid-template-columns: minmax(0, 1fr);
+}
+/* A quoted stance is reading text: on phones it takes the whole row, since half of 360px holds about 17
+   characters a line. From 600px it sits in the row like the other facts. */
+.policy-decision__fact--q {
+  grid-column: 1 / -1;
+}
+@media (min-width: 600px) {
+  .policy-decision__fact--q {
+    grid-column: auto;
+  }
+  .policy-decision__facts--n3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.policy-decision__fact {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  padding-top: var(--space-3);
+  border-top: var(--border-hairline) solid var(--color-ink);
+}
+.policy-decision__fact-value {
+  font-family: var(--font-family-sans);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-figure-s);
+  line-height: var(--font-line-height-heading);
+  font-variant-numeric: lining-nums;
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+/* A quote is words, not a figure: reading text at the small body size. */
+.policy-decision__fact-value--q {
+  font-family: var(--font-family-serif);
+  font-weight: var(--font-weight-regular);
+  font-size: var(--font-size-body-s);
+  line-height: var(--font-line-height-summary);
+}
+
+.policy-decision__source {
+  margin: 0;
+}
+.policy-decision__source a {
+  color: inherit;
+}
+.policy-decision__path {
+  min-width: 0;
+  margin-top: var(--space-3);
+}

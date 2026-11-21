@@ -71,6 +71,16 @@ export function formatShortDate(iso: string): string {
   return `${day} ${monthName(month).slice(0, 3)} ${year}`;
 }
 
+/** "10:42": the time of day of an ISO date-time, in UTC, on the 24-hour clock (the home page's Latest list). */
+export function formatTimeOfDay(iso: string): string {
+  const dt = DATE_TIME.exec(iso);
+  if (!dt) throw new TypeError(`Not an ISO date-time: ${JSON.stringify(iso)}`);
+  parseIsoDate(iso);
+  const d = new Date(Date.parse(iso));
+  const two = (n: number) => String(n).padStart(2, "0");
+  return `${two(d.getUTCHours())}:${two(d.getUTCMinutes())}`;
+}
+
 /** "October 2026" from "2026-10" or a full date. */
 export function formatMonthYear(iso: string): string {
   const m = MONTH_ONLY.exec(iso);

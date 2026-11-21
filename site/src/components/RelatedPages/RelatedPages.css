@@ -1,0 +1,59 @@
+/* Related pages (design/components.md, "Related list"): a 2px ink rule; the heading in Literata 700 at the body
+   size (17.5px for the spec's 17px); each page's headline in headline-s with its meta line under it (Fira 13.5,
+   ink-3); hairlines between pages; the hub link in Fira, ink-2, underlined. */
+.related-pages {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  padding-top: var(--space-3);
+  border-top: var(--border-section) solid var(--color-ink);
+}
+.related-pages p,
+.related-pages .headline {
+  margin: 0;
+}
+.related-pages__heading {
+  margin: 0;
+  font-family: var(--font-family-serif);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-body);
+  line-height: var(--font-line-height-heading);
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+.related-pages__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.related-pages__item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-block: var(--space-3);
+}
+.related-pages__item + .related-pages__item {
+  border-top: var(--border-hairline) solid var(--color-rule);
+}
+.related-pages__meta {
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-label);
+  line-height: var(--font-line-height-ui);
+  color: var(--color-ink-3);
+}
+.related-pages__all a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--space-7);
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-label);
+  line-height: var(--font-line-height-ui);
+  color: var(--color-ink-2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+.related-pages__all a:hover {
+  color: var(--color-ink);
+}

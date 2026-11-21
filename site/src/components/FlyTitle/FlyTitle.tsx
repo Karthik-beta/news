@@ -8,10 +8,15 @@ export interface FlyTitleProps {
   text: string;
   /** In lists, the fly title links to its page with the headline. */
   href?: string;
+  /**
+   * The text is final, not head copy: a page record's fly title in a list (home, hubs). Written exactly as stored,
+   * with no {ref} tokens filled in, so it needs no page data.
+   */
+  plain?: boolean;
 }
 
-export function FlyTitle({ text, href }: FlyTitleProps) {
-  const words = <RefText text={text} cite="plain" />;
+export function FlyTitle({ text, href, plain = false }: FlyTitleProps) {
+  const words = plain ? text : <RefText text={text} cite="plain" />;
   return (
     <p className="fly-title text-fly">
       {href ? (
