@@ -13,6 +13,7 @@
       "!**/design/brand-board.html",
       "!**/design/tokens/tokens.css",
       "!**/site/src/styles/tokens.css",
+      "!**/site/fixtures/data",
       "!**/.astro",
       "!**/dist",
       "!**/cli/target",

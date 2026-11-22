@@ -3,12 +3,16 @@ import { existsSync, readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { siteRoot } from "./tokens";
 
-export const distRoot = join(siteRoot, "dist");
+// The Cloudflare adapter writes the static assets to dist/client and the Worker to dist/server. The home page is
+// server-rendered, so it is no file here; its tests run against the Worker's code (tests/unit/site-*.test.ts).
+export const distRoot = join(siteRoot, "dist", "client");
 
-/** Every file under dist/, as absolute paths. Throws a clear error if the site has not been built. */
+/** Every file under dist/client/, as absolute paths. Throws a clear error if the site has not been built. */
 export function distFiles(): string[] {
-  if (!existsSync(join(distRoot, "index.html"))) {
-    throw new Error("dist/index.html not found: run `bun run build` first (`bun run test:integration` does this).");
+  if (!existsSync(join(distRoot, "component-index.json"))) {
+    throw new Error(
+      "dist/client/component-index.json not found: run `bun run build` first (`bun run test:integration` does this).",
+    );
   }
   const out: string[] = [];
   const walk = (dir: string) => {

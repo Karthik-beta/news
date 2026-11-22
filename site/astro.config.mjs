@@ -1,5 +1,6 @@
 // @ts-check
 
+import cloudflare from "@astrojs/cloudflare";
 import react from "@astrojs/react";
 import { defineConfig } from "astro/config";
 
@@ -43,10 +44,15 @@ function fixturePages() {
   };
 }
 
-// Static article pages are rendered on the laptop; dynamic hubs move to an SSR Worker in Phase 6.
+// Static article pages are rendered on the laptop and served from R2. This is the `site` Worker (ADR 0010): pages
+// that list pages declare `prerender = false` and render on request; everything else is prerendered at build, in
+// Node (the renderer and the fixtures read files). No sessions: the adapter would add a KV binding for them.
 export default defineConfig({
   site: "https://news.karthik.nz",
   output: "static",
+  // Vitest compiles .astro and .tsx through this config; the adapter's workerd plugin has no place there.
+  adapter: process.env.VITEST ? undefined : cloudflare({ prerenderEnvironment: "node", imageService: "passthrough" }),
+  session: false,
   integrations: [react(), fixturePages()],
   server: { host: "127.0.0.1", port: 4321 },
 });

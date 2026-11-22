@@ -7,6 +7,7 @@
 //   .toml                       TOML (Cargo, cargo-deny, rust-toolchain, bunfig)
 import { readdirSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
+import { DEFAULT_SITE_ORIGIN, regionViews } from "../workers/shared/src/urls";
 import { root } from "./lib";
 
 export interface Problem {
@@ -88,8 +89,31 @@ export function validateConfigs(
   return { problems, checked: files.length };
 }
 
+/**
+ * The api purges the URLs the site caches (ADR 0010), so the two Workers must agree on the site's origin and the
+ * region views. Compares site/wrangler.jsonc with workers/api/wrangler.jsonc (a missing value is the shared default).
+ */
+export function wranglerProblems(repoRoot: string): Problem[] {
+  const read = (file: string) => {
+    const parsed = Bun.JSONC.parse(readFileSync(join(repoRoot, file), "utf8")) as { vars?: Record<string, string> };
+    return {
+      NEWS_SITE_ORIGIN: (parsed.vars?.NEWS_SITE_ORIGIN ?? DEFAULT_SITE_ORIGIN).replace(/\/+$/, ""),
+      NEWS_REGION_VIEWS: regionViews(parsed.vars?.NEWS_REGION_VIEWS).join(","),
+    };
+  };
+  const site = read("site/wrangler.jsonc");
+  const api = read("workers/api/wrangler.jsonc");
+  return (Object.keys(site) as (keyof typeof site)[])
+    .filter((k) => site[k] !== api[k])
+    .map((k) => ({
+      file: "site/wrangler.jsonc",
+      message: `${k} differs from workers/api/wrangler.jsonc (${site[k]} vs ${api[k]})`,
+    }));
+}
+
 if (import.meta.main) {
   const { problems, checked } = validateConfigs(root);
+  problems.push(...wranglerProblems(root));
   if (checked === 0) {
     console.error("No config files found: is this the repo root?");
     process.exit(1);

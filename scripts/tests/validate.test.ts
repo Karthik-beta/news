@@ -4,7 +4,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { root } from "../lib";
-import { configFiles, isLenientJson, parseProblem, validateConfigs } from "../validate-config";
+import { configFiles, isLenientJson, parseProblem, validateConfigs, wranglerProblems } from "../validate-config";
 import { checkFile, parseFrontmatter, validateRepo } from "../validate-skills";
 import { removeDir, tempDir } from "./helpers";
 
@@ -157,6 +157,32 @@ describe("parseProblem", () => {
     expect(isLenientJson("a/tsconfig.json")).toBe(true);
     expect(isLenientJson("a/my-tsconfig.json")).toBe(false);
     expect(isLenientJson("a/package.json")).toBe(false);
+  });
+});
+
+describe("wranglerProblems (site and api agree on the origin and the region views)", () => {
+  const wrangler = (vars: Record<string, string>) => `{\n // comment\n "vars": ${JSON.stringify(vars)},\n}`;
+  const both = (site: Record<string, string>, api: Record<string, string>) =>
+    fixture({ "site/wrangler.jsonc": wrangler(site), "workers/api/wrangler.jsonc": wrangler(api) });
+
+  test("equal values, or a value that is the shared default, pass", () => {
+    const same = { NEWS_SITE_ORIGIN: "https://news.karthik.nz", NEWS_REGION_VIEWS: "europe,india" };
+    expect(wranglerProblems(both(same, same))).toEqual([]);
+    expect(wranglerProblems(both({ NEWS_SITE_ORIGIN: "https://news.karthik.nz/" }, {}))).toEqual([]);
+  });
+
+  test("a different origin or region list is reported", () => {
+    const problems = wranglerProblems(
+      both(
+        { NEWS_SITE_ORIGIN: "https://example.org", NEWS_REGION_VIEWS: "europe" },
+        { NEWS_SITE_ORIGIN: "https://news.karthik.nz", NEWS_REGION_VIEWS: "europe,india" },
+      ),
+    );
+    expect(problems.map((p) => p.message.split(" differs")[0])).toEqual(["NEWS_SITE_ORIGIN", "NEWS_REGION_VIEWS"]);
+  });
+
+  test("the real repo's two wrangler files agree", () => {
+    expect(wranglerProblems(root)).toEqual([]);
   });
 });
 

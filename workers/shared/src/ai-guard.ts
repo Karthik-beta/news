@@ -84,7 +84,7 @@ export function scanFile(file: string, text: string): Finding[] {
       });
     return findings;
   }
-  if (/\.(?:[cm]?[jt]sx?)$/.test(name)) {
+  if (/\.(?:[cm]?[jt]sx?|astro)$/.test(name)) {
     for (const m of text.matchAll(IMPORT)) {
       const spec = m[1] as string;
       if (isModelPackage(spec))
