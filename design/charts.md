@@ -124,6 +124,9 @@ Crimson never marks a subject that fell (Karthik, 16 Nov 2026). A highlighted su
 | Slope chart | The highlighted item's second value is below its first |
 | Stacked bar | The highlighted part's value in the last row is below its value in the first row (the line rule, across rows) |
 | Segmented bar | The highlighted part is below zero (it cannot be drawn, so it is in the key and the table only) |
+| Small multiples | The highlighted panel's series: the line rule. A panel of columns also fell when any of its columns is below zero |
+| Histogram | The highlighted item's value is below zero (the bar rule); its whole range takes the colour |
+| Heatmap | Never: colour is magnitude, so a heatmap has no highlight |
 
 Today neither the bar nor the column chart takes a comparison value, so for both the rule is "below zero". A missing value never fell. A rise, a flat line and a zero are crimson as usual.
 
@@ -177,8 +180,24 @@ Today neither the bar nor the column chart takes a comparison value, so for both
 - A legend bar with 5–7 steps above the map. Always paired with a ranked table.
 
 ### Small multiples
-- Same scales and the same size in every panel. Panel titles in Fira Sans 600, 14px.
+- Same scales and the same size in every panel. Panel titles in Fira Sans 600, 14px (the chart-subtitle size, 14.5px; the highlighted panel's bold).
 - 2 columns on phone, 3–4 on desktop.
+- Each panel is a line or column chart's own plot, one series each, 2–12 panels. They share one x axis (every panel's periods, so a period a panel lacks is a gap or a hatched column) and one value axis (every panel's values), and line panels keep the end-label room of the widest so every plot is the same width. Plots are shorter than a single chart's (8rem on phones, 9rem wider) and usually tight, so end labels sit below the x axis.
+- With nothing highlighted every panel is blue. Naming one series makes its panel the subject (crimson, or the neutral highlight when it fell) and the rest context.
+- Columns per row: 2 on phones; 3 from a 34em figure and 4 from 42em, except where that leaves a short last row (4 panels go 2 then 4 across; 5, 6 and 9 stay at 3).
+
+### Histograms
+- Ranges are half-open, [a, b), on round numbers (1, 2 or 5 × 10ⁿ), about log₂(n) + 1 of them for n values (Sturges), at most 12. Edges are worked out from the exact decimals, so a value on an edge always goes up a range.
+- The column chart's plot, each column filling its range with the 2px paper gap; columns from zero; the x labels are the edges; the y axis counts values in whole numbers.
+- No count is written on the plot: a count is ours, not the source's. The tooltip lists the range's values with their citations (up to 8), and the data table lists every value, lowest first.
+- Every range is blue; naming one item makes its range the subject and the rest context. Values with no data, or in another unit, are not counted and are named under the plot.
+
+### Heatmaps
+- One row per series (its name on the left, in the value axis's place), one column per period (labels below, thinned on phones like any x axis); best up to about 24 periods.
+- Classes are the round-number ranges of a value axis over the data (3 to 5), each a fixed step of the sequential blue ramp: in light mode 300, 400, 500, 600, 700 for least to most; in dark mode 600, 400, 300, 200, 100 (500 is skipped: no text colour reads on it in dark). Fewer classes take steps spread across the ramp, the ends always used. Both ramps pass the dataviz validator's ordinal checks on paper.
+- Values are written in the cells, in ink on the light steps and in the paper colour on the dark ones (each at least 4.5:1), when every column has room for the longest; the plot is a query container, so values give way at large text sizes. They are always in the tooltip and the data table.
+- A legend above the grid names each range ("60 to 70"), and "No data" with a hatched key when a cell is hatched.
+- Square-cornered cells at least 24px tall with 2px paper gaps; each is a hover and tap target. One tab stop: left and right step through the cells, up and down move a row.
 
 ### Tables as charts
 - Tables follow the same anatomy (rule and tag, title, subtitle, source).

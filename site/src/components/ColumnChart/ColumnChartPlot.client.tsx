@@ -51,6 +51,9 @@ export interface ColumnChartPlotProps {
   xLabels: XLabel[];
   /** How many value labels fit: all on phones (≤ 5), from tablets (≤ 8), from desktops (≤ 12), or only the key ones. */
   density: "n5" | "n8" | "n12" | "key";
+  /** How x labels at the ends stay inside the plot; by default narrow columns pin the first and last. A histogram's
+   * labels are bin edges, so the ones on the plot's edges are pinned by position. */
+  pinEnds?: "position" | "index" | false;
 }
 
 export default function ColumnChartPlot({
@@ -61,6 +64,7 @@ export default function ColumnChartPlot({
   bands,
   xLabels,
   density,
+  pinEnds,
 }: ColumnChartPlotProps) {
   const { active, setActive, rootRef, plotRef, onKeyDown, onBlur } = useChartStepper(bands.length);
   const centres = useMemo(() => bands.map((b) => b.left + b.width / 2), [bands]);
@@ -155,7 +159,7 @@ export default function ColumnChartPlot({
           </div>
         </div>
       </div>
-      <XLabels labels={xLabels} pinEnds={bands.length > 8 ? "index" : false} />
+      <XLabels labels={xLabels} pinEnds={pinEnds ?? (bands.length > 8 ? "index" : false)} />
       <ChartLiveRegion text={band ? tooltipText(band.label, band.tooltip) : ""} />
     </div>
   );

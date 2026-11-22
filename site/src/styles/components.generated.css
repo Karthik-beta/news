@@ -14,6 +14,8 @@
 @import "../components/Footer/Footer.css";
 @import "../components/GlossaryTerm/GlossaryTerm.css";
 @import "../components/Headline/Headline.css";
+@import "../components/Heatmap/Heatmap.css";
+@import "../components/Histogram/Histogram.css";
 @import "../components/Icon/Icon.css";
 @import "../components/ImageFigure/ImageFigure.css";
 @import "../components/ImageGallery/ImageGallery.css";
@@ -40,6 +42,7 @@
 @import "../components/SectionHead/SectionHead.css";
 @import "../components/SkipLink/SkipLink.css";
 @import "../components/Slope/Slope.css";
+@import "../components/SmallMultiples/SmallMultiples.css";
 @import "../components/SourceRef/SourceRef.css";
 @import "../components/SourcesPanel/SourcesPanel.css";
 @import "../components/Sparkline/Sparkline.css";

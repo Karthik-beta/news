@@ -12,6 +12,7 @@ import { parsePage, renderPage } from "../../src/renderer/render";
 
 const library = fixtureLibrary();
 const CHARTS_2 = ["Waterfall", "Sankey", "StackedBar", "SegmentedBar", "DotPlot", "Slope"];
+const CHARTS_3 = ["SmallMultiples", "Heatmap", "Histogram"];
 const CHART_NAMES = [
   "ColumnChart",
   "BarChart",
@@ -20,6 +21,7 @@ const CHART_NAMES = [
   "DataTable",
   "ComparisonTable",
   ...CHARTS_2,
+  ...CHARTS_3,
 ];
 /** Charts whose result is the highlight by design (design/charts.md, "Waterfall"), with no highlight prop. */
 const RESULT_HIGHLIGHT = ["Waterfall", "Sankey"];
@@ -89,6 +91,9 @@ describe("every rendered figure carries its source ID", () => {
     ".slope__name",
     ".sankey__name",
     ".segmented-bar__name",
+    ".small-multiples__name",
+    ".heatmap__name",
+    ".histogram__missing",
   ].join(", ");
 
   it.each(pages.map((p) => [p.id, p] as const))("%s: every number on the page is cited", (_id, p) => {

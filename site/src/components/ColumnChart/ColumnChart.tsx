@@ -14,6 +14,7 @@ import {
   type Measure,
   modelSummary,
   type OkSeries,
+  type PeriodSlot,
   periodSlots,
   pointAt,
   resolveSeries,
@@ -58,11 +59,14 @@ export function columnPlot(
   { series, model }: { series: OkSeries[]; model: TableModel },
   props: ColumnChartProps,
   data: PageDataResolver,
+  /** Small multiples: every panel's periods and values, so all panels share one x axis and one value axis. */
+  shared?: { slots: PeriodSlot[]; values: string[] },
 ): ColumnChartPlotProps {
   const first = series[0] as OkSeries;
   const measure: Measure = { unit: first.unit, currency: first.currency, scale: first.scale };
-  const slots = periodSlots(series);
-  const values = series.flatMap((s) => s.points.map((p) => p.value).filter((v): v is string => v !== null));
+  const slots = shared?.slots ?? periodSlots(series);
+  const values =
+    shared?.values ?? series.flatMap((s) => s.points.map((p) => p.value).filter((v): v is string => v !== null));
   const exponent = displayExponent(values, measure);
   const scale = niceScale(
     values.map((v) => Number(v)),

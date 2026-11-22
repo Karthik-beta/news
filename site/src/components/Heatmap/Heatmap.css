@@ -1,0 +1,179 @@
+/* Heatmap (design/charts.md, "Heatmaps"): a grid of square-cornered cells with 2px paper gaps, row names on the
+   left (the value axis's place), period labels below. Five steps of the sequential blue ramp (design/color.md),
+   light to dark for least to most in light mode; dark mode reverses the anchor, so the least sinks into the dark
+   paper. Values are written in ink on the light steps and in the paper colour on the dark ones, each pair at least
+   4.5:1 (checked in tests/unit/charts-3.test.ts). Steps were validated as ordinal ramps with the dataviz validator
+   in both themes: light 300-700, dark 600, 400, 300, 200, 100 (500 has no text colour that reads on it in dark). */
+.heatmap__step--1 {
+  --chart-mark: var(--chart-seq-blue-300);
+  --heatmap-text: var(--color-ink);
+}
+.heatmap__step--2 {
+  --chart-mark: var(--chart-seq-blue-400);
+  --heatmap-text: var(--color-ink);
+}
+.heatmap__step--3 {
+  --chart-mark: var(--chart-seq-blue-500);
+  --heatmap-text: var(--color-paper);
+}
+.heatmap__step--4 {
+  --chart-mark: var(--chart-seq-blue-600);
+  --heatmap-text: var(--color-paper);
+}
+.heatmap__step--5 {
+  --chart-mark: var(--chart-seq-blue-700);
+  --heatmap-text: var(--color-paper);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .heatmap__step--1 {
+    --chart-mark: var(--chart-seq-blue-600);
+    --heatmap-text: var(--color-ink);
+  }
+  :root:not([data-theme="light"]) .heatmap__step--2 {
+    --chart-mark: var(--chart-seq-blue-400);
+    --heatmap-text: var(--color-paper);
+  }
+  :root:not([data-theme="light"]) .heatmap__step--3 {
+    --chart-mark: var(--chart-seq-blue-300);
+    --heatmap-text: var(--color-paper);
+  }
+  :root:not([data-theme="light"]) .heatmap__step--4 {
+    --chart-mark: var(--chart-seq-blue-200);
+    --heatmap-text: var(--color-paper);
+  }
+  :root:not([data-theme="light"]) .heatmap__step--5 {
+    --chart-mark: var(--chart-seq-blue-100);
+    --heatmap-text: var(--color-paper);
+  }
+}
+:root[data-theme="dark"] .heatmap__step--1 {
+  --chart-mark: var(--chart-seq-blue-600);
+  --heatmap-text: var(--color-ink);
+}
+:root[data-theme="dark"] .heatmap__step--2 {
+  --chart-mark: var(--chart-seq-blue-400);
+  --heatmap-text: var(--color-paper);
+}
+:root[data-theme="dark"] .heatmap__step--3 {
+  --chart-mark: var(--chart-seq-blue-300);
+  --heatmap-text: var(--color-paper);
+}
+:root[data-theme="dark"] .heatmap__step--4 {
+  --chart-mark: var(--chart-seq-blue-200);
+  --heatmap-text: var(--color-paper);
+}
+:root[data-theme="dark"] .heatmap__step--5 {
+  --chart-mark: var(--chart-seq-blue-100);
+  --heatmap-text: var(--color-paper);
+}
+
+.heatmap__legend {
+  margin-block-end: var(--space-4);
+  color: var(--color-ink-2);
+}
+
+.heatmap__grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--chart-mark-bar-gap);
+  touch-action: pan-y;
+}
+.heatmap__grid:focus-visible {
+  outline: var(--border-focus) solid var(--color-focus);
+  outline-offset: var(--space-1);
+}
+.heatmap__row {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-3);
+}
+.heatmap__name {
+  flex: none;
+  align-self: center;
+  width: var(--chart-axis-width);
+  line-height: 1.25;
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+.heatmap__cells {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(var(--heatmap-columns), minmax(0, 1fr));
+  gap: var(--chart-mark-bar-gap);
+}
+/* A cell is at least 24px tall: its own hover and tap target. */
+.heatmap__cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--space-7);
+  background-color: var(--chart-mark);
+  color: var(--heatmap-text);
+  forced-color-adjust: none;
+  print-color-adjust: exact;
+}
+.heatmap__cell.chart-hatch {
+  background-color: transparent;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .heatmap__cell {
+    transition: opacity var(--motion-fast);
+  }
+}
+.heatmap__cell.is-active:not(.chart-hatch) {
+  opacity: 0.8;
+}
+.heatmap__cell.is-active {
+  z-index: 3;
+}
+
+/* Values only where every column has room for them: the server picks the plot width (in em of its own text) from
+   which they fit, so they also give way at large text sizes. */
+.heatmap__value {
+  display: none;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+@container chart-plot (min-width: 16em) {
+  .heatmap--fit-16 .heatmap__value {
+    display: block;
+  }
+}
+@container chart-plot (min-width: 20em) {
+  .heatmap--fit-20 .heatmap__value {
+    display: block;
+  }
+}
+@container chart-plot (min-width: 24em) {
+  .heatmap--fit-24 .heatmap__value {
+    display: block;
+  }
+}
+@container chart-plot (min-width: 30em) {
+  .heatmap--fit-30 .heatmap__value {
+    display: block;
+  }
+}
+@container chart-plot (min-width: 36em) {
+  .heatmap--fit-36 .heatmap__value {
+    display: block;
+  }
+}
+@container chart-plot (min-width: 44em) {
+  .heatmap--fit-44 .heatmap__value {
+    display: block;
+  }
+}
+@container chart-plot (min-width: 52em) {
+  .heatmap--fit-52 .heatmap__value {
+    display: block;
+  }
+}
+
+@media (forced-colors: active) {
+  .heatmap__cell {
+    outline: var(--border-hairline) solid CanvasText;
+  }
+}

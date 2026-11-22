@@ -37,7 +37,7 @@ export interface ValueScale {
 const MANTISSAS = [1, 2, 5] as const;
 
 /** The step decimal: mantissa × 10^exp, exactly. */
-function stepDecimal(k: number, mantissa: number, exp: number): string {
+export function stepDecimal(k: number, mantissa: number, exp: number): string {
   return decimalToString(shiftDecimal(parseDecimal(String(k * mantissa)), exp));
 }
 
