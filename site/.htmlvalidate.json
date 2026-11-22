@@ -4,6 +4,7 @@
   "extends": ["html-validate:recommended", "html-validate:document"],
   "rules": {
     "attribute-boolean-style": "off",
+    "attr-case": ["error", { "style": ["lowercase", "camelcase"] }],
     "attribute-empty-style": "off",
     "doctype-style": "off",
     "void-style": "off",

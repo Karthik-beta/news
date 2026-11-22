@@ -4,13 +4,23 @@
 import { describe, expect, test } from "bun:test";
 import { Fragment, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { cases as button } from "../../src/components/Button/fixtures/cases";
+import { cases as checkbox } from "../../src/components/Checkbox/fixtures/cases";
 import type { FixtureCase } from "../../src/components/contract";
 import { cases as figureFrame } from "../../src/components/FigureFrame/fixtures/cases";
 import { cases as icon } from "../../src/components/Icon/fixtures/cases";
+import { cases as loadingRegion } from "../../src/components/LoadingRegion/fixtures/cases";
+import { cases as notFound } from "../../src/components/NotFound/fixtures/cases";
 import { cases as popover } from "../../src/components/Popover/fixtures/cases";
+import { cases as reportForm } from "../../src/components/ReportForm/fixtures/cases";
 import { cases as rule } from "../../src/components/Rule/fixtures/cases";
+import { cases as searchField } from "../../src/components/SearchField/fixtures/cases";
+import { cases as select } from "../../src/components/Select/fixtures/cases";
 import { cases as sourceRef } from "../../src/components/SourceRef/fixtures/cases";
+import { cases as stateMessage } from "../../src/components/StateMessage/fixtures/cases";
 import { cases as text } from "../../src/components/Text/fixtures/cases";
+import { cases as textArea } from "../../src/components/TextArea/fixtures/cases";
+import { cases as textField } from "../../src/components/TextField/fixtures/cases";
 import { cases as visuallyHidden } from "../../src/components/VisuallyHidden/fixtures/cases";
 import { PageData, PageSources } from "../../src/renderer/bundle/schema";
 import { PageDataProvider } from "../../src/renderer/data/context";
@@ -19,6 +29,16 @@ import { mergeBundleData } from "../../src/renderer/fixtures/bundles/assemble";
 import { readFixtureBundles } from "../../src/renderer/fixtures/bundles/fs";
 
 const GALLERIES: Record<string, FixtureCase[]> = {
+  Button: button,
+  Checkbox: checkbox,
+  LoadingRegion: loadingRegion,
+  NotFound: notFound,
+  ReportForm: reportForm,
+  SearchField: searchField,
+  Select: select,
+  StateMessage: stateMessage,
+  TextArea: textArea,
+  TextField: textField,
   FigureFrame: figureFrame,
   Icon: icon,
   Popover: popover,

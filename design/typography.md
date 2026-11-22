@@ -48,6 +48,8 @@ Base size is 16px (1rem). Sizes are in px for readability here; tokens use rem. 
 | `type.figure` | Key figures (stat values) | Fira Sans 600 | 28 / 24 | 1.15 | 0 | Lining figures |
 | `type.figure-s` | Small figures in home rows | Fira Sans 600 | 24 / 22 | 1.00 | 0 | |
 | `type.ui` | Navigation, buttons, table cells | Fira Sans 400–500 | 15 / 15 | 1.45 | 0 | |
+| `font.size.control` | Form fields | Fira Sans 400 | 16 / 16 | 1.45 | 0 | 16px stops iOS zooming in on focus |
+| `font.size.search` | The search field | Fira Sans 400 | 18 / 18 | 1.45 | 0 | |
 | `type.label` | Chart labels, meta lines, stat labels | Fira Sans 400 | 13.5 / 13 | 1.35 | 0 | Tabular figures in charts |
 | `type.source` | Source lines, captions, credits | Fira Sans 400 | 12.5 | 1.40 | 0 | Tertiary ink |
 
