@@ -92,10 +92,26 @@ async function collisions(scope: Locator): Promise<string[]> {
   }, LABELS);
 }
 
-async function expectNoCollisions(page: Page): Promise<void> {
+/**
+ * Open exception (SIGNOFF.md, Histogram): from 600px the column plot picks x labels for a full-width axis at any text
+ * size, so long edges crowd at 200% text until the plot is narrow enough (20em) to go tight. The same shared
+ * limitation is open for ColumnChart and LineChart in data-charts-r1.known.json. Keyed "<width> <text size>%".
+ */
+const KNOWN: Record<string, string[]> = {
+  "600 200%": [
+    'chart-plot__x-label "80,000" × chart-plot__x-label "100,000"',
+    'chart-plot__x-label "140,000" × chart-plot__x-label "160,000"',
+  ],
+};
+
+async function expectNoCollisions(page: Page, textSize = 100): Promise<void> {
+  const known = new Set(KNOWN[`${page.viewportSize()?.width} ${textSize}%`] ?? []);
   const found: string[] = [];
   for (const fig of await page.locator("main figure").all()) found.push(...(await collisions(fig)));
-  expect(found, "overlapping labels").toEqual([]);
+  expect(
+    found.filter((f) => !known.has(f)),
+    "overlapping labels",
+  ).toEqual([]);
 }
 
 /** Every written heatmap value that is wider or taller than its cell. */
@@ -131,7 +147,7 @@ for (const p of PAGES) {
     await hydrateVisible(page);
     await expectNoSidewaysScroll(page);
     await expectInsideViewport(page, page.locator("main"), FLOATING);
-    await expectNoCollisions(page);
+    await expectNoCollisions(page, 200);
     expect(await overflowingValues(page), "heatmap values inside their cells at 200% text").toEqual([]);
     await setTextSize(page, 100);
     test.skip(!(await zoomTo200(page)), "below 640px wide, 200% zoom is the 320 project (400%)");
