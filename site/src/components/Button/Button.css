@@ -63,4 +63,9 @@
   .button:not(.button--text) {
     border-color: ButtonText;
   }
+  /* Chromium forces `color` but leaves -webkit-text-fill-color at the paper value, which axe reads as paper on
+     ButtonFace; name the system colour so both agree. */
+  .button--primary {
+    color: ButtonText;
+  }
 }

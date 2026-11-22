@@ -47,6 +47,8 @@
   min-height: var(--space-7);
   align-items: center;
   color: var(--color-error);
+  /* "name@example.com," is one word: at 200% text on a 320px screen it must break rather than push the page. */
+  overflow-wrap: anywhere;
 }
 
 .report-form__sent {
