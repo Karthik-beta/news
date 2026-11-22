@@ -72,11 +72,15 @@ export async function expectInsideViewport(
   expect(outside, "elements outside the viewport").toEqual([]);
 }
 
-/** No element clips its own text: content wider or taller than a box that hides overflow. */
+/**
+ * No element clips its own text: content wider or taller than a box that hides overflow. Text fields are left
+ * out: a value longer than the field scrolls inside it, which is how every input works.
+ */
 export async function expectNoClippedText(page: Page, scope: Locator = page.locator("main")): Promise<void> {
   const clipped = await scope.evaluate((root) =>
     [...root.querySelectorAll<HTMLElement>("*")]
       .filter((el) => {
+        if (el.matches("input, textarea")) return false;
         const s = getComputedStyle(el);
         if (!/hidden|clip/.test(s.overflowX + s.overflowY)) return false;
         if (el.getBoundingClientRect().width <= 1) return false; // visually hidden on purpose

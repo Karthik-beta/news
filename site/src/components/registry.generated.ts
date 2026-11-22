@@ -2,7 +2,9 @@
 
 import badgeSpec from "./Badge/spec";
 import barChartSpec from "./BarChart/spec";
+import buttonSpec from "./Button/spec";
 import chartFigureSpec from "./ChartFigure/spec";
+import checkboxSpec from "./Checkbox/spec";
 import columnChartSpec from "./ColumnChart/spec";
 import comparisonTableSpec from "./ComparisonTable/spec";
 import type { AnySpec } from "./contract";
@@ -25,9 +27,11 @@ import keyFiguresSpec from "./KeyFigures/spec";
 import latestListSpec from "./LatestList/spec";
 import leadStorySpec from "./LeadStory/spec";
 import lineChartSpec from "./LineChart/spec";
+import loadingRegionSpec from "./LoadingRegion/spec";
 import mastheadSpec from "./Masthead/spec";
 import methodSummarySpec from "./MethodSummary/spec";
 import noteSpec from "./Note/spec";
+import notFoundSpec from "./NotFound/spec";
 import pageSpec from "./Page/spec";
 import pageContentsSpec from "./PageContents/spec";
 import pageMetaSpec from "./PageMeta/spec";
@@ -38,10 +42,13 @@ import proseSpec from "./Prose/spec";
 import quoteSpec from "./Quote/spec";
 import regionFilterSpec from "./RegionFilter/spec";
 import relatedPagesSpec from "./RelatedPages/spec";
+import reportFormSpec from "./ReportForm/spec";
 import ruleSpec from "./Rule/spec";
 import sankeySpec from "./Sankey/spec";
+import searchFieldSpec from "./SearchField/spec";
 import sectionHeadSpec from "./SectionHead/spec";
 import segmentedBarSpec from "./SegmentedBar/spec";
+import selectSpec from "./Select/spec";
 import skipLinkSpec from "./SkipLink/spec";
 import slopeSpec from "./Slope/spec";
 import sourcePopoverSpec from "./SourcePopover/spec";
@@ -50,9 +57,12 @@ import sourcesPanelSpec from "./SourcesPanel/spec";
 import sparklineSpec from "./Sparkline/spec";
 import stackedBarSpec from "./StackedBar/spec";
 import standfirstSpec from "./Standfirst/spec";
+import stateMessageSpec from "./StateMessage/spec";
 import stepLineChartSpec from "./StepLineChart/spec";
 import storyItemSpec from "./StoryItem/spec";
 import textSpec from "./Text/spec";
+import textAreaSpec from "./TextArea/spec";
+import textFieldSpec from "./TextField/spec";
 import timelineSpec from "./Timeline/spec";
 import videoEmbedSpec from "./VideoEmbed/spec";
 import visuallyHiddenSpec from "./VisuallyHidden/spec";
@@ -61,7 +71,9 @@ import waterfallSpec from "./Waterfall/spec";
 export const specs: readonly AnySpec[] = [
   badgeSpec,
   barChartSpec,
+  buttonSpec,
   chartFigureSpec,
+  checkboxSpec,
   columnChartSpec,
   comparisonTableSpec,
   dataLinksSpec,
@@ -83,8 +95,10 @@ export const specs: readonly AnySpec[] = [
   latestListSpec,
   leadStorySpec,
   lineChartSpec,
+  loadingRegionSpec,
   mastheadSpec,
   methodSummarySpec,
+  notFoundSpec,
   noteSpec,
   pageSpec,
   pageContentsSpec,
@@ -96,10 +110,13 @@ export const specs: readonly AnySpec[] = [
   quoteSpec,
   regionFilterSpec,
   relatedPagesSpec,
+  reportFormSpec,
   ruleSpec,
   sankeySpec,
+  searchFieldSpec,
   sectionHeadSpec,
   segmentedBarSpec,
+  selectSpec,
   skipLinkSpec,
   slopeSpec,
   sourcePopoverSpec,
@@ -108,9 +125,12 @@ export const specs: readonly AnySpec[] = [
   sparklineSpec,
   stackedBarSpec,
   standfirstSpec,
+  stateMessageSpec,
   stepLineChartSpec,
   storyItemSpec,
   textSpec,
+  textAreaSpec,
+  textFieldSpec,
   timelineSpec,
   videoEmbedSpec,
   visuallyHiddenSpec,

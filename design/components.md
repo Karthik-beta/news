@@ -218,34 +218,36 @@ For commentary and context in Claude's own words.
 - Focus: the standard 2px focus ring, 2px offset.
 
 ### Forms (`TextField`, `TextArea`, `Select`, `Checkbox`)
-- Label above the field: Fira 600, 14px, ink. Hint below the label in Fira 13, ink-2.
-- Field: paper fill, 1px `color.control-border`, 5px radius, 10px 12px padding, Fira 400 16px (16px prevents zoom on iOS).
+- Label above the field: Fira 600, 15px (`type.ui`; the scale has no 14px step), ink. Required fields end the label with "(required)", optional ones with "(optional)", both in regular weight, ink-2; a field that is neither (a search filter) has no marker. Hint below the label in Fira 13.5 (`type.label`), ink-2.
+- Field: paper fill, 1px `color.control-border`, 5px radius, 10px 12px padding, Fira 400 16px (`font.size.control`; 16px prevents zoom on iOS).
 - Focus: border becomes ink plus the focus ring.
-- Error: border in `color.error`, an error icon and message under the field in Fira 13.5, `color.error`; an error summary at the top of the form linking to each field.
-- The report-an-error form: "What is wrong?" (required, textarea), "Where on the page?" (optional), "Your email, if you'd like a reply" (optional), and a primary button "Send report". After sending: "Report sent. Thank you for checking." with a link back to the page.
+- Error: border in `color.error`, an error icon and message under the field in Fira 13.5, `color.error`; an error summary at the top of the form linking to each field: a 2px `color.error` rule over it (no box), a heading with the error icon, and each message as a link in `color.error`.
+- Checkbox: the native box at 24px, accent in ink, the label beside it at regular weight; in an error the box gets a 1px `color.error` outline.
+- The report-an-error form: "What is wrong?" (required, textarea), "Where on the page?" (optional), "Your email, if you'd like a reply" (optional), and a primary button "Send report". After sending: "Report sent. Thank you for checking." with a check icon and a link "Back to the page". The form is a plain POST, so it works with no JavaScript; the server renders it again with the reader's values and the errors (`ReportForm`).
 
 ### Search field (`SearchField`)
-- Full width under the masthead on the search page, 48px tall, Fira 18, with a magnifier icon inside on the left and a "Search" button on the right.
-- Filters as a single row of selects below it (Category, Region, Page type, Date).
+- Full width under the masthead on the search page, 48px tall, Fira 18 (`font.size.search`), with a magnifier icon inside on the left and a "Search" button on the right.
+- Filters as a single row of selects below it (Category, Region, Page type, Date); on phones they wrap two to a row. A plain GET form: the query is `q`, each filter sends its own name. The input's label is visually hidden: the magnifier and the "Search" button say what it is.
 
 ### Tooltip (`Tooltip`)
 - The same look as the citation popover: paper, 1px rule border, no shadow, 12px padding. Appears in ≤120ms, no slide.
+- Built as part of `Popover` (`site/src/components/Popover/`), not a control of its own: chart islands show `Tooltip` on hover, focus, arrow keys or tap; anything else that explains a word or a figure uses `Popover`, which opens on click, tap, Enter or Space only (decisions log, 16 Nov 2026).
 
 ---
 
 ## States
 
 ### Empty state
-- A sentence that says what's empty and what to do, in Literata 17, plus one action link. No illustration. Example: "No pages match these filters." / "Clear the region filter".
+- A sentence that says what's empty and what to do, in Literata 17 (17.5 on desktop, `type.body`), plus one action link (`StateMessage`). No illustration. Example: "No pages match these filters." / "Clear the region filter".
 
 ### Error state
-- What happened and what to do, in plain words, plus a link onwards. Example: "Search is unavailable until 00:00 UTC because today's limit was reached." / "Browse by category".
+- What happened and what to do, in plain words, plus a link onwards. Example: "Search is unavailable until 00:00 UTC because today's limit was reached." / "Browse by category". The same look as the empty state (`StateMessage`): no icon and no crimson, which are for form errors only.
 
 ### 404
-- The only centred layout: "This page doesn't exist." (Literata 700, 28px), "It may have moved, or the link may be wrong." and a search field plus links to the five categories.
+- The only centred layout: "This page doesn't exist." (Literata 700, 28px), "It may have moved, or the link may be wrong." and a search field plus links to the five categories (`NotFound`).
 
 ### Loading
-- Static pages don't load progressively. Dynamic lists (search results) keep the previous results at 50% opacity while new ones load; no skeletons, no spinners longer than 300ms.
+- Static pages don't load progressively. Dynamic lists (search results) keep the previous results at 50% opacity while new ones load; no skeletons, no spinners longer than 300ms. `LoadingRegion` uses no spinner at all: while busy the old results are inert (an inactive part of the interface) and a polite status line says "Loading results".
 
 ---
 
