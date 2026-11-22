@@ -7,3 +7,4 @@ File names: `NNNN-short-title.md`. Status is one of proposed, accepted, supersed
 | ADR | Title | Status | Date |
 |---|---|---|---|
 | [0001](0001-openui-server-rendering.md) | Server rendering of OpenUI pages (and the component index token budget) | accepted | 2026-11-15 |
+| [0010](0010-ssr-routing-and-caching.md) | SSR site routing, data adapter and edge caching | proposed | 2026-11-22 |
