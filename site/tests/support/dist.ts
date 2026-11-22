@@ -41,3 +41,11 @@ export function resolveToDistFile(pathname: string, root = distRoot): string | u
   }
   return undefined;
 }
+
+/**
+ * Paths the SSR Worker serves (ADR 0010), so they are not files in dist/: the five category hubs and `/latest`,
+ * search, and `/feeds/`, which the footer links to (the route table has no feeds page: a follow-up for the SSR
+ * routes). The link check lets pages link to them.
+ */
+export const isWorkerRoute = (pathname: string) =>
+  /^\/(tech|business|finance|economy|science|latest|search|feeds)(\/|$)/.test(pathname);

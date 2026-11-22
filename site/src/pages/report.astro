@@ -1,0 +1,13 @@
+---
+// Report an error: the copy, with the form (ReportForm) before "What happens next". The form posts to the report
+// intake named in config (siteConfig.report.postUrl); the intake itself is #6's. "Form text" in the copy is the
+// author's list of the form's labels and messages, for the form's builder, not reader text.
+import { ReportForm } from "../components/ReportForm/ReportForm";
+import { siteConfig } from "../config/site";
+import StaticDoc from "../layouts/StaticDoc.astro";
+---
+<StaticDoc name="report-an-error" path="/report/" omit={["Form text"]} slotBefore="What happens next">
+  <div class="static-page__body">
+    <ReportForm action={siteConfig.report.postUrl} pageUrl="/" standalone />
+  </div>
+</StaticDoc>
