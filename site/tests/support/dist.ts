@@ -41,3 +41,7 @@ export function resolveToDistFile(pathname: string, root = distRoot): string | u
   }
   return undefined;
 }
+
+/** Exact paths the SSR Worker serves (ADR 0010), so they are not files in dist/: the five category hubs, `/latest` and `/search`. */
+export const isWorkerRoute = (pathname: string) =>
+  /^\/(tech|business|finance|economy|science)\/?$/.test(pathname) || /^\/(latest|search)\/?$/.test(pathname);

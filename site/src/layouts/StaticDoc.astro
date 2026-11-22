@@ -1,0 +1,21 @@
+---
+// A static page whose words are a copy file in content/pages/: the frame, then the copy as prose. Sections named in
+// `omit` are the author's build notes, or copy for something not built yet, not reader text.
+import { loadDoc, withoutSection } from "../static/content";
+import { renderCopy, siteGlossary } from "../static/render";
+import StaticPage from "./StaticPage.astro";
+
+interface Props {
+  /** The copy file's name without .md. */
+  name: string;
+  /** The page's site path, "/methodology/". */
+  path: string;
+  omit?: string[];
+}
+const { name, path, omit = [] } = Astro.props;
+const doc = loadDoc(name);
+const blocks = omit.reduce(withoutSection, doc.blocks);
+---
+<StaticPage title={doc.title} description={doc.description} updated={doc.updated} path={path}>
+  <div class="static-page__body prose text-body" set:html={renderCopy(blocks, siteGlossary(), name)} />
+</StaticPage>
