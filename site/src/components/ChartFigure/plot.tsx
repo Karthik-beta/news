@@ -13,9 +13,9 @@ export interface XLabel {
   /** 0-100 from the left of the marks' area. */
   x: number;
   label: string;
-  /** Shown on phones (under 600px). */
+  /** Shown on a plot narrower than 40em of its text (a phone, or any screen at large text sizes). */
   phone: boolean;
-  /** Shown from 600px up. */
+  /** Shown on a plot of 40em or more (a tablet or wider at 100% text). */
   wide: boolean;
   /** Shown when the plot is tight (narrower than 20em of its text: a phone at 150-200% text size). */
   tight: boolean;

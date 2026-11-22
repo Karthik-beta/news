@@ -139,3 +139,7 @@ Runs (laptop under load, 2 workers):
 - Vitest: fall-rule tests (re-test file, model, chart colours) after the fixes: 90 passed.
 
 Signed (pass, with the exceptions above): Opus 5.5 component tester, 20 November 2026
+
+## Re-test: x labels chosen by the plot's em width (22 November 2026)
+
+The phone/wide x-label switch is now `@container chart-x (min-width: 40em)` instead of the 600px media query. At 100% text the labels are the same as before at every matrix width; at 200% text a wide screen keeps the phone set. Details, runs and the one open exception (ColumnChart `long` edge fixture, 2.9px gap at 572-581px) are in `ChartFigure/SIGNOFF.md`; tests in `site/tests/e2e/components/x-label-plan.tester.spec.ts`.

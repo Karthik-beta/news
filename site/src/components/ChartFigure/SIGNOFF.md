@@ -93,3 +93,21 @@ Builder's open item "HTML/CSS column charts vs spec": charts.md says line and co
 
 ☑ Every area and every screen above is passed or has an accepted exception.
 Signed: Opus 5.5 component tester, 18 November 2026
+
+## Re-test: x labels chosen by the plot's em width (22 November 2026)
+
+The change: `.chart-plot` is `container: chart-plot chart-x / inline-size`, and the `.is-wide-only` / `.is-phone-only` switch moved from `@media (min-width: 600px)` to `@container chart-x (min-width: 40em)`. Callers: ColumnChart, LineChart, StepLineChart, Histogram, Heatmap, SmallMultiples (opts out: its panels keep the phone set), the renderer charts article. Tests: `site/tests/e2e/components/x-label-plan.tester.spec.ts` (XL-1 to XL-6).
+
+- XL-1, 100% text: every plot shows the same set as under the old media query (phone under 600px, wide from 600px). At 600 the plot is 552px = 40.9em; at 430 it is 29.5em.
+- XL-2, 430-599px at 100% text: the set follows the plot's em width; from a 572px screen the plot reaches 540px = 40em and shows the wide set. No x labels overlap anywhere in the sweep (430, 500, 560, 571, 572, 580, 590, 599); every gap is at least 4px except the one below.
+- XL-3, 200% text at 768 and 1440: Column, Line, StepLine, Histogram, Heatmap and the charts article show the phone set, with no overlapping x labels.
+- XL-4: a heatmap whose row names narrow its inner axis below 40em still shows the wide set at 1440 (`chart-x` is the whole plot).
+- XL-5: SmallMultiples has no switched labels; non-tight panels keep their labels at 200% text.
+- XL-6: scripts blocked, the server-rendered x labels are the ones shown after hydration (360 and 1440).
+- Removed known cases (768 and 1440 at 200% text; Histogram 600 at 200%) stay green. DC-2 at 600px: 14 pre-existing problems (6 tests; 77 problems on main) recorded in `data-charts-r1.known.json` with the reason in the spec, so any new collision still fails.
+
+Open exception (minor, sent back): 572-581px screens at 100% text, ColumnChart `long` edge fixture (60 monthly columns): the wide set leaves 2.9-4.5px between "Nov 2020" and "Sep 2021", against 4.9px at 600 before (the narrowest wide plot went from 552px to 540px). No overlap. Held in XL-2 at 2.5px so it cannot get worse. A 40.75em (550px) threshold would keep 600 unchanged with only 2px of slack against the page gutters, so it is not taken here.
+
+Runs (1 worker): Chromium light 320-768, every label, overlap and @zoom test of data-charts*, charts-2*, charts-3* and x-label-plan: 733 run, 2 failed: DC-2 LineChart/default at 390 and 100% text, `equal` end label 3px below the plot (phone labels before and after this change; the same key is a known case at 320, 360 and 430; left open, not recorded) and one harness error (a trace file removed by a concurrent run). Chromium light 980, 1120, 1440 and dark 360, 1440, XL and DC-2: 180 passed, 113 skipped by design, 2 failed at 980 (the 1440 value-label cases; recorded, and 1120 passed with them). XL at 360, 430, 768, 1440: 108 passed, 80 skipped. Firefox and WebKit light 360 and 1440, XL-1 to XL-5 (200% text and the heatmap at 1440 included): 75 passed, 68 skipped, 1 failed (Firefox 360, charts article: context teardown over 60s under load; its assertions ran). Not run (time box): Vitest, Chromium 980-1440 for the charts-2/charts-3 label tests, the dark sweep beyond 360 and 1440, 1920, landscape, print, forced colours, DC-2 and XL-6 in Firefox and WebKit.
+
+Signed: Opus 5.5 component tester, 22 November 2026

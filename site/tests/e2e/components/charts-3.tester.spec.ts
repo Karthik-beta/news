@@ -93,16 +93,10 @@ async function collisions(scope: Locator): Promise<string[]> {
 }
 
 /**
- * Open exception (SIGNOFF.md, Histogram): from 600px the column plot picks x labels for a full-width axis at any text
- * size, so long edges crowd at 200% text until the plot is narrow enough (20em) to go tight. The same shared
- * limitation is open for ColumnChart and LineChart in data-charts-r1.known.json. Keyed "<width> <text size>%".
+ * Open exceptions, keyed "<width> <text size>%"; anything not listed fails. None open: the Histogram's crowded edges at
+ * 600px and 200% text went when the x labels came to be chosen by the plot's width in em (ChartFigure.css).
  */
-const KNOWN: Record<string, string[]> = {
-  "600 200%": [
-    'chart-plot__x-label "80,000" × chart-plot__x-label "100,000"',
-    'chart-plot__x-label "140,000" × chart-plot__x-label "160,000"',
-  ],
-};
+const KNOWN: Record<string, string[]> = {};
 
 async function expectNoCollisions(page: Page, textSize = 100): Promise<void> {
   const known = new Set(KNOWN[`${page.viewportSize()?.width} ${textSize}%`] ?? []);
