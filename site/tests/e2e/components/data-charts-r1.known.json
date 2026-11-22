@@ -44,6 +44,24 @@
     "large-title: overlap: column-chart__value \"132,500.0\" x column-chart__value \"141,000.0\"",
     "negative-title: overlap: column-chart__value \"−5.7\" x chart-plot__x-label \"2019\""
   ],
+  "980 100%": [
+    "fell-title: overlap: column-chart__value \"−5.7\" x chart-plot__x-label \"2019\"",
+    "negative-title: overlap: column-chart__value \"−5.7\" x chart-plot__x-label \"2019\""
+  ],
+  "980 200%": [
+    "fell-title: overlap: column-chart__value \"−5.7\" x chart-plot__x-label \"2019\"",
+    "large-title: overlap: column-chart__value \"132,500.0\" x column-chart__value \"141,000.0\"",
+    "negative-title: overlap: column-chart__value \"−5.7\" x chart-plot__x-label \"2019\""
+  ],
+  "1120 100%": [
+    "fell-title: overlap: column-chart__value \"−5.7\" x chart-plot__x-label \"2019\"",
+    "negative-title: overlap: column-chart__value \"−5.7\" x chart-plot__x-label \"2019\""
+  ],
+  "1120 200%": [
+    "fell-title: overlap: column-chart__value \"−5.7\" x chart-plot__x-label \"2019\"",
+    "large-title: overlap: column-chart__value \"132,500.0\" x column-chart__value \"141,000.0\"",
+    "negative-title: overlap: column-chart__value \"−5.7\" x chart-plot__x-label \"2019\""
+  ],
   "1440 100%": [
     "fell-title: overlap: column-chart__value \"−5.7\" x chart-plot__x-label \"2019\"",
     "negative-title: overlap: column-chart__value \"−5.7\" x chart-plot__x-label \"2019\""

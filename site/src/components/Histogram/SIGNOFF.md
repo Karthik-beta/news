@@ -59,7 +59,7 @@ Chromium ran every project below (both charts-3 specs). Firefox and WebKit ran 3
 
 | Exception | Reason | Approved by |
 |---|---|---|
-| 600 px, 200% text, edge-cases `large`: "80,000" touches "100,000" and "140,000" touches "160,000" | From 600 px the column plot picks x labels for a full-width axis at any text size and only thins them once the plot is under 20em. The same shared limitation is already open for ColumnChart and LineChart (`tests/e2e/components/data-charts-r1.known.json`). Fix belongs in the shared label plan (choose phone/wide by the plot's width in em rather than the viewport), which touches every chart | Open: Karthik |
+| 600 px, 200% text, edge-cases `large`: "80,000" touches "100,000" and "140,000" touches "160,000" | From 600 px the column plot picks x labels for a full-width axis at any text size and only thins them once the plot is under 20em. The same shared limitation is already open for ColumnChart and LineChart (`tests/e2e/components/data-charts-r1.known.json`). Fix belongs in the shared label plan (choose phone/wide by the plot's width in em rather than the viewport), which touches every chart | Closed 22 November 2026: x labels now switch at 40em of the plot's text; removed from `KNOWN`, the 600 px 200% test passes |
 
 ## Runs
 
@@ -71,3 +71,7 @@ Chromium ran every project below (both charts-3 specs). Firefox and WebKit ran 3
 
 ☐ Every area and every screen above is passed or has an accepted exception: one exception awaits Karthik's approval.
 Signed: Opus 5.5 component tester, 22 November 2026
+
+## Re-test: x labels chosen by the plot's em width (22 November 2026)
+
+The phone/wide x-label switch is now `@container chart-x (min-width: 40em)` instead of the 600px media query. At 100% text the labels are the same as before at every matrix width; at 200% text a wide screen keeps the phone set. Details, runs and the one open exception (ColumnChart `long` edge fixture, 2.9px gap at 572-581px) are in `ChartFigure/SIGNOFF.md`; tests in `site/tests/e2e/components/x-label-plan.tester.spec.ts`.

@@ -192,7 +192,8 @@ test.describe("DC-1: a highlighted subject that fell is painted in the neutral h
  * chosen by the plot's em width): value labels (the negative and edge columns), a step line's two event labels, and
  * at 200% text (a 20.4em plot) the phone x-label plan's own limits, the same keys as at 320 (last "fiscal 2024" past
  * the edge; 2019/2021 and 2019/2020 touching), where LineChart still switches its end room and event labels by the
- * viewport. Out of scope for the x-label change; listed so any new collision still fails.
+ * viewport. Out of scope for the x-label change; listed so any new collision still fails. 980 and 1120 have the
+ * 720px plot of 1440 and its value-label entries, unchanged by the x labels.
  */
 const KNOWN: Record<string, string[]> = JSON.parse(
   readFileSync(join(siteRoot, "tests/e2e/components/data-charts-r1.known.json"), "utf8"),
