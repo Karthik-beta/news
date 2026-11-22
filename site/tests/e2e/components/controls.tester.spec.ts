@@ -465,7 +465,9 @@ test("404: centred at its full width, the heading in Literata 700 at 28px, links
   expect(title["font-size"]).toBe("28px");
   expect(title["font-weight"]).toBe("700");
   expect(title["font-family"]).toMatch(/Literata/);
-  await expect(page.locator(".not-found h1")).toHaveText("This page doesn't exist.");
+  await expect(page.getByRole("heading", { level: 2, name: "This page doesn't exist." })).toHaveClass(
+    "not-found__title",
+  );
   await expect(page.getByRole("navigation", { name: "Categories" }).getByRole("link")).toHaveText([
     "Tech",
     "Business",

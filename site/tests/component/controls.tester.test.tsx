@@ -252,6 +252,13 @@ describe("StateMessage, NotFound, LoadingRegion", () => {
     expect(within(search).getByRole("searchbox").id).toBe("not-found-q");
   });
 
+  it("404 inside a page that has its own h1: level 2, same look", () => {
+    const { container } = renderComponent(<NotFound level={2} />);
+    expect(screen.queryAllByRole("heading", { level: 1 })).toHaveLength(0);
+    expect(screen.getByRole("heading", { level: 2 }).className).toBe("not-found__title");
+    expect(container.querySelectorAll("h1")).toHaveLength(0);
+  });
+
   it("loading: a custom status line; idle content is neither busy nor inert", () => {
     const { container, rerender } = renderComponent(
       <LoadingRegion busy loadingText="Loading pages">

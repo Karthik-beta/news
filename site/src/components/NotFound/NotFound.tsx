@@ -10,6 +10,8 @@ export interface NotFoundProps {
   searchLabel?: string;
   searchId?: string;
   navLabel?: string;
+  /** The heading level: 1 on the 404 page; 2 only inside a page that already has its h1 (the fixture gallery). */
+  level?: 1 | 2;
 }
 
 export function NotFound({
@@ -18,10 +20,12 @@ export function NotFound({
   searchLabel = "Search pages",
   searchId = "not-found-q",
   navLabel = "Categories",
+  level = 1,
 }: NotFoundProps) {
+  const Title = `h${level}` as "h1";
   return (
     <div className="not-found">
-      <h1 className="not-found__title">This page doesn't exist.</h1>
+      <Title className="not-found__title">This page doesn't exist.</Title>
       <p className="not-found__text">It may have moved, or the link may be wrong.</p>
       <SearchField action={searchAction} id={searchId} label={searchLabel} />
       <nav aria-label={navLabel}>

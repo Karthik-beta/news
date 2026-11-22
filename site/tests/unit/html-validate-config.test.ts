@@ -36,6 +36,14 @@ describe("HTML validation rules (.htmlvalidate.json)", () => {
     expect(await ruleIds(doc(body))).toContain(rule);
   });
 
+  it("accepts the camelCase attribute names React writes on the server; still rejects upper case", async () => {
+    // React 19 renders autoComplete, spellCheck and noValidate as written; HTML attribute names are case-insensitive.
+    const form =
+      '<form action="/r/" method="post" noValidate><label for="e">E</label><input id="e" name="e" type="email" autoComplete="email" spellCheck="false"><button type="submit">Send</button></form>';
+    expect(await ruleIds(doc(form))).toEqual([]);
+    expect(await ruleIds(doc('<p CLASS="a">x</p>'))).toContain("attr-case");
+  });
+
   it("rejects a page without lang or title", async () => {
     const ids = await ruleIds('<!DOCTYPE html><html><head><meta charset="utf-8"></head><body></body></html>');
     expect(ids).toEqual(["element-required-attributes", "element-required-content"]);
