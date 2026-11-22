@@ -106,7 +106,8 @@
 }
 .chart-plot__frame {
   position: relative;
-  padding-top: var(--space-6);
+  /* Room for the top tick label, which sits above the plot: it grows with the text size (rem), so the room does. */
+  padding-top: max(var(--space-6), 1.35em);
 }
 .chart-plot__inner {
   position: relative;
@@ -157,7 +158,8 @@
 /* X labels under the baseline: periods as the source labels them, never rotated; thinned on phones. */
 .chart-plot__x {
   position: relative;
-  height: var(--space-7);
+  /* As tall as a label at any text size, so the labels never run into what follows the plot. */
+  height: max(var(--space-7), calc(1.35em + var(--space-2)));
   margin-inline-start: var(--chart-axis-inset);
   margin-inline-end: var(--chart-end-room);
 }

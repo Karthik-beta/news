@@ -19,6 +19,8 @@ import flyTitleSpec from "./FlyTitle/spec";
 import footerSpec from "./Footer/spec";
 import glossaryTermSpec from "./GlossaryTerm/spec";
 import headlineSpec from "./Headline/spec";
+import heatmapSpec from "./Heatmap/spec";
+import histogramSpec from "./Histogram/spec";
 import iconSpec from "./Icon/spec";
 import imageFigureSpec from "./ImageFigure/spec";
 import imageGallerySpec from "./ImageGallery/spec";
@@ -51,6 +53,7 @@ import segmentedBarSpec from "./SegmentedBar/spec";
 import selectSpec from "./Select/spec";
 import skipLinkSpec from "./SkipLink/spec";
 import slopeSpec from "./Slope/spec";
+import smallMultiplesSpec from "./SmallMultiples/spec";
 import sourcePopoverSpec from "./SourcePopover/spec";
 import sourceRefSpec from "./SourceRef/spec";
 import sourcesPanelSpec from "./SourcesPanel/spec";
@@ -87,6 +90,8 @@ export const specs: readonly AnySpec[] = [
   footerSpec,
   glossaryTermSpec,
   headlineSpec,
+  heatmapSpec,
+  histogramSpec,
   iconSpec,
   imageFigureSpec,
   imageGallerySpec,
@@ -119,6 +124,7 @@ export const specs: readonly AnySpec[] = [
   selectSpec,
   skipLinkSpec,
   slopeSpec,
+  smallMultiplesSpec,
   sourcePopoverSpec,
   sourceRefSpec,
   sourcesPanelSpec,

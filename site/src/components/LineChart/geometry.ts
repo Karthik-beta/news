@@ -112,6 +112,8 @@ export interface LinePlotOptions {
   curve: "linear" | "step";
   /** pd_… periods to mark with an event line (step lines). */
   markers?: readonly string[];
+  /** Small multiples: every panel's periods and values, so all panels share one x axis and one value axis. */
+  shared?: { slots: PeriodSlot[]; values: string[] };
 }
 
 /**
@@ -141,9 +143,10 @@ export function linePlot(
   const { series, model } = chart;
   const first = series[0] as OkSeries;
   const measure: Measure = { unit: first.unit, currency: first.currency, scale: first.scale };
-  const slots = periodSlots(series);
+  const slots = opts.shared?.slots ?? periodSlots(series);
   const xs = stopPositions(slots, opts.curve === "step");
-  const values = series.flatMap((s) => s.points.map((p) => p.value).filter((v): v is string => v !== null));
+  const values =
+    opts.shared?.values ?? series.flatMap((s) => s.points.map((p) => p.value).filter((v): v is string => v !== null));
   const exponent = displayExponent(values, measure);
   const scale = niceScale(
     values.map((v) => Number(v)),

@@ -47,6 +47,8 @@ const FLOATING = "[popover], .popover--tooltip";
 async function hydrateAll(page: Page): Promise<void> {
   const islands = page.locator("[data-island]");
   for (let i = 0; i < (await islands.count()); i++) {
+    // A Sankey's hidden half (flows or waterfall, by width) never hydrates, by design (Charts II, #52).
+    if (!(await islands.nth(i).isVisible())) continue;
     await islands.nth(i).scrollIntoViewIfNeeded();
     await expect(islands.nth(i).locator("[data-hydrated='true']")).toHaveCount(1);
   }
