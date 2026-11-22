@@ -13,7 +13,7 @@
     "dev": "CLOUDFLARE_ENV=local bun --bun astro dev --host 127.0.0.1",
     "prebuild": "bun run sync",
     "build": "bun --bun astro build",
-    "preview": "bun --bun astro preview --host 127.0.0.1",
+    "preview": "CLOUDFLARE_ENV=local wrangler dev -c dist/server/wrangler.json --local --ip 127.0.0.1",
     "typecheck": "bun --bun astro check",
     "pretest": "bun run sync",
     "test": "vitest run --project unit --project component --project astro && bun test tests/ssr",
