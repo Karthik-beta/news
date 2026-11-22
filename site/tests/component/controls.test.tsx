@@ -115,6 +115,16 @@ describe("report-an-error form", () => {
     expect(screen.getByRole("status").textContent).toContain("Report sent. Thank you for checking.");
     expect(screen.getByRole("link", { name: "Back to the page" }).getAttribute("href")).toBe("/p/");
   });
+
+  it("an off-site or protocol-relative page falls back to / in the link and the hidden field", () => {
+    for (const pageUrl of ["https://evil.example", "//evil.example"]) {
+      const sent = renderComponent(<ReportForm action="/report/" pageUrl={pageUrl} sent />);
+      expect(screen.getByRole("link", { name: "Back to the page" }).getAttribute("href")).toBe("/");
+      sent.unmount();
+      const { container } = renderComponent(<ReportForm action="/report/" pageUrl={pageUrl} />);
+      expect(container.querySelector<HTMLInputElement>('input[name="page"]')?.value).toBe("/");
+    }
+  });
 });
 
 describe("loading state", () => {

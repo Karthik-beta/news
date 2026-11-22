@@ -68,7 +68,7 @@ export function ErrorSummary({ title, errors }: ErrorSummaryProps) {
 export interface ReportFormProps {
   /** Where the form posts: the error-report intake (issue #14). */
   action: string;
-  /** The page being reported, sent as the hidden field `page` and linked back to once the report is sent. */
+  /** The page being reported, sent as the hidden field `page` and linked back to once the report is sent. Only site-relative paths are kept; anything else falls back to "/". */
   pageUrl: string;
   /** The values the form was last sent with, so a page with errors keeps what the reader wrote. */
   values?: ReportValues;
@@ -78,7 +78,8 @@ export interface ReportFormProps {
   sent?: boolean;
 }
 
-export function ReportForm({ action, pageUrl, values = {}, errors = {}, sent = false }: ReportFormProps) {
+export function ReportForm({ action, pageUrl: rawPageUrl, values = {}, errors = {}, sent = false }: ReportFormProps) {
+  const pageUrl = /^\/(?!\/)/.test(rawPageUrl) ? rawPageUrl : "/";
   if (sent) {
     return (
       <div className="report-form report-form--sent" role="status">
