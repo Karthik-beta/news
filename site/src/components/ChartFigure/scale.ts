@@ -140,7 +140,8 @@ export function bareNumber(value: string, measure: Measure, exponent: number): s
 }
 
 /**
- * Roughly how many characters of x labels fit across the plot: a phone (about 290px), a tablet or wider, and a
+ * Roughly how many characters of x labels fit across the plot: a phone (about 290px), a plot of 40em or more of its
+ * own text (a tablet or wider at 100% text; ChartFigure.css), and a
  * "tight" plot narrower than 20em of its own text (a phone at 150-200% text size), where labels may also wrap.
  */
 const X_CAPACITY = { phone: 40, wide: 72, tight: 16 } as const;

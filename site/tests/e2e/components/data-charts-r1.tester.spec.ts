@@ -182,12 +182,12 @@ test.describe("DC-1: a highlighted subject that fell is painted in the neutral h
 /**
  * Open exceptions, in data-charts-r1.known.json, keyed "<viewport width> <text size>%"; anything not listed fails.
  * All but one were there before the fix round: measured with this same audit on the pre-fix build (6018247, the
- * merge before the fix commits) and unchanged by it. They are plots of 20em or more at 200% text (768 and 1440: x
- * labels chosen for 100% text overlap and run below the axis), a few labels at 100% text that the fix round was told
+ * merge before the fix commits) and unchanged by it. They are a few labels at 100% text that the fix round was told
  * to leave as they were (a last x label or end label a few px past the plot's edge at 320-430; a negative column's
- * value over the first x label at 768 and 1440; x labels of the 1e17 and 1e-8 edge fixtures touching at 320), and
- * one at 320 and 200% text: the 1e-8 edge fixture's latest value (eleven digits) is wider than the 114px left for
- * its columns and crosses the axis tick. The sign-offs list them.
+ * value over the first x label at 768 and 1440; x labels of the 1e17 and 1e-8 edge fixtures touching at 320), the
+ * same negative value and two neighbouring 1e17 values touching at 768 and 1440 with 200% text, and one at 320 and
+ * 200% text: the 1e-8 edge fixture's latest value (eleven digits) is wider than the 114px left for its columns and
+ * crosses the axis tick. The sign-offs list them.
  */
 const KNOWN: Record<string, string[]> = JSON.parse(
   readFileSync(join(siteRoot, "tests/e2e/components/data-charts-r1.known.json"), "utf8"),

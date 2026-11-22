@@ -96,8 +96,9 @@
   --chart-axis-inset: calc(var(--chart-axis-width, 3ch) + var(--space-3));
   --chart-end-room: 0px;
   /* A query container, so the plot can tell when it is tight: narrower than 20em of its own text (a phone at
-     150-200% text size), which no viewport media query can see. */
-  container: chart-plot / inline-size;
+     150-200% text size), which no viewport media query can see; and when it has room for the wide x labels.
+     chart-x is the whole plot's width even where an inner chart-plot (a heatmap's axis) is narrower. */
+  container: chart-plot chart-x / inline-size;
 }
 @media (min-width: 600px) {
   .chart-plot {
@@ -183,7 +184,9 @@
 .chart-plot__x-label.is-wide-only {
   display: none;
 }
-@media (min-width: 600px) {
+/* Wide labels (about 72 characters across) need a plot of 40em of its own text: from a 600px screen at 100% text,
+   but not at 200% text however wide the screen. In em, not by the viewport, so large text gets the phone's labels. */
+@container chart-x (min-width: 40em) {
   .chart-plot__x-label.is-wide-only {
     display: block;
   }
