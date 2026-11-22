@@ -20,5 +20,5 @@ test("a hub renders within 4 ms p95; the home page and its slot figures are meas
   // The home page has about 30 stories: 2.5 to 4.3 ms p95 on an idle 4-core laptop, up to 8 ms loaded; the 4 ms target is for hubs.
   expect(Math.min(...runs.map((r) => r.home as number))).toBeLessThanOrEqual(10);
   // A cited figure costs about a millisecond (its citation popover) and a mini chart a few: outside the 4 ms.
-  expect(Math.min(...runs.map((r) => r.homeWithFigures as number))).toBeLessThanOrEqual(100);
+  expect(Math.min(...runs.map((r) => r.homeWithFigures as number))).toBeLessThanOrEqual(10);
 }, 180_000);

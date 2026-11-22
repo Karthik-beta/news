@@ -1,6 +1,8 @@
 // Helpers for the integration project: read the built site in dist/.
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
+import { matchRoute } from "../../src/server/routes";
+import { REGIONS } from "./site-data";
 import { siteRoot } from "./tokens";
 
 // The Cloudflare adapter writes the static assets to dist/client and the Worker to dist/server. The home page is
@@ -46,6 +48,13 @@ export function resolveToDistFile(pathname: string, root = distRoot): string | u
   return undefined;
 }
 
-/** Exact paths the SSR Worker serves (ADR 0010), so they are not files in dist/: the five category hubs, `/latest` and `/search`. */
-export const isWorkerRoute = (pathname: string) =>
-  /^\/(tech|business|finance|economy|science)\/?$/.test(pathname) || /^\/(latest|search)\/?$/.test(pathname);
+/**
+ * Paths the SSR Worker serves (ADR 0010: home, region views, `/latest`, hubs, entity pages), so they are not files in dist/.
+ * A trailing slash counts: the Worker answers 301 to the page. `/search` is the search Worker's page, not this one's.
+ */
+export function isWorkerRoute(pathname: string): boolean {
+  const origin = "https://example.test";
+  const m = matchRoute(new URL(pathname, origin), origin, REGIONS);
+  if (m.type === "redirect") return isWorkerRoute(m.location);
+  return m.type === "page" || /^\/search\/?$/.test(pathname);
+}

@@ -32,6 +32,11 @@ describe("what a URL is", () => {
     expect(match("/latest/?region=india")).toEqual({ type: "redirect", location: "/latest?region=india" });
   });
 
+  it("a path that starts with two slashes, or a slash and a backslash, is a 404, never an off-site 301", () => {
+    for (const path of ["//evil.com/", "///evil.com/", "/\\evil.com/", "//evil.com"])
+      expect(match(path), path).toMatchObject({ type: "reject", status: 404 });
+  });
+
   it("an unknown region, a path that cannot be a category, or a long path is a 404", () => {
     for (const path of [
       "/region/mars",

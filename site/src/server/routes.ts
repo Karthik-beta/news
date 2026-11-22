@@ -80,9 +80,11 @@ const notFound: Match = { type: "reject", status: 404, message: "no such page" }
 
 export function matchRoute(url: URL, origin: string, regions: readonly string[]): Match {
   const path = url.pathname;
+  // `//host` or `/\host` is a protocol-relative url, never a page: refuse it before any redirect can point off-site.
+  if (path.startsWith("//") || path.startsWith("/\\")) return notFound;
   // A hub has one URL: a trailing slash answers 301 to the path without it.
   if (path.length > 1 && path.endsWith("/"))
-    return { type: "redirect", location: `${path.replace(/\/+$/, "") || "/"}${url.search}` };
+    return { type: "redirect", location: `/${path.replace(/^\/+|\/+$/g, "")}${url.search}` };
   let segments: string[];
   try {
     segments = path === "/" ? [] : path.slice(1).split("/").map(decodeURIComponent);
