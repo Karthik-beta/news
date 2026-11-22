@@ -393,8 +393,6 @@ test("search: the filters sit in one row once there is room, two to a row on pho
   test.info().annotations.push({ type: "filter rows", description: `${Math.round(width)}px: ${rows.join(" + ")}` });
   // 9.5rem columns with 12px gaps: four fit from 644px, two from 316px.
   const expected = width >= 644 ? [4] : width >= 316 ? [2, 2] : [1, 1, 1, 1];
-  // SF-1 (open, builder): between 480 and 643px the auto-fit grid makes three columns and leaves one filter alone.
-  test.fail(width >= 480 && width < 644, "SF-1: 3 + 1 filter rows at tablet widths");
   expect(rows).toEqual(expected);
   // Every select keeps its whole label and is at least 24px tall.
   for (const sel of await scope.locator("select").all()) {

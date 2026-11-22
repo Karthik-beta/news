@@ -1,6 +1,6 @@
 # SearchField — test sign-off
 
-Status: **signed off with one open defect (SF-1)**
+Status: **signed off (SF-1 closed)**
 
 Tester: Opus 5.5 component tester (not the builder) · Builder: Opus 5.5 component builder (issue #11, part 2) · Date: 22 November 2026
 Branch / commit: `phase-3/components/controls`, components at 8ad90e1; tests, fixes and this sign-off in the tester's commits on top of it
@@ -32,7 +32,7 @@ Branch / commit: `phase-3/components/controls`, components at 8ad90e1; tests, fi
 | 360 | ☑ | ☑ | also Firefox and WebKit |
 | 390 | ☑ | ☑ |  |
 | 430 | ☑ | ☑ |  |
-| 600 | ☒ | ☒ | SF-1: 3 + 1 filter rows (open) |
+| 600 | ☑ | ☑ | SF-1: closed (filters 2 + 2) |
 | 768 | ☑ | ☑ |  |
 | 980 | ☑ | ☑ |  |
 | 1120 | ☑ | ☑ |  |
@@ -81,7 +81,7 @@ landmarks are asserted instead, and axe runs in both themes on every screen run.
 
 | # | Area / screen | Problem | Fix (commit) |
 |---|---|---|---|
-| SF-1 (open) | Chromium 600 (container 480–643px), light and dark | The auto-fit grid makes three columns and leaves the fourth filter alone on a second row. Expected (components.md): one row once there is room, two to a row on phones; 2 + 2 below 644px | Sent back to the builder; `test.fail` in "search: the filters sit in one row …" until fixed |
+| SF-1 (closed) | Chromium 600 (container 480–643px), light and dark | The auto-fit grid makes three columns and leaves the fourth filter alone on a second row. Expected (components.md): one row once there is room, two to a row on phones; 2 + 2 below 644px | Fixed with explicit container-query column counts; `test.fail` marker removed |
 
 ## Accepted exceptions
 
@@ -92,5 +92,5 @@ landmarks are asserted instead, and axe runs in both themes on every screen run.
 
 ## Sign-off
 
-☑ Every area and every screen above is passed or has an accepted exception, except SF-1, open with the builder.
+☑ Every area and every screen above is passed or has an accepted exception, SF-1 is closed.
 Signed: Opus 5.5 component tester, 22 November 2026

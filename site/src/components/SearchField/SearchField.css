@@ -2,6 +2,7 @@
    field look at Fira 18 with the magnifier inside on the left. Filters wrap into rows on phones and sit in one
    row once there is room. */
 .search-field {
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
@@ -54,9 +55,21 @@
 
 .search-field__filters {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: var(--space-4);
   align-items: end;
+}
+
+/* Explicit counts, not auto-fit, which left one filter alone at 480-643px: 4 from 644px, 2 from 316px, else 1. */
+@container (min-width: 644px) {
+  .search-field__filters {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+@container (max-width: 315px) {
+  .search-field__filters {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (forced-colors: active) {
