@@ -6,7 +6,7 @@
 // the column chart's own island. Naming one item makes its range crimson (the neutral highlight when the item is
 // below zero, the bar rule) and the rest context; otherwise every range is blue.
 import type { ComponentRenderer } from "@openuidev/react-lang";
-import { decimalToString, parseDecimal, shiftDecimal } from "../../format/decimal";
+import { parseDecimal, shiftDecimal } from "../../format/decimal";
 import { usePageData } from "../../renderer/data/context";
 import { MISSING_TEXT, type PageDataResolver, type ResolvedValue } from "../../renderer/data/resolve";
 import { Island } from "../../renderer/islands/Island";
@@ -25,6 +25,7 @@ import {
 import { axisWidth, bareNumber, displayExponent, niceScale, stepDecimal, xLabelPlan } from "../ChartFigure/scale";
 import type { ColumnBand, ColumnChartPlotProps } from "../ColumnChart/ColumnChartPlot.client";
 import ColumnChartPlot from "../ColumnChart/ColumnChartPlot.client";
+import { compareExact } from "../Waterfall/steps";
 
 export interface HistogramItem {
   label: string;
@@ -61,15 +62,18 @@ export const binTarget = (n: number) => Math.min(12, Math.max(1, Math.ceil(Math.
  */
 export function histogramBins(values: readonly string[], target: number): Bins {
   if (values.length === 0) return { edges: [], counts: [], bin: [], step: "" };
-  const nums = values.map(Number);
-  const lo = Math.min(...nums);
-  const hi = Math.max(...nums);
-  const span = hi - lo || Math.abs(hi) || 1;
-  // The value in units of the step: value / 10^exp exactly, then over the mantissa (1, 2 or 5).
-  const units = (v: string, mantissa: number, exp: number) =>
-    Math.floor(Number(decimalToString(shiftDecimal(parseDecimal(v), -exp))) / mantissa);
-  const loText = values[nums.indexOf(lo)] as string;
-  const hiText = values[nums.indexOf(hi)] as string;
+  const loText = values.reduce((a, b) => (compareExact(b, a) < 0 ? b : a));
+  const hiText = values.reduce((a, b) => (compareExact(b, a) > 0 ? b : a));
+  const hi = Number(hiText);
+  const span = hi - Number(loText) || Math.abs(hi) || 1;
+  // The value in units of the step, floored: value / 10^exp exactly, then over the mantissa (1, 2 or 5), in integers
+  // (a float rounds 1.99999999999999999 up to 2).
+  const units = (v: string, mantissa: number, exp: number) => {
+    const { negative, int, frac } = shiftDecimal(parseDecimal(v), -exp);
+    const floor = negative ? -BigInt(int) - (/[1-9]/.test(frac) ? 1n : 0n) : BigInt(int);
+    const m = BigInt(mantissa);
+    return Number(floor >= 0n ? floor / m : -((-floor + m - 1n) / m));
+  };
   for (let exp = Math.floor(Math.log10(span / Math.max(target, 1))) - 1; ; exp++) {
     for (const mantissa of [1, 2, 5]) {
       const k0 = units(loText, mantissa, exp);
@@ -105,7 +109,7 @@ export function histogramData(props: HistogramProps, data: PageDataResolver): Hi
       const va = a.r.value?.value ?? null;
       const vb = b.r.value?.value ?? null;
       if (va === null || vb === null) return va === null ? (vb === null ? a.i - b.i : 1) : -1;
-      return Number(va) - Number(vb) || a.i - b.i;
+      return compareExact(va, vb) || a.i - b.i;
     })
     .map(({ r }) => r);
   if (!measure) return { rows, measure, model: null };
@@ -193,16 +197,16 @@ export function histogramPlot(chart: HistogramData, data: PageDataResolver): Col
     .filter(Boolean)
     .join(" ");
   const edgeXs = bins.edges.map((_, i) => (i / n) * 100);
+  // Edges are our round numbers, not source figures: like a value axis, no ".0" when every edge is whole ($50bn).
+  const bare = bins.edges.map((e) => bareNumber(e, measure, exponent));
+  const edgeLabels = bare.every((l) => /\.0+$/.test(l)) ? bare.map((l) => l.replace(/\.0+$/, "")) : bare;
   return {
     summary,
     axisWidth: axisWidth(counts.ticks),
     ticks: counts.ticks.map((t) => ({ y: t.y, label: t.label, baseline: t.baseline })),
     zero: counts.zero,
     bands,
-    xLabels: xLabelPlan(
-      bins.edges.map((e) => bareNumber(e, measure, exponent)),
-      edgeXs,
-    ),
+    xLabels: xLabelPlan(edgeLabels, edgeXs),
     density: "key",
     pinEnds: "position",
   };

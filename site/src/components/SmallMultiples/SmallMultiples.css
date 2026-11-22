@@ -36,6 +36,10 @@
   color: var(--color-ink);
   overflow-wrap: anywhere;
 }
+.small-multiples__missing {
+  margin: 0;
+  color: var(--color-ink-2);
+}
 .small-multiples__panel.is-highlight .small-multiples__name {
   font-weight: var(--font-weight-bold);
 }

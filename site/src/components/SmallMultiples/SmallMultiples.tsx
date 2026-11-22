@@ -6,7 +6,7 @@
 import type { ComponentRenderer } from "@openuidev/react-lang";
 import type { CSSProperties } from "react";
 import { usePageData } from "../../renderer/data/context";
-import type { PageDataResolver } from "../../renderer/data/resolve";
+import { MISSING_TEXT, type PageDataResolver } from "../../renderer/data/resolve";
 import { Island } from "../../renderer/islands/Island";
 import { ChartFigure, hasValues } from "../ChartFigure/ChartFigure";
 import {
@@ -135,6 +135,9 @@ export function smallMultiplesPanels(
       p.xLabels = widest.xLabels;
     }
   }
+  // A panel is at most a phone's plot wide (two across a 680px column), so it thins its x labels as on a phone at
+  // every width; the wide plan assumes the whole column and collides ("fiscal 2020fiscal 2021" at 1440).
+  for (const p of panels) p.plot.xLabels = p.plot.xLabels.map((l) => ({ ...l, wide: l.phone }));
   return panels;
 }
 
@@ -161,7 +164,10 @@ export const SmallMultiples: ComponentRenderer<SmallMultiplesProps> = ({ props, 
             {panels.map((p) => (
               <li key={p.key} className={`small-multiples__panel${p.key === props.highlight ? " is-highlight" : ""}`}>
                 <p className="small-multiples__name">{p.label}</p>
-                {p.form === "column" ? (
+                {/* A series with no values draws no empty plot (and no tab stop of empty stops): it says so. */}
+                {!chart.series.find((s) => s.ref === p.key)?.points.some((pt) => pt.value !== null) ? (
+                  <p className="small-multiples__missing text-label">{MISSING_TEXT}</p>
+                ) : p.form === "column" ? (
                   <Island name="ColumnChartPlot" component={ColumnChartPlot} props={p.plot} />
                 ) : (
                   <Island name="LineChartPlot" component={LineChartPlot} props={p.plot} />

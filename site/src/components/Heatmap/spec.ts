@@ -13,7 +13,7 @@ export default defineNewsComponent({
   description:
     "Heatmap: one row per series, one column per period, each cell shaded on the sequential blue ramp by its value; values written when they fit.",
   dataShape:
-    "series: 1–12 sr_… series sharing one unit (rows, named by their labels); their periods are the columns, best up to about 24. Colour is magnitude, so nothing is highlighted. Title and subtitle may hold {ref} tokens; the subtitle names the unit.",
+    "series: 1–12 sr_… series sharing one unit (rows, named by their labels); their periods are the columns, best up to about 24. Non-negative magnitudes only (levels, shares); signed changes go in a line or column chart. Colour is magnitude, so nothing is highlighted. Title and subtitle may hold {ref} tokens; the subtitle names the unit.",
   example: `margins = Heatmap("Services margins were about twice those of products every year", "Gross margin as a share of net sales, fiscal years, %", ["sr_aapl_gm_services", "sr_aapl_gm_products"])`,
   props: z.object({
     title: z.string().describe("The takeaway, a sentence with no full stop"),

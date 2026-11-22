@@ -67,6 +67,16 @@
   --heatmap-text: var(--color-paper);
 }
 
+/* The x axis is its own chart-plot container, after the row names: the plot's tight labels (narrower than 20em)
+   switch on by the axis's width, not the whole plot's, which the names make wider than the axis. */
+.heatmap__axis {
+  container: chart-plot / inline-size;
+  margin-inline-start: var(--chart-axis-inset);
+}
+.heatmap__axis .chart-plot__x {
+  margin-inline-start: 0;
+}
+
 .heatmap__legend {
   margin-block-end: var(--space-4);
   color: var(--color-ink-2);

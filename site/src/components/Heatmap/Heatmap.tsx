@@ -64,14 +64,21 @@ export interface HeatmapClasses {
   classOf: (value: string) => number;
 }
 
-/** Classes on the round numbers of a value axis over the data (no zero forced in): 3 to 5 equal ranges. */
+/** Classes on the round numbers of a value axis over the data (no zero forced in): 3 to 5 equal ranges, or the one range
+ * holding the value when every value is equal. */
 export function heatmapClasses(values: readonly string[], measure: Measure, exponent: number): HeatmapClasses {
   const scale = niceScale(
     values.map((v) => Number(v)),
     measure,
     { includeZero: false, displayExponent: exponent },
   );
-  const edges = scale.ticks.map((t) => ({ value: t.value, label: t.label }));
+  let edges = scale.ticks.map((t) => ({ value: t.value, label: t.label }));
+  // One value (or all equal): only the range that holds it, so the legend names no range without a cell.
+  if (values.every((v) => Number(v) === Number(values[0]))) {
+    const pct = edges.at(-1)?.label.endsWith("%") ? "%" : "";
+    const i = edges.findLastIndex((e) => Number(e.value) <= Number(values[0]));
+    edges = edges.slice(i, i + 2).map((e, j) => ({ ...e, label: e.label.replace(/%$/, "") + (j === 1 ? pct : "") }));
+  }
   const inner = edges.slice(1, -1).map((e) => Number(e.value));
   return {
     edges,
@@ -126,9 +133,11 @@ export function heatmapPlot(
     columns: n,
     rows,
     periods: slots.map((s) => s.label),
+    // The row names take the start of the plot, so the x axis has that much less room for its labels.
     xLabels: xLabelPlan(
       slots.map((s) => s.label),
       slots.map((_, i) => ((i + 0.5) / n) * 100),
+      { phone: longestName + 2, wide: longestName + 2 },
     ),
     fit,
   };

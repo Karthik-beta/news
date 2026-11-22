@@ -53,6 +53,14 @@ Synthetic values, %
 
 No data.
 
+### Sixty months in one row: no value has room, so none is written
+
+Synthetic index, monthly, 2020=100
+
+| Series | Jan 2020 (Index 2020=100) | Feb 2020 (Index 2020=100) | Mar 2020 (Index 2020=100) | Apr 2020 (Index 2020=100) | May 2020 (Index 2020=100) | Jun 2020 (Index 2020=100) | Jul 2020 (Index 2020=100) | Aug 2020 (Index 2020=100) | Sep 2020 (Index 2020=100) | Oct 2020 (Index 2020=100) | Nov 2020 (Index 2020=100) | Dec 2020 (Index 2020=100) | Jan 2021 (Index 2020=100) | Feb 2021 (Index 2020=100) | Mar 2021 (Index 2020=100) | Apr 2021 (Index 2020=100) | May 2021 (Index 2020=100) | Jun 2021 (Index 2020=100) | Jul 2021 (Index 2020=100) | Aug 2021 (Index 2020=100) | Sep 2021 (Index 2020=100) | Oct 2021 (Index 2020=100) | Nov 2021 (Index 2020=100) | Dec 2021 (Index 2020=100) | Jan 2022 (Index 2020=100) | Feb 2022 (Index 2020=100) | Mar 2022 (Index 2020=100) | Apr 2022 (Index 2020=100) | May 2022 (Index 2020=100) | Jun 2022 (Index 2020=100) | Jul 2022 (Index 2020=100) | Aug 2022 (Index 2020=100) | Sep 2022 (Index 2020=100) | Oct 2022 (Index 2020=100) | Nov 2022 (Index 2020=100) | Dec 2022 (Index 2020=100) | Jan 2023 (Index 2020=100) | Feb 2023 (Index 2020=100) | Mar 2023 (Index 2020=100) | Apr 2023 (Index 2020=100) | May 2023 (Index 2020=100) | Jun 2023 (Index 2020=100) | Jul 2023 (Index 2020=100) | Aug 2023 (Index 2020=100) | Sep 2023 (Index 2020=100) | Oct 2023 (Index 2020=100) | Nov 2023 (Index 2020=100) | Dec 2023 (Index 2020=100) | Jan 2024 (Index 2020=100) | Feb 2024 (Index 2020=100) | Mar 2024 (Index 2020=100) | Apr 2024 (Index 2020=100) | May 2024 (Index 2020=100) | Jun 2024 (Index 2020=100) | Jul 2024 (Index 2020=100) | Aug 2024 (Index 2020=100) | Sep 2024 (Index 2020=100) | Oct 2024 (Index 2020=100) | Nov 2024 (Index 2020=100) | Dec 2024 (Index 2020=100) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Synthetic index | 100.0 | 101.9 | 103.8 | 105.6 | 107.1 | 108.5 | 109.6 | 110.3 | 110.8 | 110.9 | 110.8 | 110.3 | 109.6 | 108.7 | 107.6 | 106.4 | 105.1 | 103.9 | 102.8 | 101.8 | 100.9 | 100.4 | 100.1 | 100.1 | 100.4 | 101.1 | 102.0 | 103.3 | 104.7 | 106.4 | 108.3 | 110.2 | 112.1 | 114.0 | 115.9 | 117.5 | 118.9 | 120.1 | 121.0 | 121.6 | 121.9 | 121.9 | 121.5 | 120.9 | 120.1 | 119.0 | 117.9 | 116.6 | 115.4 | 114.2 | 113.1 | 112.3 | 111.6 | 111.2 | 111.1 | 111.3 | 111.8 | 112.6 | 113.7 | 115.1 |
+
 ## Sources
 
 - [Synthetic fixture series for component tests](https://example.org/statistics/synthetic-fixtures). News test fixtures. CC BY 4.0. Retrieved 16 November 2026.

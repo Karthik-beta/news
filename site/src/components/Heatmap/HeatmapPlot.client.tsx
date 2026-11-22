@@ -113,7 +113,9 @@ export default function HeatmapPlot({ summary, nameWidth, columns, rows, periods
         ))}
       </div>
       {/* As in the column chart: many columns pin the first and last labels inside the plot. */}
-      <XLabels labels={xLabels} pinEnds={columns > 8 ? "index" : false} />
+      <div className="heatmap__axis">
+        <XLabels labels={xLabels} pinEnds={columns > 8 ? "index" : false} />
+      </div>
       <ChartLiveRegion text={current ? tooltipText(title, [current.cell.tooltip]) : ""} />
     </div>
   );

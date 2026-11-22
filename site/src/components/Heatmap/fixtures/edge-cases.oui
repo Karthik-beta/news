@@ -1,6 +1,7 @@
-root = Page([matrix, single, units, allnull, unknown])
+root = Page([matrix, single, units, allnull, unknown, wide])
 matrix = Heatmap("Seven measures by year, with gaps, zeros and negatives", "Synthetic values, %", ["sr_fx_zero", "sr_fx_negative", "sr_fx_gaps", "sr_fx_other", "sr_fx_third", "sr_fx_fourth", "sr_fx_restricted"])
 single = Heatmap("One cell", "Turnout, %", ["sr_fx_single"])
 units = Heatmap("A series in another unit is left out, never converted", "Synthetic values, %", ["sr_fx_other", "sr_fx_mixed"])
 allnull = Heatmap("Nothing published yet", "Synthetic values, %", ["sr_fx_allnull"])
 unknown = Heatmap("Every series unknown", "Nothing to plot", ["sr_fx_not_in_data"])
+wide = Heatmap("Sixty months in one row: no value has room, so none is written", "Synthetic index, monthly, 2020=100", ["sr_fx_long"])

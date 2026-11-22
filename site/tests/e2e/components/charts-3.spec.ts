@@ -76,7 +76,7 @@ test("small multiples' panels are the same size, on one scale", { tag: "@smoke" 
   await gotoPage(page, url("SmallMultiples/edge-cases"));
   const panels = page.locator("figure", { has: page.locator("#many-title") }).locator(".chart-plot__inner");
   const boxes = await panels.evaluateAll((els) => els.map((e) => e.getBoundingClientRect().toJSON()));
-  expect(boxes.length).toBe(8);
+  expect(boxes.length).toBe(7); // the eighth series has no values: its panel says No data and draws no plot
   for (const b of boxes) {
     expect(Math.round(b.width)).toBe(Math.round(boxes[0].width));
     expect(Math.round(b.height)).toBe(Math.round(boxes[0].height));
