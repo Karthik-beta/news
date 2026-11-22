@@ -290,11 +290,11 @@ impl Runner {
         self.clock.now()
     }
 
-    /// `News/<version> (+https://news.karthik.nz/data-access)`, plus the contact e-mail for sources
+    /// `News/<version> (+https://news.karthik.nz/data)`, plus the contact e-mail for sources
     /// that require one.
     pub fn user_agent(&self, policy: &SourcePolicy) -> Result<String, FetchError> {
         let base = format!(
-            "{PRODUCT}/{} (+https://news.karthik.nz/data-access)",
+            "{PRODUCT}/{} (+https://news.karthik.nz/data)",
             news_core::VERSION
         );
         if !policy.requires_contact_email {

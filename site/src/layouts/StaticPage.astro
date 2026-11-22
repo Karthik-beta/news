@@ -1,0 +1,53 @@
+---
+// The frame of every reader-facing static page (design/layout.md, "Static pages"): skip link, masthead, one
+// reading column (720px, prose at 66ch, no rail), footer. The page's own words come in through the slot. Print CSS
+// is the shell's (styles/base.css): navigation is hidden, the wordmark, head and text print.
+import "../styles/site.css";
+import "./StaticPage.css";
+import { Footer } from "../components/Footer/Footer";
+import { Headline } from "../components/Headline/Headline";
+import { Masthead } from "../components/Masthead/Masthead";
+import { SkipLink } from "../components/SkipLink/SkipLink";
+import { Standfirst } from "../components/Standfirst/Standfirst";
+import { siteConfig } from "../config/site";
+import { formatDate } from "../format/dates";
+
+interface Props {
+  title: string;
+  description: string;
+  /** ISO date the copy was last edited. */
+  updated: string;
+  /** The page's site path, "/methodology/". */
+  path: string;
+}
+const { title, description, updated, path } = Astro.props;
+---
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} · News</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href={`${siteConfig.site.origin}${path}`} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preload" href="/fonts/literata-latin-opsz-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/fira-sans-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
+  </head>
+  <body>
+    <SkipLink />
+    <Masthead />
+    <main id="main" class="static-page">
+      <article class="static-page__article">
+        <header class="static-page__head">
+          <Headline text={title} plain />
+          <Standfirst text={description} plain />
+          <p class="static-page__updated text-label">Updated on {formatDate(updated)}</p>
+        </header>
+        <slot />
+      </article>
+    </main>
+    <Footer />
+  </body>
+</html>

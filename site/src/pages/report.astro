@@ -1,0 +1,6 @@
+---
+// Report an error: the copy only. The form (ReportForm) comes back when the report intake mapping lands (#14); until
+// then the page points readers to /contact/. "Form text" and "What the form stores" in the copy are for that form.
+import StaticDoc from "../layouts/StaticDoc.astro";
+---
+<StaticDoc name="report-an-error" path="/report/" omit={["Form text", "What the form stores"]} />
