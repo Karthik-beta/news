@@ -1,0 +1,38 @@
+/* Checkbox: a 24px native box in ink, the label beside it at regular weight (the label is the choice, not a
+   heading over a field), hint and error under the label. The field's error colour outlines the box. */
+/* Doubled with .field: TextField.css, which sets the column layout, loads after this file. */
+.field.checkbox {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.checkbox__box {
+  flex: none;
+  width: var(--space-7);
+  height: var(--space-7);
+  margin: 0;
+  accent-color: var(--color-ink);
+  cursor: pointer;
+}
+.field--error .checkbox__box {
+  outline: var(--border-hairline) solid var(--color-error);
+  outline-offset: var(--space-1);
+}
+.field--error .checkbox__box:focus-visible {
+  outline: var(--border-focus) solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.checkbox__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  /* The label's first line centres on the 24px box. */
+  padding-top: calc((var(--space-7) - 1em * var(--font-line-height-ui)) / 2);
+}
+.checkbox .field__label {
+  font-weight: var(--font-weight-regular);
+  cursor: pointer;
+}

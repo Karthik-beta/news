@@ -1,0 +1,81 @@
+/* Report-an-error form: fields stacked 20px apart in the reading column. The error summary opens with a 2px
+   error-colour rule (no box), a heading with the error icon and its messages as links in the error colour. The
+   sent state is a plain sentence with a check icon and a link back to the page. */
+.report-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  max-width: var(--layout-prose);
+}
+
+.error-summary:empty {
+  display: none;
+}
+.error-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: var(--border-section) solid var(--color-error);
+}
+
+.error-summary__title {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-ui);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--font-line-height-ui);
+  color: var(--color-ink);
+}
+.error-summary__icon {
+  flex: none;
+  height: calc(1em * var(--font-line-height-ui));
+  color: var(--color-error);
+}
+
+.error-summary__list {
+  margin: 0;
+  padding-inline-start: var(--space-7);
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-ui);
+  line-height: var(--font-line-height-ui);
+}
+.error-summary__link {
+  display: inline-flex;
+  min-height: var(--space-7);
+  align-items: center;
+  color: var(--color-error);
+}
+
+.report-form__sent {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  font-family: var(--font-family-serif);
+  font-size: var(--font-size-body-responsive);
+  line-height: var(--font-line-height-body);
+  color: var(--color-ink);
+}
+.report-form__sent-icon {
+  flex: none;
+  height: calc(1em * var(--font-line-height-body));
+}
+.report-form__back {
+  margin-top: var(--space-3);
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-ui);
+  line-height: var(--font-line-height-ui);
+}
+.report-form__back a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--space-7);
+}
+
+@media (forced-colors: active) {
+  .error-summary {
+    border-top-color: CanvasText;
+  }
+}

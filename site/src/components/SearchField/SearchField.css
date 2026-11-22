@@ -1,0 +1,66 @@
+/* Search field (design/components.md): the input and the button on one row, both 48px tall; the input in the
+   field look at Fira 18 with the magnifier inside on the left. Filters wrap into rows on phones and sit in one
+   row once there is room. */
+.search-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.search-field__row {
+  display: flex;
+  gap: var(--space-3);
+}
+
+/* At the input's size, so the 1em magnifier matches the query text. */
+.search-field__box {
+  position: relative;
+  font-size: var(--font-size-search);
+  flex: 1;
+  min-width: 0;
+}
+
+.search-field__icon {
+  position: absolute;
+  top: 50%;
+  left: var(--space-4);
+  translate: 0 -50%;
+  color: var(--color-ink-2);
+  pointer-events: none;
+}
+
+.search-field__input {
+  display: block;
+  width: 100%;
+  min-height: calc(2 * var(--space-7));
+  margin: 0;
+  padding: var(--space-3) var(--space-4) var(--space-3) calc(var(--space-4) + 1em + var(--space-3));
+  background: var(--color-paper);
+  color: var(--color-ink);
+  border: var(--border-hairline) solid var(--color-control-border);
+  border-radius: var(--radius-control);
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-search);
+  line-height: var(--font-line-height-ui);
+}
+.search-field__input:focus-visible {
+  border-color: var(--color-ink);
+}
+
+.search-field__submit {
+  flex: none;
+  min-height: calc(2 * var(--space-7));
+}
+
+.search-field__filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr));
+  gap: var(--space-4);
+  align-items: end;
+}
+
+@media (forced-colors: active) {
+  .search-field__input {
+    border-color: FieldText;
+  }
+}

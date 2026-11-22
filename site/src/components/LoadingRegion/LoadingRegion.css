@@ -1,0 +1,4 @@
+/* Loading: the previous results stay in place at 50% opacity. Instant, no transition, no spinner. */
+.loading-region__content[aria-busy="true"] {
+  opacity: 0.5;
+}
