@@ -4,6 +4,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
+  /* The column's width up to 720px in any parent: in a flex column it would otherwise shrink to its content. */
+  width: 100%;
   max-width: var(--layout-article);
   margin-inline: auto;
   text-align: center;

@@ -43,6 +43,8 @@
   font-size: var(--font-size-control);
   font-weight: var(--font-weight-regular);
   line-height: var(--font-line-height-ui);
+  /* An error summary link scrolls to the control: keep its label and hint (up to about five lines) in view. */
+  scroll-margin-top: 6lh;
 }
 .field__control:focus-visible {
   border-color: var(--color-ink);
