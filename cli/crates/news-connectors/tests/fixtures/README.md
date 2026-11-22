@@ -35,8 +35,8 @@ Awkward cases covered: BLS October 2025 missing (`-`, footnote `X`, the 2025 lap
 To replace the synthetic files with recorded ones (Karthik, once the key and contact are in `.env`):
 
 ```sh
-curl -A "News/0.0.1 (+https://news.karthik.nz/data-access) $NEWS_CONTACT_EMAIL" https://data.sec.gov/submissions/CIK0000320193.json
-curl -A "News/0.0.1 (+https://news.karthik.nz/data-access) $NEWS_CONTACT_EMAIL" https://data.sec.gov/api/xbrl/companyfacts/CIK0000320193.json   # trim to the tested concepts
+curl -A "News/0.0.1 (+https://news.karthik.nz/data) $NEWS_CONTACT_EMAIL" https://data.sec.gov/submissions/CIK0000320193.json
+curl -A "News/0.0.1 (+https://news.karthik.nz/data) $NEWS_CONTACT_EMAIL" https://data.sec.gov/api/xbrl/companyfacts/CIK0000320193.json   # trim to the tested concepts
 curl "https://api.stlouisfed.org/fred/series/observations?series_id=CPIAUCSL&realtime_start=1776-07-04&realtime_end=9999-12-31&observation_start=2024-11-13&file_type=json&api_key=$FRED_API_KEY"
 ```
 

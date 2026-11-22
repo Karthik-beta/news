@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { htmlFiles, resolveToDistFile, urlPathOf } from "../support/dist";
+import { htmlFiles, isWorkerRoute, resolveToDistFile, urlPathOf } from "../support/dist";
 import { parseHtml, type Ref, sameSiteRefs } from "../support/links";
 
 // Internal link check of dist/: every same-site URL in a page (links, assets, srcset candidates, SVG <use>)
@@ -30,7 +30,7 @@ describe("internal links in the built site", () => {
 
   it.each(pages)("every same-site URL in %s resolves to a built file", (_p, file) => {
     const broken = refsOf(file)
-      .filter((r) => !resolveToDistFile(r.url.pathname))
+      .filter((r) => !resolveToDistFile(r.url.pathname) && !isWorkerRoute(r.url.pathname))
       .map((r) => r.raw);
     expect(broken, "links to files that are not in dist/").toEqual([]);
   });
