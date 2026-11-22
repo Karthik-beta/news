@@ -29,9 +29,11 @@ export interface RegionFilterProps {
   base?: string;
   /** The navigation landmark's name. Change it only where two filters share a page (fixture galleries). */
   label?: string;
+  /** A region's address, when it is not `?region=` on `base` (the home page's region views are /region/<code>). */
+  href?: (slug: string) => string;
 }
 
-export function RegionFilter({ selected, regions = REGIONS, base = "/", label = "Regions" }: RegionFilterProps) {
+export function RegionFilter({ selected, regions = REGIONS, base = "/", label = "Regions", href }: RegionFilterProps) {
   return (
     <nav className="region-filter" aria-label={label}>
       <ul className="region-filter__list">
@@ -39,7 +41,7 @@ export function RegionFilter({ selected, regions = REGIONS, base = "/", label = 
           <li key={r.slug}>
             <a
               className="region-filter__link"
-              href={regionHref(base, r.slug)}
+              href={href ? href(r.slug) : regionHref(base, r.slug)}
               aria-current={r.slug === selected ? "page" : undefined}
             >
               {r.label}

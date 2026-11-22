@@ -9,7 +9,9 @@
   // Workers promise never to keep (ADR 0006); Karthik checks a real log once deployed (#21).
   "observability": { "enabled": true, "logs": { "invocation_logs": false } },
   "vars": {
-    "NEWS_SITE_ORIGIN": "https://news.karthik.nz"
+    // bun run validate fails if these two differ from site/wrangler.jsonc: the api purges the URLs the site caches.
+    "NEWS_SITE_ORIGIN": "https://news.karthik.nz",
+    "NEWS_REGION_VIEWS": "north-america,europe,india,china,asia,australia,global"
   },
   // Workers Rate Limiting (free plan). The namespace IDs are numbers we choose; nothing to create in the account.
   "ratelimits": [

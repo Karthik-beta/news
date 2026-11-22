@@ -1,4 +1,4 @@
-// The site shell (src/pages/index.astro) on every screen. Also the reference for how page, fixture-page and
+// The site shell on the SSR home page (src/views/Shell.astro, fixture data under CLOUDFLARE_ENV=local) on every screen. Also the reference for how page, fixture-page and
 // component specs use the shared checks in ./fixtures.ts. Tags: see site/TESTING.md.
 
 import { tokenValue } from "../support/tokens";
@@ -117,7 +117,7 @@ test.describe("site shell", () => {
   });
 
   // Screenshot baseline example. Disabled until fonts are self-hosted (Phase 3.1) and the first fixture page
-  // exists; until then the shell is a placeholder and system-font fallbacks make pixels meaningless.
+  // exists; until then system-font fallbacks make pixels meaningless.
   // Baselines are made and compared only on Linux in the Playwright image: `bun run test:visual`.
   test("matches its screenshot baseline", { tag: "@visual" }, async ({ page }) => {
     test.fixme(true, "enable with self-hosted fonts in Phase 3.1 (TESTING.md, Screenshots)");

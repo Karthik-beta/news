@@ -24,6 +24,43 @@ export function regionViews(setting?: string): string[] {
   return list.length > 0 ? [...new Set(list)] : [...DEFAULT_REGION_VIEWS];
 }
 
+/**
+ * First path segments that are routes, not categories (ADR 0010): a category hub lives at /<slug>, so no slug may
+ * shadow one of these. A slug must also start with a letter, so none collides with the /2* article paths that
+ * bypass the site Worker.
+ */
+export const RESERVED_SLUGS: readonly string[] = [
+  "latest",
+  "search",
+  "entity",
+  "region",
+  "sitemaps",
+  "fixtures",
+  "report",
+  "data",
+  "about",
+  "methodology",
+  "glossary",
+  "privacy",
+  "legal",
+  "contact",
+  "corrections",
+  "feeds",
+  "api",
+  "mcp",
+  "v1",
+  "_astro",
+  "__preview",
+];
+
+/** Why a category slug cannot be used as a top-level route, or undefined when it can. Only the first segment counts. */
+export function reservedSlugProblem(slug: string): string | undefined {
+  const first = slug.split("/")[0] ?? "";
+  if (!/^[a-z]/.test(first)) return `${first} must start with a letter`;
+  if (RESERVED_SLUGS.includes(first)) return `${first} is a route of the site, not a category`;
+  return undefined;
+}
+
 export const HOME_PATH = "/";
 export const regionViewPath = (region: string) => `/region/${region}`;
 

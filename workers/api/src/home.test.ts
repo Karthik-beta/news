@@ -267,6 +267,34 @@ describe("PUT /v1/taxonomy and /v1/redirects", () => {
     expect(orphan.status).toBe(400);
   });
 
+  it.each(["latest", "region", "mcp", "feeds", "corrections", "2025-outlook", "7days"])(
+    "refuses the top-level slug %s (a site route, or not starting with a letter)",
+    async (id) => {
+      const h = harness();
+      const res = await h.call("PUT", "/v1/taxonomy", {
+        body: { nodes: [{ id, name: "X", parent: null, order: 1, lang: "en" }] },
+      });
+      expect(res.status).toBe(400);
+      const body = (await res.json()) as { error: { details: { code: string }[] } };
+      expect(body.error.details.map((d) => d.code)).toContain("taxonomy.reserved_slug");
+      expect(h.writeCount()).toBe(0);
+    },
+  );
+
+  it("allows a reserved word below a category and a digit after the first letter", async () => {
+    const h = harness();
+    const res = await h.call("PUT", "/v1/taxonomy", {
+      body: {
+        nodes: [
+          { id: "economy", name: "Economy", parent: null, order: 1, lang: "en" },
+          { id: "economy/latest", name: "Latest", parent: "economy", order: 1, lang: "en" },
+          { id: "g7", name: "G7", parent: null, order: 2, lang: "en" },
+        ],
+      },
+    });
+    expect(res.status).toBe(200);
+  });
+
   it("a large invalid taxonomy lists at most 50 problems, within the error contract", async () => {
     const h = harness();
     const nodes = Array.from({ length: 100 }, (_, i) => ({

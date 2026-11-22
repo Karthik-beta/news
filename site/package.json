@@ -10,23 +10,25 @@
     "contracts": "bun scripts/gen-contracts.ts",
     "lint:tokens": "bun scripts/lint-tokens.ts",
     "predev": "bun run sync",
-    "dev": "bun --bun astro dev --host 127.0.0.1",
+    "dev": "CLOUDFLARE_ENV=local bun --bun astro dev --host 127.0.0.1",
     "prebuild": "bun run sync",
     "build": "bun --bun astro build",
-    "preview": "bun --bun astro preview --host 127.0.0.1",
+    "preview": "CLOUDFLARE_ENV=local wrangler dev -c dist/server/wrangler.json --local --ip 127.0.0.1",
     "typecheck": "bun --bun astro check",
     "pretest": "bun run sync",
     "test": "vitest run --project unit --project component --project astro && bun test tests/ssr",
     "test:watch": "vitest --project unit --project component --project astro",
     "test:ssr": "bun test tests/ssr",
-    "test:integration": "NEWS_FIXTURES=1 bun run build && vitest run --project integration",
+    "test:integration": "CLOUDFLARE_ENV=local NEWS_FIXTURES=1 bun run build && vitest run --project integration",
     "test:e2e": "playwright test --project='smoke-*'",
     "test:e2e:full": "playwright test --project='chromium-*' --project='firefox-*' --project='webkit-*'",
     "test:visual": "bun scripts/visual.ts",
     "test:visual:update": "bun scripts/visual.ts --update-snapshots"
   },
   "dependencies": {
+    "@astrojs/cloudflare": "14.4.9",
     "@astrojs/react": "^7.1.9",
+    "@news/worker-shared": "workspace:*",
     "@fontsource-variable/literata": "^5.3.0",
     "@fontsource/fira-sans": "^5.3.0",
     "@openuidev/react-headless": "0.18.8",
@@ -53,6 +55,7 @@
     "html-validate": "^11.21.1",
     "jsdom": "^31.0.1",
     "typescript": "^6.0.3",
-    "vitest": "^5.1.0"
+    "vitest": "^5.1.0",
+    "wrangler": "4.162.0"
   }
 }
