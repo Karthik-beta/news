@@ -2,8 +2,9 @@
 // types one of these: it writes a token such as {contact.email}, and src/static/content.ts fills it in from here at
 // build time. A test fails if a value below appears literally in the copy.
 //
-// Karthik fills the values marked UNSET or example.invalid (and sets NEWS_API_ORIGIN at build time). Values copied
-// from code or contracts are checked against their source in tests/unit/static-config.test.ts, so they cannot drift.
+// Karthik fills the values marked UNSET or example.invalid; a production build (NEWS_ENV=production) fails until he
+// has. Values copied from code or contracts are checked against their source in tests/unit/static-config.test.ts,
+// so they cannot drift.
 import report from "../../../contracts/cloud/report.schema.json";
 
 /** What a value shows until Karthik sets it. `unsetKeys()` lists every key still holding a placeholder. */
@@ -12,7 +13,7 @@ export const UNSET = "[not set: edit site/src/config/site.ts]";
 export const PLACEHOLDER_HOST = "example.invalid";
 
 const origin = "https://news.karthik.nz"; // astro.config.mjs `site`; a test keeps them equal
-const apiOrigin = process.env.NEWS_API_ORIGIN ?? `https://api.${PLACEHOLDER_HOST}`; // set NEWS_API_ORIGIN at build
+const cliVersion = "0.0.1";
 
 export const siteConfig = {
   site: { origin },
@@ -22,9 +23,8 @@ export const siteConfig = {
     name: "CC BY 4.0",
     url: "https://creativecommons.org/licenses/by/4.0/",
   },
-  /** Where the report form posts (the intake is #6's `POST /v1/reports`) and its limits (the contract's). */
+  /** The report contract's limits. */
   report: {
-    postUrl: `${apiOrigin}/v1/reports`,
     text: { minLength: report.$defs.text.minLength, maxLength: report.$defs.text.maxLength },
     where: { maxLength: report.$defs.where.maxLength },
   },
@@ -38,9 +38,10 @@ export const siteConfig = {
   },
   /** Technical Design: NEWS_RAW_RETAIN_DAYS_DATA and NEWS_RAW_RETAIN_DAYS_DOCS are still pending. */
   raw: { retainDaysData: UNSET, retainDaysDocs: UNSET },
+  /** cli/Cargo.toml `version` and the format in news-wire runner.rs `user_agent`; static-config.test.ts checks both. */
   fetcher: {
-    version: UNSET,
-    userAgent: `News/${UNSET} (+${origin}/data)`,
+    version: cliVersion,
+    userAgent: `News/${cliVersion} (+${origin}/data)`,
   },
 };
 
@@ -59,3 +60,12 @@ export const unsetKeys = (): string[] =>
   configLeaves()
     .filter(([, v]) => typeof v === "string" && (v.includes(UNSET) || v.includes(PLACEHOLDER_HOST)))
     .map(([k]) => k);
+
+/** Throws when a production build would publish a placeholder. */
+export function assertProductionReady(env = process.env.NEWS_ENV): void {
+  const unset = unsetKeys();
+  if (env === "production" && unset.length) {
+    throw new Error(`site/src/config/site.ts still has placeholders: ${unset.join(", ")}`);
+  }
+}
+assertProductionReady();

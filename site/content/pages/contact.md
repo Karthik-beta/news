@@ -14,7 +14,7 @@ Write to [{contact.email}](mailto:{contact.email}) for corrections, takedown req
 
 ## Choose the right route
 
-- **A wrong figure, wording, link or image on a page.** Use [report an error](/report). The form tells Karthik which page and what is wrong, and a report needs no e-mail address.
+- **A wrong figure, wording, link or image on a page.** Use [report an error](/report), which says what to send.
 - **A takedown request or a question about a source's licence.** Write to the contact address above, and give the address of the page.
 - **A question about privacy.** Read the [privacy page](/privacy) first, then write to the contact address.
 - **Using News data or the MCP server.** Read [data access](/data) first.

@@ -104,7 +104,7 @@ Every page is published and open to people and AI tools. Only some pages are off
 
 ## Corrections
 
-When a figure is wrong, or a source revises its data, the page is corrected or updated and shows "Updated on …" with a one-line reason in the sources panel. The [corrections page](/corrections) explains how, and the [report an error page](/report) is the form to use.
+When a figure is wrong, or a source revises its data, the page is corrected or updated and shows "Updated on …" with a one-line reason in the sources panel. The [corrections page](/corrections) explains how, and the [report an error page](/report) says how to report one.
 
 ## Accuracy
 

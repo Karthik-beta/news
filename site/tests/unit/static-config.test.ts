@@ -1,7 +1,14 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { configLeaves, PLACEHOLDER_HOST, siteConfig, UNSET, unsetKeys } from "../../src/config/site";
+import {
+  assertProductionReady,
+  configLeaves,
+  PLACEHOLDER_HOST,
+  siteConfig,
+  UNSET,
+  unsetKeys,
+} from "../../src/config/site";
 import { fillTokens, glossaryItems, loadDoc, parseDoc, rawCopy } from "../../src/static/content";
 import { stripComments } from "../../src/static/markdown";
 import { repoRoot, siteRoot } from "../support/tokens";
@@ -48,16 +55,29 @@ describe("static-page config", () => {
     expect(unsetKeys().sort()).toEqual(
       [
         "contact.email",
-        "fetcher.userAgent",
-        "fetcher.version",
         "operator.jurisdiction",
         "operator.legalName",
         "raw.retainDaysData",
         "raw.retainDaysDocs",
-        "report.postUrl",
       ].sort(),
     );
     expect(UNSET).not.toContain(PLACEHOLDER_HOST);
+  });
+
+  it("fails a production build while a placeholder remains", () => {
+    expect(() => assertProductionReady("production")).toThrow(/contact\.email/);
+    expect(() => assertProductionReady("local")).not.toThrow();
+    expect(() => assertProductionReady(undefined)).not.toThrow();
+  });
+
+  it("keeps the fetcher's version and User-Agent equal to the CLI's (news_core::VERSION, news-wire runner.rs)", () => {
+    // news-core's version is `version.workspace = true`, so cli/Cargo.toml's [workspace.package] version.
+    const version = /\[workspace\.package\]\s+version = "([^"]+)"/.exec(read("cli/Cargo.toml"))?.[1];
+    expect(siteConfig.fetcher.version).toBe(version);
+    const runner = read("cli/crates/news-wire/src/runner.rs");
+    const product = /PRODUCT: &str = "([^"]+)"/.exec(runner)?.[1];
+    const link = /"\{PRODUCT\}\/\{\} \(\+([^)]+)\)"/.exec(runner)?.[1];
+    expect(siteConfig.fetcher.userAgent).toBe(`${product}/${version} (+${link})`);
   });
 });
 
@@ -66,11 +86,13 @@ describe("static-page copy", () => {
     const doc = loadDoc(name);
     expect(doc.title).not.toBe("");
     expect(doc.blocks.length).toBeGreaterThan(0);
-    expect(JSON.stringify(doc.blocks)).not.toMatch(/\{[a-z]+\.[A-Za-z.]+\}/);
+    expect(JSON.stringify(doc.blocks)).not.toMatch(/\{[\w.-]+\}/);
   });
 
   it("fails the build on a token with no value", () => {
     expect(() => fillTokens("a {no.such.key} b")).toThrow(/no\.such\.key/);
+    expect(() => fillTokens("a {no-dots} b")).toThrow(/no-dots/);
+    expect(() => fillTokens("a {contact} b")).toThrow(/contact/);
     expect(fillTokens("<!-- {no.such.key} --> {reports.retentionDays} days")).toBe(" 180 days");
   });
 
@@ -85,13 +107,16 @@ describe("static-page copy", () => {
         (n) => [`src/layouts/${n}`, readFileSync(join(siteRoot, "src/layouts", n), "utf8")] as const,
       ),
     ];
-    // Placeholders are not values yet; a bare number is matched as a whole figure, not inside a date or version.
+    // Placeholders are not values yet. A number is matched as a whole figure, plain or with thousands separators
+    // ("2,000"), at the end of a sentence too ("20."), but not inside a date, version or longer number.
     const values = configLeaves().filter(
       ([, v]) => !(typeof v === "string" && (v.includes(UNSET) || v.includes(PLACEHOLDER_HOST))),
     );
     const found = (text: string, v: string | number) =>
       typeof v === "number"
-        ? new RegExp(`(?<![\\w.\\-/])${v}(?![\\w.\\-])`).test(text)
+        ? [String(v), v.toLocaleString("en-GB")].some((f) =>
+            new RegExp(`(?<![\\w.,/-])${f}(?![\\w-]|[.,]\\d)`).test(text),
+          )
         : // The origin may appear in the layout, which builds the canonical link from config; never in copy.
           text.includes(v);
 
@@ -105,7 +130,12 @@ describe("static-page copy", () => {
     it("catches a planted value", () => {
       expect(found("Write to CC BY 4.0 now", "CC BY 4.0")).toBe(true);
       expect(found("kept 180 days", 180)).toBe(true);
+      expect(found("at most 20.", 20)).toBe(true);
+      expect(found("up to 2,000 words", 2000)).toBe(true);
+      expect(found("up to 2,000.", 2000)).toBe(true);
       expect(found("revision 2025-11-30 and 1180 days", 180)).toBe(false);
+      expect(found("version 1.20.3, 12,000 or 20.5", 20)).toBe(false);
+      expect(found("12,000 words", 2000)).toBe(false);
     });
   });
 

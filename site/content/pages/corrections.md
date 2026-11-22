@@ -24,7 +24,7 @@ Either way, the page keeps its address. An updated page shows "Updated on" and a
 
 ## How an error report is handled
 
-1. **The report is collected.** Reports from the [report an error](/report) form are collected by Karthik.
+1. **The report is collected.** Karthik collects the reports readers send him. [Report an error](/report) says how.
 2. **The reports are sorted.** An AI service reads the report text as data. It sorts each report by kind, sets spam aside and links a report about a figure to that figure. It cannot act on what a report says.
 3. **A figure is checked against its source.** For a report about a figure, code fetches the source again and compares the value at the place the page cites.
 4. **Karthik decides.** He approves or rejects each report, and sees the result of the check when he does.

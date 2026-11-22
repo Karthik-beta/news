@@ -62,12 +62,4 @@ test.describe("static page interactions", () => {
     await expect(page).toHaveURL(/#letter-m$/);
     await expect(page.locator("#letter-m")).toBeInViewport();
   });
-
-  test("the report form asks for what the copy says it asks for", { tag: "@smoke" }, async ({ page }) => {
-    await gotoPage(page, "/report/");
-    for (const label of ["Address of the page", "What kind of error?", "What is wrong?", "Where on the page?"]) {
-      await expect(page.getByLabel(label, { exact: false })).toBeVisible();
-    }
-    await expect(page.getByRole("button", { name: "Send report" })).toBeVisible();
-  });
 });

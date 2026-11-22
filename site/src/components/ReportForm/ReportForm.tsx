@@ -4,7 +4,6 @@
 // problem renders the form again with the values and errors; on success it renders it with `sent`.
 import { Button } from "../Button/Button";
 import { Icon } from "../Icon/Icon";
-import { Select } from "../Select/Select";
 import { TextArea } from "../TextArea/TextArea";
 import { TextField } from "../TextField/TextField";
 
@@ -77,31 +76,9 @@ export interface ReportFormProps {
   errors?: ReportErrors;
   /** The report went through: show the confirmation instead of the form. */
   sent?: boolean;
-  /**
-   * The form on its own page (/report), not reached from an article: it asks for the page's address and the kind of
-   * error, instead of carrying the page in a hidden field. Both are checked by the intake, not by `reportErrors`.
-   */
-  standalone?: boolean;
 }
 
-/** The intake's `kind` values (contracts/cloud/report.schema.json) with their labels. */
-export const REPORT_KINDS = [
-  { value: "", label: "Choose one" },
-  { value: "figure", label: "Figure" },
-  { value: "wording", label: "Wording" },
-  { value: "link", label: "Link" },
-  { value: "image", label: "Image" },
-  { value: "other", label: "Other" },
-] as const;
-
-export function ReportForm({
-  action,
-  pageUrl: rawPageUrl,
-  values = {},
-  errors = {},
-  sent = false,
-  standalone = false,
-}: ReportFormProps) {
+export function ReportForm({ action, pageUrl: rawPageUrl, values = {}, errors = {}, sent = false }: ReportFormProps) {
   const pageUrl = /^\/(?!\/)/.test(rawPageUrl) ? rawPageUrl : "/";
   if (sent) {
     return (
@@ -123,21 +100,7 @@ export function ReportForm({
   return (
     <form className="report-form" action={action} method="post" noValidate>
       <ErrorSummary title="The report was not sent" errors={listed} />
-      {standalone ? (
-        <>
-          <TextField
-            id="report-page"
-            name="page"
-            type="url"
-            label="Address of the page"
-            hint="Copy it from your browser's address bar."
-            required
-          />
-          <Select id="report-kind" name="kind" label="What kind of error?" required={false} options={REPORT_KINDS} />
-        </>
-      ) : (
-        <input type="hidden" name="page" value={pageUrl} />
-      )}
+      <input type="hidden" name="page" value={pageUrl} />
       <TextArea
         id={REPORT_FIELD_IDS.what}
         name="what"

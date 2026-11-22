@@ -12,7 +12,7 @@ const files = import.meta.glob("../../content/pages/*.md", { query: "?raw", impo
 export const rawCopy = (): Record<string, string> =>
   Object.fromEntries(Object.entries(files).map(([path, md]) => [path.replace(/^.*\/(.+)\.md$/, "$1"), md]));
 
-const TOKEN = /\{([A-Za-z]+(?:\.[A-Za-z]+)*)\}/g;
+const TOKEN = /\{([\w.-]+)\}/g;
 
 /** Replaces {dotted.config.keys}. Comments go first: the author's notes may name keys that do not exist. */
 export function fillTokens(md: string, config: SiteConfig = siteConfig): string {

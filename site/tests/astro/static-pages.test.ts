@@ -59,7 +59,7 @@ describe.each(PAGES.map(([path]) => path))("static page %s (server-rendered)", (
   it("ships no JavaScript, inline style or leftover {token}", () => {
     expect(doc().querySelectorAll("script")).toHaveLength(0);
     expect(doc().querySelector("[style]")).toBeNull();
-    expect(doc().querySelector("main")?.textContent).not.toMatch(/\{[a-z]+\.[A-Za-z.]+\}/);
+    expect(doc().querySelector("main")?.textContent).not.toMatch(/\{[\w.-]+\}/);
   });
 
   it("has unique ids and no heading level skipped", () => {
@@ -92,7 +92,6 @@ describe("page specifics", () => {
     expect(text("/data/")).toContain(`answers ${siteConfig.mcp.ratePerMinute} requests a minute`);
     expect(text("/data/")).toContain(siteConfig.mcp.url);
     expect(text("/privacy/")).toContain(`${siteConfig.reports.retentionDays} days`);
-    expect(text("/report/")).toContain(`at least ${siteConfig.report.text.minLength} characters`);
   });
 
   it("opens a glossary definition from a term in the methodology", () => {
@@ -104,20 +103,11 @@ describe("page specifics", () => {
     expect(panel?.querySelector("a")?.getAttribute("href")).toMatch(/^\/glossary\/#[a-z0-9-]+$/);
   });
 
-  it("posts the report form to the configured intake, with the page and kind fields and no build notes", () => {
+  it("has no form, points to the contact page, and shows no build notes", () => {
     const doc = docs.get("/report/") as Document;
-    const form = doc.querySelector("form.report-form");
-    expect(form?.getAttribute("action")).toBe(siteConfig.report.postUrl);
-    expect(form?.getAttribute("method")).toBe("post");
-    for (const name of ["page", "kind", "what", "where", "email"]) {
-      expect(form?.querySelector(`[name="${name}"]`), name).not.toBeNull();
-    }
-    expect(form?.querySelector('button[type="submit"]')?.textContent).toBe("Send report");
+    expect(doc.querySelector("form")).toBeNull();
+    expect(doc.querySelector('main a[href="/contact"]')).not.toBeNull();
     const text = doc.querySelector("main")?.textContent ?? "";
-    expect(text).not.toContain("Builder notes");
-    expect(text).not.toContain("Form text");
-    // The form sits before "What happens next".
-    const next = [...doc.querySelectorAll("h2")].find((h) => h.textContent === "What happens next") as Element;
-    expect(form && next && form.compareDocumentPosition(next) & 4).toBeTruthy();
+    for (const note of ["Builder notes", "Form text", "What the form stores"]) expect(text).not.toContain(note);
   });
 });

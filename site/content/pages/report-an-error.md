@@ -6,15 +6,13 @@ updated: 2026-11-16
 
 ## Tell News what is wrong
 
-Pages are built from public sources with AI and checked automatically, and they may contain errors. If you find one, tell Karthik with this form. Check the linked source first if you can, and say what the source shows.
+Pages are built from public sources with AI and checked automatically, and they may contain errors. If you find one, write to Karthik at the address on the [contact page](/contact). Check the linked source first if you can, and say what the source shows.
 
 ## What to include
 
-- **The page.** The address of the page with the error. If you came from a page's "Report an error" link, it is filled in for you.
-- **What kind of error.** Choose one: figure, wording, link, image or other.
-- **What is wrong.** Describe it in your own words, in at least {report.text.minLength} characters and at most {report.text.maxLength}. Say what the page shows and what the source shows.
-- **Where on the page.** Optional, up to {report.where.maxLength} characters. For example, a chart title or a table row.
-- **Your e-mail address.** Optional. Give one only if you would like a reply.
+- **The page.** The address of the page with the error. Copy it from your browser's address bar.
+- **What is wrong.** Describe it in your own words. Say what the page shows and what the source shows.
+- **Where on the page.** For example, a chart title or a table row.
 
 ## Form text
 
@@ -34,7 +32,7 @@ These are the labels and messages for the form.
 | Over the daily limit | Reports are closed until 00:00 UTC because today's limit was reached. Send your report after that time. |
 | Not sent | The report could not be sent. Try again in a moment. |
 
-<!-- TODO(Karthik): the detail line and the messages above are drafts. Approve them with the form. -->
+<!-- TODO(Karthik): the detail line and the messages above are drafts. Approve them with the form. "Form text" and "What the form stores" are not shown on the page until the form returns (report.astro). -->
 
 <!-- Builder notes (not reader text):
 - Limits are rendered from contracts/cloud/report.schema.json, not typed here: {report.text.minLength}, {report.text.maxLength}, {report.text.maxBytes}, {report.where.maxLength}. The text counter must enforce both characters and UTF-8 bytes ({report.text.maxBytes}).

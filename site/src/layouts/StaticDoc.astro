@@ -1,7 +1,6 @@
 ---
-// A static page whose words are a copy file in content/pages/: the frame, then the copy as prose. A page may put
-// something of its own (the report form) into the slot, before the copy's section headed `slotBefore` or, without
-// one, after the copy. Sections named in `omit` are the author's build notes, not reader text.
+// A static page whose words are a copy file in content/pages/: the frame, then the copy as prose. Sections named in
+// `omit` are the author's build notes, or copy for something not built yet, not reader text.
 import { loadDoc, withoutSection } from "../static/content";
 import { renderCopy, siteGlossary } from "../static/render";
 import StaticPage from "./StaticPage.astro";
@@ -12,21 +11,11 @@ interface Props {
   /** The page's site path, "/methodology/". */
   path: string;
   omit?: string[];
-  slotBefore?: string;
 }
-const { name, path, omit = [], slotBefore } = Astro.props;
+const { name, path, omit = [] } = Astro.props;
 const doc = loadDoc(name);
 const blocks = omit.reduce(withoutSection, doc.blocks);
-const at = slotBefore ? blocks.findIndex((b) => b.type === "h2" && b.text === slotBefore) : -1;
-if (slotBefore && at < 0) throw new Error(`${name}.md has no section "${slotBefore}"`);
-const before = at < 0 ? blocks : blocks.slice(0, at);
-const after = at < 0 ? [] : blocks.slice(at);
-const glossary = siteGlossary();
-// One id prefix per part: popover ids must not repeat on the page.
-const body = (b: typeof blocks, part: string) => renderCopy(b, glossary, `${name}-${part}`);
 ---
 <StaticPage title={doc.title} description={doc.description} updated={doc.updated} path={path}>
-  <div class="static-page__body prose text-body" set:html={body(before, "a")} />
-  <slot />
-  {after.length > 0 && <div class="static-page__body prose text-body" set:html={body(after, "b")} />}
+  <div class="static-page__body prose text-body" set:html={renderCopy(blocks, siteGlossary(), name)} />
 </StaticPage>
