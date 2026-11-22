@@ -103,10 +103,10 @@ const smoke: Project<NewsOptions>[] = THEMES.flatMap((theme) =>
   })),
 );
 
-// Tests always run against the built site served by `astro preview` (what readers get), on a port of
-// its own so a dev server on 4321 is never picked up by mistake. E2E_SKIP_BUILD=1 reuses an existing dist/
+// Tests always run against the built Worker served by `wrangler dev` (what readers get; `astro preview` hangs
+// on every request with the Cloudflare adapter), on a port of its own so a dev server on 4321 is never picked up by mistake. E2E_SKIP_BUILD=1 reuses an existing dist/
 // (CI builds once for integration and e2e); E2E_REUSE_SERVER=1 reuses a preview you already started.
-const preview = `bun --bun astro preview --host 127.0.0.1 --port ${port}`;
+const preview = `bunx wrangler dev -c dist/server/wrangler.json --local --ip 127.0.0.1 --port ${port}`;
 
 export default defineConfig<NewsOptions>({
   testDir: "./tests/e2e",
@@ -137,7 +137,7 @@ export default defineConfig<NewsOptions>({
     reuseExistingServer: process.env.E2E_REUSE_SERVER === "1",
     timeout: 180_000,
     // Fixture pages (src/pages/fixtures/) are built only with NEWS_FIXTURES=1; e2e always tests them.
-    env: { NEWS_FIXTURES: "1", OPENUI_TELEMETRY_DISABLED: "1" },
+    env: { NEWS_FIXTURES: "1", CLOUDFLARE_ENV: "local", OPENUI_TELEMETRY_DISABLED: "1" },
     stdout: "ignore",
     stderr: "pipe",
   },

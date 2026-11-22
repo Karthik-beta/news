@@ -4,7 +4,7 @@ import { ConditionFailedError } from "@news/worker-shared/dynamo/table";
 import { categoryHub, redirectKey, taxonomyNodeKey } from "@news/worker-shared/keys";
 import { Reader } from "@news/worker-shared/read";
 import type { RedirectRecord, TaxonomyNode } from "@news/worker-shared/records";
-import { absolute, hubPath } from "@news/worker-shared/urls";
+import { absolute, hubPath, reservedSlugProblem } from "@news/worker-shared/urls";
 import { check, type Issue, schemas } from "@news/worker-shared/validate";
 import type { Deps } from "./deps";
 import { ApiError } from "./errors";
@@ -25,6 +25,8 @@ export async function prepareTaxonomy(deps: Deps, body: unknown): Promise<{ node
     if (ids.has(n.id))
       issues.push({ code: "taxonomy.duplicate", message: `${n.id} is listed twice`, path: `/nodes/${i}` });
     ids.add(n.id);
+    const reserved = reservedSlugProblem(n.id);
+    if (reserved) issues.push({ code: "taxonomy.reserved_slug", message: reserved, path: `/nodes/${i}/id` });
     // The tree follows the slugs: 'economy/inflation' sits under 'economy', a top-level slug has no parent.
     if (n.parent !== parentOf(n.id))
       issues.push({

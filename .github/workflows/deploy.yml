@@ -96,6 +96,8 @@ jobs:
               cannot "Site" "Deploys run from main only (this run is on $GITHUB_REF)."
             elif [ ! -f site/wrangler.jsonc ] && [ ! -f site/wrangler.json ] && [ ! -f site/wrangler.toml ]; then
               cannot "Site" "The site has no wrangler config yet: it is static until the SSR Worker arrives in Phase 6 (Technical Design, Cloud services)."
+            elif grep -q 'TODO(' site/wrangler.jsonc; then
+              cannot "Site" "site/wrangler.jsonc is not deploy-ready: it still has a TODO for its real bindings."
             else
               site=true
             fi
