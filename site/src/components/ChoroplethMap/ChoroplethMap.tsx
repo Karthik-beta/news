@@ -63,19 +63,20 @@ export function choroplethData(props: ChoroplethMapProps, data: PageDataResolver
 
 /** The legend bar above the map: one swatch per class, each break under its join, then "No data". */
 function MapLegend({ classes, missing }: { classes: MapClasses; missing: boolean }) {
-  const { joins, steps, only } = classes;
+  const { joins, steps, only, range } = classes;
+  const single = only ?? range;
   return (
     <div className="chart-legend choropleth__legend text-label">
       <ol className="choropleth__scale">
         {steps.map((step, i) => (
           <li key={step} className="choropleth__class">
             <span className={`choropleth__swatch heatmap__step--${step}`} aria-hidden="true" />
-            {joins[i] || only !== null ? (
+            {joins[i] || single !== null ? (
               <span
-                className={`choropleth__edge text-tabular${only === null ? " choropleth__edge--join" : ""}`}
+                className={`choropleth__edge text-tabular${single === null ? " choropleth__edge--join" : ""}`}
                 aria-hidden="true"
               >
-                {joins[i]?.label ?? only}
+                {joins[i]?.label ?? single}
               </span>
             ) : null}
             <VisuallyHidden>{classText(classes, i)}</VisuallyHidden>

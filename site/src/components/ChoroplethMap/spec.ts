@@ -24,7 +24,9 @@ export default defineNewsComponent({
           region: z
             .string()
             .regex(/^[A-Z]{3}$/)
-            .describe("ISO 3166-1 alpha-3 code"),
+            .describe(
+              "ISO 3166-1 alpha-3 code; Natural Earth's non-ISO codes also work: KOS Kosovo, CYN Northern Cyprus, SOL Somaliland, KAS Siachen Glacier, ATC Ashmore and Cartier Islands, IOA Indian Ocean Territories",
+            ),
           label: z.string().min(1).describe("The country's name, as text"),
           value: valueRef.describe("dp_… or dv_… of the country's value"),
         }),

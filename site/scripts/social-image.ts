@@ -5,6 +5,7 @@
 //   bun scripts/social-image.ts <page path> <chart id> [--base http://127.0.0.1:4321] [--out chart.png]
 // The site must be running at --base (`bun run dev`, or the built Worker). The chart id is its statement name.
 import { writeFileSync } from "node:fs";
+import { basename } from "node:path";
 import type { Browser, Page } from "@playwright/test";
 
 export const SOCIAL = { width: 1200, height: 675, minTextPx: 20 } as const;
@@ -104,6 +105,11 @@ export async function socialImage(
   browser: Browser,
   { base, path, chart }: { base: string; path: string; chart: string },
 ): Promise<{ png: Buffer; page: Page }> {
+  // A path is a path on `base`: "//other.example/x" or "https://other.example/" would open another site.
+  const target = new URL(path, base);
+  if (!path.startsWith("/") || target.origin !== new URL(base).origin) {
+    throw new Error(`page path must start with "/" and stay on ${base}: ${path}`);
+  }
   const context = await browser.newContext({
     viewport: VIEWPORT,
     deviceScaleFactor: SCALE,
@@ -111,7 +117,7 @@ export async function socialImage(
     reducedMotion: "reduce",
   });
   const page = await context.newPage();
-  await page.goto(new URL(path, base).href);
+  await page.goto(target.href);
   const canonical = await page.evaluate(() => document.querySelector("link[rel='canonical']")?.getAttribute("href"));
   const url = new URL(canonical ?? new URL(path, ORIGIN).href);
   await layoutSocialCard(page, chart, `${url.host}${url.pathname}`);
@@ -128,7 +134,7 @@ if (import.meta.main) {
   const base = flag("--base", "http://127.0.0.1:4321");
   const outFlag = flag("--out", "");
   const [path, chart] = args;
-  const out = outFlag || `${chart}.png`;
+  const out = outFlag || `${basename(chart ?? "")}.png`;
   if (!path || !chart) {
     console.error("usage: bun scripts/social-image.ts <page path> <chart id> [--base URL] [--out file.png]");
     process.exit(2);

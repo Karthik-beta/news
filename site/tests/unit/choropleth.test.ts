@@ -8,7 +8,7 @@ import { gzipSync } from "node:zlib";
 import { JSDOM } from "jsdom";
 import { describe, expect, it } from "vitest";
 import { equalEarth } from "../../scripts/gen-map-geometry";
-import { mapClasses, roundOne } from "../../src/components/ChoroplethMap/classes";
+import { classText, mapClasses, roundOne } from "../../src/components/ChoroplethMap/classes";
 import { world } from "../../src/components/ChoroplethMap/geo/world";
 import { componentFixtureBundle, componentFixtures } from "../../src/renderer/fixtures/component-pages";
 import { fixtureLibrary } from "../../src/renderer/fixtures/library";
@@ -142,10 +142,36 @@ describe("legend and classes", () => {
     expect([c.joins, c.steps, c.only]).toEqual([[], [3], "12.5%"]);
   });
 
+  it("values that differ but share one class are a range from the source digits, never one value", () => {
+    for (const [values, range] of [
+      [["10.2", "10.4", "10.6"], "10.2 to 10.6%"],
+      [["4.6", "4.7"], "4.6 to 4.7%"],
+    ] as const) {
+      const c = mapClasses(values, pct, 0);
+      expect([c.joins, c.only, c.range]).toEqual([[], null, range]);
+      expect(classText(c, 0)).toBe(range);
+    }
+    const same = mapClasses(["5.0", "5"], pct, 0);
+    expect([same.only, same.range]).toEqual(["5.0%", null]);
+  });
+
   it("breaks in a larger display unit drop the zeros a shift adds", () => {
     const usd = { unit: "USD", currency: "USD", scale: "millions" as const };
     const c = mapClasses(["1250000", "980000", "15000"], usd, 12);
     expect(c.joins.map((j) => j.label)).toEqual(["0.02", "1"]);
+  });
+});
+
+describe("social image page path", () => {
+  it("must be a path on the base, never another site", async () => {
+    const { socialImage } = await import("../../scripts/social-image");
+    // The guard throws before the browser is used, so none is needed.
+    const browser = null as never;
+    for (const path of ["page", "//evil.example/x", "https://evil.example/x"]) {
+      await expect(socialImage(browser, { base: "http://127.0.0.1:4321", path, chart: "c" })).rejects.toThrow(
+        /page path/,
+      );
+    }
   });
 });
 

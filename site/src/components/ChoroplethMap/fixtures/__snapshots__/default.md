@@ -142,4 +142,4 @@ Unemployment rate, 2024, % of the labour force
 
 ## Sources
 
-- [IMF DataMapper, World Economic Outlook: unemployment rate (LUR)](https://www.imf.org/external/datamapper/LUR@WEO). International Monetary Fund. IMF copyright and usage (attribution). Retrieved 23 November 2026.
+- [IMF DataMapper, World Economic Outlook: unemployment rate (LUR)](https://www.imf.org/external/datamapper/LUR@WEO). International Monetary Fund. IMF terms, not verified. Retrieved 23 November 2026.

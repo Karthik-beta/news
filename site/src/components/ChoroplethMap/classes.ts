@@ -16,8 +16,10 @@ export interface MapClasses {
   steps: number[];
   /** The class of a value: the number of breaks at or below it, so a value on a break goes up a class. */
   classOf: (value: string) => number;
-  /** The one value's label when there is a single class (one value, or all equal); otherwise null. */
+  /** The one value's label when there is a single class and the values are all equal; otherwise null. */
   only: string | null;
+  /** "min to max" when there is a single class but the values differ (no break survived); otherwise null. */
+  range: string | null;
 }
 
 /** A number rounded to one significant figure, written as an exact decimal ("0.0004", "1000000"). */
@@ -54,17 +56,24 @@ export function mapClasses(values: readonly string[], measure: Measure, exponent
         .replace(/\.$/, ""),
     );
   const joins = breaks.map((value, i) => ({ value, label: `${label(value)}${i === breaks.length - 1 ? pct : ""}` }));
+  // Source digits, compared as numbers: 10.2 and 10.4 differ, so a lone class must not wear one of them as its label.
+  const lo = values.reduce((a, v) => (Number(v) < Number(a) ? v : a));
+  const single = joins.length === 0;
+  const equal = single && Number(lo) === Number(hi);
+  const show = (v: string) => formatNumber(shifted(v));
   return {
     joins,
     steps: rampSteps(joins.length + 1),
     classOf: (value) => breaks.filter((b) => Number(value) >= Number(b)).length,
-    only: joins.length === 0 ? `${formatNumber(shifted(values[0] as string))}${pct}` : null,
+    only: equal ? `${show(lo)}${pct}` : null,
+    range: single && !equal ? `${show(lo)} to ${show(values.find((v) => Number(v) === hi) as string)}${pct}` : null,
   };
 }
 
 /** What a class covers, in words, for screen readers: "under 3", "3 to 5", "10% or more". */
-export function classText({ joins, only }: MapClasses, i: number): string {
+export function classText({ joins, only, range }: MapClasses, i: number): string {
   if (only !== null) return only;
+  if (range !== null) return range;
   const lower = joins[i - 1]?.label;
   const upper = joins[i]?.label;
   if (lower === undefined) return `under ${upper}`;
