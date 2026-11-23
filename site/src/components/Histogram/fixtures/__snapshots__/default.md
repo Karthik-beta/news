@@ -2,7 +2,7 @@
 title: "Histogram: default"
 fly_title: "Component fixture"
 summary: "The Histogram component's \"default\" fixture, rendered by the page renderer."
-generator: "news-renderer 1.0.0"
+generator: "news-renderer 1.1.0"
 ---
 
 Component fixture
