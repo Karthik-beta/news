@@ -2,7 +2,7 @@
 // sitemaps, robots.txt and llms.txt, the preview mode and the report form. The Worker is built with NEWS_PREVIEW=1 for
 // these tests (playwright.config.ts); a production build has no preview route (tests/integration/ssr-build.test.ts).
 import { createHash } from "node:crypto";
-import normal from "../../fixtures/data/normal/items.json";
+import { readFileSync } from "node:fs";
 import { expect, expectAccessible, expectNoSidewaysScroll, gotoPage, test } from "./fixtures";
 
 test.describe("search", () => {
@@ -79,6 +79,7 @@ test.describe("preview mode", () => {
 
   /** The fixture curation with another lead: a draft is a curation.v1 body, without the storage fields. */
   const draft = () => {
+    const normal = JSON.parse(readFileSync(new URL("../../fixtures/data/normal/items.json", import.meta.url), "utf8"));
     const live = (normal as Record<string, unknown>[]).find((i) => i.PK === "HOME#CURATION") as Record<string, never>;
     const { schema, lang, created_at, approved_at, curator_model, slots, checks } = live;
     return JSON.stringify({
@@ -131,6 +132,8 @@ test.describe("preview mode", () => {
 });
 
 test.describe("report an error", () => {
+  // The mocked intake answers 404 unknown_page in one test, which the browser logs as a failed resource.
+  test.use({ allowedConsoleErrors: [/status of 404/] });
   const API = "**/v1/reports";
   const PAGE_ADDRESS = "https://news.karthik.nz/2025/01/us-cpi-december-2024";
   const hydrated = (page: import("@playwright/test").Page) =>
