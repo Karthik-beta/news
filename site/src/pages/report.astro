@@ -1,6 +1,59 @@
 ---
-// Report an error: the copy only. The form (ReportForm) comes back when the report intake mapping lands (#14); until
-// then the page points readers to /contact/. "Form text" and "What the form stores" in the copy are for that form.
-import StaticDoc from "../layouts/StaticDoc.astro";
+// Report an error: the copy, with the form (an island) after "What to include". The form sends JSON to the api Worker's
+// report intake (ADR 0010, "Static pages and the report form"); its words (limits, errors, confirmation) are the copy's "Form text" table.
+import { createElement } from "react";
+import ReportFormIsland, {
+  type ReportFormIslandProps,
+  type ReportMessages,
+} from "../components/ReportForm/ReportForm.client";
+import { siteConfig } from "../config/site";
+import StaticPage from "../layouts/StaticPage.astro";
+import { Island } from "../renderer/islands/Island";
+import { staticMarkup } from "../renderer/markup";
+import { loadDoc, tableUnder } from "../static/content";
+import { renderCopy } from "../static/render";
+
+const doc = loadDoc("report-an-error");
+const text = tableUnder(doc.blocks, "Form text");
+const row = (k: string) => text[k] ?? "";
+const messages: ReportMessages = {
+  sent: row("After sending"),
+  sentDetail: row("After sending, detail"),
+  textTooShort: row("Text too short"),
+  textTooLong: row("Text too long"),
+  whereTooLong: row("Where note too long"),
+  emailNotValid: row("E-mail not valid"),
+  pageNotFound: row("Page not found"),
+  tooManyFromSender: row("Too many from one sender"),
+  overDailyLimit: row("Over the daily limit"),
+  notSent: row("Not sent"),
+};
+for (const [k, v] of Object.entries(messages)) if (!v) throw new Error(`The report form's copy has no text for ${k}`);
+
+// The sections around the form. "Form text" is the form's own words, not reader text.
+const heading = (name: string) => doc.blocks.findIndex((b) => b.type === "h2" && b.text === name);
+const before = doc.blocks.slice(0, heading("Form text"));
+const after = doc.blocks.slice(heading("What happens next"));
+const form = staticMarkup(
+  createElement(Island<ReportFormIslandProps>, {
+    name: "ReportForm",
+    component: ReportFormIsland,
+    props: { apiUrl: `${siteConfig.api.origin}/v1/reports`, siteOrigin: siteConfig.site.origin, messages },
+  }),
+);
 ---
-<StaticDoc name="report-an-error" path="/report/" omit={["Form text", "What the form stores"]} />
+<StaticPage title={doc.title} description={doc.description} updated={doc.updated} path="/report/">
+  <div class="static-page__body prose text-body" set:html={renderCopy(before, undefined, "report-a")} />
+  <div class="static-page__body">
+    <noscript>
+      <p class="text-body">The form needs JavaScript to send a report. Without it, use the <a href="/contact/">contact page</a>.</p>
+    </noscript>
+    <Fragment set:html={form} />
+  </div>
+  <div class="static-page__body prose text-body" set:html={renderCopy(after, undefined, "report-b")} />
+  <script>
+    import { islands } from "../components/islands.generated";
+    import { hydrateIslands } from "../renderer/islands/hydrate";
+    hydrateIslands(islands);
+  </script>
+</StaticPage>

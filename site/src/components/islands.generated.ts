@@ -9,6 +9,7 @@ export const islands: IslandLoaders = {
   HeatmapPlot: () => import("./Heatmap/HeatmapPlot.client"),
   ImageGallery: () => import("./ImageGallery/ImageGallery.client"),
   LineChartPlot: () => import("./LineChart/LineChartPlot.client"),
+  ReportForm: () => import("./ReportForm/ReportForm.client"),
   SankeyPlot: () => import("./Sankey/SankeyPlot.client"),
   SlopePlot: () => import("./Slope/SlopePlot.client"),
   StackedBarPlot: () => import("./StackedBar/StackedBarPlot.client"),

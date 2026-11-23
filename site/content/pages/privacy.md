@@ -33,7 +33,6 @@ Source links go to other sites, which have their own privacy policies. News does
 The [report an error](/report) form stores what you type, and the page, its language and the time. It stores:
 
 - the text of your report;
-- the kind of error you chose: figure, wording, link, image or other;
 - the page the report is about;
 - the optional note on where on the page the error is;
 - your e-mail address, if you gave one, which is optional;

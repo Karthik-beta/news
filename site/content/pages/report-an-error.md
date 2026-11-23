@@ -32,7 +32,7 @@ These are the labels and messages for the form.
 | Over the daily limit | Reports are closed until 00:00 UTC because today's limit was reached. Send your report after that time. |
 | Not sent | The report could not be sent. Try again in a moment. |
 
-<!-- TODO(Karthik): the detail line and the messages above are drafts. Approve them with the form. "Form text" and "What the form stores" are not shown on the page until the form returns (report.astro). -->
+<!-- TODO(Karthik): the detail line and the messages above are drafts. Approve them. The form shows these words (report.astro reads this table), so edit them here and nowhere else. -->
 
 <!-- Builder notes (not reader text):
 - Limits are rendered from contracts/cloud/report.schema.json, not typed here: {report.text.minLength}, {report.text.maxLength}, {report.text.maxBytes}, {report.where.maxLength}. The text counter must enforce both characters and UTF-8 bytes ({report.text.maxBytes}).
@@ -48,7 +48,7 @@ Karthik collects the reports and checks them. If an error is confirmed, the page
 
 ## What the form stores
 
-The form stores the text of your report, the kind of error, the page, the optional "where" note, your e-mail address if you gave one, the page's language and the time it was received. It does not store your IP address or your browser's user-agent string. Reports expire {reports.retentionDays} days after they are received. The [privacy page](/privacy) has the details.
+The form stores the text of your report, the page, the optional "where" note, your e-mail address if you gave one, the page's language and the time it was received. It does not store your IP address or your browser's user-agent string. Reports expire {reports.retentionDays} days after they are received. The [privacy page](/privacy) has the details.
 
 ## Other ways to reach Karthik
 
