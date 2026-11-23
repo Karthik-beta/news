@@ -82,6 +82,14 @@ fn body(skill: &str) -> &str {
 /// Words in a layout line → components (`news components` names). `Step line` is matched apart.
 const ALIASES: &[(&str, &str)] = &[
     ("Bars", "BarChart"),
+    ("BarChart", "BarChart"),
+    ("ChoroplethMap", "ChoroplethMap"),
+    ("DataTable", "DataTable"),
+    ("GlossaryTerm", "GlossaryTerm"),
+    ("ImageFigure", "ImageFigure"),
+    ("LineChart", "LineChart"),
+    ("StepLineChart", "StepLineChart"),
+    ("VideoEmbed", "VideoEmbed"),
     ("Finding", "Finding"),
     ("Glossary", "GlossaryTerm"),
     ("Image", "ImageFigure"),
@@ -116,11 +124,20 @@ fn layout(skill: &str, tier: u8) -> String {
         .map(str::trim)
         .filter(|p| !p.is_empty())
         .collect();
-    let chosen = (tier == 2)
-        .then(|| paragraphs.iter().find(|p| p.starts_with("Tier 2:")))
-        .flatten()
-        .or(paragraphs.first());
-    chosen.map(|p| (*p).to_owned()).unwrap_or_default()
+    if tier == 2
+        && let Some(p) = paragraphs.iter().find(|p| p.starts_with("Tier 2:"))
+    {
+        return (*p).to_owned();
+    }
+    let first = paragraphs.first().copied().unwrap_or_default();
+    // Tiers can also be `Tier 1:` / `Tier 2:` list lines inside the first paragraph.
+    let tier_line = |n: u8| {
+        first.lines().find(|l| {
+            l.trim_start_matches(['-', '*', ' '])
+                .starts_with(&format!("Tier {n}:"))
+        })
+    };
+    tier_line(tier.clamp(1, 2)).unwrap_or(first).to_owned()
 }
 
 /// The components a page type's typical layout names, in layout order.
