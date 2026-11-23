@@ -580,7 +580,7 @@ mod tests {
     fn every_contract_compiles_and_registers_its_tier() {
         let c = contracts();
         assert!(c.complete());
-        assert_eq!(c.commands().count(), 24);
+        assert_eq!(c.commands().count(), 26);
         for (name, tier) in [
             ("status", Tier::R),
             ("standing.get", Tier::R),
@@ -588,13 +588,11 @@ mod tests {
             ("standing.set", Tier::H),
             ("lineup.cancel", Tier::H),
             ("docker.start", Tier::H),
+            ("huddle.answer", Tier::H),
+            ("huddle.questions", Tier::R),
         ] {
             assert_eq!(c.command(name).unwrap().tier, tier, "{name}");
         }
-        assert!(
-            c.command("huddle.answer").is_none(),
-            "reserved, no contract yet"
-        );
         assert!(
             c.check_args("run.start", &json!({"preset": "edition", "args": {}}))
                 .is_ok()

@@ -43,6 +43,7 @@ pub async fn read(
             .await
         }
         "run.presets" => Ok(news_chief::presets::catalogue_json()),
+        "huddle.questions" => huddle_questions(db, n("limit", 30), cx.now).await,
         "lineup.list" => board::lineup(db, cx.policy, cx.now).await,
         "standing.get" => news_standing::current(db)
             .await
@@ -81,4 +82,21 @@ async fn standing_history(
         out["next_cursor"] = json!(last.version.to_string());
     }
     Ok(out)
+}
+
+/// `huddle.questions`: the pairwise questions for Board's form, with the text Board shows.
+async fn huddle_questions(db: &PgPool, limit: i64, now: DateTime<Utc>) -> Result<Value, NewsError> {
+    let qs = news_nose::huddle::questions(db, now, limit as usize).await?;
+    let mut text = format!("{} questions: which deserved a page first?\n", qs.len());
+    for (i, q) in qs.iter().enumerate() {
+        text.push_str(&format!(
+            "{}. {} (S {:.1}) or {} (S {:.1})\n",
+            i + 1,
+            q.a.title,
+            q.a.total,
+            q.b.title,
+            q.b.total
+        ));
+    }
+    Ok(json!({"questions": qs, "text": text}))
 }

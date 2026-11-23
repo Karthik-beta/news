@@ -13,8 +13,6 @@ pub const STUBS: &[(&str, &str)] = &[
     ("prune", "#9"),
     ("parse 81234", "#9"),
     ("related 81234", "#15"),
-    ("scores propose --from-labels", "#19"),
-    ("scores label --run r_1 labels.json", "#19"),
     ("stats", "#16"),
     ("save 81234 copy.json", "#17"),
     ("render 81234", "#17"),
@@ -25,7 +23,6 @@ pub const STUBS: &[(&str, &str)] = &[
     ("ai fallback 1", "#18"),
     ("eval run g1", "#19"),
     ("eval report e1", "#19"),
-    ("review weekly", "#19"),
     ("update 2026/11/us-cpi-october-2026", "#20"),
     ("home candidates", "#20"),
     ("home save curation.json", "#20"),
@@ -66,6 +63,7 @@ pub const G_TIER: &[&str] = &[
     "publish 81234",
     "home publish 3",
     "eval promote A1 v3",
+    "scores adopt v2",
     "corrections resolve c1 --action update",
 ];
 

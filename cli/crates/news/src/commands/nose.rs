@@ -1,16 +1,16 @@
 //! `news plan --run` and `news scores explain|weights`: Nose and Desk (Bureau §3.7, §4; ADR 0012).
-//! Calibration (`scores propose|label`) is Huddle's, built in #19.
+//! Huddle's calibration (`scores label|propose|adopt`) and the Debrief (`review weekly`) are here too (#19).
 
 use chrono::{DurationRound, TimeDelta, Utc};
 use serde_json::{Value, json};
 use uuid::Uuid;
 
-use super::{Reply, database, stub};
+use super::{Reply, database, read_json};
 use crate::cli::ScoresCmd;
 use news_core::{NewsError, NewsResult};
 use news_nose::desk::{self, Candidate};
 use news_nose::score::{self, StoryInput};
-use news_nose::{config, store};
+use news_nose::{huddle, store};
 use news_telemetry::{ClickHouse, ScoreRow};
 
 /// A run plans at most this many pages; the Desk limits are integer sums of it.
@@ -20,16 +20,12 @@ fn db_err(e: sqlx::Error) -> NewsError {
     news_store::map_err(e)
 }
 
-fn scorer() -> NewsResult<config::ScorerConfig> {
-    config::v1().map_err(NewsError::internal)
-}
-
 /// Score every open story with inputs at the run's start hour, plan the run, and store both.
 pub async fn plan(run: &str) -> NewsResult<Reply> {
     let run_id = Uuid::parse_str(run)
         .map_err(|_| NewsError::usage(format!("--run {run:?} is not a run id (a UUID)")))?;
-    let cfg = scorer()?;
     let (db, _) = database(2).await?;
+    let cfg = huddle::current_config(&db).await?;
     let info = store::run_info(&db, run_id)
         .await
         .map_err(db_err)?
@@ -123,10 +119,15 @@ pub async fn plan(run: &str) -> NewsResult<Reply> {
     Ok(reply)
 }
 
-pub async fn scores(cmd: ScoresCmd, path: &str) -> NewsResult<Reply> {
+pub async fn scores(cmd: ScoresCmd) -> NewsResult<Reply> {
     match cmd {
         ScoresCmd::Weights => {
-            let cfg = scorer()?;
+            // The live version needs the database; without `DATABASE_URL` this is the seed, v1.
+            let cfg = if std::env::var("DATABASE_URL").is_ok_and(|u| !u.is_empty()) {
+                huddle::current_config(&database(2).await?.0).await?
+            } else {
+                news_nose::config::v1().map_err(NewsError::internal)?
+            };
             Ok(Reply::new(json!({
                 "version": cfg.version,
                 "weights": cfg.weights,
@@ -156,7 +157,43 @@ pub async fn scores(cmd: ScoresCmd, path: &str) -> NewsResult<Reply> {
                 "explain": row.explain,
             })))
         }
-        // Calibration is Huddle's (#19).
-        ScoresCmd::Propose { .. } | ScoresCmd::Label { .. } => stub(path, "#19"),
+        ScoresCmd::Label { run, file } => {
+            let labels = huddle::parse_labels(&read_json(&file)?)?;
+            let (db, _) = database(2).await?;
+            let stored = huddle::store_labels(&db, &run, &labels).await?;
+            Ok(Reply::new(json!({ "stored": stored })))
+        }
+        ScoresCmd::Propose { from_labels } => {
+            if !from_labels {
+                return Err(NewsError::usage("only `--from-labels` is supported"));
+            }
+            let (db, _) = database(2).await?;
+            let p = huddle::propose(&db).await?;
+            Ok(Reply::new(
+                serde_json::to_value(&p).map_err(|e| NewsError::internal(e.to_string()))?,
+            ))
+        }
+        // G tier: Chief adopts a version in process, as the step after the change's approval.
+        ScoresCmd::Adopt { version } => {
+            if !is_version(&version) {
+                return Err(NewsError::usage(format!(
+                    "{version:?} is not a scorer version (v2, v3, …)"
+                )));
+            }
+            super::run::gated("scores adopt")
+        }
     }
+}
+
+fn is_version(s: &str) -> bool {
+    s.strip_prefix('v')
+        .is_some_and(|n| !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit()))
+}
+
+/// `news review weekly`: the Debrief.
+pub async fn review_weekly() -> NewsResult<Reply> {
+    let (db, _) = database(2).await?;
+    Ok(Reply::new(
+        news_critic::debrief::weekly(&db, Utc::now()).await?,
+    ))
 }

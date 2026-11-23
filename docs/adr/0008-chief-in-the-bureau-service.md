@@ -334,7 +334,8 @@ The contracts in `contracts/hotline/` are the list. Owner is the issue that impl
 | `run.start`, `run.start_after_pause`, `gate.approve`, `gate.changes`, `gate.reject`, `run.pause`, `run.resume`, `run.cancel`, `lineup.cancel`, `standing.set` | H | #10 |
 | `docker.status` | R | #29 |
 | `docker.start`, `docker.stop`, `service.update` | H | #29 |
-| `huddle.answer` | H | #19 (name reserved; no contract yet) |
+| `huddle.questions` | R | #19 |
+| `huddle.answer` | H | #19 (stores the labels; completing the form step is Chief's, with the Huddle step handlers) |
 | `content.*` | H | later issues (names reserved) |
 
 Topics: `run`, `gate`, `lineup`, `schedule`, `usage`, `standing`, `service` (#10); `source` (#9, #16) and `huddle` (#19) have contracts now and are emitted when their subsystems land. `lagged` is the bus's own.

@@ -1,0 +1,14 @@
+Debrief: the 7 days to 2026-11-23 12:00 UTC
+Pages published: 3 (by tier: 1: 1, 2: 2; by type: earnings: 1, macro: 2)
+Coverage, actual / target:
+  category: business 0% / 20%; economy 67% / 20%; finance 33% / 20%; science 0% / 20%; tech 0% / 20%
+  region: australia 0% / 5%; china 0% / 10%; europe 0% / 20%; global 0% / 15%; india 33% / 15%; north-america 67% / 25%; other-asia 0% / 10%
+  page type: earnings 33% / 25%; explainer 0% / 5%; macro 67% / 20%; news 0% / 15%; policy 0% / 10%; report 0% / 10%; science 0% / 15%
+Failures: jobs discarded 3 (parse: 2, upstream: 1); runs failed 0
+Tokens per page: not recorded yet (Ghost, #18)
+Index budget: 1 of 140 indexed (20 a day)
+Home curation: published 2026-11-20 09:00 UTC, 3 days ago
+Unresolved entities: 2 open
+Top rejected stories (scored, never planned):
+  story 2: Apple results (S 61.0)
+  story 3: Quiet story (S 52.5)

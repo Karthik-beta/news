@@ -24,7 +24,7 @@ One Rust binary that gives agents, Bun code and Karthik every operation on the l
 
 ## Stubs
 
-Commands whose subsystem is not built yet return `precondition` (exit 4) with a hint naming the issue that builds it: Contacts, Wire (with `prune`), Clerk #9 (the libraries are built; the commands follow the Bureau service, #10/#29) · Chief #10 · Taster, `related` #15 · Ticker (`stats`) #16 · render, save, Proof #17 · Fixer, Ghost #18 · Critic, Huddle, `scores propose|label` #19 · Press, home, Rewrite #20 · Errata #21. Built now: `version`, `db`, `components`, `component`, `schema`, `ai schema`, `jobs *`, `calendar upcoming|sync|late`, `entities resolve|show|unresolved` (#12; ADR 0009), and `plan --run` and `scores explain|weights` (#15; ADR 0012). `alias add` and `merge` are H-tier, so they have no command form.
+Commands whose subsystem is not built yet return `precondition` (exit 4) with a hint naming the issue that builds it: Contacts, Wire (with `prune`), Clerk #9 (the libraries are built; the commands follow the Bureau service, #10/#29) · Chief #10 · Taster, `related` #15 · Ticker (`stats`) #16 · render, save, Proof #17 · Fixer, Ghost #18 · Critic (`eval *`) #19 · Press, home, Rewrite #20 · Errata #21. Built now: `version`, `db`, `components`, `component`, `schema`, `ai schema`, `jobs *`, `calendar upcoming|sync|late`, `entities resolve|show|unresolved` (#12; ADR 0009), `plan --run` and `scores explain|weights` (#15; ADR 0012), and Huddle's `scores label|propose|adopt` (adopt is G tier: always gated) and `review weekly` (#19). `alias add` and `merge` are H-tier, so they have no command form.
 
 ## Crate map
 

@@ -55,9 +55,16 @@ Every score of a run, selected or not, goes to ClickHouse `news.scores` with the
 
 Target 10 (category cap 4, entity limit 2, Tier 1 quota 2, update cap 1), with the six stories plus an ECB decision (73), an Apple 8-K (64) and an Apple EU ruling (62), an Australian CPI (55), an item below the floor (35) and two updates (62, 58): CPI and ECB take the Tier 1 places; IMF WEO, Apple results and RBI earned tier 1 and are planned tier 2; Economy reaches its cap of 4, blocking US PPI and Australian CPI; then the preprint and the Apple EU ruling, after which the Apple 8-K is Apple's third story and is blocked by the entity limit. One update fits the cap and is planned tier 2 (quota used); the other stays queued.
 
+### Calibration (Huddle, #19)
+
+- **Model.** `P(a ≻ b) = σ(ΔS / 10)` with `ΔS = 100 · w · (z_a − z_b)` and `z_k = Q · x_k`, the six components times Q, because Q multiplies the whole sum in S. Ten points of S is odds of e : 1 (`calibrate::TAU`). Each label is stored with the two stories' component values at answer time (`score_labels`), so a later re-score cannot change what Karthik judged.
+- **Fit.** Mean log-likelihood minus an L2 pull (0.5) towards the live weights, maximised by projected gradient ascent onto `{w ≥ 0, Σw = 1, |w_k − current_k| ≤ 0.05}` (the projection is a clamp with a shift found by bisection). No dependency. At least 10 labels since the live version was adopted (all of them for v1), else `precondition`. Every fifth label is held out of the fit; `propose` reports Kendall's τ of the live and the proposed weights on them.
+- **Versions.** `scorer_versions` holds proposals and adopted versions of the six weights; v1 is the seed and has no row. `propose` stores one open proposal (an older unadopted one is replaced) named `v{n+1}`; `news plan` and `scores weights` use the latest adopted version (the seed's half-lives, event weights and targets stay). `adopt` is G tier: the CLI form is always `gated`, and Chief calls `news_nose::huddle::adopt` in process as the `huddle.apply` step after the change's approval. It refuses a proposal that is not the next version, or that breaks the rules against its parent, and adopting twice is a no-op.
+- **Questions.** About 30 pairs, by code: stories scored in the last 7 days, neighbours in score order, the closest S first (a label between widely separated stories says little), never a pair already labelled, a story at most twice, the side shown first alternating. Board reads them with `huddle.questions` and sends answers with `huddle.answer`, which stores them as `news scores label` does.
+
 ## Consequences
 
-- `news plan --run`, `news scores explain` and `news scores weights` are built; `scores propose|label` move to #19, where calibration lives.
+- `news plan --run`, `news scores explain` and `news scores weights` are built, and so are `scores label|propose|adopt` and `news review weekly` (the Debrief, #19).
 - The Dispatch job kinds `story.score` and `run.select` still fail as not built: Chief's Edition step calls Desk when step handlers land.
 - Taster must write `stories.score_input` in this shape; its PR owns the 0401+ migrations.
 - Backfill's "F ignored" (Catchup) is not built: it needs a flag on the run, added with that preset.

@@ -336,6 +336,11 @@ pub async fn h_command(
                       "text": format!("{} removed from the Lineup.", r.short_id)}),
             )
         }
+        "huddle.answer" => {
+            let labels = news_nose::huddle::parse_labels(args)?;
+            let stored = news_nose::huddle::store_labels(&core.db, run, &labels).await?;
+            Ok(json!({"stored": stored, "text": format!("{stored} answers stored.")}))
+        }
         "standing.set" => {
             let base = args["base_version"].as_i64().unwrap_or(0) as i32;
             let changes: Vec<(String, Value)> = args["changes"]

@@ -2,9 +2,9 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://news.karthik.nz/contracts/cli/commands/scores.propose.schema.json",
   "title": "news scores propose",
-  "description": "Fit new weights from labels; prints a diff. Input is the command's arguments as an object; output is the envelope's data.",
+  "description": "Fit new weights from the labels since the live scorer version (a Bradley–Terry fit: weights ≥ 0, summing to 1, each moving at most 0.05) and store them as the open proposal; prints the diff. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "W",
-  "x-news-status": "stub until #19",
+  "x-news-status": "built",
   "x-news-errors": ["precondition"],
   "$defs": {
     "input": {
@@ -21,7 +21,15 @@
       "type": "object",
       "properties": {
         "version": {
-          "type": "string"
+          "type": "string",
+          "description": "The proposed version, adopted with `news scores adopt` (G tier)"
+        },
+        "parent": {
+          "type": "string",
+          "description": "The live version it was fitted from"
+        },
+        "labels": {
+          "type": "integer"
         },
         "diff": {
           "type": "array",
@@ -41,9 +49,21 @@
             "required": ["weight", "from", "to"],
             "additionalProperties": false
           }
+        },
+        "held_out": {
+          "type": "integer",
+          "description": "Labels kept out of the fit (every fifth)"
+        },
+        "agreement_before": {
+          "type": ["number", "null"],
+          "description": "Kendall's tau of the live weights on the held-out labels"
+        },
+        "agreement_after": {
+          "type": ["number", "null"],
+          "description": "Kendall's tau of the proposed weights on the held-out labels"
         }
       },
-      "required": ["version", "diff"],
+      "required": ["version", "parent", "labels", "diff", "held_out", "agreement_before", "agreement_after"],
       "additionalProperties": false
     }
   }
