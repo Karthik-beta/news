@@ -142,9 +142,9 @@ export function modelMarkdown(model: TableModel): string {
 
 /**
  * The chart's data in a sentence, for its accessible name (design/content-style.md): every value when a column has
- * 12 or fewer rows; otherwise the count, the endpoints and the extremes.
+ * 12 or fewer rows; otherwise the count of rows (periods, or what `rowsAre` names), the endpoints and the extremes.
  */
-export function modelSummary(model: TableModel): string {
+export function modelSummary(model: TableModel, rowsAre = "periods"): string {
   const parts = model.columns.map((c, i) => {
     const values = model.rows.map((r) => ({ label: r.label, value: r.cells[i]?.value ?? null }));
     const say = (v: { label: string; value: string | null }) =>
@@ -153,10 +153,10 @@ export function modelSummary(model: TableModel): string {
     const present = values.filter((v) => v.value !== null) as { label: string; value: string }[];
     const first = values[0] as (typeof values)[number];
     const last = values[values.length - 1] as (typeof values)[number];
-    if (present.length === 0) return `${c.label}, ${values.length} periods, ${MISSING_TEXT.toLowerCase()}`;
+    if (present.length === 0) return `${c.label}, ${values.length} ${rowsAre}, ${MISSING_TEXT.toLowerCase()}`;
     const hi = present.reduce((a, b) => (Number(b.value) > Number(a.value) ? b : a));
     const lo = present.reduce((a, b) => (Number(b.value) < Number(a.value) ? b : a));
-    return `${c.label}, ${values.length} periods, from ${say(first)} to ${say(last)}; highest ${displayValue(hi.value, c)} in ${hi.label}; lowest ${displayValue(lo.value, c)} in ${lo.label}`;
+    return `${c.label}, ${values.length} ${rowsAre}, from ${say(first)} to ${say(last)}; highest ${displayValue(hi.value, c)} in ${hi.label}; lowest ${displayValue(lo.value, c)} in ${lo.label}`;
   });
   return `${model.title}. ${parts.join(". ")}.`;
 }

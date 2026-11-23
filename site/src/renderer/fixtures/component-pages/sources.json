@@ -75,6 +75,21 @@
         "redistribution": true
       },
       "retrieved_at": "2026-11-21"
+    },
+    "src_imf_weo_lur": {
+      "title": "IMF DataMapper, World Economic Outlook: unemployment rate (LUR)",
+      "short": "World Economic Outlook",
+      "publisher": "International Monetary Fund",
+      "connector": "fixture",
+      "type": "dataset",
+      "primary": true,
+      "url": "https://www.imf.org/external/datamapper/LUR@WEO",
+      "licence": {
+        "name": "IMF copyright and usage (attribution)",
+        "url": "https://www.imf.org/external/terms.htm",
+        "redistribution": true
+      },
+      "retrieved_at": "2026-11-23"
     }
   }
 }

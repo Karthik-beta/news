@@ -5,6 +5,7 @@ import barChartSpec from "./BarChart/spec";
 import buttonSpec from "./Button/spec";
 import chartFigureSpec from "./ChartFigure/spec";
 import checkboxSpec from "./Checkbox/spec";
+import choroplethMapSpec from "./ChoroplethMap/spec";
 import columnChartSpec from "./ColumnChart/spec";
 import comparisonTableSpec from "./ComparisonTable/spec";
 import type { AnySpec } from "./contract";
@@ -77,6 +78,7 @@ export const specs: readonly AnySpec[] = [
   buttonSpec,
   chartFigureSpec,
   checkboxSpec,
+  choroplethMapSpec,
   columnChartSpec,
   comparisonTableSpec,
   dataLinksSpec,
