@@ -3,10 +3,13 @@
 // the live index_status.
 //
 // The bundle's HTML is untrusted. It is accepted only with exactly one robots tag, byte for byte one of the two forms
-// the renderer writes (site/src/renderer/render.tsx), and the api replaces exactly that tag's characters, nothing
-// else. Every `<meta` in the file is read as a tag, even inside a comment, script or text, which can only over-count:
-// a meta tag that is not in the plain form the renderer writes (double-quoted values, spaces between attributes), or
-// whose name could be encoded, is refused rather than guessed at.
+// the renderer writes (site/src/renderer/render.tsx), sitting where the renderer puts it (HEAD_PROLOGUE: nothing but
+// the doctype, <html>, <head> and other meta tags before it), and the api replaces exactly that tag's characters,
+// nothing else. Counting every `<meta` in the file, even inside a comment or script, over-counts, which is safe; the
+// prologue rule covers the other direction: a tag inside a comment, script, title, template or attribute value is
+// inert to a crawler, so it is refused however it got there. A meta tag that is not in the plain form the renderer
+// writes (double-quoted values, spaces between attributes), or whose name could be encoded, is refused as well, and so
+// is a file with more meta tags or attributes than the renderer ever writes (a cap on the work one bundle can cost).
 import type { Issue } from "@news/worker-shared/validate";
 import { ApiError } from "./errors";
 
@@ -21,6 +24,10 @@ export const ROBOTS_TAGS: Record<IndexStatus, string> = {
 const META_OPEN = /<meta(?=[\t\n\f\r />])/gi;
 /** One attribute after whitespace: a name, and optionally `="value"`. A double-quoted value may hold `>` and `<`. */
 const ATTR = /[\t\n\f\r ]+([^\t\n\f\r />"'=<`]+)(?:[\t\n\f\r ]*=[\t\n\f\r ]*"([^"]*)")?/y;
+/** What may come before the robots tag: the renderer writes the doctype, <html lang>, <head>, charset and viewport (one loop of tokens, so no backtracking blow-up). */
+const HEAD_PROLOGUE = /^(?:\s*(?:<!doctype html>|<html(?:\s[^<>]*)?>|<head>|<meta\s[^<>]*>))*\s*$/i;
+const MAX_META_TAGS = 64;
+const MAX_ATTRS = 16;
 const TAG_END = /[\t\n\f\r ]*\/?>/y;
 
 const PATH = "/files/index.html";
@@ -29,16 +36,27 @@ const issue = (code: string, message: string): Issue => ({ code, message, path: 
 /** Where the one robots tag is, or the issue that says why there is not exactly one the api may rewrite. */
 export function findRobotsTag(html: string): { start: number; end: number } | Issue {
   const found: { start: number; end: number }[] = [];
+  let scanned = 0;
+  let scannedTo = 0;
   for (const open of html.matchAll(META_OPEN)) {
     const start = open.index;
+    // A `<meta` inside the quoted value of the tag before it is part of that tag.
+    if (start < scannedTo) continue;
+    if (++scanned > MAX_META_TAGS)
+      return issue("bundle.robots_invalid", `index.html has more than ${MAX_META_TAGS} meta tags`);
     let pos = start + "<meta".length;
     let robots = false;
-    for (;;) {
+    for (let attrs = 0; ; attrs++) {
       TAG_END.lastIndex = pos;
       if (TAG_END.test(html)) {
         pos = TAG_END.lastIndex;
         break;
       }
+      if (attrs >= MAX_ATTRS)
+        return issue(
+          "bundle.robots_invalid",
+          `the meta tag at character ${start} has more than ${MAX_ATTRS} attributes`,
+        );
       ATTR.lastIndex = pos;
       const attr = ATTR.exec(html);
       if (!attr)
@@ -56,6 +74,7 @@ export function findRobotsTag(html: string): { start: number; end: number } | Is
       // robots, googlebot, bingbot, x-robots-tag: any crawler directive counts as a robots tag.
       if (value.includes("bot")) robots = true;
     }
+    scannedTo = pos;
     if (robots) found.push({ start, end: pos });
   }
   const [tag, second] = found;
@@ -64,6 +83,8 @@ export function findRobotsTag(html: string): { start: number; end: number } | Is
   const text = html.slice(tag.start, tag.end);
   if (text !== ROBOTS_TAGS.index && text !== ROBOTS_TAGS.noindex)
     return issue("bundle.robots_invalid", `the robots tag must be ${ROBOTS_TAGS.noindex} or ${ROBOTS_TAGS.index}`);
+  if (!HEAD_PROLOGUE.test(html.slice(0, tag.start)))
+    return issue("bundle.robots_invalid", "the robots tag is not in the head, before the title and the body");
   return tag;
 }
 
@@ -72,7 +93,7 @@ export function withRobots(html: string, status: IndexStatus): string {
   const tag = findRobotsTag(html);
   if ("code" in tag)
     throw new ApiError(
-      "invalid_bundle",
+      "robots_unrewritable",
       "index.html has no single robots tag the api can rewrite; republish the page",
       [tag],
     );

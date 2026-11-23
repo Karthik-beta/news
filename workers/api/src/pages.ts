@@ -680,7 +680,8 @@ export async function prepareIndex(
 
 /**
  * Reads the page's index.html from R2 (whichever version wrote it, one ahead of LATEST too) and sets its robots tag to
- * `status`, before anything is written: a stored file without exactly one tag the api can rewrite is refused here.
+ * `status`, before anything is written: a stored file without exactly one tag the api can rewrite throws
+ * robots_unrewritable here (executeIndex still lets a demotion through).
  * Returns the write to run, or undefined when there is no index.html (nothing is served, so nothing to index).
  */
 async function robotsWrite(deps: Deps, fence: Fence, page: PageRecord, status: IndexStatus) {
@@ -694,8 +695,12 @@ async function robotsWrite(deps: Deps, fence: Fence, page: PageRecord, status: I
   const stored = await fence.bounded("R2 get index.html", read());
   if (!stored) return undefined;
   const html = withRobots(stored.text, status);
-  // The file keeps the version stamp it had: only its robots tag changes.
-  const stamp = { version: Number(stored.meta.version), bundle_sha256: stored.meta.bundle_sha256 ?? "" };
+  // The file keeps the version stamp it had (none if it had none): only its robots tag changes.
+  const version = Number(stored.meta.version);
+  const stamp = {
+    ...(Number.isInteger(version) ? { version } : {}),
+    bundle_sha256: stored.meta.bundle_sha256 ?? "",
+  };
   return () => {
     fence.check();
     return fence.bounded("R2 put index.html", putPageFile(bucket, page.path, "index.html", html, stamp));
@@ -716,7 +721,13 @@ export async function executeIndex(deps: Deps, p: PreparedPageOp, ctx: OpContext
   const { fence } = ctx;
   const status = p.indexStatus as IndexStatus;
   const page: PageRecord = { ...p.page, index_status: status };
-  const writeHtml = await robotsWrite(deps, fence, page, status);
+  // A demotion must never be blocked by a file the api cannot rewrite: it commits, and the error is answered at the end.
+  let unrewritable: ApiError | undefined;
+  const writeHtml = await robotsWrite(deps, fence, page, status).catch((e: unknown) => {
+    if (status === "index" || !(e instanceof ApiError) || e.code !== "robots_unrewritable") throw e;
+    unrewritable = e;
+    return undefined;
+  });
   if (status === "noindex") await writeHtml?.();
   try {
     await fence.put(table, page as unknown as Doc, and(eq("version", page.version), eq("status", "published")));
@@ -736,6 +747,7 @@ export async function executeIndex(deps: Deps, p: PreparedPageOp, ctx: OpContext
   // The page's own URLs: its robots meta and sitemap entry follow index_status (ADR 0004).
   fence.check();
   const purged = await deps.purger.purge(pageFileUrls(deps.siteOrigin, page.path, ["index.html"]));
+  if (unrewritable) throw unrewritable;
   return {
     status: 200,
     body: { page_id: page.page_id, version: page.version, status: page.status, index_status: status, purged },

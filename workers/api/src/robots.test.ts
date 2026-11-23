@@ -39,7 +39,7 @@ describe("findRobotsTag", () => {
 
   it("finds the one tag in either form, and the rewrite changes only that tag", () => {
     for (const tag of [NOINDEX, INDEX]) {
-      const html = doc(`<meta name="description" content="Robots > bots">${tag}`);
+      const html = doc(`<meta name="description" content="Robots &gt; bots">${tag}`);
       expect(code(html)).toBe("ok");
       expect(withRobots(html, "index")).toBe(html.replace(tag, INDEX));
       expect(withRobots(html, "noindex")).toBe(html.replace(tag, NOINDEX));
@@ -86,8 +86,39 @@ describe("findRobotsTag", () => {
       expect(code(doc(head)), head).toBe("bundle.robots_invalid");
   });
 
-  it("withRobots refuses a file without exactly one tag (invalid_bundle)", () => {
-    expect(() => withRobots(doc(""), "index")).toThrow(expect.objectContaining({ code: "invalid_bundle" }));
+  it("accepts the renderer's own prologue before the tag", () => {
+    const html = `<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n${NOINDEX}\n<title>x</title></head><body></body></html>`;
+    expect(code(html)).toBe("ok");
+  });
+
+  it("refuses a tag in a place a crawler ignores, even when it is the only one", () => {
+    for (const [where, html] of [
+      ["a comment", doc("", `<!-- ${NOINDEX} -->`)],
+      ["a comment before the head", `<!-- ${NOINDEX} --><!doctype html><html><head></head></html>`],
+      ["a script string", doc("", `<script>var t = '${NOINDEX}';</script>`)],
+      ["the title", doc(`<title>${NOINDEX}</title>`)],
+      ["a template", doc("", `<template>${NOINDEX}</template>`)],
+      ["an attribute value", doc("", `<p title='${NOINDEX}'>x</p>`)],
+      ["the body", doc("", NOINDEX)],
+      ["after the title", doc(`<title>x</title>${NOINDEX}`)],
+    ] as const)
+      expect(code(html), where).toBe("bundle.robots_invalid");
+  });
+
+  it("caps the meta tags and attributes it reads", () => {
+    const metas = (n: number) => Array.from({ length: n }, (_, i) => `<meta name="m${i}" content="x">`).join("");
+    expect(code(doc(`${metas(60)}${NOINDEX}`))).toBe("ok");
+    expect(code(doc(`${metas(70)}${NOINDEX}`))).toBe("bundle.robots_invalid");
+    const attrs = (n: number) => Array.from({ length: n }, (_, i) => ` a${i}="x"`).join("");
+    expect(code(doc(`<meta${attrs(10)}>${NOINDEX}`))).toBe("ok");
+    expect(code(doc(`<meta${attrs(17)}>${NOINDEX}`))).toBe("bundle.robots_invalid");
+    // A large crafted tag is refused after 16 attributes, not scanned to its end; a long run of blanks is not a trap.
+    expect(code(doc(`<meta${" a".repeat(200_000)}>${NOINDEX}`))).toBe("bundle.robots_invalid");
+    expect(code(`${" ".repeat(500_000)}x${NOINDEX}`)).toBe("bundle.robots_invalid");
+  });
+
+  it("withRobots refuses a file without exactly one tag (robots_unrewritable)", () => {
+    expect(() => withRobots(doc(""), "index")).toThrow(expect.objectContaining({ code: "robots_unrewritable" }));
   });
 });
 
@@ -175,15 +206,40 @@ describe("the R2 robots tag follows index_status", () => {
     expect(state(h)).toEqual({ r2: INDEX, latest: "index" });
   });
 
-  it("a stored index.html without a tag the api can rewrite → 400 invalid_bundle, nothing changed", async () => {
+  it("a stored index.html without a tag the api can rewrite: a promotion is refused (409 robots_unrewritable), nothing changed", async () => {
     const h = harness();
     await published(h);
     const stamp = h.bucket.objects.get(HTML_KEY)?.customMetadata;
     await h.bucket.put(HTML_KEY, "<!doctype html><title>old</title>", { customMetadata: stamp });
     const writes = h.bucket.writes.length;
     const res = await setIndex(h, "index");
-    expect([res.status, (await errorOf(res)).code]).toEqual([400, "invalid_bundle"]);
+    expect([res.status, (await errorOf(res)).code]).toEqual([409, "robots_unrewritable"]);
     expect(latest(h)?.index_status).toBe("noindex");
     expect(h.bucket.writes.length).toBe(writes);
+  });
+
+  it("a demotion is never blocked: noindex is committed, R2 is left alone, and the answer is 409 robots_unrewritable", async () => {
+    const h = harness();
+    await published(h);
+    expect((await setIndex(h, "index")).status).toBe(200);
+    const stamp = h.bucket.objects.get(HTML_KEY)?.customMetadata;
+    await h.bucket.put(HTML_KEY, "<!doctype html><title>old</title>", { customMetadata: stamp });
+    const writes = h.bucket.writes.length;
+    const res = await setIndex(h, "noindex", "demote-0002");
+    expect([res.status, (await errorOf(res)).code]).toEqual([409, "robots_unrewritable"]);
+    expect(latest(h)?.index_status).toBe("noindex");
+    expect(h.bucket.writes.length).toBe(writes);
+    // The retry with the same key converges to the same answer.
+    expect((await setIndex(h, "noindex", "demote-0002")).status).toBe(409);
+    expect(latest(h)?.index_status).toBe("noindex");
+  });
+
+  it("a stored file without a version stamp is rewritten without one, never with NaN", async () => {
+    const h = harness();
+    await published(h);
+    await h.bucket.put(HTML_KEY, h.bucket.text(HTML_KEY) as string, { customMetadata: {} });
+    expect((await setIndex(h, "index")).status).toBe(200);
+    expect(state(h)).toEqual({ r2: INDEX, latest: "index" });
+    expect(h.bucket.objects.get(HTML_KEY)?.customMetadata).toEqual({ bundle_sha256: "" });
   });
 });
