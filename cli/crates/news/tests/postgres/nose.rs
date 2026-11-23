@@ -278,3 +278,126 @@ async fn plan_needs_a_known_run_and_something_to_score() {
         "{env}"
     );
 }
+
+async fn exec(f: &Fixture, sql: &str) {
+    sqlx::query(sqlx::AssertSqlSafe(sql.to_owned()))
+        .execute(&f.pool)
+        .await
+        .unwrap_or_else(|e| panic!("{sql}: {e}"));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn an_approved_budget_is_not_replaced_but_an_identical_replan_is_a_noop() {
+    let f = Fixture::migrated().await;
+    let as_of = seed(&f).await;
+    run(&f, as_of).await;
+    let ch = FakeClickHouse::start();
+    let (env, code, stderr) = plan(&f, &ch);
+    assert_eq!(code, 0, "{env} {stderr}");
+    let rows = plan_rows(&f).await;
+
+    // The plan step is done and Karthik approved the plan.
+    exec(
+        &f,
+        &format!(
+            "insert into run_steps (run_id, seq, step, kind, status) values
+               ('{RUN_ID}', 1, 'plan', 'code', 'done'), ('{RUN_ID}', 2, 'review', 'approval', 'done');
+             insert into gates (run_id, gate, round, step_seq, subject_sha, summary, opened_at)
+               values ('{RUN_ID}', 'plan', 1, 2, '\\x{0}', '{{}}', now());
+             insert into approvals (run_id, gate, round, decision, decided_at, subject_sha, origin)
+               values ('{RUN_ID}', 'plan', 1, 'approved', now(), '\\x{0}', 'board');
+             update runs set current_step = 'review' where run_id = '{RUN_ID}'",
+            "ab".repeat(32)
+        ),
+    )
+    .await;
+
+    // The same inputs give the same Budget: nothing changes and nothing is logged again.
+    let ch = FakeClickHouse::start();
+    let (env, code, stderr) = plan(&f, &ch);
+    assert_eq!(code, 0, "{env} {stderr}");
+    assert_eq!(plan_rows(&f).await, rows);
+    assert!(ch.scores_bodies().is_empty());
+
+    // A different target would change the Budget the approval covers: refused, rows untouched.
+    exec(
+        &f,
+        &format!("update runs set args = '{{\"target\": 2}}' where run_id = '{RUN_ID}'"),
+    )
+    .await;
+    let ch = FakeClickHouse::start();
+    let (env, code, _) = plan(&f, &ch);
+    assert_eq!(
+        (code, env["error"]["code"].as_str()),
+        (4, Some("precondition")),
+        "{env}"
+    );
+    assert_eq!(plan_rows(&f).await, rows);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn a_run_past_planning_keeps_its_budget() {
+    let f = Fixture::migrated().await;
+    let as_of = seed(&f).await;
+    run(&f, as_of).await;
+    let ch = FakeClickHouse::start();
+    assert_eq!(plan(&f, &ch).1, 0);
+    let rows = plan_rows(&f).await;
+    // Waiting on the AI, no approval: still past planning.
+    exec(
+        &f,
+        &format!(
+            "update runs set status = 'waiting_ai', args = '{{\"target\": 2}}' where run_id = '{RUN_ID}'"
+        ),
+    )
+    .await;
+    let ch = FakeClickHouse::start();
+    let (env, code, _) = plan(&f, &ch);
+    assert_eq!(
+        (code, env["error"]["code"].as_str()),
+        (4, Some("precondition")),
+        "{env}"
+    );
+    assert_eq!(plan_rows(&f).await, rows);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn a_first_plan_with_no_picks_logs_once_and_a_target_over_the_cap_is_refused() {
+    let f = Fixture::migrated().await;
+    let as_of = seed(&f).await;
+    run(&f, as_of).await;
+    // Every open story is an update, and a target of 4 allows no updates: scored, nothing picked.
+    exec(
+        &f,
+        "update stories set score_input = jsonb_set(score_input, '{action}', '\"update\"') where story_id <= 6",
+    )
+    .await;
+    let ch = FakeClickHouse::start();
+    let (env, code, stderr) = plan(&f, &ch);
+    assert_eq!(code, 0, "{env} {stderr}");
+    assert_eq!(f.scalar_i64("select count(*) from run_plans").await, 0);
+    assert_eq!(ch.scores_bodies().len(), 1);
+    let ch = FakeClickHouse::start();
+    let (env, code, stderr) = plan(&f, &ch);
+    assert_eq!(code, 0, "{env} {stderr}");
+    assert!(
+        ch.scores_bodies().is_empty(),
+        "no run_plans rows is not a first plan"
+    );
+
+    exec(
+        &f,
+        &format!("update runs set args = '{{\"target\": 1001}}' where run_id = '{RUN_ID}'"),
+    )
+    .await;
+    let ch = FakeClickHouse::start();
+    let (env, code, _) = plan(&f, &ch);
+    assert_eq!(
+        (code, env["error"]["code"].as_str()),
+        (2, Some("usage")),
+        "{env}"
+    );
+}

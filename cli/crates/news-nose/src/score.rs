@@ -332,7 +332,7 @@ fn magnitude(page: &Page) -> (f64, String) {
             };
             match revision {
                 Some(r) if sigma > 0.0 => {
-                    let z = (r - mean(past_revisions)).abs() / sigma;
+                    let z = r.abs() / sigma;
                     (
                         surprise(z),
                         format!(
@@ -648,6 +648,16 @@ mod tests {
             flip: true,
         });
         assert_eq!(flip, 0.7);
+    }
+
+    #[test]
+    fn report_z_is_the_revision_over_the_spread_of_past_revisions() {
+        // Past revisions 0.1, 0.3, 0.1, 0.3: mean 0.2, sigma 0.1. §4.2 has no mean: z = |0.3| / 0.1 = 3.
+        let got = m(Page::Report {
+            revision: Some(0.3),
+            past_revisions: vec![0.1, 0.3, 0.1, 0.3],
+        });
+        assert!((got - surprise(3.0)).abs() < 1e-12, "{got}");
     }
 
     #[test]

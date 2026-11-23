@@ -13,6 +13,9 @@ use news_nose::score::{self, StoryInput};
 use news_nose::{config, store};
 use news_telemetry::{ClickHouse, ScoreRow};
 
+/// A run plans at most this many pages; the Desk limits are integer sums of it.
+const MAX_TARGET: i64 = 1000;
+
 fn db_err(e: sqlx::Error) -> NewsError {
     news_store::map_err(e)
 }
@@ -37,6 +40,11 @@ pub async fn plan(run: &str) -> NewsResult<Reply> {
             .await?
             .int("run.target_pages"),
     };
+    if target > MAX_TARGET {
+        return Err(NewsError::usage(format!(
+            "target pages {target} is over the limit of {MAX_TARGET}"
+        )));
+    }
     let target = u32::try_from(target)
         .ok()
         .filter(|t| *t > 0)
@@ -76,12 +84,16 @@ pub async fn plan(run: &str) -> NewsResult<Reply> {
         .collect();
     let plan = desk::select(&cands, target);
     let rows: Vec<(i64, &score::Score)> = scored.iter().map(|(id, _, s)| (*id, s)).collect();
-    let first = store::save(&db, run_id, as_of, &rows, &plan)
+    let fresh = store::save(&db, run_id, as_of, &rows, &plan)
         .await
-        .map_err(db_err)?;
-    // Log every score once per run (Bureau §4.7), on the run's first plan only, so a re-run adds
-    // nothing. Telemetry never fails the command.
-    if first && let Some(ch) = ClickHouse::from_env() {
+        .map_err(|e| match e {
+            store::SaveError::Locked(m) => NewsError::precondition(m)
+                .with_hint("a run's Budget is fixed once it is past planning or approved"),
+            store::SaveError::Db(e) => db_err(e),
+        })?;
+    // Log every score once (Bureau §4.7): only when this plan inserted new score rows, so a re-run
+    // adds nothing. Telemetry never fails the command.
+    if fresh && let Some(ch) = ClickHouse::from_env() {
         let now = Utc::now();
         let ch_rows: Vec<ScoreRow> = scored
             .iter()
