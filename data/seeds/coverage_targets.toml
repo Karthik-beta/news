@@ -1,0 +1,27 @@
+# Coverage targets (Bureau Design §4.2): each bucket's share of a 7-day window of published pages.
+# Coverage gap G compares them with the actual shares. Each table sums to 1.
+
+[category]
+tech = 0.20
+business = 0.20
+finance = 0.20
+economy = 0.20
+science = 0.20
+
+[region]
+north-america = 0.25
+europe = 0.20
+india = 0.15
+china = 0.10
+other-asia = 0.10
+australia = 0.05
+global = 0.15
+
+[page_type]
+earnings = 0.25
+macro = 0.20
+policy = 0.10
+report = 0.10
+news = 0.15
+science = 0.15
+explainer = 0.05

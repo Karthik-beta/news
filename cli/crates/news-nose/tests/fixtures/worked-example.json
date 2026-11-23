@@ -1,0 +1,108 @@
+{
+  "about": "Bureau Design §4.6: five stories plus US PPI, scored at as_of against the 7-day coverage shares. Entity ids are Roster-style placeholders. The CPI and PPI series give a last change of 1.50 σ (z = 1.5).",
+  "as_of": "2026-11-13T18:00:00Z",
+  "coverage": {
+    "category": { "economy": 0.18, "finance": 0.26, "science": 0.10, "tech": 0.23, "business": 0.23 },
+    "region": { "north-america": 0.30, "global": 0.10, "india": 0.09, "europe": 0.20, "china": 0.10, "other-asia": 0.10, "australia": 0.11 },
+    "page_type": { "macro": 0.20, "earnings": 0.22, "report": 0.08, "policy": 0.10, "science": 0.08, "news": 0.20, "explainer": 0.12 }
+  },
+  "stories": [
+    {
+      "id": 1,
+      "name": "US CPI, October",
+      "input": {
+        "event_type": "macro_headline",
+        "page": { "type": "macro", "per_year": 12, "values": [100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1516] },
+        "categories": ["economy"],
+        "regions": ["north-america"],
+        "main_entity": { "id": "101", "prominence": 1 },
+        "source_tier": 1,
+        "published_at": "2026-11-13T12:00:00Z",
+        "data_points": 40,
+        "series": true,
+        "novelty": { "kind": "regular_series" }
+      }
+    },
+    {
+      "id": 2,
+      "name": "IMF WEO, October",
+      "input": {
+        "event_type": "report_flagship",
+        "page": { "type": "report", "revision": -0.2, "past_revisions": [0.3, -0.3, 0.3, -0.3] },
+        "categories": ["economy"],
+        "regions": ["global"],
+        "main_entity": { "id": "201", "prominence": 1 },
+        "source_tier": 1,
+        "published_at": "2026-11-11T16:00:00Z",
+        "data_points": 60,
+        "series": true,
+        "novelty": { "kind": "new_event" }
+      }
+    },
+    {
+      "id": 3,
+      "name": "RBI policy (hold)",
+      "input": {
+        "event_type": "policy_major",
+        "page": { "type": "policy", "change_bp": 0, "statement_change": 0.05, "holds_before": 8 },
+        "categories": ["economy"],
+        "regions": ["india"],
+        "main_entity": { "id": "301", "prominence": 1 },
+        "source_tier": 1,
+        "published_at": "2026-11-13T15:00:00Z",
+        "data_points": 12,
+        "series": true,
+        "novelty": { "kind": "new_event" }
+      }
+    },
+    {
+      "id": 4,
+      "name": "Apple FY26 Q4 results",
+      "input": {
+        "event_type": "company_results",
+        "page": { "type": "earnings", "growth": 5.5, "past_growth": [4, 6, 4, 6, 4, 6, 4, 6, 4, 6, 4, 6] },
+        "categories": ["finance"],
+        "regions": ["north-america"],
+        "main_entity": { "id": "401", "prominence": 1 },
+        "source_tier": 1,
+        "published_at": "2026-11-12T22:00:00Z",
+        "data_points": 120,
+        "series": true,
+        "novelty": { "kind": "new_event" }
+      }
+    },
+    {
+      "id": 5,
+      "name": "arXiv preprint (cs.LG)",
+      "input": {
+        "event_type": "preprint",
+        "page": { "type": "science" },
+        "categories": ["science"],
+        "regions": ["global"],
+        "main_entity": { "id": "501", "prominence": 2 },
+        "source_tier": 3,
+        "published_at": "2026-11-12T12:00:00Z",
+        "data_points": 6,
+        "series": false,
+        "novelty": { "kind": "new_event" }
+      }
+    },
+    {
+      "id": 6,
+      "name": "US PPI, October",
+      "input": {
+        "event_type": "macro_other",
+        "page": { "type": "macro", "per_year": 12, "values": [100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1, 100.0, 100.1516] },
+        "categories": ["economy"],
+        "regions": ["north-america"],
+        "main_entity": { "id": "102", "prominence": 2 },
+        "entities": [{ "id": "101", "prominence": 1 }],
+        "source_tier": 1,
+        "published_at": "2026-11-13T10:07:00Z",
+        "data_points": 40,
+        "series": true,
+        "novelty": { "kind": "regular_series" }
+      }
+    }
+  ]
+}

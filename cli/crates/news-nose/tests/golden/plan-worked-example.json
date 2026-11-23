@@ -1,0 +1,63 @@
+{
+  "below_floor": 0,
+  "by_bucket": {
+    "economy": 2,
+    "finance": 1,
+    "science": 1
+  },
+  "by_tier": {
+    "1": 1,
+    "2": 3
+  },
+  "limits": {
+    "category_cap": 2,
+    "entity_limit": 2,
+    "target": 4,
+    "tier1_quota": 1,
+    "update_cap": 0
+  },
+  "planned": 4,
+  "queued": [
+    {
+      "S": 71.21,
+      "reason": "category cap: economy has 2 of 2",
+      "story_id": 3
+    },
+    {
+      "S": 70.0,
+      "reason": "category cap: economy has 2 of 2",
+      "story_id": 6
+    }
+  ],
+  "run_id": "00000000-0000-4000-8000-000000000046",
+  "top": [
+    {
+      "S": 75.17,
+      "action": "new",
+      "reason": "pick 1: S 75.17 = 75.17; tier 1 (1 of 1)",
+      "story_id": 1,
+      "tier": 1
+    },
+    {
+      "S": 72.49,
+      "action": "new",
+      "reason": "pick 2: S 72.49 × 0.92^1 (category economy) = 66.69; earned tier 1, planned tier 2 (Tier 1 quota 1 used)",
+      "story_id": 2,
+      "tier": 2
+    },
+    {
+      "S": 66.56,
+      "action": "new",
+      "reason": "pick 3: S 66.56 × 0.92^1 (region north-america) = 61.24; earned tier 1, planned tier 2 (Tier 1 quota 1 used)",
+      "story_id": 4,
+      "tier": 2
+    },
+    {
+      "S": 50.27,
+      "action": "new",
+      "reason": "pick 4: S 50.27 × 0.92^1 (region global) = 46.25; tier 2",
+      "story_id": 5,
+      "tier": 2
+    }
+  ]
+}
