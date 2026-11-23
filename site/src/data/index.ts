@@ -54,7 +54,7 @@ export async function siteData(env: SiteEnv): Promise<SiteData> {
   if (mode === "local") {
     if (!LOCAL_ENVS.has(env.NEWS_ENV ?? "")) throw new Error("NEWS_DATA=local is refused outside NEWS_ENV=local");
     // Loaded on demand so the production path never evaluates the fixture seed.
-    local ??= import("./local").then((m) => m.localSiteData(env.NEWS_FIXTURE_SET));
+    local ??= import("./local").then((m) => m.localSiteData(env));
     return local;
   }
   if (mode !== "dynamodb") throw new Error(`NEWS_DATA must be dynamodb or local, not ${JSON.stringify(mode)}`);

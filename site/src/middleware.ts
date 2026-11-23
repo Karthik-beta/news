@@ -5,7 +5,8 @@
 import { defineMiddleware } from "astro:middleware";
 import { clientIp } from "@news/worker-shared/http";
 import type { SiteEnv } from "./data";
-import { settings } from "./server/context";
+import { settings, siteContext } from "./server/context";
+import { renderMachine } from "./server/machine";
 import { cacheControl, matchRoute, POLICY } from "./server/routes";
 import { serve } from "./server/serve";
 
@@ -20,6 +21,17 @@ export const onRequest = defineMiddleware(async (context, next) => {
       status: 301,
       headers: { location: m.location, "cache-control": cacheControl(POLICY.redirect) },
     });
+  // Feeds, sitemaps and llms.txt are built here; every other page is an Astro route.
+  const render = async () =>
+    m.type === "page" && (m.kind === "feed" || m.kind === "sitemap" || m.kind === "llms")
+      ? renderMachine(await siteContext(env), m)
+      : next();
+  // A preview server (NEWS_PREVIEW=1 builds only): no cache, no limiter, everything marked noindex (src/preview.ts).
+  if (typeof __NEWS_PREVIEW__ !== "undefined" && __NEWS_PREVIEW__) {
+    const preview = await import("./preview");
+    preview.assertLocalPreview(env);
+    return preview.decorate(m.type === "page" ? await render() : await next());
+  }
   if (m.type !== "page") return next();
   const ip = clientIp(context.request);
   return serve(context.request, m, {
@@ -30,6 +42,6 @@ export const onRequest = defineMiddleware(async (context, next) => {
     allow: env.SEARCH_RATE_LIMITER
       ? async () => (await env.SEARCH_RATE_LIMITER?.limit({ key: ip }))?.success ?? true
       : undefined,
-    render: () => next(),
+    render,
   });
 });

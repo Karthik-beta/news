@@ -4,7 +4,15 @@
 import { slotsOf } from "@news/worker-shared/curation";
 import { keyOf } from "@news/worker-shared/dynamo/table";
 import { encodeCursor, type Reader } from "@news/worker-shared/read";
-import type { Curation, HubEntry, TaxonomyNode } from "@news/worker-shared/records";
+import type { Curation, HubEntry, PageType, TaxonomyNode } from "@news/worker-shared/records";
+import {
+  MAX_TERMS,
+  QueryTooLongError,
+  type SearchHit,
+  type SearchParams,
+  SearchUnavailableError,
+  searchPages,
+} from "@news/worker-shared/search";
 import { newsLibrary } from "../components/library";
 import type { NavLink } from "../components/Masthead/Masthead";
 import type { SiteData } from "../data";
@@ -13,7 +21,7 @@ import { PageData, PageSources } from "../renderer/bundle/schema";
 import { type ListedPage, listingParts, type PageListing, regionLabel } from "../renderer/data/listings";
 import { PageDataResolver } from "../renderer/data/resolve";
 import { parsePage } from "../renderer/render";
-import { canonicalPath, type RouteKind } from "./routes";
+import { canonicalPath } from "./routes";
 import type { PageMatch } from "./serve";
 
 /** A page's JSON files are not read past this size: parsing costs about 8 ms of CPU per MiB (ADR 0006). */
@@ -23,6 +31,8 @@ export const HUB_PAGE = 20;
 export const SCAN_LIMIT = 200;
 export const LATEST_READ = 30;
 export const STRIP_FIGURES = 4;
+/** The search page shows this many results and no further pages: the reader refines the search (ADR 0010). */
+export const SEARCH_LIMIT = 20;
 
 export interface Ctx {
   data: SiteData;
@@ -41,6 +51,8 @@ export interface Chrome {
   robots: "index, follow" | "noindex, follow";
   /** The path of the canonical URL (indexed pages only). */
   canonical?: string;
+  /** The category whose feeds the page advertises (none: the site-wide feeds only). */
+  feedCategory?: string;
 }
 
 export interface RegionOption {
@@ -67,7 +79,7 @@ export type Body =
     }
   | {
       type: "hub";
-      kind: Exclude<RouteKind, "home" | "region">;
+      kind: "latest" | "category" | "entity";
       title: string;
       fly?: string;
       subcategories: NavLink[];
@@ -79,6 +91,22 @@ export type Body =
       years?: { year: string; entries: HubEntry[] }[];
       /** Entity hubs: the newest page and its first figures. */
       strip?: { page: ListedPage; figureIds: string[] };
+    }
+  | {
+      type: "search";
+      /** The query as typed, and the filters as sent (empty string: none). */
+      query: string;
+      filters: { category: string; region: string; type: string; from: string; to: string };
+      categories: RegionOption[];
+      regions: RegionOption[];
+      types: RegionOption[];
+      /** False before the first search: the page shows the form alone. */
+      searched: boolean;
+      hits: ListedPage[];
+      /** Why nothing was searched: a query with too many words. */
+      problem?: string;
+      /** D1 failed (most likely its daily limit): the page says so and the response is a 503 with Retry-After. */
+      unavailable?: { retryAfter: number };
     }
   | { type: "notfound" };
 
@@ -314,7 +342,7 @@ async function loadHub(ctx: Ctx, m: PageMatch): Promise<View> {
     type: "view",
     chrome: await chrome(ctx, {
       title,
-      ...(m.kind === "category" ? { current: `/${m.segments[0]}` } : {}),
+      ...(m.kind === "category" ? { current: `/${m.segments[0]}`, feedCategory: slug } : {}),
       robots: first ? "index, follow" : "noindex, follow",
       ...(first ? { canonical: where } : {}),
     }),
@@ -342,7 +370,65 @@ async function loadHub(ctx: Ctx, m: PageMatch): Promise<View> {
   };
 }
 
+const PAGE_TYPES: PageType[] = ["earnings", "macro", "policy", "report", "news", "science", "explainer"];
+const capital = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/** The listing of a search hit. The search index holds no fly title. */
+const hitListing = (h: SearchHit): ListedPage => ({
+  record: { ...h, fly_title: null, page_type: h.page_type as PageType },
+});
+
+/** `/search`: the form, and the matches when there is a query. D1 failing is the daily-limit answer, not an error page. */
+async function loadSearch(ctx: Ctx, m: PageMatch): Promise<View> {
+  const params = m.search as SearchParams;
+  const tax = await ctx.taxonomy();
+  const sent = (k: "category" | "region" | "from" | "to" | "page_type") => params[k] ?? "";
+  let hits: SearchHit[] = [];
+  let problem: string | undefined;
+  let unavailable: { retryAfter: number } | undefined;
+  if (params.query) {
+    try {
+      hits = await searchPages(ctx.data.shards, { ...params, limit: SEARCH_LIMIT });
+    } catch (e) {
+      if (e instanceof QueryTooLongError) problem = `Use at most ${MAX_TERMS} words: every word must match.`;
+      else if (e instanceof SearchUnavailableError) {
+        const midnight = Date.UTC(ctx.now.getUTCFullYear(), ctx.now.getUTCMonth(), ctx.now.getUTCDate() + 1);
+        unavailable = { retryAfter: Math.ceil((midnight - ctx.now.getTime()) / 1000) };
+      } else throw e;
+    }
+  }
+  return {
+    type: "view",
+    chrome: await chrome(ctx, { title: "Search", robots: "noindex, follow" }),
+    body: {
+      type: "search",
+      query: params.query,
+      filters: {
+        category: sent("category"),
+        region: sent("region"),
+        type: sent("page_type"),
+        from: sent("from"),
+        to: sent("to"),
+      },
+      categories: [
+        { slug: "", label: "All categories" },
+        ...tax.map((n) => ({
+          slug: n.id,
+          label: n.parent ? `${tax.find((p) => p.id === n.parent)?.name ?? n.parent}: ${n.name}` : n.name,
+        })),
+      ],
+      regions: [{ slug: "", label: "All regions" }, ...ctx.regions.map((slug) => ({ slug, label: regionLabel(slug) }))],
+      types: [{ slug: "", label: "All page types" }, ...PAGE_TYPES.map((t) => ({ slug: t, label: capital(t) }))],
+      searched: params.query !== "",
+      hits: hits.map(hitListing),
+      ...(problem ? { problem } : {}),
+      ...(unavailable ? { unavailable } : {}),
+    },
+  };
+}
+
 export async function loadView(ctx: Ctx, m: PageMatch): Promise<View> {
+  if (m.kind === "search") return loadSearch(ctx, m);
   if (m.kind === "home" || (m.kind === "region" && !m.after)) return loadHome(ctx, m);
   return loadHub(ctx, m);
 }

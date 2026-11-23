@@ -342,6 +342,41 @@ describe("hubs", () => {
   });
 });
 
+describe("search and machine routes", () => {
+  const searchMatch = () => {
+    const m = matchRoute(new URL(`${ORIGIN}/search?q=inflation`), ORIGIN, REGIONS);
+    if (m.type !== "page") throw new Error("not a page");
+    return m;
+  };
+
+  it("caches a search for 10 minutes under its normalised key", async () => {
+    const cache = new MemoryCache(() => 0);
+    const res = await serve(new Request(`${ORIGIN}/search?q=Inflation`), searchMatch(), {
+      cache,
+      waitUntil: () => {},
+      now: () => 0,
+      render: async () => new Response("results"),
+    });
+    expect(res.headers.get("cache-control")).toBe(cacheControl(POLICY.search));
+    expect(cache.puts).toEqual([`${ORIGIN}/search?q=inflation`]);
+  });
+
+  it("search's daily-limit 503 keeps its Retry-After, is never cached, and is not replaced by a stored copy", async () => {
+    const cache = new MemoryCache(() => 0);
+    const res = await serve(new Request(`${ORIGIN}/search?q=inflation`), searchMatch(), {
+      cache,
+      waitUntil: () => {},
+      now: () => 0,
+      render: async () => new Response("daily limit", { status: 503, headers: { "retry-after": "28800" } }),
+    });
+    expect(res.status).toBe(503);
+    expect(res.headers.get("retry-after")).toBe("28800");
+    expect(res.headers.get("cache-control")).toBe("no-store");
+    expect(await res.text()).toBe("daily limit");
+    expect(cache.puts).toEqual([]);
+  });
+});
+
 describe("the 404 page", () => {
   it("is the NotFound template with the site's navigation", async () => {
     const view = await notFoundView(ctxOf(tableOf()));

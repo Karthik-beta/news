@@ -55,7 +55,7 @@ One table in code, `site/src/server/routes.ts`, gives each route its rendering a
 | `/llms.txt` | taxonomy, config | SSR | 1 day | 1 h | not purged |
 | Redirect: a path with `URL#<path>` / `REDIRECT` | DynamoDB | SSR, the stored status (301 or 308) | 1 day | 1 day | redirect write |
 | 404 | (the lookups that missed) | SSR, prerendered template | 10 min | 60 s | — |
-| `/robots.txt`, `/methodology`, `/about`, `/glossary`, `/privacy`, `/legal`, `/contact`, `/report`, `/data` | config at build | prerendered asset | Cloudflare's asset cache, replaced on deploy | 1 h | — |
+| `/robots.txt`, `/methodology`, `/about`, `/glossary`, `/privacy`, `/legal`, `/contact`, `/report`, `/data`, `/feeds` | config at build | prerendered asset | Cloudflare's asset cache, replaced on deploy | 1 h | — |
 | `/_astro/*` | — | asset | as above | content-hashed: 1 year, `immutable`; fixed names: 1 h | — |
 | Search daily-cap answer | — | SSR, 503, `Retry-After` to 00:00 UTC | `no-store` | `no-store` | — |
 | Preview mode, `/fixtures/*` | — | local builds only | `no-store` | `no-store` | — |
@@ -105,7 +105,7 @@ export function composeRegion(input: HomeInput, region: string, regionEntries: H
 
 ### 8. Static pages and the report form
 
-Prerendered from `site/src/config/` at build: methodology, about, glossary, privacy, legal, contact, `/report`, `/data` (data access and MCP instructions), 404. No statistic is typed into their prose; configured values are inserted from config. `/report?page=<page_id>` holds one island that posts JSON to the api's `POST /v1/reports` (origin from `NEWS_API_ORIGIN` at build), with the `website` honeypot, and shows the confirmation text on 202; without JavaScript the page says so and gives the contact address.
+Prerendered from `site/src/config/` at build: methodology, about, glossary, privacy, legal, contact, `/report`, `/data` (data access and MCP instructions), `/feeds` (the feed addresses, linked from the footer), 404. No statistic is typed into their prose; configured values are inserted from config. `/report` holds one island (`ReportForm.client.tsx`) that posts JSON to the api's `POST /v1/reports` (origin from `NEWS_API_ORIGIN` at build): the form's `what` is the intake's `text`, its `page` field takes a page ID or the address of a page (the last path segment is the ID; `?page=<page_id>` fills it in), the `website` honeypot is hidden from people, the limits are checked before sending, and the copy's "Form text" table is every word the form shows, including the confirmation on 202; without JavaScript the page says so and gives the contact address.
 
 ## Tests that prove it (#14 "Done when")
 
