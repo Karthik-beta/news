@@ -1,0 +1,948 @@
+{
+ "schema_name": "DoclingDocument",
+ "version": "1.2.0",
+ "name": "cpi-table-1",
+ "origin": {
+  "mimetype": "application/pdf",
+  "binary_hash": 0,
+  "filename": "cpi-table-1.pdf"
+ },
+ "furniture": {
+  "self_ref": "#/furniture",
+  "children": [
+   {
+    "$ref": "#/texts/0"
+   }
+  ],
+  "content_layer": "furniture",
+  "name": "_root_",
+  "label": "unspecified"
+ },
+ "body": {
+  "self_ref": "#/body",
+  "children": [
+   {
+    "$ref": "#/texts/1"
+   },
+   {
+    "$ref": "#/texts/2"
+   },
+   {
+    "$ref": "#/tables/0"
+   },
+   {
+    "$ref": "#/texts/3"
+   },
+   {
+    "$ref": "#/texts/4"
+   },
+   {
+    "$ref": "#/texts/5"
+   },
+   {
+    "$ref": "#/groups/0"
+   },
+   {
+    "$ref": "#/pictures/0"
+   }
+  ],
+  "content_layer": "body",
+  "name": "_root_",
+  "label": "unspecified"
+ },
+ "groups": [
+  {
+   "self_ref": "#/groups/0",
+   "parent": {
+    "$ref": "#/body"
+   },
+   "children": [
+    {
+     "$ref": "#/texts/6"
+    },
+    {
+     "$ref": "#/texts/7"
+    }
+   ],
+   "content_layer": "body",
+   "name": "list",
+   "label": "list"
+  }
+ ],
+ "texts": [
+  {
+   "self_ref": "#/texts/0",
+   "parent": {
+    "$ref": "#/furniture"
+   },
+   "children": [],
+   "content_layer": "furniture",
+   "label": "page_header",
+   "prov": [
+    {
+     "page_no": 1,
+     "bbox": {
+      "l": 72,
+      "t": 720,
+      "r": 540,
+      "b": 740,
+      "coord_origin": "BOTTOMLEFT"
+     },
+     "charspan": [
+      0,
+      49
+     ]
+    }
+   ],
+   "orig": "Bureau of Labor Statistics | Consumer Price Index",
+   "text": "Bureau of Labor Statistics | Consumer Price Index"
+  },
+  {
+   "self_ref": "#/texts/1",
+   "parent": {
+    "$ref": "#/body"
+   },
+   "children": [],
+   "content_layer": "body",
+   "label": "section_header",
+   "prov": [
+    {
+     "page_no": 1,
+     "bbox": {
+      "l": 72,
+      "t": 690,
+      "r": 540,
+      "b": 710,
+      "coord_origin": "BOTTOMLEFT"
+     },
+     "charspan": [
+      0,
+      80
+     ]
+    }
+   ],
+   "orig": "Table 1. Consumer Price Index for All Urban Consumers (CPI-U), U.S. city average",
+   "text": "Table 1. Consumer Price Index for All Urban Consumers (CPI-U), U.S. city average",
+   "level": 1
+  },
+  {
+   "self_ref": "#/texts/2",
+   "parent": {
+    "$ref": "#/body"
+   },
+   "children": [],
+   "content_layer": "body",
+   "label": "text",
+   "prov": [
+    {
+     "page_no": 1,
+     "bbox": {
+      "l": 72,
+      "t": 660,
+      "r": 540,
+      "b": 680,
+      "coord_origin": "BOTTOMLEFT"
+     },
+     "charspan": [
+      0,
+      68
+     ]
+    }
+   ],
+   "orig": "Index levels, 1982-84=100, not seasonally adjusted. P = preliminary.",
+   "text": "Index levels, 1982-84=100, not seasonally adjusted. P = preliminary."
+  },
+  {
+   "self_ref": "#/texts/3",
+   "parent": {
+    "$ref": "#/body"
+   },
+   "children": [],
+   "content_layer": "body",
+   "label": "caption",
+   "prov": [
+    {
+     "page_no": 1,
+     "bbox": {
+      "l": 72,
+      "t": 630,
+      "r": 540,
+      "b": 650,
+      "coord_origin": "BOTTOMLEFT"
+     },
+     "charspan": [
+      0,
+      31
+     ]
+    }
+   ],
+   "orig": "Table 1. CPI-U, all items, 2026",
+   "text": "Table 1. CPI-U, all items, 2026"
+  },
+  {
+   "self_ref": "#/texts/4",
+   "parent": {
+    "$ref": "#/body"
+   },
+   "children": [],
+   "content_layer": "body",
+   "label": "footnote",
+   "prov": [
+    {
+     "page_no": 1,
+     "bbox": {
+      "l": 72,
+      "t": 600,
+      "r": 540,
+      "b": 620,
+      "coord_origin": "BOTTOMLEFT"
+     },
+     "charspan": [
+      0,
+      16
+     ]
+    }
+   ],
+   "orig": "P = preliminary.",
+   "text": "P = preliminary."
+  },
+  {
+   "self_ref": "#/texts/5",
+   "parent": {
+    "$ref": "#/body"
+   },
+   "children": [],
+   "content_layer": "body",
+   "label": "section_header",
+   "prov": [
+    {
+     "page_no": 2,
+     "bbox": {
+      "l": 72,
+      "t": 570,
+      "r": 540,
+      "b": 590,
+      "coord_origin": "BOTTOMLEFT"
+     },
+     "charspan": [
+      0,
+      5
+     ]
+    }
+   ],
+   "orig": "Notes",
+   "text": "Notes",
+   "level": 1
+  },
+  {
+   "self_ref": "#/texts/6",
+   "parent": {
+    "$ref": "#/groups/0"
+   },
+   "children": [],
+   "content_layer": "body",
+   "label": "list_item",
+   "prov": [
+    {
+     "page_no": 2,
+     "bbox": {
+      "l": 72,
+      "t": 540,
+      "r": 540,
+      "b": 560,
+      "coord_origin": "BOTTOMLEFT"
+     },
+     "charspan": [
+      0,
+      38
+     ]
+    }
+   ],
+   "orig": "Data for October 2026 are preliminary.",
+   "text": "Data for October 2026 are preliminary.",
+   "enumerated": false,
+   "marker": "-"
+  },
+  {
+   "self_ref": "#/texts/7",
+   "parent": {
+    "$ref": "#/groups/0"
+   },
+   "children": [],
+   "content_layer": "body",
+   "label": "list_item",
+   "prov": [
+    {
+     "page_no": 2,
+     "bbox": {
+      "l": 72,
+      "t": 510,
+      "r": 540,
+      "b": 530,
+      "coord_origin": "BOTTOMLEFT"
+     },
+     "charspan": [
+      0,
+      36
+     ]
+    }
+   ],
+   "orig": "Index values are shown as published.",
+   "text": "Index values are shown as published.",
+   "enumerated": false,
+   "marker": "-"
+  }
+ ],
+ "pictures": [
+  {
+   "self_ref": "#/pictures/0",
+   "parent": {
+    "$ref": "#/body"
+   },
+   "children": [],
+   "content_layer": "body",
+   "label": "picture",
+   "prov": [
+    {
+     "page_no": 2,
+     "bbox": {
+      "l": 72,
+      "t": 100,
+      "r": 200,
+      "b": 160,
+      "coord_origin": "BOTTOMLEFT"
+     },
+     "charspan": [
+      0,
+      0
+     ]
+    }
+   ],
+   "captions": [],
+   "references": [],
+   "footnotes": [],
+   "annotations": []
+  }
+ ],
+ "tables": [
+  {
+   "self_ref": "#/tables/0",
+   "parent": {
+    "$ref": "#/body"
+   },
+   "children": [],
+   "content_layer": "body",
+   "label": "table",
+   "prov": [
+    {
+     "page_no": 1,
+     "bbox": {
+      "l": 72,
+      "t": 480,
+      "r": 472,
+      "b": 620,
+      "coord_origin": "BOTTOMLEFT"
+     },
+     "charspan": [
+      0,
+      0
+     ]
+    }
+   ],
+   "captions": [
+    {
+     "$ref": "#/texts/3"
+    }
+   ],
+   "references": [],
+   "footnotes": [
+    {
+     "$ref": "#/texts/4"
+    }
+   ],
+   "image": null,
+   "data": {
+    "table_cells": [
+     {
+      "bbox": {
+       "l": 72,
+       "t": 600,
+       "r": 272,
+       "b": 620,
+       "coord_origin": "BOTTOMLEFT"
+      },
+      "row_span": 1,
+      "col_span": 1,
+      "start_row_offset_idx": 0,
+      "end_row_offset_idx": 1,
+      "start_col_offset_idx": 0,
+      "end_col_offset_idx": 1,
+      "text": "Month",
+      "column_header": true,
+      "row_header": false,
+      "row_section": false,
+      "fillable": false
+     },
+     {
+      "bbox": {
+       "l": 272,
+       "t": 600,
+       "r": 472,
+       "b": 620,
+       "coord_origin": "BOTTOMLEFT"
+      },
+      "row_span": 1,
+      "col_span": 1,
+      "start_row_offset_idx": 0,
+      "end_row_offset_idx": 1,
+      "start_col_offset_idx": 1,
+      "end_col_offset_idx": 2,
+      "text": "Index (1982-84=100)",
+      "column_header": true,
+      "row_header": false,
+      "row_section": false,
+      "fillable": false
+     },
+     {
+      "bbox": {
+       "l": 72,
+       "t": 580,
+       "r": 272,
+       "b": 600,
+       "coord_origin": "BOTTOMLEFT"
+      },
+      "row_span": 1,
+      "col_span": 1,
+      "start_row_offset_idx": 1,
+      "end_row_offset_idx": 2,
+      "start_col_offset_idx": 0,
+      "end_col_offset_idx": 1,
+      "text": "June 2026",
+      "column_header": false,
+      "row_header": false,
+      "row_section": false,
+      "fillable": false
+     },
+     {
+      "bbox": {
+       "l": 272,
+       "t": 580,
+       "r": 472,
+       "b": 600,
+       "coord_origin": "BOTTOMLEFT"
+      },
+      "row_span": 1,
+      "col_span": 1,
+      "start_row_offset_idx": 1,
+      "end_row_offset_idx": 2,
+      "start_col_offset_idx": 1,
+      "end_col_offset_idx": 2,
+      "text": "333.952",
+      "column_header": false,
+      "row_header": false,
+      "row_section": false,
+      "fillable": false
+     },
+     {
+      "bbox": {
+       "l": 72,
+       "t": 560,
+       "r": 272,
+       "b": 580,
+       "coord_origin": "BOTTOMLEFT"
+      },
+      "row_span": 1,
+      "col_span": 1,
+      "start_row_offset_idx": 2,
+      "end_row_offset_idx": 3,
+      "start_col_offset_idx": 0,
+      "end_col_offset_idx": 1,
+      "text": "July 2026",
+      "column_header": false,
+      "row_header": false,
+      "row_section": false,
+      "fillable": false
+     },
+     {
+      "bbox": {
+       "l": 272,
+       "t": 560,
+       "r": 472,
+       "b": 580,
+       "coord_origin": "BOTTOMLEFT"
+      },
+      "row_span": 1,
+      "col_span": 1,
+      "start_row_offset_idx": 2,
+      "end_row_offset_idx": 3,
+      "start_col_offset_idx": 1,
+      "end_col_offset_idx": 2,
+      "text": "333.918",
+      "column_header": false,
+      "row_header": false,
+      "row_section": false,
+      "fillable": false
+     },
+     {
+      "bbox": {
+       "l": 72,
+       "t": 540,
+       "r": 272,
+       "b": 560,
+       "coord_origin": "BOTTOMLEFT"
+      },
+      "row_span": 1,
+      "col_span": 1,
+      "start_row_offset_idx": 3,
+      "end_row_offset_idx": 4,
+      "start_col_offset_idx": 0,
+      "end_col_offset_idx": 1,
+      "text": "August 2026",
+      "column_header": false,
+      "row_header": false,
+      "row_section": false,
+      "fillable": false
+     },
+     {
+      "bbox": {
+       "l": 272,
+       "t": 540,
+       "r": 472,
+       "b": 560,
+       "coord_origin": "BOTTOMLEFT"
+      },
+      "row_span": 1,
+      "col_span": 1,
+      "start_row_offset_idx": 3,
+      "end_row_offset_idx": 4,
+      "start_col_offset_idx": 1,
+      "end_col_offset_idx": 2,
+      "text": "334.980",
+      "column_header": false,
+      "row_header": false,
+      "row_section": false,
+      "fillable": false
+     },
+     {
+      "bbox": {
+       "l": 72,
+       "t": 520,
+       "r": 272,
+       "b": 540,
+       "coord_origin": "BOTTOMLEFT"
+      },
+      "row_span": 1,
+      "col_span": 1,
+      "start_row_offset_idx": 4,
+      "end_row_offset_idx": 5,
+      "start_col_offset_idx": 0,
+      "end_col_offset_idx": 1,
+      "text": "September 2026",
+      "column_header": false,
+      "row_header": false,
+      "row_section": false,
+      "fillable": false
+     },
+     {
+      "bbox": {
+       "l": 272,
+       "t": 520,
+       "r": 472,
+       "b": 540,
+       "coord_origin": "BOTTOMLEFT"
+      },
+      "row_span": 1,
+      "col_span": 1,
+      "start_row_offset_idx": 4,
+      "end_row_offset_idx": 5,
+      "start_col_offset_idx": 1,
+      "end_col_offset_idx": 2,
+      "text": "336.940",
+      "column_header": false,
+      "row_header": false,
+      "row_section": false,
+      "fillable": false
+     },
+     {
+      "bbox": {
+       "l": 72,
+       "t": 500,
+       "r": 272,
+       "b": 520,
+       "coord_origin": "BOTTOMLEFT"
+      },
+      "row_span": 1,
+      "col_span": 1,
+      "start_row_offset_idx": 5,
+      "end_row_offset_idx": 6,
+      "start_col_offset_idx": 0,
+      "end_col_offset_idx": 1,
+      "text": "October 2026",
+      "column_header": false,
+      "row_header": false,
+      "row_section": false,
+      "fillable": false
+     },
+     {
+      "bbox": {
+       "l": 272,
+       "t": 500,
+       "r": 472,
+       "b": 520,
+       "coord_origin": "BOTTOMLEFT"
+      },
+      "row_span": 1,
+      "col_span": 1,
+      "start_row_offset_idx": 5,
+      "end_row_offset_idx": 6,
+      "start_col_offset_idx": 1,
+      "end_col_offset_idx": 2,
+      "text": "337.511 (P)",
+      "column_header": false,
+      "row_header": false,
+      "row_section": false,
+      "fillable": false
+     },
+     {
+      "bbox": {
+       "l": 72,
+       "t": 480,
+       "r": 472,
+       "b": 500,
+       "coord_origin": "BOTTOMLEFT"
+      },
+      "row_span": 1,
+      "col_span": 2,
+      "start_row_offset_idx": 6,
+      "end_row_offset_idx": 7,
+      "start_col_offset_idx": 0,
+      "end_col_offset_idx": 2,
+      "text": "Source: U.S. Bureau of Labor Statistics",
+      "column_header": false,
+      "row_header": false,
+      "row_section": true,
+      "fillable": false
+     }
+    ],
+    "num_rows": 7,
+    "num_cols": 2,
+    "grid": [
+     [
+      {
+       "bbox": {
+        "l": 72,
+        "t": 600,
+        "r": 272,
+        "b": 620,
+        "coord_origin": "BOTTOMLEFT"
+       },
+       "row_span": 1,
+       "col_span": 1,
+       "start_row_offset_idx": 0,
+       "end_row_offset_idx": 1,
+       "start_col_offset_idx": 0,
+       "end_col_offset_idx": 1,
+       "text": "Month",
+       "column_header": true,
+       "row_header": false,
+       "row_section": false,
+       "fillable": false
+      },
+      {
+       "bbox": {
+        "l": 272,
+        "t": 600,
+        "r": 472,
+        "b": 620,
+        "coord_origin": "BOTTOMLEFT"
+       },
+       "row_span": 1,
+       "col_span": 1,
+       "start_row_offset_idx": 0,
+       "end_row_offset_idx": 1,
+       "start_col_offset_idx": 1,
+       "end_col_offset_idx": 2,
+       "text": "Index (1982-84=100)",
+       "column_header": true,
+       "row_header": false,
+       "row_section": false,
+       "fillable": false
+      }
+     ],
+     [
+      {
+       "bbox": {
+        "l": 72,
+        "t": 580,
+        "r": 272,
+        "b": 600,
+        "coord_origin": "BOTTOMLEFT"
+       },
+       "row_span": 1,
+       "col_span": 1,
+       "start_row_offset_idx": 1,
+       "end_row_offset_idx": 2,
+       "start_col_offset_idx": 0,
+       "end_col_offset_idx": 1,
+       "text": "June 2026",
+       "column_header": false,
+       "row_header": false,
+       "row_section": false,
+       "fillable": false
+      },
+      {
+       "bbox": {
+        "l": 272,
+        "t": 580,
+        "r": 472,
+        "b": 600,
+        "coord_origin": "BOTTOMLEFT"
+       },
+       "row_span": 1,
+       "col_span": 1,
+       "start_row_offset_idx": 1,
+       "end_row_offset_idx": 2,
+       "start_col_offset_idx": 1,
+       "end_col_offset_idx": 2,
+       "text": "333.952",
+       "column_header": false,
+       "row_header": false,
+       "row_section": false,
+       "fillable": false
+      }
+     ],
+     [
+      {
+       "bbox": {
+        "l": 72,
+        "t": 560,
+        "r": 272,
+        "b": 580,
+        "coord_origin": "BOTTOMLEFT"
+       },
+       "row_span": 1,
+       "col_span": 1,
+       "start_row_offset_idx": 2,
+       "end_row_offset_idx": 3,
+       "start_col_offset_idx": 0,
+       "end_col_offset_idx": 1,
+       "text": "July 2026",
+       "column_header": false,
+       "row_header": false,
+       "row_section": false,
+       "fillable": false
+      },
+      {
+       "bbox": {
+        "l": 272,
+        "t": 560,
+        "r": 472,
+        "b": 580,
+        "coord_origin": "BOTTOMLEFT"
+       },
+       "row_span": 1,
+       "col_span": 1,
+       "start_row_offset_idx": 2,
+       "end_row_offset_idx": 3,
+       "start_col_offset_idx": 1,
+       "end_col_offset_idx": 2,
+       "text": "333.918",
+       "column_header": false,
+       "row_header": false,
+       "row_section": false,
+       "fillable": false
+      }
+     ],
+     [
+      {
+       "bbox": {
+        "l": 72,
+        "t": 540,
+        "r": 272,
+        "b": 560,
+        "coord_origin": "BOTTOMLEFT"
+       },
+       "row_span": 1,
+       "col_span": 1,
+       "start_row_offset_idx": 3,
+       "end_row_offset_idx": 4,
+       "start_col_offset_idx": 0,
+       "end_col_offset_idx": 1,
+       "text": "August 2026",
+       "column_header": false,
+       "row_header": false,
+       "row_section": false,
+       "fillable": false
+      },
+      {
+       "bbox": {
+        "l": 272,
+        "t": 540,
+        "r": 472,
+        "b": 560,
+        "coord_origin": "BOTTOMLEFT"
+       },
+       "row_span": 1,
+       "col_span": 1,
+       "start_row_offset_idx": 3,
+       "end_row_offset_idx": 4,
+       "start_col_offset_idx": 1,
+       "end_col_offset_idx": 2,
+       "text": "334.980",
+       "column_header": false,
+       "row_header": false,
+       "row_section": false,
+       "fillable": false
+      }
+     ],
+     [
+      {
+       "bbox": {
+        "l": 72,
+        "t": 520,
+        "r": 272,
+        "b": 540,
+        "coord_origin": "BOTTOMLEFT"
+       },
+       "row_span": 1,
+       "col_span": 1,
+       "start_row_offset_idx": 4,
+       "end_row_offset_idx": 5,
+       "start_col_offset_idx": 0,
+       "end_col_offset_idx": 1,
+       "text": "September 2026",
+       "column_header": false,
+       "row_header": false,
+       "row_section": false,
+       "fillable": false
+      },
+      {
+       "bbox": {
+        "l": 272,
+        "t": 520,
+        "r": 472,
+        "b": 540,
+        "coord_origin": "BOTTOMLEFT"
+       },
+       "row_span": 1,
+       "col_span": 1,
+       "start_row_offset_idx": 4,
+       "end_row_offset_idx": 5,
+       "start_col_offset_idx": 1,
+       "end_col_offset_idx": 2,
+       "text": "336.940",
+       "column_header": false,
+       "row_header": false,
+       "row_section": false,
+       "fillable": false
+      }
+     ],
+     [
+      {
+       "bbox": {
+        "l": 72,
+        "t": 500,
+        "r": 272,
+        "b": 520,
+        "coord_origin": "BOTTOMLEFT"
+       },
+       "row_span": 1,
+       "col_span": 1,
+       "start_row_offset_idx": 5,
+       "end_row_offset_idx": 6,
+       "start_col_offset_idx": 0,
+       "end_col_offset_idx": 1,
+       "text": "October 2026",
+       "column_header": false,
+       "row_header": false,
+       "row_section": false,
+       "fillable": false
+      },
+      {
+       "bbox": {
+        "l": 272,
+        "t": 500,
+        "r": 472,
+        "b": 520,
+        "coord_origin": "BOTTOMLEFT"
+       },
+       "row_span": 1,
+       "col_span": 1,
+       "start_row_offset_idx": 5,
+       "end_row_offset_idx": 6,
+       "start_col_offset_idx": 1,
+       "end_col_offset_idx": 2,
+       "text": "337.511 (P)",
+       "column_header": false,
+       "row_header": false,
+       "row_section": false,
+       "fillable": false
+      }
+     ],
+     [
+      {
+       "bbox": {
+        "l": 72,
+        "t": 480,
+        "r": 472,
+        "b": 500,
+        "coord_origin": "BOTTOMLEFT"
+       },
+       "row_span": 1,
+       "col_span": 2,
+       "start_row_offset_idx": 6,
+       "end_row_offset_idx": 7,
+       "start_col_offset_idx": 0,
+       "end_col_offset_idx": 2,
+       "text": "Source: U.S. Bureau of Labor Statistics",
+       "column_header": false,
+       "row_header": false,
+       "row_section": true,
+       "fillable": false
+      },
+      {
+       "bbox": {
+        "l": 72,
+        "t": 480,
+        "r": 472,
+        "b": 500,
+        "coord_origin": "BOTTOMLEFT"
+       },
+       "row_span": 1,
+       "col_span": 2,
+       "start_row_offset_idx": 6,
+       "end_row_offset_idx": 7,
+       "start_col_offset_idx": 0,
+       "end_col_offset_idx": 2,
+       "text": "Source: U.S. Bureau of Labor Statistics",
+       "column_header": false,
+       "row_header": false,
+       "row_section": true,
+       "fillable": false
+      }
+     ]
+    ]
+   }
+  }
+ ],
+ "key_value_items": [],
+ "form_items": [],
+ "pages": {
+  "1": {
+   "size": {
+    "width": 612.0,
+    "height": 792.0
+   },
+   "image": null,
+   "page_no": 1
+  },
+  "2": {
+   "size": {
+    "width": 612.0,
+    "height": 792.0
+   },
+   "image": null,
+   "page_no": 2
+  }
+ }
+}

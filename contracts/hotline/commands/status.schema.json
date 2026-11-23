@@ -246,7 +246,15 @@
                 "type": "string"
               },
               "expected_at": {
-                "$ref": "../common.schema.json#/$defs/timestamp"
+                "anyOf": [
+                  {
+                    "$ref": "../common.schema.json#/$defs/timestamp"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Null for an event expected on a day but at no known time"
               },
               "status": {
                 "enum": ["expected", "captured", "late"]

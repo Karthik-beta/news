@@ -43,3 +43,21 @@ curl "https://api.stlouisfed.org/fred/series/observations?series_id=CPIAUCSL&rea
 Then update the expected values in `tests/stringers.rs` and `news-wire/tests/pipeline.rs`.
 
 **SEC EDGAR is disabled** (`enabled = false` in `data/sources/sec-edgar.toml`) until both are done: the `sec/` fixtures are recorded as above, and `NEWS_CONTACT_EMAIL` is set in `.env`. Without the e-mail the Runner refuses every SEC request as `bug`, which would put each SEC job on the dead list. `news sources sync` only sets `enabled` on insert, so after recording, enable it explicitly.
+
+**Document parsers (#12), 23 Nov 2026** (`docparse/`; Docling and Tesseract are not installed on the build machine, so these are **hand-written to each tool's documented output format**, not recorded):
+
+| File | What it is |
+| --- | --- |
+| `docparse/docling-cpi-table.json` | A `DoclingDocument` (schema 1.2.0) export of an imagined two-page BLS-style CPI table: page header in `furniture`, a section header, a paragraph, a table (caption, footnote, a row-spanning source cell, a "(P)" preliminary marker), a list group on page 2 and a picture. The index values (333.952 to 337.511) are the real ones in `bls/CUUR0000SA0.json` (BLS, public domain); the page layout and bounding boxes are invented. **Synthetic layout.** |
+| `docparse/tesseract-cpi.tsv` | The `tesseract <image> out tsv` output (header and 12 tab-separated columns, levels 1-5, empty-text structural rows, a `-1` confidence word) for a scanned part of the same page. Words and values are the same real BLS figures; positions and confidences are invented. **Synthetic.** |
+
+To re-record with the real tools (on the laptop; the PDF must be a public-domain or otherwise licensed document):
+
+```sh
+# Docling (pool `docling`, container with --network none and a read-only mount):
+docling page.pdf --to json --output out/            # writes out/page.json
+# Tesseract (scanned page rendered to PNG at 300 dpi):
+tesseract page.png out tsv                           # writes out.tsv
+```
+
+Trim to what the tests need, then update the expected text in `tests/docparse.rs`. If Docling's `version` moves past 1.x, the parser refuses it (`Shape`) until its walk is checked against the new schema.
