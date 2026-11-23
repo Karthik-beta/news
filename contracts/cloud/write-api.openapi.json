@@ -77,7 +77,7 @@
     "/v1/pages/{page_id}/index": {
       "post": {
         "summary": "Set a page's index status (index promotion)",
-        "description": "Updates index_status on PAGE#/LATEST, its hub entries and its search row, and purges the page's URL. 409 page_withdrawn for a withdrawn page.",
+        "description": "Updates index_status on PAGE#/LATEST, the robots meta tag in the page's R2 index.html, its hub entries and its search row, and purges the page's URL. 409 robots_unrewritable when the stored index.html has no single robots tag to rewrite: a promotion to index is refused and nothing changes; a demotion to noindex is still committed (record, hubs, search row, purge) and then answered with this error, so the page is no longer listed as indexable but its R2 file still needs a republish. 409 page_withdrawn for a withdrawn page.",
         "parameters": [
           { "$ref": "#/components/parameters/pageId" },
           { "$ref": "#/components/parameters/idempotencyKey" }
@@ -301,7 +301,7 @@
         "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/error" } } }
       },
       "Conflict": {
-        "description": "idempotency_key_reused, idempotency_in_progress, version_conflict, path_conflict, page_withdrawn or page_busy (Retry-After: 5)",
+        "description": "idempotency_key_reused, idempotency_in_progress, version_conflict, path_conflict, page_withdrawn, robots_unrewritable or page_busy (Retry-After: 5)",
         "content": { "application/json": { "schema": { "$ref": "write-api.schema.json#/$defs/error" } } }
       },
       "TooLarge": {

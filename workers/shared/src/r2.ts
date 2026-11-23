@@ -30,7 +30,8 @@ export const PAGE_CACHE_CONTROL = "public, max-age=300, s-maxage=86400";
 
 /** Which version of the page a stored file belongs to (R2 custom metadata), so a reader can tell mid-publish. */
 export interface FileStamp {
-  version: number;
+  /** Absent when the file being rewritten had no stamp: it is then left without one, never written as NaN. */
+  version?: number;
   bundle_sha256: string;
 }
 
@@ -43,7 +44,10 @@ export async function putPageFile(
 ): Promise<void> {
   await bucket.put(pageObjectKey(pagePath, file), body, {
     httpMetadata: { contentType: contentTypeFor(file), cacheControl: PAGE_CACHE_CONTROL },
-    customMetadata: { version: String(stamp.version), bundle_sha256: stamp.bundle_sha256 },
+    customMetadata: {
+      ...(stamp.version === undefined ? {} : { version: String(stamp.version) }),
+      bundle_sha256: stamp.bundle_sha256,
+    },
   });
 }
 
