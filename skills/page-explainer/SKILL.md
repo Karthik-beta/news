@@ -1,28 +1,23 @@
 ---
 name: page-explainer
-description: "Rules for writing an explainer page that explains how something works (a metric, a process, an institution, a type of report) using diagrams and annotated charts built from the site's sourced data. Load with news-brand when the brief's page type is explainer."
+description: "Rules for an explainer page that shows how something works (a metric, a process, an institution, a type of report) with annotated charts built from the site's sourced data. Loaded with news-brand and news-reporter when the brief's page type is explainer."
 ---
 
 # Explainer pages
 
-Draft, to be finalised in Phase 4. Use with `news-brand`.
-
 ## What the page answers
-How something works, in a few minutes, with one or two diagrams or annotated charts doing most of the work: what a central bank's policy rate is, how a company's revenue becomes profit, how CPI is measured.
+How something works, in a few minutes, with one or two charts doing most of the work: what a central bank's policy rate is, how a company's revenue becomes profit, how consumer prices are measured.
 
-## Sources
-Official methodology documents and the institution's own explanations, plus data from published pages. Every figure still has a source.
-
-## Rules specific to explainers
+## Rules
 - **Explain, don't argue.** No opinions, no "should".
-- **Use the glossary**: link terms to their glossary entries rather than redefining them; add a glossary entry only when the term is missing.
-- **Annotated charts** (short notes with leader lines) beat long prose.
-- **Evergreen, but dated**: say when the method or figures were last checked; link to the latest data pages.
-- **Diagrams are built from components** (flows, step lists, timelines), not images.
+- **Glossary**: link terms as `[words](glossary:slug)` in `Prose` instead of redefining them.
+- **Sourced like any page**: every figure is a ref; the method comes from the brief's official methodology text.
+- **Diagrams are components**, not images: a `Waterfall` for a flow of money, a `Timeline` for a process in steps, `Prose` lists for stages.
+- **A real example** from the brief's data or `related_pages`.
 
 ## Typical layout
-Standfirst that states the question → diagram or annotated chart → short Prose sections, each answering one sub-question → a real example from a published page → Glossary links → Sources.
+The summary states the question → the main chart or `Waterfall` → short `Prose` sections, each under a `## ` heading answering one sub-question → a worked example with real refs → `Note` on what the measure leaves out, as the methodology says.
 
 ## Headline patterns
 - "How a central bank's policy rate reaches your loan"
-- "How Apple's $391bn of sales became $94bn of profit"
+- "How Apple's {dp_aapl_net_sales_fy2024} of sales became {dp_aapl_net_income_fy2024} of profit"
