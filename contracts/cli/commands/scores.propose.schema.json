@@ -4,7 +4,7 @@
   "title": "news scores propose",
   "description": "Fit new weights from labels; prints a diff. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "W",
-  "x-news-status": "stub until #15",
+  "x-news-status": "stub until #19",
   "x-news-errors": ["precondition"],
   "$defs": {
     "input": {

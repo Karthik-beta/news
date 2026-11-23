@@ -24,7 +24,7 @@ One Rust binary that gives agents, Bun code and Karthik every operation on the l
 
 ## Stubs
 
-Commands whose subsystem is not built yet return `precondition` (exit 4) with a hint naming the issue that builds it: Contacts, Wire (with `prune`), Clerk #9 (the libraries are built; the commands follow the Bureau service, #10/#29) · Chief #10 · Taster, Nose, `related` #15 · Ticker (`stats`) #16 · render, save, Proof #17 · Fixer, Ghost #18 · Critic, Huddle #19 · Press, home, Rewrite #20 · Errata #21. Built now: `version`, `db`, `components`, `component`, `schema`, `ai schema`, `jobs *`, `calendar upcoming|sync|late` and `entities resolve|show|unresolved` (#12; ADR 0009). `alias add` and `merge` are H-tier, so they have no command form.
+Commands whose subsystem is not built yet return `precondition` (exit 4) with a hint naming the issue that builds it: Contacts, Wire (with `prune`), Clerk #9 (the libraries are built; the commands follow the Bureau service, #10/#29) · Chief #10 · Taster, `related` #15 · Ticker (`stats`) #16 · render, save, Proof #17 · Fixer, Ghost #18 · Critic, Huddle, `scores propose|label` #19 · Press, home, Rewrite #20 · Errata #21. Built now: `version`, `db`, `components`, `component`, `schema`, `ai schema`, `jobs *`, `calendar upcoming|sync|late`, `entities resolve|show|unresolved` (#12; ADR 0009), and `plan --run` and `scores explain|weights` (#15; ADR 0012). `alias add` and `merge` are H-tier, so they have no command form.
 
 ## Crate map
 
@@ -47,7 +47,8 @@ Commands whose subsystem is not built yet return `precondition` (exit 4) with a 
 | `news-contacts` | Source rows from `data/sources/*.toml`, the Contacts lint, `sync` into `sources`, the licence gate |
 | `news-wire` | The Runner (robots.txt, token buckets, conditional GET, `Retry-After`, caps; `fake::FakeTransport` for tests), the Morgue, discover/fetch, `snapshots`/`fetch_state` |
 | `news-clerk` | Rule-based classification and the taxonomy seed, candidates, storing data points (vintages, `supersedes`) and Roster step 1 entities, SimHash |
-| `news-taster`, `news-nose`, `news-fixer`, `news-ghost`, `news-proof`, `news-rewrite`, `news-press`, `news-critic` | Subsystem skeletons: `ISSUE`, the job kinds they own and a stub `handle` (fails with class `bug`, "not built yet") |
+| `news-taster`, `news-fixer`, `news-ghost`, `news-proof`, `news-rewrite`, `news-press`, `news-critic` | Subsystem skeletons: `ISSUE`, the job kinds they own and a stub `handle` (fails with class `bug`, "not built yet") |
+| `news-nose` | Nose and Desk (#15, ADR 0012): story scores with the Pitch, the Budget (`run_plans`), scorer config v1 from `data/seeds/`; its job kinds still refuse as not built |
 | `news-diary` | Diary (#12): ICS, FOMC HTML and seed-file calendars, derived earnings windows, the capture schedule, `calendar_events`; its job handlers refuse with `bug` until the Bureau service gives them a context |
 | `news-roster` | Roster (#12): normalisation, the deterministic resolver, seed loaders (SEC, GLEIF, ROR, Wikidata), the unresolved queue, H-tier `add_alias` and `merge`; no job kinds |
 
