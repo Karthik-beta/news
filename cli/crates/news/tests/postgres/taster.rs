@@ -696,3 +696,231 @@ async fn two_detect_runs_at_once_group_each_candidate_once_and_leave_no_empty_st
         4
     );
 }
+
+/// A data point of `series`, in `unit`, for `start`..`end`, first published at `vintage` (a day).
+#[allow(clippy::too_many_arguments)]
+async fn point(
+    pool: &PgPool,
+    source: &str,
+    id: &str,
+    (series, concept, unit): (&str, &str, &str),
+    (start, end): (&str, &str),
+    vintage: &str,
+    value: &str,
+    supersedes: Option<&str>,
+) {
+    sqlx::query(
+        "insert into data_points (dp_id, context_key, series_key, concept, label, value_text, value, unit,
+           period_label, period_start, period_end, period_type, vintage, supersedes, snapshot_sha, locator,
+           parser, retrieved_at)
+         values ($1, $1, $2, $3, 'x', $4::text, $4::text::numeric, $5, $6::text || '/' || $7::text, $6::date,
+           $7::date, 'duration', ($8::text)::timestamptz, $9, sha256($10::bytea), '{}'::jsonb, 'test@1', now())",
+    )
+    .bind(id)
+    .bind(series)
+    .bind(concept)
+    .bind(value)
+    .bind(unit)
+    .bind(start)
+    .bind(end)
+    .bind(vintage)
+    .bind(supersedes)
+    .bind(source.as_bytes())
+    .execute(pool)
+    .await
+    .unwrap();
+}
+
+/// A new candidate of `page_type` with data points.
+async fn cand_points(
+    pool: &PgPool,
+    source: &str,
+    key: &str,
+    page_type: &str,
+    dp_ids: &[&str],
+) -> i64 {
+    sqlx::query_scalar(
+        "insert into candidates (source_id, url, title, event_key, dp_count, dp_ids, page_type, page_type_by,
+           categories, region, published_at, first_seen, status)
+         values ($1, 'https://x.test/' || $2, $2, $2, $3, $4, $5, 'rule', '{economy}', 'us', $6, $6, 'new')
+         returning cand_id",
+    )
+    .bind(source)
+    .bind(key)
+    .bind(dp_ids.len() as i32)
+    .bind(dp_ids)
+    .bind(page_type)
+    .bind(t0())
+    .fetch_one(pool)
+    .await
+    .unwrap()
+}
+
+/// The stored input of the story with this event key, which Nose must be able to score.
+async fn scored_input(pool: &PgPool, key: &str) -> Value {
+    let input: Value = sqlx::query_scalar("select score_input from stories where event_key = $1")
+        .bind(key)
+        .fetch_one(pool)
+        .await
+        .unwrap();
+    let parsed: news_nose::score::StoryInput = serde_json::from_value(input.clone())
+        .unwrap_or_else(|e| panic!("{key} has no usable score input: {e}"));
+    let cfg = news_nose::config::v1().unwrap();
+    news_nose::score::score(&parsed, t0(), &Default::default(), &cfg).unwrap();
+    input
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn policy_report_and_quarterly_earnings_stories_get_inputs_nose_scores() {
+    let f = Fixture::migrated().await;
+    let p = &f.pool;
+    for s in ["cb-fed", "imf", "sec-edgar"] {
+        source(p, s, 1).await;
+    }
+
+    // Policy: nine decisions of one rate, +50 bp, six holds, then a 25 bp cut (a change of direction).
+    let rate = ("rate:cb-fed", "policy_rate", "Percent per annum");
+    let levels = [
+        "4.50", "5.00", "5.00", "5.00", "5.00", "5.00", "5.00", "5.00", "4.75",
+    ];
+    for (i, v) in levels.iter().enumerate() {
+        let day = format!("2026-{:02}-15", i + 1);
+        point(
+            p,
+            "cb-fed",
+            &format!("dp_rate{i}"),
+            rate,
+            (day.as_str(), day.as_str()),
+            &day,
+            v,
+            None,
+        )
+        .await;
+    }
+    cand_points(
+        p,
+        "cb-fed",
+        "policy:fed:2026-09-15",
+        "policy",
+        &["dp_rate8"],
+    )
+    .await;
+
+    // Report: this edition's headline forecast revises the one before by +0.5 pp; two revisions before.
+    let weo = ("imf:weo:world-growth", "forecast", "Percent");
+    let year = ("2026-01-01", "2026-12-31");
+    point(p, "imf", "dp_weo1", weo, year, "2025-04-15", "3.0", None).await;
+    point(
+        p,
+        "imf",
+        "dp_weo2",
+        weo,
+        year,
+        "2025-10-15",
+        "3.2",
+        Some("dp_weo1"),
+    )
+    .await;
+    point(
+        p,
+        "imf",
+        "dp_weo3",
+        weo,
+        year,
+        "2026-04-15",
+        "3.1",
+        Some("dp_weo2"),
+    )
+    .await;
+    point(
+        p,
+        "imf",
+        "dp_weo4",
+        weo,
+        year,
+        "2026-10-15",
+        "3.6",
+        Some("dp_weo3"),
+    )
+    .await;
+    cand_points(p, "imf", "report:imf:weo-2026-10", "report", &["dp_weo4"]).await;
+
+    // Earnings: Q2 revenue up 30% on a year earlier after Q1's 10%; net income flips to a loss.
+    let rev = ("xbrl:1:us-gaap:Revenues", "us-gaap:Revenues", "USD");
+    let net = (
+        "xbrl:1:us-gaap:NetIncomeLoss",
+        "us-gaap:NetIncomeLoss",
+        "USD",
+    );
+    let quarters = [
+        ("2025-01-01", "2025-03-31", "100", "5"),
+        ("2025-04-01", "2025-06-30", "110", "8"),
+        ("2026-01-01", "2026-03-31", "110", "6"),
+        ("2026-04-01", "2026-06-30", "143", "-5"),
+    ];
+    for (i, (start, end, revenue, income)) in quarters.iter().enumerate() {
+        let (id_r, id_n) = (format!("dp_rev{i}"), format!("dp_ni{i}"));
+        let span = (*start, *end);
+        point(p, "sec-edgar", &id_r, rev, span, end, revenue, None).await;
+        point(p, "sec-edgar", &id_n, net, span, end, income, None).await;
+    }
+    let key = "earnings:0000000001:2026Q2";
+    cand_points(p, "sec-edgar", key, "earnings", &["dp_rev3", "dp_ni3"]).await;
+
+    let t = config::v1().unwrap();
+    let r = detect(p, &NoEmbedder, &t).await.unwrap();
+    assert_eq!(
+        (r.new_stories, r.scoreable, r.unscoreable),
+        (3, 3, 0),
+        "{r:?}"
+    );
+
+    let input = scored_input(p, "policy:fed:2026-09-15").await;
+    assert_eq!(input["event_type"], "policy_major");
+    assert_eq!(
+        input["page"],
+        json!({"type": "policy", "change_bp": -25, "statement_change": 0.0,
+               "holds_before": 6, "reversal": true})
+    );
+
+    let input = scored_input(p, "report:imf:weo-2026-10").await;
+    assert_eq!(input["event_type"], "report_flagship");
+    assert_eq!(
+        input["page"],
+        json!({"type": "report", "revision": 0.5, "past_revisions": [0.2, -0.1]})
+    );
+
+    let input = scored_input(p, key).await;
+    assert_eq!(input["event_type"], "company_results");
+    assert_eq!(input["page"]["flip"], true);
+    let near = |v: &Value, x: f64| (v.as_f64().unwrap() - x).abs() < 1e-9;
+    assert!(near(&input["page"]["growth"], 0.3), "{input}");
+    // Q1 2026 is the only earlier quarter with a year-ago quarter: one earlier growth, 10%.
+    let past = input["page"]["past_growth"].as_array().unwrap();
+    assert!(past.len() == 1 && near(&past[0], 0.1), "{input}");
+
+    // Re-reading the data changes nothing.
+    let before = dump(p).await;
+    let mut conn = p.acquire().await.unwrap();
+    for story in 1..=3 {
+        news_taster::input::refresh(&mut conn, story, news_nose::score::Novelty::NewEvent)
+            .await
+            .unwrap();
+    }
+    drop(conn);
+    assert_eq!(dump(p).await, before);
+
+    // A macro story whose candidate has no data points (stored before `dp_ids`) stays unscored.
+    source(p, "fred", 1).await;
+    sqlx::query(
+        "insert into candidates (source_id, url, title, event_key, page_type, page_type_by, categories, region,
+           first_seen, status)
+         values ('fred', 'https://x.test/m', 'm', 'macro:us.cpi:2026-10', 'macro', 'rule', '{economy}', 'us', now(), 'new')",
+    )
+    .execute(p)
+    .await
+    .unwrap();
+    let r = detect(p, &NoEmbedder, &t).await.unwrap();
+    assert_eq!((r.scoreable, r.unscoreable), (0, 1), "{r:?}");
+}
