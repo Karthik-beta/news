@@ -24,6 +24,8 @@
 mod board;
 #[path = "postgres/chief.rs"]
 mod chief;
+#[path = "postgres/chief_gaps.rs"]
+mod chief_gaps;
 #[path = "postgres/cli_db.rs"]
 mod cli_db;
 #[path = "postgres/diary_roster.rs"]
@@ -38,6 +40,8 @@ mod migrations;
 mod nose;
 #[path = "postgres/sources.rs"]
 mod sources;
+#[path = "postgres/status_board.rs"]
+mod status_board;
 #[path = "postgres/taster.rs"]
 mod taster;
 #[path = "postgres/taster_embed.rs"]
