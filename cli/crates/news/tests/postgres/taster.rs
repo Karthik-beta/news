@@ -238,7 +238,8 @@ async fn a_candidate_for_a_covered_story_is_an_update_nose_can_score() {
     let r = detect(p, &NoEmbedder, &t).await.unwrap();
     assert_eq!(
         (r.by_event_key, r.new_stories, r.updates, r.scoreable),
-        (2, 1, 0, 1),
+        // by_event_key counts joins to an existing keyed story; the first candidate creates it.
+        (1, 1, 0, 1),
         "{r:?}"
     );
     let story = n(p, "select story_id from stories").await;
