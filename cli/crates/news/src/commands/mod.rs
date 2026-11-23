@@ -1,12 +1,14 @@
 //! Command routing. Built commands live in their own modules; every other command is a stub that
 //! returns `precondition` (exit 4) naming the issue that builds it.
 
+mod ai;
 mod calendar;
 mod components;
 mod db;
 mod entities;
 mod jobs;
 mod nose;
+mod render;
 mod run;
 mod schema;
 mod sources;
@@ -85,9 +87,11 @@ pub async fn run(cli: Cli, path: &str, shape: &Shape) -> NewsResult<Reply> {
         C::Plan { run } => nose::plan(&run).await,
         C::Scores(cmd) => nose::scores(cmd, path).await,
         C::Stats => stub(path, news_telemetry::ISSUE),
-        C::Save { .. } | C::Render { .. } | C::Check { .. } => stub(path, news_proof::ISSUE),
+        C::Save { story, file } => render::save(&story, &file),
+        C::Render { story } => render::render(&story).await,
+        C::Check { .. } => stub(path, news_proof::ISSUE),
         C::Brief { .. } => stub(path, news_fixer::ISSUE),
-        C::Ai(_) => stub(path, news_ghost::ISSUE),
+        C::Ai(cmd) => ai::run(cmd).await,
         C::Eval(_) | C::Review(_) => stub(path, news_critic::ISSUE),
         C::Update { .. } => stub(path, news_rewrite::ISSUE),
         C::Home(_) => stub(path, news_press::ISSUE),
@@ -146,6 +150,11 @@ pub const BUILT: &[&str] = &[
     "stories.show",
     "stories.members",
     "stories.similar",
+    "save",
+    "render",
+    "ai.input",
+    "ai.accept",
+    "ai.fallback",
 ];
 
 /// Dotted names of the commands that have a contract file.

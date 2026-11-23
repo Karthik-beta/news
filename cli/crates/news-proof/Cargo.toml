@@ -1,6 +1,6 @@
 [package]
 name = "news-proof"
-description = "Render and Proof: rendering and code checks. Skeleton with handler stubs; built in #17."
+description = "Render and Proof: the stored Copy, Copy validators, the templated fallback page, page bundles through Plate, and code checks."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,6 +8,13 @@ publish.workspace = true
 
 [dependencies]
 news-core = { workspace = true }
+chrono = { workspace = true }
+jsonschema = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+tokio = { workspace = true, features = ["process"] }
 
 [lints]
 workspace = true

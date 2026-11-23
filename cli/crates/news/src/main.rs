@@ -422,7 +422,7 @@ mod tests {
             );
             stubs += 1;
         }
-        assert!(stubs >= 25, "only {stubs} stubs");
+        assert!(stubs >= 20, "only {stubs} stubs");
     }
 
     #[test]

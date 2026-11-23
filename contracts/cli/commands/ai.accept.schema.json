@@ -4,8 +4,8 @@
   "title": "news ai accept",
   "description": "Validate and store a model output (schema and semantic validators). Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "W",
-  "x-news-status": "stub until #18",
-  "x-news-errors": ["not_found", "validation_failed"],
+  "x-news-status": "built",
+  "x-news-errors": ["not_found", "validation_failed", "precondition"],
   "$defs": {
     "input": {
       "type": "object",
@@ -47,6 +47,10 @@
         },
         "stored": {
           "type": "boolean"
+        },
+        "draft_id": {
+          "description": "The stored Copy's ID, when stored.",
+          "type": "string"
         }
       },
       "required": ["valid", "errors", "stored"],
