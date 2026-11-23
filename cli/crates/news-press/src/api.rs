@@ -11,8 +11,8 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use chrono::{DateTime, Utc};
-use news_core::NewsError;
 use news_core::job::{ErrorClass, JobFailure};
+use news_core::{NewsError, NewsResult};
 use news_wire::pace::{BoxFut, Clock, retry_after};
 use serde_json::Value;
 
@@ -61,6 +61,9 @@ pub trait Api: Send + Sync {
 pub enum Failure {
     /// A 4xx the API will refuse every time. Class `bug`; the outbox row goes on the dead list.
     Dead { status: u16, message: String },
+    /// A 401 or 403: the key is wrong, expired or not allowed. Nothing about the row is wrong, so it is
+    /// not dead-lettered; the drain stops and the same key goes again once the key is fixed.
+    Auth { status: u16, message: String },
     /// Still failing after the attempts (5xx, 429, busy, no answer). The write may have been applied;
     /// the same key is sent again later and the API answers once.
     Unknown { message: String },
@@ -69,13 +72,17 @@ pub enum Failure {
 impl Failure {
     pub fn message(&self) -> &str {
         match self {
-            Failure::Dead { message, .. } | Failure::Unknown { message } => message,
+            Failure::Dead { message, .. }
+            | Failure::Auth { message, .. }
+            | Failure::Unknown { message } => message,
         }
     }
 
     pub fn job_failure(&self) -> JobFailure {
         match self {
-            Failure::Dead { .. } => JobFailure::new(ErrorClass::Bug, self.message()),
+            Failure::Dead { .. } | Failure::Auth { .. } => {
+                JobFailure::new(ErrorClass::Bug, self.message())
+            }
             Failure::Unknown { .. } => JobFailure::new(ErrorClass::Transient, self.message()),
         }
     }
@@ -83,6 +90,7 @@ impl Failure {
     pub fn error(&self) -> NewsError {
         match self {
             Failure::Dead { .. } => NewsError::internal(self.message()),
+            Failure::Auth { .. } => NewsError::upstream(self.message()),
             Failure::Unknown { .. } => NewsError::upstream(self.message()),
         }
     }
@@ -174,6 +182,15 @@ impl Client {
                     last = format!("{} {code}: {message}", r.status);
                     let busy = r.status == 409
                         && matches!(code.as_str(), "page_busy" | "idempotency_in_progress");
+                    if matches!(r.status, 401 | 403) {
+                        return Attempt {
+                            attempts: n,
+                            result: Err(Failure::Auth {
+                                status: r.status,
+                                message: last,
+                            }),
+                        };
+                    }
                     if !(busy || r.status == 408 || r.status == 429 || r.status >= 500) {
                         return Attempt {
                             attempts: n,
@@ -215,12 +232,17 @@ fn error_of(body: &[u8]) -> (String, String) {
 
 /// The idempotency key of a page's put (Bureau §5.8): `<page_id>:<version>:<bundle_sha256>`. Withdrawals
 /// and index changes add a suffix, so each op has its own key and stored result.
-pub fn page_key(page_id: &str, version: i32, sha_hex: &str, op: &str) -> String {
-    match op {
+pub fn page_key(page_id: &str, version: i32, sha_hex: &str, op: &str) -> NewsResult<String> {
+    Ok(match op {
         "put_page" => format!("{page_id}:{version}:{sha_hex}"),
         "withdraw" => format!("{page_id}:{version}:{sha_hex}:withdraw"),
-        _ => format!("{page_id}:{version}:{sha_hex}:index"),
-    }
+        "index_promote" => format!("{page_id}:{version}:{sha_hex}:index"),
+        other => {
+            return Err(NewsError::internal(format!(
+                "Press has no key for op {other:?}"
+            )));
+        }
+    })
 }
 
 /// The live client: reqwest with rustls, no redirects (the bearer key never follows one), the key read
@@ -235,17 +257,32 @@ pub struct ReqwestApi {
 /// The api's origin, for example `https://api.news.karthik.nz` (the host is picked in #21).
 pub const ORIGIN_VAR: &str = "NEWS_API_ORIGIN";
 
+/// The origin as a clean `scheme://host[:port]`: `https`, or `http` only for exactly `localhost`,
+/// `127.0.0.1` or `::1`; never userinfo (`http://localhost@evil.example` has host `evil.example`), and
+/// nothing echoed back from the input but the scheme.
+pub fn checked_origin(input: &str) -> Result<String, NewsError> {
+    let bad = |why: &str| {
+        NewsError::usage(format!(
+            "{ORIGIN_VAR} must be an https:// address ({why}); the write key is never sent in the clear"
+        ))
+    };
+    let url = reqwest::Url::parse(input.trim()).map_err(|_| bad("not a valid URL"))?;
+    if !url.username().is_empty() || url.password().is_some() {
+        return Err(bad("it has a user name or password"));
+    }
+    let host = url.host_str().ok_or_else(|| bad("it has no host"))?;
+    let local = matches!(host, "localhost" | "127.0.0.1" | "[::1]");
+    match url.scheme() {
+        "https" => {}
+        "http" if local => {}
+        _ => return Err(bad("only https, or http to localhost")),
+    }
+    Ok(url.origin().ascii_serialization())
+}
+
 impl ReqwestApi {
     pub fn from_credentials(origin: &str) -> Result<Self, NewsError> {
-        let origin = origin.trim_end_matches('/').to_owned();
-        let local = ["http://127.0.0.1", "http://localhost", "http://[::1]"]
-            .iter()
-            .any(|p| origin.starts_with(p));
-        if !origin.starts_with("https://") && !local {
-            return Err(NewsError::usage(format!(
-                "{ORIGIN_VAR} must be an https:// address (got {origin:?}); the write key is never sent in the clear"
-            )));
-        }
+        let origin = checked_origin(origin)?;
         let key = news_core::secrets::write_api_key()?;
         news_wire::runner::install_tls_provider();
         let http = reqwest::Client::builder()

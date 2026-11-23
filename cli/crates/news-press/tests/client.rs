@@ -7,7 +7,9 @@ use std::time::Duration;
 
 use chrono::{TimeZone, Utc};
 use news_core::job::ErrorClass;
-use news_press::api::{ApiRequest, Client, Failure, MAX_ATTEMPTS, Method, page_key};
+use news_press::api::{
+    ApiRequest, Client, Failure, MAX_ATTEMPTS, Method, checked_origin, page_key,
+};
 use news_press::fake::{FakeApi, Fault};
 use news_wire::pace::{Clock, VirtualClock};
 use serde_json::json;
@@ -18,7 +20,7 @@ fn put(page: &str, version: i32) -> ApiRequest {
     ApiRequest {
         method: Method::Put,
         path: format!("/v1/pages/{page}"),
-        idempotency_key: page_key(page, version, SHA, "put_page"),
+        idempotency_key: page_key(page, version, SHA, "put_page").unwrap(),
         body: json!({"manifest": {"version": version}, "files": {}})
             .to_string()
             .into_bytes(),
@@ -50,7 +52,7 @@ async fn a_lost_answer_is_retried_with_the_same_key_and_writes_once() {
     assert_eq!(reqs[0].idempotency_key, reqs[1].idempotency_key);
     assert_eq!(
         api.applied(),
-        [page_key("us-cpi", 1, SHA, "put_page")],
+        [page_key("us-cpi", 1, SHA, "put_page").unwrap()],
         "applied once"
     );
 }
@@ -112,7 +114,6 @@ async fn a_busy_page_and_a_rate_limit_wait_and_retry() {
 async fn any_other_4xx_is_a_bug_and_is_never_retried() {
     for (status, code) in [
         (400, "invalid_bundle"),
-        (401, "unauthorized"),
         (409, "version_conflict"),
         (413, "payload_too_large"),
     ] {
@@ -194,11 +195,54 @@ async fn a_malformed_key_is_refused_by_the_api_as_a_bug() {
     };
     assert_eq!(status, 400);
     for op in ["put_page", "withdraw", "index_promote"] {
-        let k = page_key("a-page", 12, SHA, op);
+        let k = page_key("a-page", 12, SHA, op).unwrap();
         assert!(
             (8..=255).contains(&k.len())
                 && k.bytes()
                     .all(|b| b.is_ascii_alphanumeric() || b":._-".contains(&b))
         );
+    }
+}
+
+#[tokio::test]
+async fn a_refused_key_is_not_a_dead_row_and_is_never_retried() {
+    for status in [401, 403] {
+        let (api, clock, client) = setup();
+        api.script([Fault::Status(status, "unauthorized", None)]);
+        let a = client.send(&put("us-cpi", 1)).await;
+        assert_eq!(a.attempts, 1);
+        assert!(sleeps(&clock).is_empty());
+        assert!(matches!(a.result, Err(Failure::Auth { .. })), "{status}");
+    }
+}
+
+#[test]
+fn an_unknown_op_has_no_key_and_origins_are_checked_by_host_not_prefix() {
+    assert!(page_key("a-page", 1, SHA, "home_curation").is_err());
+    for ok in [
+        "https://api.example.com",
+        "https://api.example.com/",
+        "http://localhost:8787",
+        "http://127.0.0.1:8787",
+        "http://[::1]:8787",
+    ] {
+        assert!(checked_origin(ok).is_ok(), "{ok}");
+    }
+    assert_eq!(
+        checked_origin("https://api.example.com/").unwrap(),
+        "https://api.example.com"
+    );
+    for bad in [
+        "http://localhost@evil.example",
+        "http://localhost.evil.example",
+        "http://127.0.0.1.evil.example",
+        "http://evil.example",
+        "https://user:secret@api.example.com",
+        "https://user@api.example.com",
+        "ftp://localhost",
+        "localhost",
+    ] {
+        let e = checked_origin(bad).unwrap_err().to_string();
+        assert!(!e.contains("secret") && !e.contains("evil"), "{bad}: {e}");
     }
 }

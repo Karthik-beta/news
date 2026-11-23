@@ -33,6 +33,17 @@ fn need_publish(auth: &Authorized<'_>) -> NewsResult<()> {
     }
 }
 
+/// The authorisation must have been checked for this very page (`GRequest::item`), not for any page.
+fn need_page(auth: &Authorized<'_>, page_id: &str) -> NewsResult<()> {
+    if auth.item.as_deref() == Some(page_id) {
+        Ok(())
+    } else {
+        Err(NewsError::gated(format!(
+            "the authorisation was not checked for page {page_id}"
+        )))
+    }
+}
+
 /// Insert an outbox row, or return the one this key already has (staging is idempotent).
 #[allow(clippy::too_many_arguments)]
 async fn insert_row(
@@ -49,7 +60,8 @@ async fn insert_row(
     sqlx::query_scalar(
         "insert into publish_outbox (page_id, version, bundle_sha, idempotency_key, op, run_id, payload, created_at)
          values ($1, $2, $3, $4, $5, $6, $7, $8)
-         on conflict (idempotency_key) do update set idempotency_key = excluded.idempotency_key
+         on conflict (idempotency_key) do update
+            set dead_at = case when publish_outbox.sent_at is null then null else publish_outbox.dead_at end
          returning outbox_id",
     )
     .bind(page_id)
@@ -76,9 +88,10 @@ pub async fn stage_put(
     now: DateTime<Utc>,
 ) -> NewsResult<i64> {
     need_publish(auth)?;
+    need_page(auth, page_id)?;
     let run_id = auth.run_id;
     let conn = auth.conn();
-    let key = page_key(page_id, version, &hex(sha), "put_page");
+    let key = page_key(page_id, version, &hex(sha), "put_page")?;
     let staged: Option<i64> =
         sqlx::query_scalar("select outbox_id from publish_outbox where idempotency_key = $1")
             .bind(&key)
@@ -86,6 +99,15 @@ pub async fn stage_put(
             .await
             .map_err(map_err)?;
     if let Some(id) = staged {
+        // Staging a dead row again puts it back on the list to send.
+        sqlx::query(
+            "update publish_outbox set dead_at = null, last_error = null
+              where outbox_id = $1 and dead_at is not null and sent_at is null",
+        )
+        .bind(id)
+        .execute(&mut *conn)
+        .await
+        .map_err(map_err)?;
         return Ok(id);
     }
     let ready = sqlx::query(
@@ -126,6 +148,7 @@ pub async fn stage_withdraw(
     now: DateTime<Utc>,
 ) -> NewsResult<i64> {
     need_publish(auth)?;
+    need_page(auth, page_id)?;
     if !(3..=300).contains(&reason.chars().count()) {
         return Err(NewsError::validation(
             "a withdrawal reason is 3 to 300 characters",
@@ -142,7 +165,7 @@ pub async fn stage_withdraw(
     .map_err(map_err)?
     .ok_or_else(|| NewsError::not_found(format!("no published page {page_id}")))?;
     let (version, sha): (i32, Vec<u8>) = (row.get("version"), row.get("bundle_sha"));
-    let key = page_key(page_id, version, &hex(&sha), "withdraw");
+    let key = page_key(page_id, version, &hex(&sha), "withdraw")?;
     insert_row(
         conn,
         run_id,
@@ -158,7 +181,9 @@ pub async fn stage_withdraw(
 }
 
 /// The index budget at Edition step 11: stage `index_promote` rows for the best published `noindex`
-/// pages, up to what is left of `per_day` after today's (UTC) promotions. Returns the picks.
+/// pages, up to what is left of `per_day` after today's (UTC) promotions. Returns the picks. A page with
+/// an unsent promotion, live or dead, is not picked again. When the authorisation names an item, only
+/// that page can be promoted; with none the step's own check covers the picks.
 pub async fn stage_index_promotions(
     auth: &mut Authorized<'_>,
     per_day: i64,
@@ -166,6 +191,7 @@ pub async fn stage_index_promotions(
 ) -> NewsResult<Vec<Pick>> {
     need_publish(auth)?;
     let run_id = auth.run_id;
+    let auth_item = auth.item.clone();
     let conn = auth.conn();
     let day = now
         .duration_trunc(TimeDelta::days(1))
@@ -194,7 +220,7 @@ pub async fn stage_index_promotions(
           where p.status = 'published' and p.index_status = 'noindex' and p.bundle_sha is not null
             and not exists (select 1 from publish_outbox o
                              where o.page_id = p.page_id and o.op = 'index_promote'
-                               and o.dead_at is null and o.sent_at is null)",
+                               and o.sent_at is null)",
     )
     .fetch_all(&mut *conn)
     .await
@@ -211,6 +237,11 @@ pub async fn stage_index_promotions(
     let mut versions = std::collections::HashMap::new();
     let pool: Vec<Candidate> = rows
         .iter()
+        .filter(|r| {
+            auth_item
+                .as_deref()
+                .is_none_or(|i| r.get::<String, _>("page_id") == i)
+        })
         .map(|r| {
             let id: String = r.get("page_id");
             versions.insert(
@@ -233,7 +264,7 @@ pub async fn stage_index_promotions(
     let picks = budget::select(pool, indexed.into_iter().collect::<HashSet<_>>(), room);
     for p in &picks {
         if let Some((version, sha)) = versions.get(&p.page_id) {
-            let key = page_key(&p.page_id, *version, &hex(sha), "index_promote");
+            let key = page_key(&p.page_id, *version, &hex(sha), "index_promote")?;
             let payload = json!({"index_status": "index", "priority": p.priority, "uniqueness": p.uniqueness});
             insert_row(
                 conn,
@@ -270,6 +301,9 @@ pub struct Drained {
     pub dead: u32,
     /// 1 when the drain stopped on a row whose answer never came; it is sent again next time.
     pub unknown: u32,
+    /// 1 when the API refused the key (401 or 403): the row is not dead, the drain stopped, and the same
+    /// row goes first once the key is fixed.
+    pub refused: u32,
 }
 
 fn request(row: &OutRow, work: &Path) -> Result<ApiRequest, String> {
@@ -391,7 +425,8 @@ async fn mark_sent(
 }
 
 /// Send the outbox in order (optionally only one run's rows). Per-row failures never stop the drain:
-/// a 4xx puts the row on the dead list and the next row goes. A row with no answer after the retries
+/// a 4xx puts the row on the dead list and the next row goes, except 401 and 403 (the key, not the row,
+/// is wrong), which stop the drain and leave the row to send. A row with no answer after the retries
 /// stops it (order matters, and the API may be down); the row keeps its key and is sent again by the
 /// next drain, or by the resume of its run.
 pub async fn drain(
@@ -420,6 +455,19 @@ pub async fn drain(
             Err(Failure::Dead { message, .. }) => {
                 mark_dead(db, row.id, sent.attempts, &message, now).await?;
                 out.dead += 1;
+            }
+            Err(Failure::Auth { message, .. }) => {
+                sqlx::query(
+                    "update publish_outbox set attempts = attempts + $2, last_error = $3 where outbox_id = $1",
+                )
+                .bind(row.id)
+                .bind(i32::try_from(sent.attempts).unwrap_or(i32::MAX))
+                .bind(message)
+                .execute(db)
+                .await
+                .map_err(map_err)?;
+                out.refused = 1;
+                break;
             }
             Err(Failure::Unknown { message }) => {
                 sqlx::query(

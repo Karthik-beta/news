@@ -93,6 +93,68 @@ impl StepHandler for Publish {
     fn run<'a>(&'a self, cx: &'a mut StepCx) -> BoxFut<'a, Result<StepOutcome, StepError>> {
         Box::pin(async move {
             let mut tx = cx.db.begin().await.unwrap();
+            // The Budget (set by Nose's plan in a real run) names the pages this step may publish.
+            sqlx::query(
+                r#"update runs set budget = '{"items": ["a-page", "d-page"]}' where run_id = $1"#,
+            )
+            .bind(cx.run_id)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
+            let mut auth = gates::authorize(
+                &mut tx,
+                GRequest {
+                    run_id: cx.run_id,
+                    step_seq: cx.seq,
+                    command: GCommand::Publish,
+                    item: Some("a-page"),
+                },
+            )
+            .await
+            .unwrap();
+            let sha = bundle::load(&self.work, "a-page", 1).unwrap().bundle_sha;
+            // The authorisation covers a-page only.
+            let other = store::stage_put(&mut auth, "b1", 1, &[7u8; 32], cx.now).await;
+            assert_eq!(other.unwrap_err().code, ErrorCode::Gated);
+            let other = store::stage_withdraw(&mut auth, "b1", "not allowed here", cx.now).await;
+            assert_eq!(other.unwrap_err().code, ErrorCode::Gated);
+            let first = store::stage_put(&mut auth, "a-page", 1, &sha, cx.now)
+                .await
+                .unwrap();
+            // Staging again is the same row (a re-entered step).
+            assert_eq!(
+                store::stage_put(&mut auth, "a-page", 1, &sha, cx.now)
+                    .await
+                    .unwrap(),
+                first
+            );
+            // A dead row for d-page, staged again, is back on the list to send.
+            let d_sha = bundle::load(&self.work, "d-page", 1).unwrap().bundle_sha;
+            sqlx::query(
+                "insert into publish_outbox (page_id, version, bundle_sha, idempotency_key, op, run_id, dead_at, last_error)
+                 values ('d-page', 1, $1, $2, 'put_page', $3, now(), 'old 400')",
+            )
+            .bind(&d_sha[..])
+            .bind(page_key("d-page", 1, &gates::hex(&d_sha), "put_page").unwrap())
+            .bind(cx.run_id)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
+            let mut auth = gates::authorize(
+                &mut tx,
+                GRequest {
+                    run_id: cx.run_id,
+                    step_seq: cx.seq,
+                    command: GCommand::Publish,
+                    item: Some("d-page"),
+                },
+            )
+            .await
+            .unwrap();
+            store::stage_put(&mut auth, "d-page", 1, &d_sha, cx.now)
+                .await
+                .unwrap();
+            // The budget pick is step-wide: no item.
             let mut auth = gates::authorize(
                 &mut tx,
                 GRequest {
@@ -104,17 +166,6 @@ impl StepHandler for Publish {
             )
             .await
             .unwrap();
-            let sha = bundle::load(&self.work, "a-page", 1).unwrap().bundle_sha;
-            let first = store::stage_put(&mut auth, "a-page", 1, &sha, cx.now)
-                .await
-                .unwrap();
-            // Staging again is the same row (a re-entered step).
-            assert_eq!(
-                store::stage_put(&mut auth, "a-page", 1, &sha, cx.now)
-                    .await
-                    .unwrap(),
-                first
-            );
             let picks = store::stage_index_promotions(&mut auth, 2, cx.now)
                 .await
                 .unwrap();
@@ -150,6 +201,8 @@ async fn an_authorised_step_stages_and_the_drain_publishes_and_promotes_within_t
     let dir = work("edition");
     let sha = bundle::write(&dir, "a-page", 1, &FILES);
     page(&f, "a-page", "draft", "noindex", 2, &[], &sha, None).await;
+    let d_sha = bundle::write(&dir, "d-page", 1, &FILES);
+    page(&f, "d-page", "ready", "noindex", 2, &[], &d_sha, None).await;
     // Four published, not indexed: b2 is Tier 1 with a new series, b3 is templated, b1 and b4 plain.
     let (s1, s2, s3, s4) = (
         story(&f, "e1", 60.0).await,
@@ -244,7 +297,13 @@ async fn an_authorised_step_stages_and_the_drain_publishes_and_promotes_within_t
     let out = store::drain(&f.pool, &c, &dir, Some(run.run_id))
         .await
         .unwrap();
-    assert_eq!((out.sent, out.dead, out.unknown), (3, 0, 0));
+    assert_eq!((out.sent, out.dead, out.unknown), (4, 0, 0));
+    assert_eq!(
+        f.scalar_i64("select count(*) from publish_outbox where dead_at is not null")
+            .await,
+        0,
+        "the dead row was revived and sent"
+    );
     assert_eq!(
         f.scalar_str("select status from pages where page_id = 'a-page'")
             .await,
@@ -255,13 +314,16 @@ async fn an_authorised_step_stages_and_the_drain_publishes_and_promotes_within_t
     let reqs = api.requests();
     assert_eq!(
         reqs[0].idempotency_key,
-        page_key("a-page", 1, &gates::hex(&sha), "put_page")
+        page_key("a-page", 1, &gates::hex(&sha), "put_page").unwrap()
     );
-    assert_eq!(reqs.len(), 3);
+    assert_eq!(reqs.len(), 4);
     // A second drain sends nothing; prune then removes the page's working files.
     assert_eq!(store::drain(&f.pool, &c, &dir, None).await.unwrap().sent, 0);
     let (files, _) = news_press::prune::prune(&f.pool, &dir).await.unwrap();
-    assert_eq!(files, 3, "manifest, index.html and data.json");
+    assert_eq!(
+        files, 6,
+        "manifest, index.html and data.json of a-page and d-page"
+    );
     let stats = store::stats(&f.pool, 2, t0()).await.unwrap();
     assert!(
         stats["text"]
@@ -280,7 +342,7 @@ async fn staged(f: &Fixture, id: &str, sha: &[u8; 32]) {
     )
     .bind(id)
     .bind(&sha[..])
-    .bind(page_key(id, 1, &gates::hex(sha), "put_page"))
+    .bind(page_key(id, 1, &gates::hex(sha), "put_page").unwrap())
     .execute(&f.pool)
     .await
     .unwrap();
@@ -293,7 +355,7 @@ async fn a_crash_between_ready_and_sent_resends_the_same_key_once() {
     let dir = work("crash");
     let sha = bundle::write(&dir, "p-one", 1, &FILES);
     staged(&f, "p-one", &sha).await;
-    let key = page_key("p-one", 1, &gates::hex(&sha), "put_page");
+    let key = page_key("p-one", 1, &gates::hex(&sha), "put_page").unwrap();
 
     // The API is down for the whole first drain: the row stays unsent, marked no-answer, and the page
     // is still ready, so nothing is half-published.
@@ -392,4 +454,41 @@ async fn staging_outside_an_authorised_step_is_gated() {
     .err()
     .unwrap();
     assert_eq!(e.code, ErrorCode::Gated);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres"]
+async fn a_refused_key_stops_the_drain_and_leaves_the_row_to_send() {
+    let f = Fixture::migrated().await;
+    let dir = work("auth");
+    let a = bundle::write(&dir, "p-a", 1, &FILES);
+    let b = bundle::write(&dir, "p-b", 1, &FILES);
+    staged(&f, "p-a", &a).await;
+    staged(&f, "p-b", &b).await;
+    let api = Arc::new(FakeApi::new());
+    api.script([Fault::Status(401, "unauthorized", None)]);
+    let (c, _) = client(&api);
+    let out = store::drain(&f.pool, &c, &dir, None).await.unwrap();
+    assert_eq!((out.sent, out.dead, out.unknown, out.refused), (0, 0, 0, 1));
+    assert_eq!(
+        api.requests().len(),
+        1,
+        "the drain stopped on the first row"
+    );
+    assert_eq!(
+        f.scalar_i64(
+            "select count(*) from publish_outbox where dead_at is null and sent_at is null"
+        )
+        .await,
+        2,
+        "nothing is dead"
+    );
+    assert!(
+        f.scalar_str("select last_error from publish_outbox where page_id = 'p-a'")
+            .await
+            .contains("unauthorized")
+    );
+    // With the key fixed, both go.
+    assert_eq!(store::drain(&f.pool, &c, &dir, None).await.unwrap().sent, 2);
+    let _ = std::fs::remove_dir_all(&dir);
 }
