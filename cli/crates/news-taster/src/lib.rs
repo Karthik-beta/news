@@ -3,6 +3,7 @@
 //! * [`config`]: the thresholds (`data/seeds/taster-v1.toml`).
 //! * [`detect`]: duplicates, event keys, update detection and grey-zone A4 jobs, with the embedding
 //!   seam ([`detect::Joiner`]).
+//! * [`embed`]: the embedding joiner (bge-small, pgvector); the model itself is the `embed` cargo feature.
 //! * [`input`]: `stories.score_input`, the story input Nose scores.
 //! * [`edit`]: H-tier `merge` and `split`. Board calls them over the Hotline; no shell command does.
 //! * [`read`]: what `news stories show|members|similar` print.
@@ -13,6 +14,7 @@
 pub mod config;
 pub mod detect;
 pub mod edit;
+pub mod embed;
 pub mod input;
 pub mod read;
 
