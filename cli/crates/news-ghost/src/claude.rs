@@ -297,7 +297,7 @@ mod tests {
             ("ANTHROPIC_API_KEY", "SENTINEL-1"),
             ("AWS_SECRET_ACCESS_KEY", "SENTINEL-2"),
             ("CLOUDFLARE_API_TOKEN", "SENTINEL-3"),
-            ("NEWS_WRITE_API_KEY", "SENTINEL-4"),
+            (news_core::secrets::WRITE_API_KEY_VAR, "SENTINEL-4"),
             ("DATABASE_URL", "postgres://u:SENTINEL-5@h/db"),
             ("OTEL_EXPORTER_OTLP_HEADERS", "authorization=SENTINEL-6"),
             ("CLAUDE_CODE_DISABLE_AUTO_MEMORY", "0"),
