@@ -243,6 +243,56 @@ async fn sources_snapshots_and_the_ledger_end_to_end() {
         .await,
         3
     );
+    // Clerk stored each candidate's data points, so Taster can read them: the FRED and BLS macro
+    // stories and the 10-K earnings story get inputs that Nose scores.
+    assert_eq!(
+        scalar_i64(
+            &f,
+            "select count(*) from candidates where dp_ids is null or cardinality(dp_ids) <> dp_count"
+        )
+        .await,
+        0
+    );
+    let taster = news_taster::config::v1().unwrap();
+    news_taster::detect::detect(&f.pool, &news_taster::detect::NoEmbedder, &taster)
+        .await
+        .unwrap();
+    let nose = news_nose::config::v1().unwrap();
+    let mut pages = Vec::new();
+    for key in [
+        "macro:us.cpi:2026-10",
+        "macro:us.payrolls:2026-10",
+        "earnings:0000320193:2026FY",
+    ] {
+        let input: serde_json::Value =
+            sqlx::query_scalar("select score_input from stories where event_key = $1")
+                .bind(key)
+                .fetch_one(&f.pool)
+                .await
+                .unwrap();
+        let input: news_nose::score::StoryInput = serde_json::from_value(input)
+            .unwrap_or_else(|e| panic!("{key} has no score input: {e}"));
+        news_nose::score::score(&input, input.published_at, &Default::default(), &nose).unwrap();
+        pages.push((
+            input.event_type.clone(),
+            serde_json::to_value(&input.page).unwrap(),
+        ));
+    }
+    // FRED CPI: the observations as of this release, the August revision in, the missing October 2025
+    // print out; headline macro in the US.
+    assert_eq!(pages[0].0, "macro_headline");
+    assert_eq!(
+        pages[0].1,
+        serde_json::json!({"type": "macro", "per_year": 12,
+            "values": [323.364, 324.368, 331.112, 332.0, 333.01]})
+    );
+    assert_eq!(pages[1].1["type"], "macro");
+    // Apple's 10-K: fiscal 2026 revenue growth against fiscal 2025's; the filing restates fiscal
+    // 2025 net income (the fixture's 112.01 bn becomes 111.99 bn), which sets `flip`.
+    assert_eq!(pages[2].0, "company_results");
+    assert_eq!(pages[2].1["type"], "earnings");
+    assert_eq!(pages[2].1["past_growth"].as_array().map(Vec::len), Some(1));
+    assert_eq!(pages[2].1["flip"], true);
     // Snapshots: structured data kept at least 400 days (a later fetch of the same bytes only extends
     // it); fetch_state remembers every URL.
     assert_eq!(
