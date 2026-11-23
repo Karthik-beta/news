@@ -13,16 +13,17 @@ Ghost runs every `ai.*` job (Bureau Design §3.9, §7; ADR 0007, ADR 0008), insi
 | One `ai_calls` row per call (PostgreSQL, migration `0750`), mirrored to ClickHouse `news.ai_calls` | `store::PgStore` |
 | Batches enqueued grouped by prefix file, so the prompt cache stays warm | `order_by_prefix` |
 
-Job arguments, paths relative to the repository root: `{"input", "schema", "prefix"?, "step"?}`; the step defaults from the kind (`ai.write` A1, `ai.repair` A2, `ai.classify` A3, `ai.storymatch` A4, `ai.condense` A5, `ai.spotcheck` A7). The model comes from Standing (`models.main`, `models.light`, `models.curator`).
+Job arguments, paths relative to the repository root (no absolute paths or `..`; `input` and `prefix` must resolve under `work/`, `schema` under `contracts/`): `{"input", "schema", "prefix"?, "step"?}`; the step defaults from the kind (`ai.write` A1, `ai.repair` A2, `ai.classify` A3, `ai.storymatch` A4, `ai.condense` A5, `ai.spotcheck` A7). The model comes from Standing (`models.main`, `models.light`, `models.curator`).
 
 The usage-limit reply's shape is not settled (ADR 0008 §1). `claude::classify` reads it conservatively and is the one place to fix it after the first real limit.
 
 ## Tests
 
-`cargo test -p news-ghost` runs Ghost against `fake-claude` (`src/bin/fake_claude.rs`), a test-only stand-in that records its argv, environment and stdin and replies as its input asks. Never the real CLI, no network. The Job Object tests are `cfg(windows)`.
+`cargo test -p news-ghost` runs Ghost against `fake-claude` (`src/bin/fake_claude.rs`, built only with the `fake-claude` feature, which a dev-dependency turns on for tests), a test-only stand-in that records its argv, environment and stdin and replies as its input asks. Never the real CLI, no network. The Job Object tests are `cfg(windows)`.
 
 ## Wiring left
 
 - The service installs Ghost (`news_ghost::install`) once `news ai accept` exists as a library call: an `AcceptSink` over it, a `PgStore` on the service's pool (with `ClickHouse::from_env()`), the root marker job from `host::run` as `job`, and the `claude.exe` path. Until then the handler refuses before any call (`bug`).
+- Do not install Ghost until each call spawns with a Low-integrity token in a Low-labelled folder (ADR 0008 §8.2); without it `claude -p` runs with the service's rights.
 - Not here yet: per-run nested Job Objects (so a pause can terminate one run's calls), the Low-integrity token for each call (ADR 0008 §8.2), the OAuth pre-refresh.
-- The flag set follows Bureau §3.9 as written; the lean-call spike (ADR 0014) confirms it, including whether `--setting-sources` is needed beside `--settings`.
+- The flag set follows Bureau §3.9 as written; the doc gives no value for `--setting-sources`, so calls pass the empty list (load no settings source); the lean-call spike (ADR 0014) must confirm that value.

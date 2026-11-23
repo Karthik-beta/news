@@ -206,10 +206,15 @@ async fn the_argv_is_the_golden_call_and_a_valid_copy_is_accepted() {
         &root
             .join("pipeline/claude/page-call.settings.json")
             .to_string_lossy(),
+        "--setting-sources",
+        "",
         "--disable-slash-commands",
         "--no-session-persistence",
         "--append-system-prompt-file",
+        // Job paths are resolved (symlinks and all) before they reach the call.
         &root
+            .canonicalize()
+            .unwrap()
             .join("work/prefix/macro-release.3f9a1c.md")
             .to_string_lossy(),
         "--json-schema",
@@ -362,6 +367,107 @@ async fn a_usage_limit_reply_pauses_until_the_reset() {
     let calls = s.store.calls.lock().unwrap().clone();
     assert_eq!(calls.len(), 1);
     assert_eq!(calls[0].subtype, "usage_limit");
+}
+
+#[tokio::test]
+async fn a_job_gets_three_usage_limit_pauses_unless_a_call_succeeds_between() {
+    let reset = chrono::Utc::now().timestamp() + 3600;
+    let limit = json!({"fake": {"mode": "usage_limit", "reset": reset}});
+    let s = setup("snoozes", limit.clone(), MemStore::default(), true);
+    let brief = s.ghost.root.join("work/briefs/81234.json");
+    for _ in 0..2 {
+        let f = s.ghost.run(job("ai.write", 20, Uuid::new_v4())).await;
+        assert_eq!(f.unwrap_err().class, ErrorClass::AiUsageLimit);
+    }
+    // A success in between starts the count again.
+    std::fs::write(&brief, "{}").unwrap();
+    s.ghost
+        .run(job("ai.write", 20, Uuid::new_v4()))
+        .await
+        .unwrap();
+    std::fs::write(&brief, limit.to_string()).unwrap();
+    for _ in 0..3 {
+        let f = s.ghost.run(job("ai.write", 20, Uuid::new_v4())).await;
+        assert_eq!(f.unwrap_err().class, ErrorClass::AiUsageLimit);
+    }
+    let f = s
+        .ghost
+        .run(job("ai.write", 20, Uuid::new_v4()))
+        .await
+        .unwrap_err();
+    assert_eq!(f.class, ErrorClass::Bug, "{f}");
+    assert!(f.message.contains("giving up"), "{}", f.message);
+}
+
+/// `args` with `key` replaced.
+fn job_with(key: &str, value: Value) -> JobInput {
+    let mut j = job("ai.write", 21, Uuid::new_v4());
+    j.args[key] = value;
+    j
+}
+
+#[tokio::test]
+async fn paths_outside_the_work_and_contracts_folders_are_refused() {
+    let s = setup("paths", json!({}), MemStore::default(), true);
+    let outside = s.dir.join("outside.json");
+    std::fs::write(&outside, "{}").unwrap();
+    let schema_in_work = "work/briefs/81234.json";
+    let mut cases = vec![
+        ("absolute input", job_with("input", json!(outside))),
+        ("absolute prefix", job_with("prefix", json!(outside))),
+        (
+            "absolute schema",
+            job_with(
+                "schema",
+                json!(
+                    s.ghost
+                        .root
+                        .join("contracts/cli/ai/page-draft.v1.schema.json")
+                ),
+            ),
+        ),
+        (
+            "dot-dot input",
+            job_with(
+                "input",
+                json!("work/../pipeline/claude/page-call.settings.json"),
+            ),
+        ),
+        (
+            "dot-dot schema",
+            job_with("schema", json!("contracts/../work/briefs/81234.json")),
+        ),
+        (
+            "schema outside contracts",
+            job_with("schema", json!(schema_in_work)),
+        ),
+        (
+            "input outside work",
+            job_with("input", json!("contracts/cli/ai/page-draft.v1.schema.json")),
+        ),
+    ];
+    // A link inside `work` that points outside it.
+    let link = s.ghost.root.join("work/briefs/link.json");
+    #[cfg(unix)]
+    let linked = std::os::unix::fs::symlink(&outside, &link).is_ok();
+    #[cfg(windows)]
+    let linked = std::os::windows::fs::symlink_file(&outside, &link).is_ok(); // needs a privilege
+    if linked {
+        cases.push((
+            "symlink out of work",
+            job_with("input", json!("work/briefs/link.json")),
+        ));
+    }
+    for (name, j) in cases {
+        let f = s.ghost.run(j).await.unwrap_err();
+        assert_eq!(f.class, ErrorClass::Bug, "{name}: {f}");
+        assert!(records(&s, 21).is_empty(), "{name} started a call");
+    }
+    // The ordinary job still runs.
+    s.ghost
+        .run(job("ai.write", 21, Uuid::new_v4()))
+        .await
+        .unwrap();
 }
 
 #[tokio::test]

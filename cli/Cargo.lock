@@ -3190,6 +3190,7 @@ dependencies = [
  "chrono",
  "news-core",
  "news-dispatch",
+ "news-ghost",
  "news-rota",
  "news-standing",
  "news-store",

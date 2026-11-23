@@ -38,6 +38,11 @@ pub fn argv(c: &CallSpec<'_>) -> Vec<String> {
     .map(str::to_owned)
     .to_vec();
     a.push(c.settings.to_string_lossy().into_owned());
+    // No user, project or local settings (and so no hooks, plugins or CLAUDE.md) beside `--settings`.
+    // Bureau §3.9 names the flag but gives no value; the empty list is the lean-call spike's (ADR 0014)
+    // to confirm.
+    a.push("--setting-sources".into());
+    a.push(String::new());
     a.push("--disable-slash-commands".into());
     a.push("--no-session-persistence".into());
     if let Some(p) = c.prefix {
@@ -150,6 +155,17 @@ const KNOWN_SUBTYPES: &[&str] = &[
     "error_max_structured_output_retries",
 ];
 
+/// The wordings that mean the plan's limit, not any "limit reached" (a tool, a rate or a size limit).
+fn is_limit_text(lower: &str) -> bool {
+    [
+        "usage limit",
+        "5-hour limit reached",
+        "weekly limit reached",
+    ]
+    .iter()
+    .any(|p| lower.contains(p))
+}
+
 /// Classify a finished call from its exit code and stdout.
 ///
 /// The usage-limit reply is not settled (ADR 0008 §1: no limit was hit in the spike), so this reads it
@@ -165,7 +181,7 @@ pub fn classify(exit_code: Option<i32>, stdout: &str) -> ClaudeOutcome {
     let is_error = v["is_error"].as_bool().unwrap_or(false);
     let text = v["result"].as_str().unwrap_or_default();
     let lower = text.to_ascii_lowercase();
-    if is_error && (lower.contains("usage limit") || lower.contains("limit reached")) {
+    if is_error && is_limit_text(&lower) {
         let resets_at = text
             .rsplit_once('|')
             .and_then(|(_, t)| t.trim().parse::<i64>().ok())
@@ -255,9 +271,11 @@ mod tests {
         });
         assert_eq!(
             a.join(" "),
-            r#"-p --model sonnet --tools  --strict-mcp-config --mcp-config {"mcpServers":{}} --settings s.json --disable-slash-commands --no-session-persistence --append-system-prompt-file p.md --json-schema {} --max-turns 2 --max-budget-usd 0.60 --output-format json"#
+            r#"-p --model sonnet --tools  --strict-mcp-config --mcp-config {"mcpServers":{}} --settings s.json --setting-sources  --disable-slash-commands --no-session-persistence --append-system-prompt-file p.md --json-schema {} --max-turns 2 --max-budget-usd 0.60 --output-format json"#
         );
         assert_eq!(a[4], "", "--tools takes an empty value");
+        let at = a.iter().position(|x| x == "--setting-sources").unwrap();
+        assert_eq!(a[at + 1], "", "no setting source loads beside --settings");
         assert!(
             !a.iter().any(|x| x == "--bare"),
             "--bare never reads the subscription login"
@@ -334,6 +352,10 @@ mod tests {
             classify(Some(1), &worded.to_string()),
             ClaudeOutcome::UsageLimit { resets_at: None }
         );
+        // A bare "limit reached" is not the plan's limit: with a known subtype it is a plain failure.
+        let bare = json!({"is_error": true, "subtype": "error_during_execution",
+                          "result": "context limit reached"});
+        assert_eq!(classify(Some(1), &bare.to_string()), ClaudeOutcome::Failed);
         // The ADR's provisional rule: an unknown subtype on an error exit.
         let unknown = json!({"is_error": true, "subtype": "error_rate_limit"}).to_string();
         assert_eq!(

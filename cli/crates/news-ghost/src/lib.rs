@@ -27,9 +27,10 @@ use claude::{CallSpec, ClaudeOutcome, Usage};
 use news_core::job::{ErrorClass, Handler, JobFailure, JobFuture, JobInput};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
-use std::sync::{Arc, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 use store::{AiCall, BoxFut, Store};
 
@@ -52,6 +53,55 @@ pub const CALL_TIMEOUT: Duration = Duration::from_secs(15 * 60);
 
 /// Minimum pause after a usage limit, so a reset time already past never makes a tight loop.
 const MIN_LIMIT_PAUSE: Duration = Duration::from_secs(60);
+
+/// The longest reset time believed: a plan's longest window is a week. Anything past it (a reset given
+/// in milliseconds, a garbled number) is dropped, so Dispatch's default pause (one hour) applies.
+const MAX_LIMIT_PAUSE: Duration = Duration::from_secs(8 * 24 * 3600);
+
+/// How many usage-limit pauses one job gets before it fails, with no successful call between.
+const MAX_LIMIT_SNOOZES: u8 = 3;
+
+/// The pause to ask Dispatch for after a usage limit: the wait until `resets_at`, at least a minute,
+/// or `None` (Dispatch's default) when the reset is unknown or past [`MAX_LIMIT_PAUSE`].
+fn limit_pause(
+    resets_at: Option<chrono::DateTime<chrono::Utc>>,
+    now: chrono::DateTime<chrono::Utc>,
+) -> Option<Duration> {
+    let wait = (resets_at? - now).to_std().unwrap_or_default();
+    (wait <= MAX_LIMIT_PAUSE).then(|| wait.max(MIN_LIMIT_PAUSE))
+}
+
+/// A job-argument path, checked: relative, no `..`, and once symlinks are resolved inside
+/// `root/<under>`. Returns the resolved path.
+fn confine(root: &Path, rel: &Path, under: &str) -> Result<PathBuf, JobFailure> {
+    use std::path::Component;
+    if rel.is_absolute()
+        || !rel
+            .components()
+            .all(|c| matches!(c, Component::Normal(_) | Component::CurDir))
+    {
+        return Err(bug(format!(
+            "job path {} must be relative, with no `..`",
+            rel.display()
+        )));
+    }
+    let base = root
+        .join(under)
+        .canonicalize()
+        .map_err(|e| bug(format!("cannot resolve {under}/ under the root: {e}")))?;
+    let full = root
+        .join(rel)
+        .canonicalize()
+        .map_err(|e| bug(format!("cannot resolve job path {}: {e}", rel.display())))?;
+    if full.starts_with(&base) {
+        Ok(full)
+    } else {
+        Err(bug(format!(
+            "job path {} is outside {under}/",
+            rel.display()
+        )))
+    }
+}
 
 /// One problem `news ai accept` found (`contracts/cli/commands/ai.accept.schema.json`).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -94,6 +144,9 @@ pub struct Ghost {
     pub job: Option<Arc<news_win::Job>>,
     pub accept: Arc<dyn AcceptSink>,
     pub store: Arc<dyn Store>,
+    /// Usage-limit pauses per job since its last successful call (see [`MAX_LIMIT_SNOOZES`]). In
+    /// memory: a service restart gives each job its three again.
+    limit_snoozes: Mutex<HashMap<i64, u8>>,
 }
 
 impl Ghost {
@@ -112,6 +165,7 @@ impl Ghost {
             job: None,
             accept,
             store,
+            limit_snoozes: Mutex::default(),
         }
     }
 }
@@ -119,6 +173,10 @@ impl Ghost {
 static GHOST: OnceLock<Arc<Ghost>> = OnceLock::new();
 
 /// Install Ghost for [`handle`]; `false` if one is already installed.
+///
+/// Do not wire this into the Bureau service yet. A call must first spawn with a Low-integrity token in
+/// a Low-labelled working folder (ADR 0008 §8.2); until it does, `claude -p` runs with the service's
+/// full rights.
 pub fn install(g: Ghost) -> bool {
     GHOST.set(Arc::new(g)).is_ok()
 }
@@ -196,13 +254,21 @@ impl Ghost {
         if !step.strip_prefix('A').is_some_and(numbered) {
             return Err(bug(format!("bad step {step:?}")));
         }
-        let schema_path = self.root.join(&args.schema);
+        let root = self
+            .root
+            .canonicalize()
+            .map_err(|e| bug(format!("cannot resolve the root: {e}")))?;
+        let schema_path = confine(&root, &args.schema, "contracts")?;
+        let brief_path = confine(&root, &args.input, "work")?;
+        let prefix = match &args.prefix {
+            Some(p) => Some(confine(&root, p, "work")?),
+            None => None,
+        };
         let schema: Value = std::fs::read_to_string(&schema_path)
             .ok()
             .and_then(|t| serde_json::from_str(&t).ok())
             .ok_or_else(|| bug(format!("cannot read the schema {}", schema_path.display())))?;
         let schema = schema.to_string();
-        let prefix = args.prefix.as_ref().map(|p| self.root.join(p));
         let prompt_version = args
             .prefix
             .as_ref()
@@ -212,7 +278,6 @@ impl Ghost {
         let dir = self.work.join(input.job_id.to_string());
         std::fs::create_dir_all(&dir)
             .map_err(|e| JobFailure::new(ErrorClass::Transient, format!("work folder: {e}")))?;
-        let brief_path = self.root.join(&args.input);
         let mut stdin_path = brief_path.clone();
         let repairs: u8 = u8::from(step == "A1");
         let mut spent_here = 0u64;
@@ -284,13 +349,33 @@ impl Ghost {
                 ClaudeOutcome::UsageLimit { resets_at } => {
                     call.subtype = "usage_limit".into();
                     self.store.record(&call).await;
+                    let n = {
+                        let mut m = self.limit_snoozes.lock().unwrap_or_else(|e| e.into_inner());
+                        let n = m.entry(input.job_id).or_default();
+                        *n += 1;
+                        *n
+                    };
+                    if n > MAX_LIMIT_SNOOZES {
+                        self.limit_snoozes
+                            .lock()
+                            .unwrap_or_else(|e| e.into_inner())
+                            .remove(&input.job_id);
+                        return Err(bug(format!(
+                            "Claude usage limit hit {n} times with no call finishing in between; giving up"
+                        )));
+                    }
                     let mut f =
                         JobFailure::new(ErrorClass::AiUsageLimit, "Claude usage limit reached");
-                    if let Some(at) = resets_at {
-                        let wait = (at - chrono::Utc::now()).to_std().unwrap_or_default();
-                        f = f.with_retry_after(wait.max(MIN_LIMIT_PAUSE));
+                    if let Some(d) = limit_pause(resets_at, chrono::Utc::now()) {
+                        f = f.with_retry_after(d);
                     }
                     return Err(f);
+                }
+                ClaudeOutcome::Ok => {
+                    self.limit_snoozes
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner())
+                        .remove(&input.job_id);
                 }
                 ClaudeOutcome::Failed if call.subtype != "error_max_structured_output_retries" => {
                     self.store.record(&call).await;
@@ -311,7 +396,7 @@ impl Ghost {
                     ));
                 }
                 // `error_max_structured_output_retries` goes on as an invalid output: it is repaired.
-                _ => {}
+                ClaudeOutcome::Failed => {}
             }
             let output = reply
                 .as_ref()
@@ -419,6 +504,7 @@ impl Ghost {
         #[cfg(windows)]
         cmd.creation_flags(news_win::SPAWN_SUSPENDED);
         let started = Instant::now();
+        #[cfg_attr(not(windows), allow(unused_mut))] // only Windows calls start_kill
         let mut child = cmd.spawn().map_err(|e| {
             let class = if e.kind() == std::io::ErrorKind::NotFound {
                 ErrorClass::Bug
@@ -463,6 +549,20 @@ impl Ghost {
 mod tests {
     use super::*;
     use news_dispatch::NewJob;
+
+    #[test]
+    fn the_limit_pause_is_clamped_to_a_plans_longest_window() {
+        let now = chrono::Utc::now();
+        let at = |s: i64| Some(now + chrono::Duration::seconds(s));
+        assert_eq!(limit_pause(at(3600), now), Some(Duration::from_secs(3600)));
+        assert_eq!(limit_pause(at(-5), now), Some(MIN_LIMIT_PAUSE));
+        assert_eq!(limit_pause(at(8 * 24 * 3600), now), Some(MAX_LIMIT_PAUSE));
+        assert_eq!(limit_pause(at(8 * 24 * 3600 + 1), now), None);
+        assert_eq!(limit_pause(None, now), None);
+        // A reset given in milliseconds reads as thousands of years away.
+        let ms = chrono::DateTime::from_timestamp(now.timestamp() * 1000, 0);
+        assert_eq!(limit_pause(ms, now), None);
+    }
 
     #[test]
     fn every_kind_has_a_default_step() {

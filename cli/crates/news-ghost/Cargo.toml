@@ -7,10 +7,15 @@ license.workspace = true
 publish.workspace = true
 
 # Test-only stand-in for `claude` (records its argv, environment and stdin; replies as told by its
-# input). The tests run it through Ghost; never shipped, never the real CLI.
+# input). Built only with the `fake-claude` feature, which only the dev-dependency below turns on:
+# never in `cargo build`, never shipped, never the real CLI.
+[features]
+fake-claude = []
+
 [[bin]]
 name = "fake-claude"
 path = "src/bin/fake_claude.rs"
+required-features = ["fake-claude"]
 test = false
 doc = false
 
@@ -32,3 +37,7 @@ uuid = { workspace = true }
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+# Turns the `fake-claude` feature on for `cargo test` only.
+news-ghost = { path = ".", features = ["fake-claude"] }
