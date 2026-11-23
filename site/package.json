@@ -19,7 +19,7 @@
     "test": "vitest run --project unit --project component --project astro && bun test tests/ssr",
     "test:watch": "vitest --project unit --project component --project astro",
     "test:ssr": "bun test tests/ssr",
-    "test:integration": "CLOUDFLARE_ENV=local NEWS_FIXTURES=1 bun run build && vitest run --project integration",
+    "test:integration": "CLOUDFLARE_ENV=local NEWS_FIXTURES=1 NEWS_PREVIEW=1 bun run build && vitest run --project integration",
     "test:e2e": "playwright test --project='smoke-*'",
     "test:e2e:full": "playwright test --project='chromium-*' --project='firefox-*' --project='webkit-*'",
     "test:visual": "bun scripts/visual.ts",

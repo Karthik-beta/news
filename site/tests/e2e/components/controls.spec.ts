@@ -50,7 +50,10 @@ test("form controls are at least 16px, so phones do not zoom in", { tag: "@smoke
     const sizes = await page
       .locator("main")
       .locator("input:not([type=hidden]):not([type=checkbox]), select, textarea")
-      .evaluateAll((els) => els.map((el) => Number.parseFloat(getComputedStyle(el).fontSize)));
+      // The honeypot sits in an aria-hidden, visually hidden wrapper: nobody types in it, so it cannot cause a zoom.
+      .evaluateAll((els) =>
+        els.filter((el) => !el.closest("[aria-hidden=true]")).map((el) => Number.parseFloat(getComputedStyle(el).fontSize)),
+      );
     expect(sizes.length, name).toBeGreaterThan(0);
     for (const s of sizes) expect(s, name).toBeGreaterThanOrEqual(16);
   }
