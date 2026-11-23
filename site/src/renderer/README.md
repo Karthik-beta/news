@@ -19,7 +19,7 @@ const result = renderPage(
 2. Parses `page.oui` with OpenUI's parser against the component library, then checks every element's props against its zod schema. OpenUI's parser checks types but not refinements, so a typed number where a reference belongs is caught here. A parse or prop error throws `RenderError` (check C1).
 3. Renders the article with `react-dom/server` (`renderToStaticMarkup`) inside OpenUI's `Renderer.Root` and our own root slot. It never uses the default `<Renderer>`, which adds wrapper divs with inline styles. Interactive parts are islands (below).
 4. Writes `index.md` and the chart downloads through each component's `markdown()` and `csv()` hooks.
-5. Wraps the article in the document: `<meta name="generator">` with the renderer version, the stylesheets, and the island script only when the page has an island.
+5. Wraps the article in the document: exactly one `<meta name="robots">` from `indexStatus` (`noindex` by default, `index, follow` for `"index"`; the write API rewrites this exact tag when `index_status` changes, ADR 0004), `<meta name="generator">` with the renderer version, the stylesheets, and the island script only when the page has an island.
 
 The fallback, option C in the ADR, is our own walk over the parse tree. Select it with `engine: "walker"`. It produces byte-identical HTML, and a test keeps it that way.
 

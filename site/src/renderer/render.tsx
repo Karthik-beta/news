@@ -56,6 +56,12 @@ export interface RenderOptions {
    * never made up). Page templates (#14) pass the real one; fixture pages pass a fixture glossary.
    */
   glossary?: Glossary;
+  /**
+   * The page's index_status, written as its one robots meta tag. Default noindex, so a preview or fixture page is never
+   * indexed. The write API refuses a bundle without exactly one of the two tags and rewrites it when the status
+   * changes (ADR 0004, "Index status").
+   */
+  indexStatus?: "index" | "noindex";
 }
 
 export interface ChartExport {
@@ -364,6 +370,7 @@ export function renderPage(input: PageBundleInput, options: RenderOptions = {}):
     lang: options.lang ?? "en-GB",
     assets: options.assets,
     hasIslands,
+    indexStatus: options.indexStatus ?? "noindex",
   });
 
   const files: Record<string, string> = { "index.html": html, "index.md": markdown };
@@ -400,6 +407,7 @@ export function renderDocument(opts: {
   lang: string;
   assets?: RenderOptions["assets"];
   hasIslands: boolean;
+  indexStatus: "index" | "noindex";
 }): string {
   const assets = opts.assets ?? { stylesheets: [] };
   return [
@@ -408,6 +416,8 @@ export function renderDocument(opts: {
     "<head>",
     '<meta charset="utf-8">',
     '<meta name="viewport" content="width=device-width, initial-scale=1">',
+    // Exactly one tag, in one of these two forms: the write API finds and rewrites it byte for byte (workers/api).
+    `<meta name="robots" content="${opts.indexStatus === "index" ? "index, follow" : "noindex"}">`,
     `<meta name="generator" content="${RENDERER_NAME} ${RENDERER_VERSION}">`,
     `<title>${escapeHtml(opts.title)}</title>`,
     `<meta name="description" content="${escapeHtml(opts.description)}">`,
