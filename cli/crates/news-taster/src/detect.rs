@@ -8,10 +8,9 @@
 //! 5. a candidate that joins a story with a published page is an update: the story reopens with
 //!    `action = update` so Nose scores it again.
 //!
-//! The embedding model is a separate spike (ADR 0011). Until a [`Joiner`] backed by it exists the
-//! service uses [`NoEmbedder`], which finds no neighbours, so step 4 makes a new story. Only
-//! candidates with status `new` are read and each ends `grouped`, so running detection again changes
-//! nothing.
+//! The embedding joiner is [`crate::embed::EmbedJoiner`] (ADR 0011). Without one the service uses
+//! [`NoEmbedder`], which finds no neighbours, so step 4 makes a new story. Only candidates with status
+//! `new` are read and each ends `grouped`, so running detection again changes nothing.
 
 use std::collections::BTreeMap;
 use std::future::Future;
@@ -52,8 +51,8 @@ pub struct Neighbour {
 }
 
 /// The embedding seam: stories near a candidate that has no event key, within the 72 h window for open
-/// stories and the 30-day window for stories with a page (`Thresholds`). The embedder, its model and
-/// the pgvector query come with the spike; tests inject cosines through this trait.
+/// stories and the 30-day window for stories with a page (`Thresholds`). [`crate::embed::EmbedJoiner`]
+/// embeds and queries pgvector; tests inject cosines through this trait.
 pub trait Joiner {
     fn neighbours(
         &self,
@@ -61,6 +60,28 @@ pub trait Joiner {
         cand: &Cand,
         t: &Thresholds,
     ) -> impl Future<Output = Result<Vec<Neighbour>, sqlx::Error>> + Send;
+
+    /// Called for a candidate with an event key (it is never matched by similarity, so `neighbours` is
+    /// skipped) so its vector still reaches its story's centroid, where a later keyless candidate can
+    /// find it. Candidates without a key store theirs inside `neighbours`.
+    fn store_vector(
+        &self,
+        _: &mut PgConnection,
+        _: &Cand,
+    ) -> impl Future<Output = Result<(), sqlx::Error>> + Send {
+        async { Ok(()) }
+    }
+
+    /// Called once a candidate that is not a duplicate is in `story_id` (its own new story included), so
+    /// a joiner can keep the story's centroid.
+    fn assigned(
+        &self,
+        _: &mut PgConnection,
+        _: &Cand,
+        _: i64,
+    ) -> impl Future<Output = Result<(), sqlx::Error>> + Send {
+        async { Ok(()) }
+    }
 }
 
 /// No embedder configured: step 4 never joins.
@@ -220,6 +241,12 @@ async fn run<J: Joiner>(db: &PgPool, joiner: &J, t: &Thresholds) -> Result<Repor
             .bind(story)
             .execute(&mut *tx)
             .await?;
+        if !duplicate {
+            if c.event_key.is_some() {
+                joiner.store_vector(&mut tx, &c).await?;
+            }
+            joiner.assigned(&mut tx, &c, story).await?;
+        }
         // Step 5: a new member of a story that already has a page is an update. A copy of something
         // already in the story is not.
         if !duplicate && has_page(&mut tx, story).await? {

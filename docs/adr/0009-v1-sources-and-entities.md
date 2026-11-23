@@ -32,7 +32,7 @@ The first batch of Stringers (SEC EDGAR, FRED, BLS) covers the US. Issue #12 add
 | arXiv query API | `export.arxiv.org/robots.txt` disallows everything. The OAI-PMH host (`oaipmh.arxiv.org`) publishes no robots.txt and is used instead, paced at one request every 6 seconds (the lint requires at most half of arXiv's one-in-3-seconds). |
 | BIS calendar API, Eurostat ICS | Not recorded in this batch; the calendar is an accelerator, so feed discovery still finds these releases. |
 | NASA news releases | The Image and Video Library holds media, not releases. |
-| Docling and Tesseract | No source in this batch needs a PDF table. The container, the `docling` pool and the output parsers belong with the first PDF source. |
+| Docling and Tesseract | No source in this batch needs a PDF table. The output parsers were added later (#12: `docling`, `tesseract` and `docparse` in `news-connectors`); the container and the `doc.parse_docling` handler belong with the first PDF source. |
 
 BEA (key) and Crossref (contact e-mail) ship disabled with the rule for sec-edgar: BEA's fixtures are synthetic; OpenAlex also ships disabled because its keyless budget is tiny.
 
