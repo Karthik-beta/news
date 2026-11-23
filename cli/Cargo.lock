@@ -2805,7 +2805,20 @@ dependencies = [
 name = "news-ghost"
 version = "0.0.1"
 dependencies = [
+ "chrono",
  "news-core",
+ "news-dispatch",
+ "news-rota",
+ "news-standing",
+ "news-store",
+ "news-telemetry",
+ "news-win",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tokio",
+ "tracing",
+ "uuid",
 ]
 
 [[package]]
