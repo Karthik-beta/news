@@ -2,9 +2,9 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://news.karthik.nz/contracts/cli/commands/sources.health.schema.json",
   "title": "news sources health",
-  "description": "Source health with reasons. Input is the command's arguments as an object; output is the envelope's data.",
+  "description": "Source health with reasons, from fetch_state and snapshots. ratio_304 is the share of the source's URLs whose latest fetch falls in the window that got a 304: it counts URLs, not fetch events. error_classes is empty and quota_used is null: both live in ClickHouse and jobs. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "R",
-  "x-news-status": "stub until #9",
+  "x-news-status": "built",
   "x-news-errors": [],
   "$defs": {
     "input": {

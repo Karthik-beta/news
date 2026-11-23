@@ -1271,7 +1271,7 @@ The first design's `news run intent`, `next`, `submit`, `hook-prompt` and `ticke
 | `news ai schema <step>` | — | JSON Schema of the step's output | R |
 | `news ai fallback <job>` | — | applies the step's code fallback | W |
 
-**Contacts tools** (`news sources …`): `list`, `show <source>`, `health [--since 7d]` (green/amber/red with reasons, 304 ratio, error classes, last success, quota), `probe <source>` (one live discovery call with no writes; R), `enable|disable <source>` (G as Rollcall's step after its `actions` approval; H from Board only).
+**Contacts tools** (`news sources …`): `list`, `show <source>`, `health [--since 7d]` (green/amber/red with reasons, 304 ratio, error classes, last success, quota), `probe <source>` (one live discovery call with no writes; R), `sync` (W, code step, run from the terminal: loads `data/sources/*.toml` into `sources`), `enable|disable <source>` (G as Rollcall's step after its `actions` approval; H from Board only).
 
 **Diary tools** (`news calendar …`): `upcoming [--days 7] [--region r]` (R), `sync` (W, code step), `late` (R).
 
@@ -2148,7 +2148,7 @@ The approved names (Karthik, final). **Bureau** is the whole laptop system, and 
 | Chief tools | presets, status, lineup, list (start, gate answers, pause, resume and cancel are Board actions) | Tool family | `news run` | §5.5, §6.4, §8.1 |
 | Dispatch tools | list, dead, claim, heartbeat, complete, fail, retry, pause, unpause | Tool family | `news jobs` | §5.4, §6.4 |
 | Ghost tools | input, accept, schema, fallback | Tool family | `news ai` | §3.9, §6.4 |
-| Contacts tools | list, show, health, probe, enable, disable | Tool family | `news sources` | §3.1, §6.4, §8.7 |
+| Contacts tools | list, show, health, probe, sync, enable, disable | Tool family | `news sources` | §3.1, §6.4, §8.7 |
 | Diary tools | upcoming, sync, late | Tool family | `news calendar` | §3.3, §6.4 |
 | Taster tools | show, members, similar, merge, split | Tool family | `news stories` | §3.6, §6.4 |
 | Nose tools | explain, weights, propose, label, adopt | Tool family | `news scores` | §4.7, §6.4, §8.12 |

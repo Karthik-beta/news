@@ -5,9 +5,8 @@
 //! through this crate's tests), and [`sync`] upserts them into `sources`. [`licence_gate`] is what a
 //! Stringer checks before emitting candidates: a source with no licence emits none (`licence_missing`).
 //!
-//! `news sources list|show|health|probe|sync` and `enable|disable` (through `news-chief`'s
-//! `authorize()`) are wired in the CLI by a follow-up: TODO(#10, #29) once the Bureau service and Board
-//! own the command surface.
+//! `news sources list|show|health|probe|sync` are wired in the CLI. `enable|disable` (through
+//! `news-chief`'s `authorize()`) wait for TODO(#10, #29): the Bureau service and Board own them.
 
 use std::path::{Path, PathBuf};
 
