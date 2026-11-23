@@ -60,6 +60,14 @@ impl From<Fail> for NewsError {
     }
 }
 
+/// Detect, merge and split take this first, so they run one at a time (released at commit).
+pub(crate) async fn lock(tx: &mut PgConnection) -> Result<(), sqlx::Error> {
+    sqlx::query("select pg_advisory_xact_lock(hashtext('news.taster'))")
+        .execute(tx)
+        .await?;
+    Ok(())
+}
+
 /// A story's counts and span from its candidates.
 pub(crate) async fn recount(tx: &mut PgConnection, story_id: i64) -> Result<(), sqlx::Error> {
     sqlx::query(

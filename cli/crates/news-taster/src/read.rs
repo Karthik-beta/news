@@ -26,8 +26,12 @@ async fn find(db: &PgPool, story: &str) -> Result<i64, NewsError> {
                 .await
         }
         Err(_) => {
-            sqlx::query_scalar("select story_id from stories where event_key = $1")
-                .bind(story)
+            // A merged-away key shows the story it went into.
+            sqlx::query_scalar(
+                "select coalesce((select into_story from story_redirects where from_story = s.story_id), s.story_id)
+                   from stories s where s.event_key = $1",
+            )
+            .bind(story)
                 .fetch_optional(db)
                 .await
         }

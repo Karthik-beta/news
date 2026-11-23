@@ -655,3 +655,43 @@ async fn the_sql_hamming_distance_is_the_clerks() {
         );
     }
 }
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn two_detect_runs_at_once_group_each_candidate_once_and_leave_no_empty_story() {
+    let f = Fixture::migrated().await;
+    let p = &f.pool;
+    source(p, "wire-a", 2).await;
+    let t = config::v1().unwrap();
+    for (i, key) in [Some("news:x"), Some("news:x"), Some("news:y"), None]
+        .into_iter()
+        .enumerate()
+    {
+        cand(
+            p,
+            "wire-a",
+            &format!("Item {i}"),
+            key,
+            None,
+            t0() + TimeDelta::minutes(i as i64),
+        )
+        .await;
+    }
+    let (a, b) = tokio::join!(detect(p, &NoEmbedder, &t), detect(p, &NoEmbedder, &t));
+    let (a, b) = (a.unwrap(), b.unwrap());
+    // Whichever ran first did all the work; the other found nothing new.
+    assert_eq!(a.candidates + b.candidates, 4, "{a:?} {b:?}");
+    assert_eq!(n(p, "select count(*) from stories").await, 3);
+    assert_eq!(
+        n(p, "select count(*) from stories where member_count = 0").await,
+        0
+    );
+    assert_eq!(
+        n(
+            p,
+            "select count(*) from candidates where status = 'grouped' and story_id is not null"
+        )
+        .await,
+        4
+    );
+}

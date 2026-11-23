@@ -21,6 +21,7 @@ async fn merge_tx(db: &PgPool, from: i64, into: i64) -> Result<(), Fail> {
         return Err(NewsError::usage("a story cannot be merged into itself").into());
     }
     let mut tx = db.begin().await?;
+    crate::lock(&mut tx).await?; // every check below reads after it
     // Lock in id order so two merges cannot deadlock.
     let rows = sqlx::query(
         "select story_id, status, (select count(*) from pages p where p.story_id = s.story_id) pages,
@@ -90,13 +91,18 @@ async fn split_tx(db: &PgPool, story: i64, cands: &[i64]) -> Result<i64, Fail> {
         return Err(NewsError::usage("name at least one candidate to split off").into());
     }
     let mut tx = db.begin().await?;
-    let locked: Option<i64> =
-        sqlx::query_scalar("select story_id from stories where story_id = $1 for update")
+    crate::lock(&mut tx).await?;
+    let status: Option<String> =
+        sqlx::query_scalar("select status from stories where story_id = $1 for update")
             .bind(story)
             .fetch_optional(&mut *tx)
             .await?;
-    if locked.is_none() {
-        return Err(NewsError::not_found(format!("no story {story}")).into());
+    match status.as_deref() {
+        None => return Err(NewsError::not_found(format!("no story {story}")).into()),
+        Some("closed") => {
+            return Err(NewsError::precondition(format!("story {story} is closed")).into());
+        }
+        _ => {}
     }
     let members: Vec<i64> =
         sqlx::query_scalar("select cand_id from candidates where story_id = $1 order by cand_id")

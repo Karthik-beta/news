@@ -149,6 +149,7 @@ pub async fn detect<J: Joiner>(
 
 async fn run<J: Joiner>(db: &PgPool, joiner: &J, t: &Thresholds) -> Result<Report, Fail> {
     let mut tx = db.begin().await?;
+    crate::lock(&mut tx).await?;
     let rows = sqlx::query(
         "select c.cand_id, c.title, c.event_key, c.entity_ids, c.first_seen, d.content_sha, d.simhash
            from candidates c left join documents d on d.doc_id = c.doc_ids[1]
@@ -180,9 +181,11 @@ async fn run<J: Joiner>(db: &PgPool, joiner: &J, t: &Thresholds) -> Result<Repor
         } else {
             duplicate = false;
             if let Some(key) = &c.event_key {
-                report.by_event_key += 1;
                 match keyed_story(&mut tx, key).await? {
-                    Some(s) => s,
+                    Some(s) => {
+                        report.by_event_key += 1;
+                        s
+                    }
                     None => new_story(&mut tx, &c, Some(key), &mut report).await?,
                 }
             } else {
@@ -211,7 +214,8 @@ async fn run<J: Joiner>(db: &PgPool, joiner: &J, t: &Thresholds) -> Result<Repor
                 }
             }
         };
-        sqlx::query("update candidates set story_id = $2, status = 'grouped' where cand_id = $1")
+        sqlx::query("update candidates set story_id = $2, status = 'grouped' where cand_id = $1 and status = 'new'",
+        )
             .bind(c.cand_id)
             .bind(story)
             .execute(&mut *tx)
@@ -313,17 +317,24 @@ async fn new_story(
     key: Option<&str>,
     report: &mut Report,
 ) -> Result<i64, sqlx::Error> {
-    report.new_stories += 1;
-    sqlx::query_scalar(
+    let id: Option<i64> = sqlx::query_scalar(
         "insert into stories (event_key, title, first_seen, last_seen, entity_ids)
-         values ($1, $2, $3, $3, $4) returning story_id",
+         values ($1, $2, $3, $3, $4) on conflict (event_key) do nothing returning story_id",
     )
     .bind(key)
     .bind(&c.title)
     .bind(c.first_seen)
     .bind(&c.entity_ids)
-    .fetch_one(tx)
-    .await
+    .fetch_optional(&mut *tx)
+    .await?;
+    if let Some(id) = id {
+        report.new_stories += 1;
+        return Ok(id);
+    }
+    // The key was taken meanwhile: join that story.
+    keyed_story(tx, key.unwrap_or_default())
+        .await?
+        .ok_or(sqlx::Error::RowNotFound)
 }
 
 #[cfg(test)]
