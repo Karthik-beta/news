@@ -194,6 +194,7 @@
                 "unknown_page",
                 "page_withdrawn",
                 "page_busy",
+                "robots_unrewritable",
                 "lock_expired",
                 "purge_failed",
                 "not_configured",
