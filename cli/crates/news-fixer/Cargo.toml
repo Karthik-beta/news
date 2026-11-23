@@ -1,6 +1,6 @@
 [package]
 name = "news-fixer"
-description = "Fixer, the brief builder. Skeleton with handler stubs; built in #18."
+description = "Fixer (Bureau Design §3.8): the brief for one story, its size budget and A5 requests, and the cached prompt prefix per page type."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,6 +8,19 @@ publish.workspace = true
 
 [dependencies]
 news-core = { workspace = true }
+news-dispatch = { workspace = true }
+news-ledger = { workspace = true }
+news-store = { workspace = true }
+news-taster = { workspace = true }
+chrono = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+sqlx = { workspace = true }
+
+[dev-dependencies]
+news-connectors = { workspace = true }
+jsonschema = { workspace = true }
 
 [lints]
 workspace = true
