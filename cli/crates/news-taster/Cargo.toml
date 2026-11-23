@@ -17,6 +17,13 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 sqlx = { workspace = true }
 toml = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+fastembed = { workspace = true, optional = true }
+
+[features]
+# The bge-small embedder (`embed::FastEmbedder`). Off by default: it pulls in fastembed and ONNX Runtime.
+embed = ["dep:fastembed"]
 
 [lints]
 workspace = true

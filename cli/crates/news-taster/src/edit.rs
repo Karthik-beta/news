@@ -8,7 +8,7 @@ use news_core::NewsError;
 use news_nose::score::Novelty;
 use sqlx::{PgPool, Row};
 
-use crate::{Fail, input, recount};
+use crate::{Fail, embed, input, recount};
 
 /// Fold story `from` into `into`: its candidates move, it closes, and its event key keeps pointing
 /// here through `story_redirects`.
@@ -76,6 +76,9 @@ async fn merge_tx(db: &PgPool, from: i64, into: i64) -> Result<(), Fail> {
         .await?;
     recount(&mut tx, from).await?;
     recount(&mut tx, into).await?;
+    // `from` has no members now, so its centroid goes; `into` gets the mean of the larger set.
+    embed::recompute_centroid(&mut tx, from).await?;
+    embed::recompute_centroid(&mut tx, into).await?;
     input::refresh(&mut tx, into, Novelty::NewEvent).await?;
     tx.commit().await?;
     Ok(())
@@ -129,6 +132,7 @@ async fn split_tx(db: &PgPool, story: i64, cands: &[i64]) -> Result<i64, Fail> {
         .await?;
     for s in [story, new] {
         recount(&mut tx, s).await?;
+        embed::recompute_centroid(&mut tx, s).await?;
         input::refresh(&mut tx, s, Novelty::NewEvent).await?;
     }
     tx.commit().await?;
