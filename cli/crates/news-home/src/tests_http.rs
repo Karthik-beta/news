@@ -91,7 +91,7 @@ async fn the_http_client_sends_the_key_and_the_body_and_classifies_answers() {
         (409, vec![], error_body("idempotency_in_progress")),
         (400, vec![], invalid.to_string()),
     ]);
-    let api = HttpWriteApi::new(reqwest::Client::new(), &format!("{url}/"));
+    let api = HttpWriteApi::new(&format!("{url}/")).unwrap();
     let r = api
         .put_curation("home-curation:1:abc", "the-key", br#"{"a":1}"#.to_vec())
         .await
@@ -128,7 +128,7 @@ async fn nothing_answering_is_retryable_and_never_shows_the_key() {
         let l = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
         format!("http://{}", l.local_addr().unwrap())
     };
-    let api = HttpWriteApi::new(reqwest::Client::new(), &url);
+    let api = HttpWriteApi::new(&url).unwrap();
     match api.put_curation("k", "the-key", b"{}".to_vec()).await {
         Err(ApiError::Retry(why)) => assert!(!why.contains("the-key"), "{why}"),
         other => panic!("{other:?}"),
@@ -198,4 +198,66 @@ async fn the_preview_server_must_be_on_loopback() {
         .await
         .unwrap_err();
     assert_eq!(err.code, ErrorCode::Usage);
+}
+
+#[test]
+fn only_https_or_exact_loopback_origins_are_accepted() {
+    for ok in [
+        "https://api.news.karthik.nz",
+        "https://api.news.karthik.nz/",
+        "http://127.0.0.1:8787",
+        "http://localhost:8787",
+        "http://[::1]:8787",
+    ] {
+        assert!(HttpWriteApi::new(ok).is_ok(), "{ok}");
+    }
+    for bad in [
+        "http://localhost@evil.example",
+        "http://localhost.evil.example",
+        "http://evil.example/localhost",
+        "http://x",
+        "http://api.news.karthik.nz",
+        "https://user:pw@api.news.karthik.nz",
+        "https://user@api.news.karthik.nz",
+        "https://api.news.karthik.nz?a=1",
+        "https://api.news.karthik.nz#f",
+        "ftp://127.0.0.1",
+        "not a url",
+    ] {
+        let err = HttpWriteApi::new(bad)
+            .err()
+            .unwrap_or_else(|| panic!("{bad}"));
+        assert_eq!(err.code, ErrorCode::Usage, "{bad}");
+    }
+}
+
+#[tokio::test]
+async fn a_redirect_is_not_followed_and_the_key_goes_nowhere_else() {
+    // The second server would receive the key if the redirect were followed; it is never connected to.
+    let other = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    other.set_nonblocking(true).unwrap();
+    let target = format!("http://{}/steal", other.local_addr().unwrap());
+    let (url, server) = serve(vec![(307, vec![("location", target)], String::new())]);
+    let api = HttpWriteApi::new(&url).unwrap();
+    match api.put_curation("k", "the-key", b"{}".to_vec()).await {
+        Err(ApiError::Rejected { status: 307, .. }) => {}
+        other => panic!("{other:?}"),
+    }
+    assert_eq!(server.join().unwrap().len(), 1);
+    assert!(other.accept().is_err(), "the redirect target was contacted");
+}
+
+#[tokio::test]
+async fn the_preview_push_stays_on_loopback_and_does_not_follow_redirects() {
+    let err = preview::push("http://evil.example", b"{}".to_vec())
+        .await
+        .unwrap_err();
+    assert_eq!(err.code, ErrorCode::Usage);
+    let other = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    other.set_nonblocking(true).unwrap();
+    let target = format!("http://{}/steal", other.local_addr().unwrap());
+    let (url, server) = serve(vec![(307, vec![("location", target)], String::new())]);
+    assert!(preview::push(&url, b"{}".to_vec()).await.is_err());
+    server.join().unwrap();
+    assert!(other.accept().is_err(), "the redirect target was contacted");
 }

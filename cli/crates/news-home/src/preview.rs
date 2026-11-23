@@ -68,6 +68,7 @@ fn start(site: &Path, host: &str, port: u16) -> NewsResult<()> {
             "dev",
             "--host",
             host,
+            "--strictPort",
             "--port",
             &port.to_string(),
         ])
@@ -117,7 +118,13 @@ pub async fn ensure_server(base: &str) -> NewsResult<bool> {
 pub async fn push(base: &str, body: Vec<u8>) -> NewsResult<String> {
     let sha = sha256_hex(&body);
     let base = base.trim_end_matches('/');
+    local_addr(
+        &reqwest::Url::parse(base)
+            .map_err(|e| NewsError::usage(format!("{base:?} is not a URL: {e}")))?,
+    )?;
+    crate::api::install_tls_provider();
     let client = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
         .timeout(Duration::from_secs(60))
         .build()
         .map_err(|e| NewsError::internal(e.to_string()))?;

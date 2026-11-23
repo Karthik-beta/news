@@ -13,6 +13,8 @@ news-nose = { workspace = true }
 chrono = { workspace = true }
 jsonschema = { workspace = true }
 reqwest = { workspace = true }
+# Already in the tree (news-wire); the TLS provider for the clients built here.
+rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
@@ -22,3 +24,4 @@ uuid = { workspace = true }
 
 [lints]
 workspace = true
+

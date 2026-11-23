@@ -24,7 +24,11 @@
             "additionalProperties": false,
             "required": ["category", "pages"],
             "properties": {
-              "category": { "type": "string", "maxLength": 120, "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*(?:/[a-z0-9]+(?:-[a-z0-9]+)*){0,3}$" },
+              "category": {
+                "type": "string",
+                "maxLength": 120,
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*(?:/[a-z0-9]+(?:-[a-z0-9]+)*){0,3}$"
+              },
               "pages": { "type": "array", "minItems": 3, "maxItems": 4, "items": { "$ref": "#/$defs/slot" } }
             }
           }
@@ -44,8 +48,16 @@
       "required": ["page_id"],
       "properties": {
         "page_id": { "type": "string", "pattern": "^[a-z0-9](?:[a-z0-9-]{0,118}[a-z0-9])?$" },
-        "figure_id": { "description": "A data ID of the page (its `figures` in `news home candidates`).", "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
-        "chart_id": { "description": "A chart of the page. A slot has a figure or a chart, never both.", "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,63}$" }
+        "figure_id": {
+          "description": "A data ID of the page (its `figures` in `news home candidates`).",
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "chart_id": {
+          "description": "A chart of the page. A slot has a figure or a chart, never both.",
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+        }
       },
       "not": { "required": ["figure_id", "chart_id"] }
     },

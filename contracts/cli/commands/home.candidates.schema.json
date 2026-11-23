@@ -37,12 +37,27 @@
               "s_now": { "type": "number" },
               "traffic_pct": { "type": "number", "minimum": 0, "maximum": 100 },
               "visual_richness": { "type": "integer", "minimum": 0, "maximum": 100 },
-              "figures": { "description": "Data IDs a slot may show (at most 8).", "type": "array", "items": { "type": "string" } },
+              "figures": {
+                "description": "Data IDs a slot may show (at most 8).",
+                "type": "array",
+                "items": { "type": "string" }
+              },
               "charts": { "description": "Chart IDs a slot may show.", "type": "array", "items": { "type": "string" } },
               "bucket": { "type": "string" },
               "reason": { "type": "string" }
             },
-            "required": ["rank", "page_id", "home_score", "s_now", "traffic_pct", "visual_richness", "figures", "charts", "bucket", "reason"],
+            "required": [
+              "rank",
+              "page_id",
+              "home_score",
+              "s_now",
+              "traffic_pct",
+              "visual_richness",
+              "figures",
+              "charts",
+              "bucket",
+              "reason"
+            ],
             "additionalProperties": false
           }
         }

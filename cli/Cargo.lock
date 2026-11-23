@@ -3201,6 +3201,7 @@ dependencies = [
  "news-nose",
  "news-store",
  "reqwest 0.13.5",
+ "rustls",
  "serde",
  "serde_json",
  "sha2 0.11.1",

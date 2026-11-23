@@ -195,18 +195,22 @@ pub async fn mark_published(
     now: DateTime<Utc>,
 ) -> NewsResult<()> {
     let mut tx = db.begin().await.map_err(map_err)?;
-    sqlx::query("update home_curations set status = 'superseded' where status = 'published' and draft_id <> $1")
-        .bind(draft_id)
-        .execute(&mut *tx)
-        .await
-        .map_err(map_err)?;
-    sqlx::query("update home_curations set status = 'published', version = $2, published_at = $3 where draft_id = $1")
+    // Only an approved draft goes live; one in any other state (already published, superseded) is left
+    // alone, and so is the live curation.
+    let done = sqlx::query("update home_curations set status = 'published', version = $2, published_at = $3 where draft_id = $1 and status = 'approved'")
         .bind(draft_id)
         .bind(version)
         .bind(now)
         .execute(&mut *tx)
         .await
         .map_err(map_err)?;
+    if done.rows_affected() == 1 {
+        sqlx::query("update home_curations set status = 'superseded' where status = 'published' and draft_id <> $1")
+            .bind(draft_id)
+            .execute(&mut *tx)
+            .await
+            .map_err(map_err)?;
+    }
     tx.commit().await.map_err(map_err)
 }
 

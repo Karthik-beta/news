@@ -20,7 +20,11 @@
       "properties": {
         "draft_id": { "type": "integer" },
         "url": { "type": "string" },
-        "sha256": { "description": "Of the curation.v1 bytes the server holds.", "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "sha256": {
+          "description": "Of the curation.v1 bytes the server holds.",
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
         "server_started": { "type": "boolean" },
         "views": {
           "type": "array",

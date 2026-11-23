@@ -51,18 +51,58 @@ pub trait WriteApi {
     ) -> impl Future<Output = Result<CurationReply, ApiError>> + Send;
 }
 
+/// reqwest 0.13 is built with `rustls-no-provider` and Cargo unifies features, so every client in the
+/// binary needs ring installed first. Idempotent; `news-wire` does the same for its own clients.
+pub(crate) fn install_tls_provider() {
+    let _ = rustls::crypto::ring::default_provider().install_default();
+}
+
+/// The write-API origin, checked: `https`, or `http` only for loopback (`127.0.0.1`, `::1`,
+/// `localhost`, compared exactly), and no userinfo, query or fragment, so the bearer key can only go
+/// to the host the setting names.
+pub(crate) fn checked_origin(base: &str) -> NewsResult<reqwest::Url> {
+    let url = reqwest::Url::parse(base)
+        .map_err(|e| NewsError::usage(format!("the write-API URL is not a URL: {e}")))?;
+    let loopback = matches!(url.host_str(), Some("127.0.0.1" | "[::1]" | "localhost"));
+    let scheme_ok = url.scheme() == "https" || (url.scheme() == "http" && loopback);
+    if !scheme_ok || url.host_str().is_none() {
+        return Err(NewsError::usage(
+            "the write-API URL must be https (http only for 127.0.0.1, ::1 or localhost)",
+        ));
+    }
+    if !url.username().is_empty()
+        || url.password().is_some()
+        || url.query().is_some()
+        || url.fragment().is_some()
+    {
+        return Err(NewsError::usage(
+            "the write-API URL must be an origin: no user, password, query or fragment",
+        ));
+    }
+    Ok(url)
+}
+
 pub struct HttpWriteApi {
     client: reqwest::Client,
     base: String,
 }
 
 impl HttpWriteApi {
-    /// `base` is the API origin, for example `https://api.news.karthik.nz`.
-    pub fn new(client: reqwest::Client, base: &str) -> Self {
-        Self {
+    /// `base` is the API origin, for example `https://api.news.karthik.nz` (see [`checked_origin`]).
+    /// Redirects are never followed: a redirect would carry the bearer key to another host.
+    pub fn new(base: &str) -> NewsResult<Self> {
+        let url = checked_origin(base)?;
+        install_tls_provider();
+        let client = reqwest::Client::builder()
+            .redirect(reqwest::redirect::Policy::none())
+            .connect_timeout(Duration::from_secs(10))
+            .timeout(Duration::from_secs(60))
+            .build()
+            .map_err(|e| NewsError::internal(e.to_string()))?;
+        Ok(Self {
             client,
-            base: base.trim_end_matches('/').to_owned(),
-        }
+            base: url.as_str().trim_end_matches('/').to_owned(),
+        })
     }
 }
 

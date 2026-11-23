@@ -28,7 +28,10 @@
             "properties": {
               "code": { "type": "string" },
               "message": { "type": "string" },
-              "path": { "description": "JSON Pointer into the draft's body, when the failure is at one slot.", "type": "string" }
+              "path": {
+                "description": "JSON Pointer into the draft's body, when the failure is at one slot.",
+                "type": "string"
+              }
             },
             "required": ["code", "message"],
             "additionalProperties": false
