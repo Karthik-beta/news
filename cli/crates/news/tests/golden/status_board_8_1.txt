@@ -1,0 +1,32 @@
+Bureau · Thu 12 Nov 2026 08:40 ET · service up · settings v12
+
+RUNNING
+  Nothing running. Heavy slot free.
+
+WAITING FOR YOU
+  Catchup r_51d2      gate plan, open since Wed 21:05
+                      340 items in 7 chunks, estimated 4.1M input tokens, about 6 h
+                      answer in Board: Approve · Request changes · Reject   (news run status r_51d2 to read it)
+
+QUEUED
+  Nothing queued.
+
+DUE
+  Schedules           Edition today 11:00 · Frontpage Fri 09:00 · Rollcall Mon 07:00
+  Diary today         07:30  ECB account of the October meeting      captured  story 81229  S 58.1  Tier 2
+                      08:30  US CPI, October 2026                    captured  story 81234  S 75.2  Tier 1
+                      16:30  Fed balance sheet (H.4.1)               expected
+  Stories waiting     23 (3 Tier 1). Last Edition r_6b90 finished Wed 18:10 (14 h ago)
+  Frontpage           Curation v41 is 3.2 days old: due (stale at 4)
+  Huddle              Last Huddle r_3e11 on Wed 4 Nov (8 days ago): due
+  Rollcall            Last Sitrep r_44aa on Tue 10 Nov (2 days ago): not due
+
+PROBLEMS
+  Sources             ons   red    upstream_changed since Tue 10 Nov (Sitrep r_44aa)
+                      bea   amber  free key not set
+  Dead jobs           7 since Salvage r_29c0: transient 4, ai_invalid_output 3
+  Failed runs         none in 7 days
+  Usage               Bureau today 0.4M tokens · cap and reserve not set
+
+NEXT
+  Start Edition       3 Tier 1 stories captured and not yet on a page (next scheduled Edition 11:00)
