@@ -10,6 +10,7 @@ mod nose;
 mod run;
 mod schema;
 mod sources;
+mod stories;
 
 use crate::cli::*;
 use news_core::shape::DEFAULT_LIMIT;
@@ -80,7 +81,7 @@ pub async fn run(cli: Cli, path: &str, shape: &Shape) -> NewsResult<Reply> {
         C::Entities(cmd) => entities::run(cmd).await,
         // Related pages come from stories, which Taster builds.
         C::Related { .. } => stub(path, news_taster::ISSUE),
-        C::Stories(_) => stub(path, news_taster::ISSUE),
+        C::Stories(cmd) => stories::run(cmd).await,
         C::Plan { run } => nose::plan(&run).await,
         C::Scores(cmd) => nose::scores(cmd, path).await,
         C::Stats => stub(path, news_telemetry::ISSUE),
@@ -142,6 +143,9 @@ pub const BUILT: &[&str] = &[
     "plan",
     "scores.explain",
     "scores.weights",
+    "stories.show",
+    "stories.members",
+    "stories.similar",
 ];
 
 /// Dotted names of the commands that have a contract file.

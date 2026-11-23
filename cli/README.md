@@ -47,7 +47,8 @@ Commands whose subsystem is not built yet return `precondition` (exit 4) with a 
 | `news-contacts` | Source rows from `data/sources/*.toml`, the Contacts lint, `sync` into `sources`, the licence gate |
 | `news-wire` | The Runner (robots.txt, token buckets, conditional GET, `Retry-After`, caps; `fake::FakeTransport` for tests), the Morgue, discover/fetch, `snapshots`/`fetch_state` |
 | `news-clerk` | Rule-based classification and the taxonomy seed, candidates, storing data points (vintages, `supersedes`) and Roster step 1 entities, SimHash |
-| `news-taster`, `news-fixer`, `news-ghost`, `news-proof`, `news-rewrite`, `news-press`, `news-critic` | Subsystem skeletons: `ISSUE`, the job kinds they own and a stub `handle` (fails with class `bug`, "not built yet") |
+| `news-fixer`, `news-ghost`, `news-proof`, `news-rewrite`, `news-press`, `news-critic` | Subsystem skeletons: `ISSUE`, the job kinds they own and a stub `handle` (fails with class `bug`, "not built yet") |
+| `news-taster` | Taster (#15): exact and SimHash duplicates, event keys, update detection, grey-zone A4 jobs, `stories.score_input` for Nose, H-tier `merge`/`split`; thresholds in `data/seeds/taster-v1.toml`; the embedding step is the `Joiner` seam (none until ADR 0011); the `story.detect` handler still refuses as not built |
 | `news-nose` | Nose and Desk (#15, ADR 0012): story scores with the Pitch, the Budget (`run_plans`), scorer config v1 from `data/seeds/`; its job kinds still refuse as not built |
 | `news-diary` | Diary (#12): ICS, FOMC HTML and seed-file calendars, derived earnings windows, the capture schedule, `calendar_events`; its job handlers refuse with `bug` until the Bureau service gives them a context |
 | `news-roster` | Roster (#12): normalisation, the deterministic resolver, seed loaders (SEC, GLEIF, ROR, Wikidata), the unresolved queue, H-tier `add_alias` and `merge`; no job kinds |
