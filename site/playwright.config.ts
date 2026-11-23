@@ -1,5 +1,6 @@
 import { defineConfig, devices, type Project } from "@playwright/test";
 import type { NewsOptions } from "./tests/e2e/fixtures";
+import { FIXTURE_SETS, setPort } from "./tests/e2e/ssr-servers";
 
 // The screen matrix from .claude/skills/news-component-testing/references/playwright-matrix.md and
 // Development Plan 3.4. Project names say engine, theme and screen, so `--project` globs pick slices:
@@ -107,6 +108,18 @@ const smoke: Project<NewsOptions>[] = THEMES.flatMap((theme) =>
 // on every request with the Cloudflare adapter), on a port of its own so a dev server on 4321 is never picked up by mistake. E2E_SKIP_BUILD=1 reuses an existing dist/
 // (CI builds once for integration and e2e); E2E_REUSE_SERVER=1 reuses a preview you already started.
 const preview = `bunx wrangler dev -c dist/server/wrangler.json --local --ip 127.0.0.1 --port ${port}`;
+// The same built Worker once more per other fixture curation (withdrawn lead, region, empty Latest), each with its own
+// local state, so the home and region templates are tested in the browser on every set (tests/e2e/ssr-servers.ts).
+// Started after the first server, whose command builds dist/.
+const setServers = FIXTURE_SETS.map((set) => ({
+  command: `bunx wrangler dev -c dist/server/wrangler.json --local --ip 127.0.0.1 --port ${setPort(set)} --var NEWS_FIXTURE_SET:${set} --persist-to .wrangler/state-${set}`,
+  url: `http://127.0.0.1:${setPort(set)}`,
+  reuseExistingServer: process.env.E2E_REUSE_SERVER === "1",
+  timeout: 180_000,
+  env: { CLOUDFLARE_ENV: "local" },
+  stdout: "ignore" as const,
+  stderr: "pipe" as const,
+}));
 
 export default defineConfig<NewsOptions>({
   testDir: "./tests/e2e",
@@ -131,16 +144,19 @@ export default defineConfig<NewsOptions>({
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
-  webServer: {
-    command: process.env.E2E_SKIP_BUILD ? preview : `bun run build && ${preview}`,
-    url: baseURL,
-    reuseExistingServer: process.env.E2E_REUSE_SERVER === "1",
-    timeout: 180_000,
-    // Fixture pages (src/pages/fixtures/) are built only with NEWS_FIXTURES=1; e2e always tests them.
-    // NEWS_PREVIEW=1 adds the local preview route that tests/e2e/ssr-rest.spec.ts uses; production builds never set it.
-    env: { NEWS_FIXTURES: "1", NEWS_PREVIEW: "1", CLOUDFLARE_ENV: "local", OPENUI_TELEMETRY_DISABLED: "1" },
-    stdout: "ignore",
-    stderr: "pipe",
-  },
+  webServer: [
+    {
+      command: process.env.E2E_SKIP_BUILD ? preview : `bun run build && ${preview}`,
+      url: baseURL,
+      reuseExistingServer: process.env.E2E_REUSE_SERVER === "1",
+      timeout: 180_000,
+      // Fixture pages (src/pages/fixtures/) are built only with NEWS_FIXTURES=1; e2e always tests them.
+      // NEWS_PREVIEW=1 adds the local preview route that tests/e2e/ssr-rest.spec.ts uses; production builds never set it.
+      env: { NEWS_FIXTURES: "1", NEWS_PREVIEW: "1", CLOUDFLARE_ENV: "local", OPENUI_TELEMETRY_DISABLED: "1" },
+      stdout: "ignore",
+      stderr: "pipe",
+    },
+    ...setServers,
+  ],
   projects: [...smoke, ...matrix, ...special],
 });
