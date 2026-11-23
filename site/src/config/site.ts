@@ -17,6 +17,8 @@ const cliVersion = "0.0.1";
 
 export const siteConfig = {
   site: { origin },
+  /** The api Worker's origin (the report intake, POST /v1/reports): `NEWS_API_ORIGIN` at build; #21 picks the hostname. */
+  api: { origin: (process.env.NEWS_API_ORIGIN ?? `https://api.${PLACEHOLDER_HOST}`).replace(/\/+$/, "") },
   contact: { email: `contact@${PLACEHOLDER_HOST}` },
   operator: { legalName: UNSET, jurisdiction: UNSET },
   licence: {

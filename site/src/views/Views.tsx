@@ -9,17 +9,21 @@ import { LatestList } from "../components/LatestList/LatestList";
 import { LeadStory } from "../components/LeadStory/LeadStory";
 import { NotFound } from "../components/NotFound/NotFound";
 import { RegionFilter, regionHref } from "../components/RegionFilter/RegionFilter";
+import { SearchField } from "../components/SearchField/SearchField";
 import { SectionHead } from "../components/SectionHead/SectionHead";
+import { Select } from "../components/Select/Select";
 import { StateMessage } from "../components/StateMessage/StateMessage";
 import { SlotFigure } from "../components/StoryItem/SlotFigure";
 import { StoryItem, StoryList } from "../components/StoryItem/StoryItem";
+import { TextField } from "../components/TextField/TextField";
 import type { Slot } from "../home/compose";
 import { ListingsProvider, PageListings } from "../renderer/data/listings";
 import type { Body } from "../server/views";
-import { listedOf } from "../server/views";
+import { listedOf, SEARCH_LIMIT } from "../server/views";
 
 type HomeBody = Extract<Body, { type: "home" | "region" }>;
 type HubBody = Extract<Body, { type: "hub" }>;
+type SearchBody = Extract<Body, { type: "search" }>;
 
 /** "Older": the only way on in a cursor list. The pagination component's markup, with one link (ADR 0010). */
 function Older({ href }: { href: string | undefined }) {
@@ -179,9 +183,64 @@ function Hub({ body }: { body: HubBody }) {
   );
 }
 
+function Search({ body }: { body: SearchBody }) {
+  const options = (list: SearchBody["regions"]) => list.map((o) => ({ value: o.slug, label: o.label }));
+  const f = body.filters;
+  return (
+    <>
+      <header className="hub-head">
+        <Headline text="Search" size="xl" level={1} plain />
+      </header>
+      <SearchField
+        action="/search"
+        query={body.query}
+        filters={
+          <>
+            <Select
+              id="search-category"
+              name="category"
+              label="Category"
+              options={options(body.categories)}
+              value={f.category}
+            />
+            <Select id="search-region" name="region" label="Region" options={options(body.regions)} value={f.region} />
+            <Select id="search-type" name="type" label="Page type" options={options(body.types)} value={f.type} />
+            <TextField id="search-from" name="from" type="date" label="From" value={f.from} />
+            <TextField id="search-to" name="to" type="date" label="To" value={f.to} />
+          </>
+        }
+      />
+      {body.unavailable ? (
+        <StateMessage
+          message="Search has a daily limit on the free database it runs on, and today's limit has been reached. It returns after 00:00 UTC. You can still browse the categories or the latest pages."
+          action={{ href: "/latest", label: "See the latest pages" }}
+        />
+      ) : body.problem ? (
+        <StateMessage message={body.problem} />
+      ) : !body.searched ? null : body.hits.length === 0 ? (
+        <StateMessage
+          message={`No pages match "${body.query}". Try fewer words, or remove a filter.`}
+          action={{ href: "/latest", label: "See the latest pages" }}
+        />
+      ) : (
+        <>
+          <p className="text-label" role="status">
+            {body.hits.length === 1 ? "1 page" : `${body.hits.length} pages`}
+            {body.hits.length === SEARCH_LIMIT
+              ? ". Showing the best matches: add a word or a filter to narrow the search."
+              : ""}
+          </p>
+          <StoryList pageIds={body.hits.map((h) => h.record.page_id)} variant="hub" level={2} />
+        </>
+      )}
+    </>
+  );
+}
+
 /** The listings every list component in the tree reads. */
 function listingsOf(body: Body): PageListings {
   if (body.type === "notfound") return new PageListings([]);
+  if (body.type === "search") return new PageListings(body.hits);
   if (body.type === "hub") return new PageListings(body.entries.map((e) => listedOf(e)));
   return new PageListings(body.pages);
 }
@@ -193,6 +252,8 @@ export function Views({ body }: { body: Body }): ReactNode {
         <NotFound searchAction="/search" />
       ) : body.type === "hub" ? (
         <Hub body={body} />
+      ) : body.type === "search" ? (
+        <Search body={body} />
       ) : (
         <Home body={body} />
       )}

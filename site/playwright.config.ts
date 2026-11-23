@@ -137,7 +137,8 @@ export default defineConfig<NewsOptions>({
     reuseExistingServer: process.env.E2E_REUSE_SERVER === "1",
     timeout: 180_000,
     // Fixture pages (src/pages/fixtures/) are built only with NEWS_FIXTURES=1; e2e always tests them.
-    env: { NEWS_FIXTURES: "1", CLOUDFLARE_ENV: "local", OPENUI_TELEMETRY_DISABLED: "1" },
+    // NEWS_PREVIEW=1 adds the local preview route that tests/e2e/ssr-rest.spec.ts uses; production builds never set it.
+    env: { NEWS_FIXTURES: "1", NEWS_PREVIEW: "1", CLOUDFLARE_ENV: "local", OPENUI_TELEMETRY_DISABLED: "1" },
     stdout: "ignore",
     stderr: "pipe",
   },

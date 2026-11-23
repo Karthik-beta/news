@@ -18,12 +18,20 @@ describe("what a URL is", () => {
     ["/economy", "category"],
     ["/economy/inflation", "category"],
     ["/entity/company%3Aapple", "entity"],
+    ["/search", "search"],
+    ["/search?q=inflation&region=india", "search"],
+    ["/rss.xml", "feed"],
+    ["/atom.xml", "feed"],
+    ["/economy/inflation/rss.xml", "feed"],
+    ["/sitemap.xml", "sitemap"],
+    ["/sitemaps/2025-01.xml", "sitemap"],
+    ["/llms.txt", "llms"],
   ])("%s is the %s route", (path, kind) => {
     expect(match(path)).toMatchObject({ type: "page", kind });
   });
 
   it("routes that belong to other parts of the site pass through", () => {
-    for (const path of ["/search", "/methodology", "/report", "/sitemaps/2025-01.xml", "/fixtures/x", "/_astro/a.js"])
+    for (const path of ["/methodology", "/report", "/feeds", "/fixtures/x", "/_astro/a.js"])
       expect(match(path)).toEqual({ type: "pass" });
   });
 
@@ -68,6 +76,42 @@ describe("what a URL is", () => {
     expect(limited("/entity/company%3Aapple")).toBe(true);
     expect(limited("/latest?region=india")).toBe(true);
     expect(limited(`/region/india?after=${cursor}`)).toBe(true);
+  });
+});
+
+describe("search, feeds and sitemaps", () => {
+  it("search keys on the normalised words and the filters, and drops what the page does not take", () => {
+    const key = (path: string) => cacheKeyOf(url(path), ORIGIN, REGIONS);
+    expect(key("/search")).toBe(`${ORIGIN}/search`);
+    expect(key("/search?q=Inflation++US&region=india&utm_source=x&limit=50")).toBe(
+      key("/search?region=india&q=inflation us"),
+    );
+    expect(key("/search?q=inflation")).not.toBe(key("/search?q=inflation&type=macro"));
+  });
+
+  it("a search with a bad filter or a long query is a 400; every search miss is rate limited", () => {
+    expect(match("/search?q=a&region=North%20America")).toMatchObject({ type: "reject", status: 400 });
+    expect(match(`/search?q=${"a".repeat(201)}`)).toMatchObject({ type: "reject", status: 400 });
+    expect(match("/search/x")).toMatchObject({ type: "reject", status: 404 });
+    expect(match("/search?q=inflation")).toMatchObject({ kind: "search", limited: true, purged: false });
+  });
+
+  it("feeds are keyed by format and category; a category feed is rate limited, the site-wide one is not", () => {
+    expect(match("/rss.xml")).toMatchObject({ kind: "feed", feed: { format: "rss" }, limited: false });
+    expect(match("/economy/inflation/atom.xml")).toMatchObject({
+      kind: "feed",
+      feed: { format: "atom", category: "economy/inflation" },
+      key: `${ORIGIN}/economy/inflation/atom.xml`,
+      limited: true,
+    });
+    expect(match("/Economy/rss.xml")).toMatchObject({ type: "reject", status: 404 });
+    expect(match("/a/b/c/d/e/rss.xml")).toMatchObject({ type: "reject", status: 404 });
+  });
+
+  it("a child sitemap names a real month; nothing else lives under /sitemaps", () => {
+    expect(match("/sitemaps/2025-01.xml")).toMatchObject({ kind: "sitemap", month: "2025-01" });
+    for (const path of ["/sitemaps/2025-13.xml", "/sitemaps/x.xml", "/sitemaps", "/sitemaps/2025-01.xml/x"])
+      expect(match(path), path).toMatchObject({ type: "reject", status: 404 });
   });
 });
 
@@ -132,6 +176,10 @@ describe("routes.ts matches ADR 0010", () => {
     ["`/latest`, `/<category>", "hub"],
     ["The same with `?after", "hubPage"],
     ["Redirect:", "redirect"],
+    ["`/search", "search"],
+    ["`/rss.xml`", "feed"],
+    ["`/sitemap.xml`", "daily"],
+    ["`/llms.txt`", "daily"],
     ["404", "notFound"],
   ] as const)("%s", (start, name) => {
     expect(POLICY[name]).toEqual(row(start));

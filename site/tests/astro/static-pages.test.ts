@@ -7,6 +7,7 @@ import About from "../../src/pages/about.astro";
 import Contact from "../../src/pages/contact.astro";
 import Corrections from "../../src/pages/corrections.astro";
 import Data from "../../src/pages/data.astro";
+import Feeds from "../../src/pages/feeds.astro";
 import Glossary from "../../src/pages/glossary.astro";
 import Legal from "../../src/pages/legal.astro";
 import Methodology from "../../src/pages/methodology.astro";
@@ -25,6 +26,7 @@ const PAGES = [
   ["/report/", Report],
   ["/data/", Data],
   ["/corrections/", Corrections],
+  ["/feeds/", Feeds],
 ] as const;
 
 const docs = new Map<string, Document>();
@@ -56,8 +58,8 @@ describe.each(PAGES.map(([path]) => path))("static page %s (server-rendered)", (
     expect(doc().querySelector("footer.site-footer")).not.toBeNull();
   });
 
-  it("ships no JavaScript, inline style or leftover {token}", () => {
-    expect(doc().querySelectorAll("script")).toHaveLength(0);
+  it("ships no JavaScript (the report form is the one island), inline style or leftover {token}", () => {
+    expect(doc().querySelectorAll("script")).toHaveLength(path === "/report/" ? 1 : 0);
     expect(doc().querySelector("[style]")).toBeNull();
     expect(doc().querySelector("main")?.textContent).not.toMatch(/\{[\w.-]+\}/);
   });
@@ -103,11 +105,16 @@ describe("page specifics", () => {
     expect(panel?.querySelector("a")?.getAttribute("href")).toMatch(/^\/glossary\/#[a-z0-9-]+$/);
   });
 
-  it("has no form, points to the contact page, and shows no build notes", () => {
+  it("has the form as an island, sends no plain post, points to the contact page without JavaScript, and shows no build notes", () => {
     const doc = docs.get("/report/") as Document;
-    expect(doc.querySelector("form")).toBeNull();
-    expect(doc.querySelector('main a[href="/contact"]')).not.toBeNull();
+    expect(doc.querySelector("[data-island=ReportForm] form")).not.toBeNull();
+    for (const name of ["page", "what", "where", "email", "website"])
+      expect(doc.querySelector(`form [name=${name}]`)).not.toBeNull();
+    expect(doc.querySelector('noscript a[href="/contact/"]')).not.toBeNull();
     const text = doc.querySelector("main")?.textContent ?? "";
-    for (const note of ["Builder notes", "Form text", "What the form stores"]) expect(text).not.toContain(note);
+    for (const note of ["Builder notes", "Form text", "After sending, detail"]) expect(text).not.toContain(note);
+    // What the form stores is shown, and it lists what the form really sends: no kind of error.
+    expect(text).toContain("What the form stores");
+    expect(text).not.toContain("kind of error");
   });
 });

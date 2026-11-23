@@ -21,6 +21,7 @@ const PAGES = [
   "/report/",
   "/data/",
   "/corrections/",
+  "/feeds/",
 ];
 
 for (const path of PAGES) {

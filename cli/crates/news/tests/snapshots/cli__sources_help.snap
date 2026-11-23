@@ -11,6 +11,7 @@ Commands:
   show    One source
   health  Source health: green, amber or red with reasons
   probe   One live discovery call, no writes
+  sync    Load data/sources/*.toml into the sources table
   help    Print this message or the help of the given subcommand(s)
 
 Options:

@@ -63,6 +63,14 @@ export function withoutSection(blocks: readonly Block[], heading: string): Block
   });
 }
 
+/** The first table under the h2 `heading` as first column → second column (the report form's "Form text"). */
+export function tableUnder(blocks: readonly Block[], heading: string): Record<string, string> {
+  const at = blocks.findIndex((b) => b.type === "h2" && b.text === heading);
+  const table = blocks.slice(at + 1).find((b) => b.type === "table" || b.type === "h2");
+  if (at < 0 || table?.type !== "table") throw new Error(`No table under "${heading}"`);
+  return Object.fromEntries(table.rows.map((r) => [r[0] as string, r[1] as string]));
+}
+
 export interface GlossaryItem {
   term: string;
   slug: string;

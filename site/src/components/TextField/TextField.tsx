@@ -3,7 +3,7 @@
 import { controlProps, Field, type FieldProps } from "./field";
 
 export interface TextFieldProps extends FieldProps {
-  type?: "text" | "email" | "url" | "tel";
+  type?: "text" | "email" | "url" | "tel" | "date";
   value?: string;
   autoComplete?: string;
 }

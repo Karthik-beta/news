@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/sources.sync.schema.json",
+  "title": "news sources sync",
+  "description": "Load data/sources/*.toml into the sources table, after the Contacts lint passes. Idempotent; never changes enabled or health of an existing source. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "W",
+  "x-news-status": "built",
+  "x-news-errors": ["not_found", "validation_failed"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "synced": {
+          "type": "integer"
+        }
+      },
+      "required": ["synced"],
+      "additionalProperties": false
+    }
+  }
+}
