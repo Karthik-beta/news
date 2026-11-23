@@ -280,7 +280,7 @@ async fn plan_needs_a_known_run_and_something_to_score() {
 }
 
 async fn exec(f: &Fixture, sql: &str) {
-    sqlx::query(sqlx::AssertSqlSafe(sql.to_owned()))
+    sqlx::raw_sql(sqlx::AssertSqlSafe(sql.to_owned()))
         .execute(&f.pool)
         .await
         .unwrap_or_else(|e| panic!("{sql}: {e}"));

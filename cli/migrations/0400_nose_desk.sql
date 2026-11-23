@@ -8,4 +8,4 @@ alter table stories add column if not exists score_input jsonb;
 -- A score is keyed by story, hour and scorer version (§5.8), so a new version in the same hour keeps
 -- its own row instead of the stale one.
 alter table scores drop constraint if exists scores_pkey;
-alter table scores add primary key (story_id, computed_at, scorer_version);
+create unique index if not exists scores_story_hour_version on scores (story_id, computed_at, scorer_version);
