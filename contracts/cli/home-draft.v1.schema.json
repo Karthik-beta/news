@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/home-draft.v1.schema.json",
+  "title": "Home curation draft (home-draft.v1)",
+  "description": "The file `news home save` reads: what the curator (A8) returns. `news home check` builds the curation.v1 body from it (contracts/cloud/curation.v1.schema.json) and applies slot counts, ID formats and the breadth rules. Slots point at page IDs and carry no page text. The rationale stays in PostgreSQL and is never sent to the cloud.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["curator_model", "slots"],
+  "properties": {
+    "curator_model": { "type": "string", "minLength": 1, "maxLength": 80, "pattern": "^[A-Za-z0-9._:/-]+$" },
+    "slots": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lead", "side", "sections"],
+      "properties": {
+        "lead": { "$ref": "#/$defs/lead" },
+        "side": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "$ref": "#/$defs/slot" } },
+        "sections": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 5,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["category", "pages"],
+            "properties": {
+              "category": { "type": "string", "maxLength": 120, "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*(?:/[a-z0-9]+(?:-[a-z0-9]+)*){0,3}$" },
+              "pages": { "type": "array", "minItems": 3, "maxItems": 4, "items": { "$ref": "#/$defs/slot" } }
+            }
+          }
+        }
+      }
+    },
+    "rationale": {
+      "description": "One line per picked page, by page ID. Kept locally, never shown or published.",
+      "type": "object",
+      "additionalProperties": { "type": "string", "maxLength": 300 }
+    }
+  },
+  "$defs": {
+    "slot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["page_id"],
+      "properties": {
+        "page_id": { "type": "string", "pattern": "^[a-z0-9](?:[a-z0-9-]{0,118}[a-z0-9])?$" },
+        "figure_id": { "description": "A data ID of the page (its `figures` in `news home candidates`).", "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
+        "chart_id": { "description": "A chart of the page. A slot has a figure or a chart, never both.", "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,63}$" }
+      },
+      "not": { "required": ["figure_id", "chart_id"] }
+    },
+    "lead": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["page_id"],
+      "properties": {
+        "page_id": { "type": "string", "pattern": "^[a-z0-9](?:[a-z0-9-]{0,118}[a-z0-9])?$" },
+        "figure_id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
+        "chart_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,63}$" },
+        "still_leading": { "description": "Marks a Tier 1 lead older than 7 days as still leading.", "type": "boolean" }
+      },
+      "not": { "required": ["figure_id", "chart_id"] }
+    }
+  }
+}

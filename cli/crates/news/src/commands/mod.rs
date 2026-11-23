@@ -5,6 +5,7 @@ mod calendar;
 mod components;
 mod db;
 mod entities;
+mod home;
 mod jobs;
 mod nose;
 mod run;
@@ -90,7 +91,7 @@ pub async fn run(cli: Cli, path: &str, shape: &Shape) -> NewsResult<Reply> {
         C::Ai(_) => stub(path, news_ghost::ISSUE),
         C::Eval(_) | C::Review(_) => stub(path, news_critic::ISSUE),
         C::Update { .. } => stub(path, news_rewrite::ISSUE),
-        C::Home(_) => stub(path, news_press::ISSUE),
+        C::Home(cmd) => home::run(cmd).await,
         C::Corrections(_) => stub(path, "#21"),
     }
 }
@@ -128,6 +129,11 @@ pub const BUILT: &[&str] = &[
     "board",
     "publish",
     "home.publish",
+    "home.candidates",
+    "home.save",
+    "home.check",
+    "home.preview",
+    "home.show",
     "eval.promote",
     "calendar.upcoming",
     "calendar.sync",
