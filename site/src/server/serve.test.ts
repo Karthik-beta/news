@@ -386,7 +386,11 @@ describe("search and machine routes", () => {
       now: () => now,
       render,
     });
-    await serve(new Request(`${ORIGIN}/`), home, deps(0, async () => new Response("old home")));
+    await serve(
+      new Request(`${ORIGIN}/`),
+      home,
+      deps(0, async () => new Response("old home")),
+    );
     const res = await serve(
       new Request(`${ORIGIN}/`),
       home,
