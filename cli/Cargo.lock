@@ -3238,7 +3238,7 @@ dependencies = [
  "news-core",
  "news-store",
  "news-wire",
- "reqwest",
+ "reqwest 0.13.5",
  "serde_json",
  "sha2 0.11.1",
  "sqlx",
