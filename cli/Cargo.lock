@@ -2838,7 +2838,13 @@ dependencies = [
 name = "news-nose"
 version = "0.0.1"
 dependencies = [
+ "chrono",
  "news-core",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "toml",
+ "uuid",
 ]
 
 [[package]]
@@ -2953,6 +2959,7 @@ dependencies = [
  "opentelemetry-otlp",
  "opentelemetry_sdk",
  "reqwest",
+ "rustls",
  "serde",
  "serde_json",
  "tracing",

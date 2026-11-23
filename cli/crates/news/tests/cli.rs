@@ -426,3 +426,28 @@ fn errors_never_produce_a_panic_message() {
         assert_eq!(assert.get_output().status.code(), Some(2), "{args:?}");
     }
 }
+
+// --- Nose ---------------------------------------------------------------------------------
+
+#[test]
+fn scores_weights_prints_scorer_config_v1_without_a_database() {
+    let (env, code, stderr) = call(&["scores", "weights"]);
+    assert_eq!(code, 0, "{env} {stderr}");
+    let d = &env["data"];
+    assert_eq!(d["version"], "v1");
+    assert_eq!(d["weights"]["I"], 0.30);
+    assert_eq!(d["weights"]["G"], 0.10);
+    assert_eq!(d["half_life_hours"]["report"], 96.0);
+    assert_eq!(d["event_weights"]["policy_major"], 1.0);
+    assert_eq!(d["coverage_targets"]["region"]["india"], 0.15);
+}
+
+#[test]
+fn plan_refuses_a_run_that_is_not_a_uuid_before_the_database() {
+    let (env, code, _) = call(&["plan", "--run", "r_51d2"]);
+    assert_eq!(
+        (code, env["error"]["code"].as_str()),
+        (2, Some("usage")),
+        "{env}"
+    );
+}

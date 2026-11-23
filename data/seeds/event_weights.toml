@@ -1,0 +1,58 @@
+# Event base weights E (Bureau Design §4.2): starting values, by event type. Migration 0004 seeded the
+# `event_weights` table with the same rows, and a news-nose test keeps the two in step. Huddle (#19)
+# tunes them; a change is a new scorer version.
+
+[[event]]
+type = "policy_major"
+weight = 1.0
+note = "Policy decision: Fed, ECB, BoE, BoJ, RBI, PBoC, RBA, BoC"
+
+[[event]]
+type = "report_flagship"
+weight = 0.95
+note = "Flagship institutional report (IMF WEO/GFSR/Fiscal Monitor, OECD EO, World Bank GEP, BIS AR)"
+
+[[event]]
+type = "macro_headline"
+weight = 0.9
+note = "Headline macro in target regions: CPI, GDP, employment"
+
+[[event]]
+type = "policy_other"
+weight = 0.8
+note = "Other central-bank decisions"
+
+[[event]]
+type = "company_results"
+weight = 0.7
+note = "Company results (10-K, 10-Q, 20-F, ESEF annual report, 8-K Item 2.02)"
+
+[[event]]
+type = "macro_other"
+weight = 0.6
+note = "Other macro releases; other institutional reports"
+
+[[event]]
+type = "agency_science"
+weight = 0.6
+note = "Agency science release (NASA, ESA, NOAA ...)"
+
+[[event]]
+type = "paper_peer_reviewed"
+weight = 0.5
+note = "Peer-reviewed paper"
+
+[[event]]
+type = "news_story"
+weight = 0.5
+note = "News story (primary-source-backed)"
+
+[[event]]
+type = "preprint"
+weight = 0.3
+note = "Preprint"
+
+[[event]]
+type = "filing_8k_other"
+weight = 0.3
+note = "Other 8-K items"

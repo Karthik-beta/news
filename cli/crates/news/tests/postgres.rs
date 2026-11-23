@@ -34,6 +34,8 @@ mod dispatch;
 mod fixture;
 #[path = "postgres/migrations.rs"]
 mod migrations;
+#[path = "postgres/nose.rs"]
+mod nose;
 #[path = "postgres/sources.rs"]
 mod sources;
 #[path = "postgres/wire.rs"]

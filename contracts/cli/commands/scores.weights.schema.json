@@ -2,11 +2,17 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://news.karthik.nz/contracts/cli/commands/scores.weights.schema.json",
   "title": "news scores weights",
-  "description": "Current weights. Input is the command's arguments as an object; output is the envelope's data.",
+  "description": "The current scorer config: the weights of S, freshness half-lives, event weights and coverage targets (data/seeds/). Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "R",
-  "x-news-status": "stub until #15",
+  "x-news-status": "built",
   "x-news-errors": [],
   "$defs": {
+    "numbers": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "number"
+      }
+    },
     "input": {
       "type": "object",
       "properties": {},
@@ -20,13 +26,26 @@
           "type": "string"
         },
         "weights": {
+          "$ref": "#/$defs/numbers"
+        },
+        "half_life_hours": {
+          "$ref": "#/$defs/numbers"
+        },
+        "event_weights": {
+          "$ref": "#/$defs/numbers"
+        },
+        "coverage_targets": {
           "type": "object",
-          "additionalProperties": {
-            "type": "number"
-          }
+          "properties": {
+            "category": { "$ref": "#/$defs/numbers" },
+            "region": { "$ref": "#/$defs/numbers" },
+            "page_type": { "$ref": "#/$defs/numbers" }
+          },
+          "required": ["category", "region", "page_type"],
+          "additionalProperties": false
         }
       },
-      "required": ["version", "weights"],
+      "required": ["version", "weights", "half_life_hours", "event_weights", "coverage_targets"],
       "additionalProperties": false
     }
   }

@@ -6,6 +6,7 @@ mod components;
 mod db;
 mod entities;
 mod jobs;
+mod nose;
 mod run;
 mod schema;
 mod sources;
@@ -80,7 +81,8 @@ pub async fn run(cli: Cli, path: &str, shape: &Shape) -> NewsResult<Reply> {
         // Related pages come from stories, which Taster builds.
         C::Related { .. } => stub(path, news_taster::ISSUE),
         C::Stories(_) => stub(path, news_taster::ISSUE),
-        C::Plan { .. } | C::Scores(_) => stub(path, news_nose::ISSUE),
+        C::Plan { run } => nose::plan(&run).await,
+        C::Scores(cmd) => nose::scores(cmd, path).await,
         C::Stats => stub(path, news_telemetry::ISSUE),
         C::Save { .. } | C::Render { .. } | C::Check { .. } => stub(path, news_proof::ISSUE),
         C::Brief { .. } => stub(path, news_fixer::ISSUE),
@@ -137,6 +139,9 @@ pub const BUILT: &[&str] = &[
     "sources.health",
     "sources.probe",
     "sources.sync",
+    "plan",
+    "scores.explain",
+    "scores.weights",
 ];
 
 /// Dotted names of the commands that have a contract file.

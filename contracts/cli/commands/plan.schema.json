@@ -2,10 +2,10 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://news.karthik.nz/contracts/cli/commands/plan.schema.json",
   "title": "news plan",
-  "description": "Score, cluster and select stories for a run (the Budget). Input is the command's arguments as an object; output is the envelope's data.",
+  "description": "Score the open stories at the run's start hour and select the run's Budget (Bureau §4.4, ADR 0012); stores `scores` and `run_plans`. Re-running it for the same run changes nothing. Target pages: the run's `target` argument, else `run.target_pages`. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "W",
-  "x-news-status": "stub until #15",
-  "x-news-errors": ["precondition"],
+  "x-news-status": "built",
+  "x-news-errors": ["not_found", "precondition", "validation_failed"],
   "$defs": {
     "input": {
       "type": "object",
@@ -40,6 +40,18 @@
             "type": "integer"
           }
         },
+        "limits": {
+          "type": "object",
+          "properties": {
+            "target": { "type": "integer" },
+            "category_cap": { "type": "integer" },
+            "entity_limit": { "type": "integer" },
+            "tier1_quota": { "type": "integer" },
+            "update_cap": { "type": "integer" }
+          },
+          "required": ["target", "category_cap", "entity_limit", "tier1_quota", "update_cap"],
+          "additionalProperties": false
+        },
         "top": {
           "type": "array",
           "items": {
@@ -54,17 +66,44 @@
               "tier": {
                 "enum": [1, 2]
               },
+              "action": {
+                "enum": ["new", "update"]
+              },
               "reason": {
                 "type": "string"
               }
             },
-            "required": ["story_id", "S", "tier", "reason"],
+            "required": ["story_id", "S", "tier", "action", "reason"],
             "additionalProperties": false
           },
           "maxItems": 10
+        },
+        "queued": {
+          "description": "Stories with S ≥ 40 not planned this run (a cap, the target or the update cap); they stay queued and are re-scored next run.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "story_id": {
+                "type": "integer"
+              },
+              "S": {
+                "type": "number"
+              },
+              "reason": {
+                "type": "string"
+              }
+            },
+            "required": ["story_id", "S", "reason"],
+            "additionalProperties": false
+          }
+        },
+        "below_floor": {
+          "description": "Stories below the Tier 2 floor (S < 40), left queued.",
+          "type": "integer"
         }
       },
-      "required": ["run_id", "planned", "by_tier", "by_bucket", "top"],
+      "required": ["run_id", "planned", "by_tier", "by_bucket", "limits", "top", "queued", "below_floor"],
       "additionalProperties": false
     }
   }

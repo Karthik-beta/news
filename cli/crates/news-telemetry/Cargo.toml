@@ -21,3 +21,8 @@ tracing-subscriber = { workspace = true }
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+# Already in the tree (news-wire). Workspace builds unify reqwest's `rustls-no-provider`, so a test that
+# builds a client installs the provider the `news` binary installs in `main`.
+rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
