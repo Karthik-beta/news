@@ -34,6 +34,8 @@ mod diary_roster;
 mod dispatch;
 #[path = "postgres/fixture.rs"]
 mod fixture;
+#[path = "postgres/ghost.rs"]
+mod ghost;
 #[path = "postgres/migrations.rs"]
 mod migrations;
 #[path = "postgres/nose.rs"]
