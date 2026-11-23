@@ -108,6 +108,8 @@ The site's SSR Worker (#14) will need its own read-only key like the MCP one, pl
 
 ## Deployment steps that only Karthik can do (#21)
 
+`infra/cloud/` now provisions the resources below (R2, the D1 databases and their migrations, the DynamoDB table, the IAM users and policies, cache and rate-limit rules, routes) and `infra/cloud/README.md` lists what is left for Karthik; the notes here stay as the reference.
+
 - Create the `REPORTS` D1 database and declare it in `api/wrangler.jsonc` (the TODO there shows how), then apply `api/migrations/reports`.
 - Add a WAF rate-limiting rule on `/mcp` (the free plan has one; it counts per client IP over 10 seconds). Like the Workers rate limits it is per location and per client, not a global budget for MCP reads of the shared table; a global bound (a Durable Object counter on cache misses) is deferred (ADR 0006).
 - After the first deploy, check one real Workers log line for each Worker: invocation logs are off, and no IP address or user agent should appear.
