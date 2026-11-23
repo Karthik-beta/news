@@ -19,7 +19,15 @@ beforeAll(() => {
   rmSync(OUT, { recursive: true, force: true });
   execFileSync("bun", ["--bun", "astro", "build"], {
     cwd: siteRoot,
-    env: { ...process.env, NEWS_OUT_DIR: OUT, NEWS_PREVIEW: "", NEWS_FIXTURES: "", CLOUDFLARE_ENV: "local" },
+    // VITEST is cleared: astro.config.mjs drops the adapter when it is set, and this is a real build.
+    env: {
+      ...process.env,
+      NEWS_OUT_DIR: OUT,
+      NEWS_PREVIEW: "",
+      NEWS_FIXTURES: "",
+      CLOUDFLARE_ENV: "local",
+      VITEST: "",
+    },
     stdio: "pipe",
     timeout: 300_000,
   });
@@ -34,7 +42,8 @@ describe("a production build", () => {
     expect(code.length).toBeGreaterThan(3);
     for (const file of code) {
       const text = readFileSync(file, "utf8");
-      for (const marker of ["__preview", "x-news-preview", "the preview build is refused"])
+      // "__preview" alone is in the reserved slugs of workers/shared, so the route itself is the marker.
+      for (const marker of ["/__preview/curation", "x-news-preview", "the preview build is refused"])
         expect(text.includes(marker), `${file} contains ${marker}`).toBe(false);
     }
   });

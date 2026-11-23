@@ -120,7 +120,7 @@ Prerendered from `site/src/config/` at build: methodology, about, glossary, priv
 | Cache policy | Every row of the route table requested in Miniflare: `Cache-Control` matches `routes.ts`, and `routes.ts` matches this ADR; `/?utm_source=x` hits the entry for `/`; `bun run validate` fails on differing site/api origin or region values |
 | Stale copy and abuse | A render error with a stored copy serves it with `s-maxage=30`, without one a 503; an unknown first segment makes no `URL#` read; the rate limiter is hit on 404, cursor and filter misses; a malformed cursor is 400; the taxonomy is read once per ~60 s |
 | Preview | Preview requests neither read nor write the cache; `X-News-Preview` is absent with no draft held and equals the sha256 of the draft while one is held (#20 asserts the same against the draft it pushed) |
-| Production guards | A production build has no `__preview` string in `dist/`; preview handlers 404 with `NEWS_ENV=production` or a non-loopback host; `NEWS_DATA=local` with `NEWS_ENV=production` fails; `ai-guard` covers `site/` |
+| Production guards | A production build has no `/__preview/curation` route string and no preview code in `dist/server`; preview handlers 404 with `NEWS_ENV=production` or a non-loopback host; `NEWS_DATA=local` with `NEWS_ENV=production` fails; `ai-guard` covers `site/` |
 | api changes | Reserved category slugs, and slugs not starting with a letter, refused |
 | Report form | Miniflare with the api Worker and local `REPORTS`: the form posts, the row is stored, the confirmation shows |
 | Quality | axe clean on every template, light and dark; home and hub meet `site/TESTING.md`'s browser budgets, and their server render (data in memory) stays under 4 ms p95 in Bun |
