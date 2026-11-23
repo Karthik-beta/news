@@ -187,46 +187,115 @@ fn bls_footnoted_preliminary_values_and_revisions() {
     );
 }
 
-/// Re-parsing the same bytes gives the same points and the same `dp_id`s, however many times it runs
-/// and whatever hash the stored snapshot carries (`dp_id` encodes the series, context, period and
-/// vintage, never where the bytes were kept).
-fn reparse_is_stable(parse: &dyn Fn([u8; 32]) -> Parsed, a: [u8; 32], b: [u8; 32]) {
+/// Rotate, and optionally reverse, every array in a JSON document: the same observations in
+/// another order, as an upstream may send them.
+fn reordered(bytes: &[u8], rot: usize, rev: bool) -> Vec<u8> {
+    fn walk(v: &mut serde_json::Value, rot: usize, rev: bool) {
+        match v {
+            serde_json::Value::Array(a) => {
+                if !a.is_empty() {
+                    let n = rot % a.len();
+                    a.rotate_left(n);
+                }
+                if rev {
+                    a.reverse();
+                }
+                a.iter_mut().for_each(|x| walk(x, rot, rev));
+            }
+            serde_json::Value::Object(o) => o.values_mut().for_each(|x| walk(x, rot, rev)),
+            _ => {}
+        }
+    }
+    let mut v: serde_json::Value = serde_json::from_slice(bytes).unwrap();
+    walk(&mut v, rot, rev);
+    serde_json::to_vec(&v).unwrap()
+}
+
+/// What the stored copy and the fetch looked like, and the order the upstream listed things in.
+#[derive(Debug, Clone, Copy)]
+struct Variant {
+    sha: [u8; 32],
+    secs: i64,
+    rot: usize,
+    rev: bool,
+}
+
+impl Variant {
+    fn fetched_at(&self) -> DateTime<Utc> {
+        Utc.timestamp_opt(1_700_000_000 + self.secs, 0).unwrap()
+    }
+    fn snap(&self, url: &str, bytes: Vec<u8>) -> Snapshot {
+        let mut s = snap(
+            url,
+            reordered(&bytes, self.rot, self.rev),
+            self.fetched_at(),
+        );
+        s.sha256 = self.sha;
+        s
+    }
+}
+
+/// Re-parsing the same observations gives the same points and the same `dp_id`s, however many times
+/// it runs, whatever hash the stored snapshot carries, whenever it was fetched and in whatever order
+/// the upstream listed the series and observations (`dp_id` encodes the series, context, period and
+/// vintage, never where or when the bytes were kept).
+fn reparse_is_stable(parse: &dyn Fn(Variant) -> Parsed, a: Variant, b: Variant) {
     let (first, again, other) = (parse(a), parse(a), parse(b));
     assert!(!first.points.is_empty());
     assert_eq!(first, again);
-    assert_eq!(ids(&first), ids(&other));
-    assert!(first.points.iter().all(|p| p.snapshot_sha == a));
+    let sorted = |p: &Parsed| -> Vec<String> {
+        let mut v = ids(p);
+        v.sort();
+        v
+    };
+    assert_eq!(sorted(&first), sorted(&other));
+    assert!(first.points.iter().all(|p| p.snapshot_sha == a.sha));
     let unique: std::collections::BTreeSet<_> = ids(&first).into_iter().collect();
     assert_eq!(unique.len(), first.points.len(), "dp_ids are unique");
 }
 
+fn variant() -> impl proptest::strategy::Strategy<Value = Variant> {
+    use proptest::prelude::*;
+    (
+        any::<[u8; 32]>(),
+        0i64..100_000_000,
+        0usize..64,
+        any::<bool>(),
+    )
+        .prop_map(|(sha, secs, rot, rev)| Variant {
+            sha,
+            secs,
+            rot,
+            rev,
+        })
+}
+
 proptest::proptest! {
     #[test]
-    fn bls_reparse_gives_identical_dp_ids(a: [u8; 32], b: [u8; 32]) {
+    fn bls_reparse_gives_identical_dp_ids(a in variant(), b in variant()) {
+        // BLS publishes no vintages, so the snapshot's fetch time is the vintage and is part of dp_id.
+        let b = Variant { secs: a.secs, ..b };
         let c = connector("bls").unwrap();
-        reparse_is_stable(&|sha| {
-            let mut s = snap(BLS_CPI, fixture("bls/CUUR0000SA0.json"), t(2026, 11, 13, 14));
-            s.sha256 = sha;
+        reparse_is_stable(&|v| {
+            let s = v.snap(BLS_CPI, fixture("bls/CUUR0000SA0.json"));
             c.parse(&bls_item("CUUR0000SA0"), &[s]).unwrap()
         }, a, b);
     }
 
     #[test]
-    fn fred_reparse_gives_identical_dp_ids(a: [u8; 32], b: [u8; 32]) {
+    fn fred_reparse_gives_identical_dp_ids(a in variant(), b in variant()) {
         let c = connector("fred").unwrap();
-        reparse_is_stable(&|sha| {
-            let mut snaps = fred_snaps();
-            snaps.iter_mut().for_each(|s| s.sha256 = sha);
+        reparse_is_stable(&|v| {
+            let snaps: Vec<_> = fred_snaps().into_iter().map(|s| v.snap(&s.url, s.bytes)).collect();
             c.parse(&fred_item(), &snaps).unwrap()
         }, a, b);
     }
 
     #[test]
-    fn sec_reparse_gives_identical_dp_ids(a: [u8; 32], b: [u8; 32]) {
+    fn sec_reparse_gives_identical_dp_ids(a in variant(), b in variant()) {
         let c = connector("sec-edgar").unwrap();
-        reparse_is_stable(&|sha| {
-            let mut s = snap(FACTS, fixture("sec/companyfacts-CIK0000320193.json"), t(2026, 10, 31, 7));
-            s.sha256 = sha;
+        reparse_is_stable(&|v| {
+            let s = v.snap(FACTS, fixture("sec/companyfacts-CIK0000320193.json"));
             c.parse(&sec_item(K26, "10-K", ""), &[s]).unwrap()
         }, a, b);
     }

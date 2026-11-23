@@ -51,7 +51,7 @@ pub async fn run(cmd: SourcesCmd) -> NewsResult<Reply> {
                     .map_err(db_err)?;
             row.map(Reply::new).ok_or_else(|| not_found(&source))
         }
-        SourcesCmd::Health { .. } => health(&db, Utc::now() - since.unwrap_or_default()).await,
+        SourcesCmd::Health { .. } => health(&db, since.unwrap_or_else(Utc::now)).await,
         SourcesCmd::Probe { source } => probe(&db, &source).await,
         SourcesCmd::Sync => {
             let cwd = std::env::current_dir().unwrap_or_default();
@@ -77,17 +77,22 @@ fn contacts_err(e: news_contacts::ContactsError) -> NewsError {
     }
 }
 
-/// `7d`, `36h`: a number and a unit, nothing else.
-fn parse_since(text: &str) -> NewsResult<Duration> {
+/// `7d`, `36h`: a number and a unit, nothing else. Returns the cutoff time that far back.
+fn parse_since(text: &str) -> NewsResult<DateTime<Utc>> {
     let bad = || NewsError::usage(format!("--since {text:?} is not like 7d or 36h"));
-    let (n, unit) = text.split_at(text.len().saturating_sub(1));
+    let (n, unit): (&str, fn(i64) -> Option<Duration>) = if let Some(n) = text.strip_suffix('d') {
+        (n, Duration::try_days)
+    } else if let Some(n) = text.strip_suffix('h') {
+        (n, Duration::try_hours)
+    } else {
+        return Err(bad());
+    };
     let n: i64 = n.parse().map_err(|_| bad())?;
-    match unit {
-        "d" if n > 0 => Duration::try_days(n),
-        "h" if n > 0 => Duration::try_hours(n),
-        _ => None,
+    if n <= 0 {
+        return Err(bad());
     }
-    .ok_or_else(bad)
+    let span = unit(n).ok_or_else(bad)?;
+    Utc::now().checked_sub_signed(span).ok_or_else(bad)
 }
 
 /// What one source's rows say, before grading.
@@ -255,9 +260,15 @@ async fn probe(db: &news_store::PgPool, source: &str) -> NewsResult<Reply> {
             Outcome::NotModified => {}
         }
     }
-    let found = conn
-        .parse_discovery(&cx, None, &snaps)
-        .map_err(|e| fetch_failure(e.class(), e.to_string()))?;
+    let found = conn.parse_discovery(&cx, None, &snaps).map_err(|e| {
+        // §6.2 has no `upstream_changed` or `invalid_data` code, so a parse failure that is not a
+        // refusal is `internal`; the message keeps the class for the reader.
+        let code = match e.class() {
+            ErrorClass::RateLimited => ErrorCode::RateLimited,
+            _ => ErrorCode::Internal,
+        };
+        NewsError::new(code, format!("{}: {e}", e.class().as_str()))
+    })?;
     let mut reply = Reply::new(json!({
         "refs": found.refs.len(),
         "sample": found.refs.iter().take(5).collect::<Vec<_>>(),
@@ -284,9 +295,13 @@ mod tests {
 
     #[test]
     fn since_is_a_count_of_days_or_hours() {
-        assert_eq!(parse_since("7d").unwrap(), Duration::days(7));
-        assert_eq!(parse_since("36h").unwrap(), Duration::hours(36));
-        for bad in ["", "d", "7", "0d", "-1d", "7w", "1.5d"] {
+        let ago = |text: &str, span: Duration| {
+            (Utc::now() - span - parse_since(text).unwrap()).abs() < Duration::seconds(5)
+        };
+        assert!(ago("7d", Duration::days(7)));
+        assert!(ago("36h", Duration::hours(36)));
+        // A multibyte last character or a span past chrono's range is a usage error, not a panic.
+        for bad in ["", "d", "7", "0d", "-1d", "7w", "1.5d", "7é", "99999999d"] {
             assert_eq!(
                 parse_since(bad).unwrap_err().code,
                 ErrorCode::Usage,
