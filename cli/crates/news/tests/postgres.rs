@@ -40,6 +40,8 @@ mod nose;
 mod sources;
 #[path = "postgres/taster.rs"]
 mod taster;
+#[path = "postgres/taster_embed.rs"]
+mod taster_embed;
 #[path = "postgres/wire.rs"]
 mod wire;
 

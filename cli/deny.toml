@@ -31,6 +31,9 @@ ignore = [
     { id = "RUSTSEC-2026-0371", reason = "zbus_names unmaintained; Linux-only via AccessKit under eframe (Board is Windows-only); revisit by 2027-02-28" },
     { id = "RUSTSEC-2026-0370", reason = "zvariant unmaintained; Linux-only via AccessKit under eframe (Board is Windows-only); revisit by 2027-02-28" },
     { id = "RUSTSEC-2026-0372", reason = "zvariant_derive unmaintained; Linux-only via AccessKit under eframe (Board is Windows-only); revisit by 2027-02-28" },
+    # paste: unmaintained notice only (a proc-macro, nothing at run time). Comes in through tokenizers under
+    # fastembed, Taster's embedder (news-taster feature `embed`, ADR 0011). Revisit with fastembed by 2027-02-28.
+    { id = "RUSTSEC-2024-0436", reason = "paste unmaintained; proc-macro under tokenizers/fastembed (news-taster embed); revisit by 2027-02-28" },
 ]
 
 [licenses]
@@ -57,7 +60,15 @@ allow = [
     # redistributing the fonts inside a built binary.
     "OFL-1.1",
     "Ubuntu-font-1.0",
+    # The Mozilla CA root list as data (webpki-roots, webpki-root-certs, via ureq under hf-hub under
+    # fastembed, news-taster feature `embed`): permissive, allows redistribution.
+    "CDLA-Permissive-2.0",
 ]
+
+# One crate may carry a weak-copyleft licence, named here so nothing else can. MPL-2.0 is file-level: it
+# binds only changes to option-ext's own files, and it ships unmodified. It comes in through dirs-sys under
+# hf-hub under fastembed (news-taster feature `embed`).
+exceptions = [{ allow = ["MPL-2.0"], crate = "option-ext" }]
 
 [licenses.private]
 # Our own crates are `publish = false` with `license = "UNLICENSED"`, which is not an SPDX expression.

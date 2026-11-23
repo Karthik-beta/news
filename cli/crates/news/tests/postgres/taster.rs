@@ -15,11 +15,11 @@ const BOARD: &str = include_str!("../../../news-taster/tests/fixtures/fomc-2025-
 const WIRE: &str = include_str!("../../../news-taster/tests/fixtures/fomc-2025-09-17-wire.txt");
 const JUNE: &str = include_str!("../../../news-taster/tests/fixtures/fomc-2025-06-18-board.txt");
 
-fn t0() -> DateTime<Utc> {
+pub(super) fn t0() -> DateTime<Utc> {
     "2026-11-20T12:00:00Z".parse().unwrap()
 }
 
-async fn source(pool: &PgPool, id: &str, tier: i16) {
+pub(super) async fn source(pool: &PgPool, id: &str, tier: i16) {
     sqlx::query(
         "insert into sources (source_id, name, publisher, connector, base_url, source_tier, licence, attribution,
            redistribution, image_policy, rate_per_sec, regions, categories)
@@ -42,7 +42,7 @@ async fn source(pool: &PgPool, id: &str, tier: i16) {
 }
 
 /// A document of `text` from `source`; `sha` is its content hash.
-async fn doc(pool: &PgPool, source: &str, text: &str, sha: &str) -> i64 {
+pub(super) async fn doc(pool: &PgPool, source: &str, text: &str, sha: &str) -> i64 {
     sqlx::query_scalar(
         "insert into documents (snapshot_sha, kind, title, published_at, text_len, simhash, content_sha)
          values (sha256($1::bytea), 'press_release', 'x', $2, $3, $4, sha256($5::bytea)) returning doc_id",
@@ -58,7 +58,7 @@ async fn doc(pool: &PgPool, source: &str, text: &str, sha: &str) -> i64 {
 }
 
 /// A new `news` candidate; `at` is when it was first seen.
-async fn cand(
+pub(super) async fn cand(
     pool: &PgPool,
     source: &str,
     title: &str,
@@ -82,7 +82,7 @@ async fn cand(
     .unwrap()
 }
 
-async fn n(pool: &PgPool, sql: &str) -> i64 {
+pub(super) async fn n(pool: &PgPool, sql: &str) -> i64 {
     sqlx::query_scalar(sqlx::AssertSqlSafe(sql.to_owned()))
         .fetch_one(pool)
         .await
@@ -101,7 +101,7 @@ async fn dump(pool: &PgPool) -> String {
     .unwrap()
 }
 
-async fn publish_page(pool: &PgPool, story: i64) {
+pub(super) async fn publish_page(pool: &PgPool, story: i64) {
     let page = format!("2026/11/p{story}");
     sqlx::query(
         "insert into pages (page_id, slug, story_id, page_type, version, status, published_at)
