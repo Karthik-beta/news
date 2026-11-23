@@ -4,7 +4,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Aws, Cf, Route, Rule } from "./clients";
+import { type Aws, type Cf, MANAGED_TAG, type Route, type Rule } from "./clients";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
 const read = (...p: string[]) => readFileSync(join(here, ...p), "utf8");
@@ -185,6 +185,10 @@ export function buildSteps(cfg: Config, cf: Cf, aws: Aws): { steps: Step[]; d1Id
     check: async () => {
       const t = await aws.describeTable(cfg.table);
       if (!t) return "missing";
+      if (!t.managed)
+        throw new Error(
+          `Table ${cfg.table} exists without the tag ${MANAGED_TAG.Key}=${MANAGED_TAG.Value}, so this script did not make it: not changed. Pick another name, or tag it yourself if it is yours.`,
+        );
       if (!t.keysOk)
         throw new Error(`Table ${cfg.table} exists with other keys than PK/SK: not changed. Pick another name.`);
       if (!t.provisioned || t.rcu !== RCU || t.wcu !== WCU) return "drift";
@@ -206,9 +210,17 @@ export function buildSteps(cfg: Config, cf: Cf, aws: Aws): { steps: Step[]; d1Id
       check: async () => {
         if (!(await aws.userExists(user))) return "missing";
         const have = await aws.getUserPolicy(user, user);
+        // Managed policies and groups would add permissions this script does not know about.
+        if ((await aws.userExtras(user)).length) return "drift";
         return covers(have, doc) && covers(doc, have) ? "ok" : "drift";
       },
       apply: async () => {
+        const extras = (await aws.userExists(user)) ? await aws.userExtras(user) : [];
+        // Never detaches or removes anything itself: that is a permissions decision for Karthik.
+        if (extras.length)
+          throw new Error(
+            `IAM user ${user} has ${extras.join(", ")} besides its inline policy: remove them in IAM, then run again.`,
+          );
         if (!(await aws.userExists(user))) await aws.createUser(user);
         await aws.putUserPolicy(user, user, doc);
       },
@@ -264,6 +276,27 @@ export function buildSteps(cfg: Config, cf: Cf, aws: Aws): { steps: Step[]; d1Id
   });
 
   return { steps, d1Ids };
+}
+
+/**
+ * Stops a run whose credentials or settings point at another account: an account id in the settings is only a label
+ * until the credentials are asked who they are. Called once, before any step, in check and apply (a dry run has no
+ * clients). Only the providers of the selected groups are checked. Messages never carry a value.
+ */
+export async function verifyAccounts(cfg: Config, cf: Cf, aws: Aws, groups: Group[]): Promise<void> {
+  if (groups.some((g) => g === "dynamodb" || g === "iam")) {
+    if ((await aws.callerAccount()) !== cfg.awsAccountId)
+      throw new Error("The AWS credentials belong to a different account than AWS_ACCOUNT_ID: nothing was changed.");
+  }
+  if (groups.some((g) => g === "r2" || g === "d1" || g === "edge")) {
+    const zone = await cf.zone();
+    if (zone.accountId !== cfg.accountId)
+      throw new Error(
+        "CLOUDFLARE_ZONE_ID belongs to a different account than CLOUDFLARE_ACCOUNT_ID: nothing was changed.",
+      );
+    if (!zone.name || (cfg.domain !== zone.name && !cfg.domain.endsWith(`.${zone.name}`)))
+      throw new Error("NEWS_DOMAIN is not the zone CLOUDFLARE_ZONE_ID or a subdomain of it: nothing was changed.");
+  }
 }
 
 export type Mode = "dry-run" | "check" | "apply";

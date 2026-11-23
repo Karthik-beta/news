@@ -17,9 +17,14 @@ export interface TableInfo {
   rcu: number;
   wcu: number;
   keysOk: boolean;
+  /** Carries the tag provisioning puts on the tables it creates; a table without it is not ours to change. */
+  managed: boolean;
 }
+export const MANAGED_TAG = { Key: "managed-by", Value: "news-provision" } as const;
 
 export interface Cf {
+  /** The zone this run's settings point at: its name and the account that owns it. */
+  zone(): Promise<{ name: string; accountId: string }>;
   bucketExists(name: string): Promise<boolean>;
   createBucket(name: string): Promise<void>;
   customDomains(bucket: string): Promise<string[]>;
@@ -34,6 +39,8 @@ export interface Cf {
 }
 
 export interface Aws {
+  /** The account the credentials belong to (sts:GetCallerIdentity). */
+  callerAccount(): Promise<string>;
   describeTable(name: string): Promise<TableInfo | undefined>;
   createTable(name: string, rcu: number, wcu: number): Promise<void>;
   setThroughput(name: string, rcu: number, wcu: number): Promise<void>;
@@ -42,6 +49,8 @@ export interface Aws {
   userExists(user: string): Promise<boolean>;
   createUser(user: string): Promise<void>;
   getUserPolicy(user: string, policy: string): Promise<unknown | undefined>;
+  /** Managed policies attached to the user and groups it is in, as labels; the user should have neither. */
+  userExtras(user: string): Promise<string[]>;
   putUserPolicy(user: string, policy: string, document: unknown): Promise<void>;
 }
 
@@ -52,11 +61,13 @@ interface DynamoJson {
   __type?: string;
   message?: string;
   Table?: {
+    TableArn?: string;
     TableStatus: string;
     KeySchema: { AttributeName: string; KeyType: string }[];
     BillingModeSummary?: { BillingMode?: string };
     ProvisionedThroughput?: { ReadCapacityUnits?: number; WriteCapacityUnits?: number };
   };
+  Tags?: { Key: string; Value: string }[];
   TimeToLiveDescription?: { TimeToLiveStatus?: string; AttributeName?: string };
 }
 
@@ -77,6 +88,10 @@ export function cloudflare(token: string, accountId: string, zoneId: string): Cf
   const acct = `/accounts/${accountId}`;
   const phase = (p: string) => `/zones/${zoneId}/rulesets/phases/${p}/entrypoint`;
   return {
+    zone: async () => {
+      const r = (await call("GET", `/zones/${zoneId}`)) as { name?: string; account?: { id?: string } };
+      return { name: r.name ?? "", accountId: r.account?.id ?? "" };
+    },
     bucketExists: async (name) => (await call("GET", `${acct}/r2/buckets/${name}`, undefined, true)) !== undefined,
     createBucket: async (name) => void (await call("POST", `${acct}/r2/buckets`, { name })),
     customDomains: async (bucket) => {
@@ -124,6 +139,7 @@ export function aws(
 ): Aws {
   const dynamoClient = new AwsClient({ ...creds, region, service: "dynamodb" });
   const iamClient = new AwsClient({ ...creds, region: "us-east-1", service: "iam" });
+  const stsClient = new AwsClient({ ...creds, region, service: "sts" });
 
   async function dynamo(action: string, body: unknown, missingOk = false) {
     const res = await dynamoClient.fetch(`https://dynamodb.${region}.amazonaws.com/`, {
@@ -148,6 +164,16 @@ export function aws(
     if (!res.ok) throw new Error(`IAM ${action} failed: ${res.status} ${text.match(/<Code>(.*?)<\/Code>/)?.[1] ?? ""}`);
     return text;
   }
+  async function sts(action: string) {
+    const res = await stsClient.fetch(`https://sts.${region}.amazonaws.com/`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ Action: action, Version: "2011-06-15" }),
+    });
+    const text = await res.text();
+    if (!res.ok) throw new Error(`STS ${action} failed: ${res.status} ${text.match(/<Code>(.*?)<\/Code>/)?.[1] ?? ""}`);
+    return text;
+  }
   const throughput = (rcu: number, wcu: number) => ({ ReadCapacityUnits: rcu, WriteCapacityUnits: wcu });
   async function active(name: string) {
     for (let i = 0; i < 30; i++) {
@@ -158,12 +184,15 @@ export function aws(
     throw new Error(`Table ${name} is not ACTIVE after 60 seconds; run the script again.`);
   }
   return {
+    callerAccount: async () => (await sts("GetCallerIdentity")).match(/<Account>(\d+)<\/Account>/)?.[1] ?? "",
     describeTable: async (name) => {
       const r = await dynamo("DescribeTable", { TableName: name }, true);
       if (!r) return undefined;
       const t = r.Table as NonNullable<DynamoJson["Table"]>;
       const keys = t.KeySchema.map((k) => `${k.AttributeName}:${k.KeyType}`);
+      const tags = (await dynamo("ListTagsOfResource", { ResourceArn: t.TableArn })) as DynamoJson;
       return {
+        managed: (tags.Tags ?? []).some((x) => x.Key === MANAGED_TAG.Key && x.Value === MANAGED_TAG.Value),
         provisioned: t.BillingModeSummary?.BillingMode !== "PAY_PER_REQUEST",
         rcu: t.ProvisionedThroughput?.ReadCapacityUnits ?? 0,
         wcu: t.ProvisionedThroughput?.WriteCapacityUnits ?? 0,
@@ -175,6 +204,7 @@ export function aws(
         TableName: name,
         BillingMode: "PROVISIONED",
         ProvisionedThroughput: throughput(rcu, wcu),
+        Tags: [MANAGED_TAG],
         AttributeDefinitions: [
           { AttributeName: "PK", AttributeType: "S" },
           { AttributeName: "SK", AttributeType: "S" },
@@ -210,6 +240,16 @@ export function aws(
       const text = await iam("GetUserPolicy", { UserName: user, PolicyName: policy }, true);
       const doc = text?.match(/<PolicyDocument>(.*?)<\/PolicyDocument>/s)?.[1];
       return doc === undefined ? undefined : JSON.parse(decodeURIComponent(doc));
+    },
+    userExtras: async (user) => {
+      const names = (xml: string, tag: string) =>
+        [...xml.matchAll(new RegExp(`<${tag}>(.*?)</${tag}>`, "g"))].map((m) => m[1]);
+      const attached = await iam("ListAttachedUserPolicies", { UserName: user }, true);
+      const groups = await iam("ListGroupsForUser", { UserName: user }, true);
+      return [
+        ...names(attached ?? "", "PolicyName").map((n) => `policy ${n}`),
+        ...names(groups ?? "", "GroupName").map((n) => `group ${n}`),
+      ];
     },
     putUserPolicy: async (user, policy, document) =>
       void (await iam("PutUserPolicy", {

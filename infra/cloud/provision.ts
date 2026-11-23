@@ -5,7 +5,7 @@
 // Add `--only r2,d1,dynamodb,iam,edge` to run some groups. Settings and credentials come from the environment only
 // (names in infra/cloud/README.md); this file holds none, and prints none.
 import { type Aws, aws as awsClient, type Cf, cloudflare } from "./clients";
-import { buildSteps, GROUPS, type Group, loadConfig, type Mode, run } from "./steps";
+import { buildSteps, GROUPS, type Group, loadConfig, type Mode, run, verifyAccounts } from "./steps";
 
 export interface Clients {
   cf: Cf;
@@ -59,6 +59,7 @@ export async function main(
     const cfg = loadConfig(env, mode === "dry-run");
     const clients = mode === "dry-run" ? undefined : makeClients(env, groups, cfg);
     // dry-run never gets a client: the steps are built over inert ones that fail if anything calls them.
+    if (clients) await verifyAccounts(cfg, clients.cf, clients.aws, groups);
     const none = new Proxy({}, { get: () => () => Promise.reject(new Error("dry-run must not call an API")) });
     const { steps, d1Ids } = buildSteps(cfg, (clients?.cf ?? none) as Cf, (clients?.aws ?? none) as Aws);
     const { changed } = await run(

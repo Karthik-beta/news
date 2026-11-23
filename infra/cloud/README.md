@@ -14,7 +14,7 @@ Code for the cloud half of issue #21. Nothing here has been run against a real a
 | `iam` | Users `news-api-publish`, `news-mcp-read`, `news-site-read`, each with one inline policy | Policies are `iam/*.json` (`${REGION}`, `${ACCOUNT_ID}`, `${TABLE}` filled in). **No access keys are created**: Karthik makes them (below) |
 | `edge` | Cache rule for article paths (`edge/cache-rules.json`), the one free-plan rate-limiting rule on `/mcp` (`edge/rate-limit-rules.json`), Worker routes (`edge/routes.json`) | Only rules whose `ref` starts with `news-` are managed; other rules in the zone are kept |
 
-Worker routes (ADR 0010): `news.karthik.nz/*` to `news-site`, `/2*` to no Worker (so articles go to R2), `/mcp*` to `news-mcp`. The search API's hostname is not decided, so it has no route yet.
+Worker routes (ADR 0010): `news.karthik.nz/*` to `news-site`, `/2*` to no Worker (so articles go to R2), `/mcp` and `/mcp/*` to `news-mcp`. The search API's hostname is not decided, so it has no route yet.
 
 ## Run it
 
@@ -48,7 +48,7 @@ Cloudflare token permissions (an approximation of what the calls need; if a call
 
 `.github/workflows/deploy.yml` deploys the Workers and the site. It runs three ways:
 
-- A push to `main`: `ci.yml`'s `cd` job calls it once every CI job has passed.
+- A push to `main`: `cd.yml` calls it when CI has completed successfully for that push (a `workflow_run` on the CI workflow, push events only); the plan stage deploys only if the commit is still the head of `main`.
 - Run workflow in the Actions tab, or Board's Deploy button (`workflow_dispatch`).
 - Only on `main`: a run on another branch is refused at the plan stage (a dry run, which deploys nothing, is the one exception), and the `production` environment admits `main` only.
 

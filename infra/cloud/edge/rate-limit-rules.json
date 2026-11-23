@@ -2,7 +2,7 @@
   {
     "ref": "news-ratelimit-mcp",
     "description": "MCP: 15 requests per 10 seconds per client IP and location, then block for 10 seconds (free-plan limits)",
-    "expression": "(http.host eq \"${DOMAIN}\" and starts_with(http.request.uri.path, \"/mcp\"))",
+    "expression": "(http.host eq \"${DOMAIN}\" and (http.request.uri.path eq \"/mcp\" or starts_with(http.request.uri.path, \"/mcp/\")))",
     "action": "block",
     "ratelimit": {
       "characteristics": ["cf.colo.id", "ip.src"],

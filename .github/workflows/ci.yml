@@ -221,18 +221,3 @@ jobs:
       - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  # Continuous deployment: after a push to main, once every job above has passed, deploy.yml runs the same plan and
-  # deploy stages as a manual run, then the production smoke test. Not a required check; skipped on pull requests. A
-  # Worker whose wrangler.jsonc still has a `TODO(` is skipped with a notice (the guard lives in deploy.yml), and the
-  # `production` environment's reviewer approval and `main`-only rule still apply. The Cloudflare secrets are
-  # environment secrets there, so this job passes none.
-  cd:
-    name: Deploy (main)
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [js, site-smoke, workers-integration, workers-e2e, rust, rust-postgres, cargo-deny, secrets]
-    permissions:
-      contents: read
-    uses: ./.github/workflows/deploy.yml
-    with:
-      target: all

@@ -27,6 +27,9 @@ function fakeCloud() {
     routes: [] as Route[],
     tables: new Map<string, TableInfo & { ttl: boolean }>(),
     users: new Map<string, unknown>(),
+    extras: new Map<string, string[]>(),
+    awsAccount: "123456789012",
+    zone: { name: "karthik.nz", accountId: "a".repeat(32) },
     writes: [] as string[],
   };
   const write = <T>(what: string, fn: () => T): T => {
@@ -34,6 +37,7 @@ function fakeCloud() {
     return fn();
   };
   const cf: Cf = {
+    zone: async () => state.zone,
     bucketExists: async (n) => state.buckets.has(n),
     createBucket: async (n) => write(`bucket ${n}`, () => void state.buckets.add(n)),
     customDomains: async (b) => state.domains.get(b) ?? [],
@@ -76,11 +80,13 @@ function fakeCloud() {
       }),
   };
   const awsFake: Aws = {
+    callerAccount: async () => state.awsAccount,
+    userExtras: async (u) => state.extras.get(u) ?? [],
     describeTable: async (n) => state.tables.get(n),
     createTable: async (n, rcu, wcu) =>
       write(
         `table ${n} ${rcu}/${wcu}`,
-        () => void state.tables.set(n, { provisioned: true, rcu, wcu, keysOk: true, ttl: false }),
+        () => void state.tables.set(n, { provisioned: true, rcu, wcu, keysOk: true, managed: true, ttl: false }),
       ),
     setThroughput: async (n, rcu, wcu) =>
       write(
@@ -168,7 +174,8 @@ describe("check and apply", () => {
     expect(cloud.state.routes.map((r) => r.pattern).sort()).toEqual([
       "news.karthik.nz/*",
       "news.karthik.nz/2*",
-      "news.karthik.nz/mcp*",
+      "news.karthik.nz/mcp",
+      "news.karthik.nz/mcp/*",
     ]);
     // The id of each database is printed for the wrangler bindings; migrations ran once each, in order.
     expect(first.out).toContain("news-search-2026: id-news-search-2026");
@@ -188,7 +195,7 @@ describe("check and apply", () => {
   test("drift is repaired and other rules in the zone are kept", async () => {
     const cloud = fakeCloud();
     await runMain([], ENV, cloud);
-    cloud.state.tables.set("news", { provisioned: false, rcu: 0, wcu: 0, keysOk: true, ttl: true });
+    cloud.state.tables.set("news", { provisioned: false, rcu: 0, wcu: 0, keysOk: true, managed: true, ttl: true });
     cloud.state.users.set("news-api-publish", {
       Version: "2012-10-17",
       Statement: [{ Effect: "Allow", Action: "dynamodb:*", Resource: "*" }],
@@ -207,10 +214,34 @@ describe("check and apply", () => {
 
   test("a table with other keys is never touched", async () => {
     const cloud = fakeCloud();
-    cloud.state.tables.set("news", { provisioned: true, rcu: 5, wcu: 5, keysOk: false, ttl: false });
+    cloud.state.tables.set("news", { provisioned: true, rcu: 5, wcu: 5, keysOk: false, managed: true, ttl: false });
     const r = await runMain(["--only=dynamodb"], ENV, cloud);
     expect(r.code).toBe(1);
     expect(r.out).toContain("other keys");
+    expect(cloud.state.writes).toEqual([]);
+  });
+
+  test("a table without the managed-by tag is never touched", async () => {
+    const cloud = fakeCloud();
+    cloud.state.tables.set("news", { provisioned: true, rcu: 5, wcu: 5, keysOk: true, managed: false, ttl: false });
+    for (const args of [["--only=dynamodb"], ["--check", "--only=dynamodb"]]) {
+      const r = await runMain(args, ENV, cloud);
+      expect(r.code).toBe(1);
+      expect(r.out).toContain("managed-by=news-provision");
+    }
+    expect(cloud.state.writes).toEqual([]);
+  });
+
+  test("an IAM user with a managed policy or group is drift, and apply stops rather than remove it", async () => {
+    const cloud = fakeCloud();
+    await runMain([], ENV, cloud);
+    cloud.state.extras.set("news-site-read", ["policy AdministratorAccess"]);
+    cloud.state.writes.length = 0;
+    const check = await runMain(["--check", "--only=iam"], ENV, cloud);
+    expect(check.out.match(/\[update\]/g)?.length).toBe(1);
+    const apply = await runMain(["--only=iam"], ENV, cloud);
+    expect(apply.code).toBe(1);
+    expect(apply.out).toContain("policy AdministratorAccess");
     expect(cloud.state.writes).toEqual([]);
   });
 
@@ -218,6 +249,52 @@ describe("check and apply", () => {
     const r = await runMain(["--check", "--only=r2"], ENV);
     expect(r.out.match(/\[create\]/g)?.length).toBe(2);
     expect((await runMain(["--only=nope"], ENV)).code).toBe(2);
+  });
+});
+
+describe("account checks", () => {
+  test("AWS credentials of another account stop check and apply before any call that reads or writes", async () => {
+    for (const args of [["--check"], []]) {
+      const cloud = fakeCloud();
+      cloud.state.awsAccount = "999999999999";
+      const r = await runMain(args, ENV, cloud);
+      expect(r.code).toBe(1);
+      expect(r.out).toContain("different account than AWS_ACCOUNT_ID");
+      expect(r.out).not.toContain("999999999999");
+      expect(r.out).not.toContain("[ok]");
+      expect(cloud.state.writes).toEqual([]);
+      expect(cloud.state.buckets.size).toBe(0);
+    }
+  });
+
+  test("a zone of another Cloudflare account is refused", async () => {
+    const cloud = fakeCloud();
+    cloud.state.zone = { name: "karthik.nz", accountId: "c".repeat(32) };
+    const r = await runMain(["--only=edge"], ENV, cloud);
+    expect(r.code).toBe(1);
+    expect(r.out).toContain("different account than CLOUDFLARE_ACCOUNT_ID");
+    expect(cloud.state.writes).toEqual([]);
+  });
+
+  test("a domain outside the zone is refused; the zone itself and a subdomain pass", async () => {
+    const cloud = fakeCloud();
+    for (const domain of ["news.other.com", "evilkarthik.nz"]) {
+      const r = await runMain(["--check", "--only=r2"], { ...ENV, NEWS_DOMAIN: domain }, cloud);
+      expect(r.code).toBe(1);
+      expect(r.out).toContain("NEWS_DOMAIN is not the zone");
+    }
+    for (const domain of ["karthik.nz", "news.karthik.nz"])
+      expect((await runMain(["--check", "--only=r2"], { ...ENV, NEWS_DOMAIN: domain }, cloud)).code).toBe(0);
+  });
+
+  test("only the selected groups' providers are asked", async () => {
+    const cloud = fakeCloud();
+    cloud.state.awsAccount = "999999999999";
+    expect((await runMain(["--check", "--only=r2"], ENV, cloud)).code).toBe(0);
+    cloud.state.zone = { name: "karthik.nz", accountId: "c".repeat(32) };
+    expect(
+      (await runMain(["--check", "--only=dynamodb"], { ...ENV, AWS_ACCOUNT_ID: "999999999999" }, cloud)).code,
+    ).toBe(0);
   });
 });
 
@@ -238,6 +315,32 @@ describe("committed files", () => {
         if (file !== "news-api-publish.json") expect(s.Condition).toBeDefined();
       }
     }
+  });
+
+  test("the MCP route and rate limit match /mcp and /mcp/*, not /mcp-anything", () => {
+    const routes = JSON.parse(readFileSync(join(root, "infra/cloud/edge/routes.json"), "utf8")) as {
+      pattern: string;
+    }[];
+    const paths = routes.map((r) => r.pattern.slice(r.pattern.indexOf("/")));
+    expect(paths.filter((p) => p.startsWith("/mcp"))).toEqual(["/mcp", "/mcp/*"]);
+    const rule = readFileSync(join(root, "infra/cloud/edge/rate-limit-rules.json"), "utf8");
+    expect(rule).toContain('path eq \\"/mcp\\" or');
+    expect(rule).toContain('\\"/mcp/\\")');
+  });
+
+  test("CD is its own workflow on workflow_run; ci.yml no longer calls deploy.yml", () => {
+    const ci = readFileSync(join(root, ".github/workflows/ci.yml"), "utf8");
+    const cd = readFileSync(join(root, ".github/workflows/cd.yml"), "utf8");
+    expect(ci).not.toContain("deploy.yml");
+    expect(cd).toContain("workflow_run:");
+    expect(cd).toContain("github.event.workflow_run.event == 'push'");
+    expect(cd).toContain("uses: ./.github/workflows/deploy.yml");
+    expect(readFileSync(join(root, ".github/workflows/deploy.yml"), "utf8")).toContain("git ls-remote");
+  });
+
+  test("the mcp and site Workers have no public workers.dev address", () => {
+    for (const f of ["workers/mcp/wrangler.jsonc", "site/wrangler.jsonc"])
+      expect(readFileSync(join(root, f), "utf8")).toMatch(/^\s*"workers_dev": false,/m);
   });
 
   test("every migration ends with a semicolon, so the tracking insert can follow it in one call", () => {

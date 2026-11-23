@@ -1,5 +1,6 @@
 [
   { "pattern": "${DOMAIN}/*", "script": "news-site" },
   { "pattern": "${DOMAIN}/2*" },
-  { "pattern": "${DOMAIN}/mcp*", "script": "news-mcp" }
+  { "pattern": "${DOMAIN}/mcp", "script": "news-mcp" },
+  { "pattern": "${DOMAIN}/mcp/*", "script": "news-mcp" }
 ]
