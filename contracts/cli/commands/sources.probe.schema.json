@@ -4,7 +4,7 @@
   "title": "news sources probe",
   "description": "One live discovery call, no writes. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "R",
-  "x-news-status": "stub until #9",
+  "x-news-status": "built",
   "x-news-errors": ["not_found", "upstream_unavailable", "rate_limited", "licence_blocked"],
   "$defs": {
     "input": {

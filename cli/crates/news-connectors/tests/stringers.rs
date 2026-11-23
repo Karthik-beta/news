@@ -187,19 +187,49 @@ fn bls_footnoted_preliminary_values_and_revisions() {
     );
 }
 
-#[test]
-fn bls_reparse_gives_identical_dp_ids() {
-    let c = connector("bls").unwrap();
-    let s = snap(
-        BLS_CPI,
-        fixture("bls/CUUR0000SA0.json"),
-        t(2026, 11, 13, 14),
-    );
-    let a = c
-        .parse(&bls_item("CUUR0000SA0"), std::slice::from_ref(&s))
-        .unwrap();
-    let b = c.parse(&bls_item("CUUR0000SA0"), &[s]).unwrap();
-    assert_eq!(ids(&a), ids(&b));
+/// Re-parsing the same bytes gives the same points and the same `dp_id`s, however many times it runs
+/// and whatever hash the stored snapshot carries (`dp_id` encodes the series, context, period and
+/// vintage, never where the bytes were kept).
+fn reparse_is_stable(parse: &dyn Fn([u8; 32]) -> Parsed, a: [u8; 32], b: [u8; 32]) {
+    let (first, again, other) = (parse(a), parse(a), parse(b));
+    assert!(!first.points.is_empty());
+    assert_eq!(first, again);
+    assert_eq!(ids(&first), ids(&other));
+    assert!(first.points.iter().all(|p| p.snapshot_sha == a));
+    let unique: std::collections::BTreeSet<_> = ids(&first).into_iter().collect();
+    assert_eq!(unique.len(), first.points.len(), "dp_ids are unique");
+}
+
+proptest::proptest! {
+    #[test]
+    fn bls_reparse_gives_identical_dp_ids(a: [u8; 32], b: [u8; 32]) {
+        let c = connector("bls").unwrap();
+        reparse_is_stable(&|sha| {
+            let mut s = snap(BLS_CPI, fixture("bls/CUUR0000SA0.json"), t(2026, 11, 13, 14));
+            s.sha256 = sha;
+            c.parse(&bls_item("CUUR0000SA0"), &[s]).unwrap()
+        }, a, b);
+    }
+
+    #[test]
+    fn fred_reparse_gives_identical_dp_ids(a: [u8; 32], b: [u8; 32]) {
+        let c = connector("fred").unwrap();
+        reparse_is_stable(&|sha| {
+            let mut snaps = fred_snaps();
+            snaps.iter_mut().for_each(|s| s.sha256 = sha);
+            c.parse(&fred_item(), &snaps).unwrap()
+        }, a, b);
+    }
+
+    #[test]
+    fn sec_reparse_gives_identical_dp_ids(a: [u8; 32], b: [u8; 32]) {
+        let c = connector("sec-edgar").unwrap();
+        reparse_is_stable(&|sha| {
+            let mut s = snap(FACTS, fixture("sec/companyfacts-CIK0000320193.json"), t(2026, 10, 31, 7));
+            s.sha256 = sha;
+            c.parse(&sec_item(K26, "10-K", ""), &[s]).unwrap()
+        }, a, b);
+    }
 }
 
 #[test]
