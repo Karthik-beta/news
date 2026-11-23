@@ -18,7 +18,6 @@ pub const STUBS: &[(&str, &str)] = &[
     ("stats", "#16"),
     ("save 81234 copy.json", "#17"),
     ("render 81234", "#17"),
-    ("check 81234", "#17"),
     ("brief 81234", "#18"),
     ("ai input 1", "#18"),
     ("ai accept 1 out.json", "#18"),

@@ -1,0 +1,247 @@
+//! Link checks for C10: do the source, image and embed URLs answer? Answers that were fine are cached for
+//! 24 hours (`NEWS_WORK_DIR/cache/proof-links.json`), so a re-check does not hit the sources again; a failure
+//! is never cached, so a transient outage cannot block a page for a day.
+
+use chrono::{DateTime, Duration, Utc};
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
+use std::path::PathBuf;
+use std::sync::Mutex;
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Probe {
+    pub ok: bool,
+    pub note: String,
+}
+
+pub trait LinkChecker {
+    fn check(&self, url: &str) -> Probe;
+}
+
+/// The live checker: HEAD, then GET when the server does not do HEAD.
+pub struct HttpProbe {
+    client: reqwest::blocking::Client,
+}
+
+impl HttpProbe {
+    pub fn new() -> Result<Self, String> {
+        let client = reqwest::blocking::Client::builder()
+            .user_agent(format!("News/{} link-check", news_core::VERSION))
+            .connect_timeout(std::time::Duration::from_secs(5))
+            .timeout(std::time::Duration::from_secs(10))
+            .redirect(reqwest::redirect::Policy::limited(5))
+            .build()
+            .map_err(|e| e.without_url().to_string())?;
+        Ok(Self { client })
+    }
+}
+
+/// 401, 403 and 429 mean the server is there and does not like a bot: the link is not dead.
+fn answers(status: u16) -> bool {
+    status < 400 || matches!(status, 401 | 403 | 429)
+}
+
+impl LinkChecker for HttpProbe {
+    fn check(&self, url: &str) -> Probe {
+        let head = self.client.head(url).send();
+        let status = match head {
+            Ok(r) if !matches!(r.status().as_u16(), 405 | 501) && r.status().as_u16() < 500 => {
+                r.status().as_u16()
+            }
+            // No HEAD support, or the server failed it: try a GET.
+            _ => match self.client.get(url).send() {
+                Ok(r) => r.status().as_u16(),
+                Err(e) => {
+                    return Probe {
+                        ok: false,
+                        note: e.without_url().to_string(),
+                    };
+                }
+            },
+        };
+        Probe {
+            ok: answers(status),
+            note: format!("HTTP {status}"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct Entry {
+    at: DateTime<Utc>,
+    note: String,
+}
+
+/// Wraps a checker with the 24-hour cache of good answers.
+pub struct CachedLinks<L> {
+    inner: L,
+    path: Option<PathBuf>,
+    ttl: Duration,
+    now: DateTime<Utc>,
+    entries: Mutex<BTreeMap<String, Entry>>,
+}
+
+impl<L: LinkChecker> CachedLinks<L> {
+    /// `path` is the cache file (read now, written by [`save`](Self::save)); `None` keeps it in memory.
+    pub fn new(inner: L, path: Option<PathBuf>, ttl_hours: i64, now: DateTime<Utc>) -> Self {
+        let entries = path
+            .as_ref()
+            .and_then(|p| std::fs::read_to_string(p).ok())
+            .and_then(|t| serde_json::from_str(&t).ok())
+            .unwrap_or_default();
+        Self {
+            inner,
+            path,
+            ttl: Duration::hours(ttl_hours),
+            now,
+            entries: Mutex::new(entries),
+        }
+    }
+
+    /// Writes the cache, dropping entries that have expired. A cache that cannot be written is only slower.
+    pub fn save(&self) -> std::io::Result<()> {
+        let Some(path) = &self.path else {
+            return Ok(());
+        };
+        let Ok(mut entries) = self.entries.lock() else {
+            return Ok(());
+        };
+        entries.retain(|_, e| self.now - e.at < self.ttl);
+        if let Some(dir) = path.parent() {
+            std::fs::create_dir_all(dir)?;
+        }
+        std::fs::write(path, serde_json::to_string_pretty(&*entries)?)
+    }
+}
+
+impl<L: LinkChecker> LinkChecker for CachedLinks<L> {
+    fn check(&self, url: &str) -> Probe {
+        if let Ok(entries) = self.entries.lock()
+            && let Some(e) = entries.get(url).filter(|e| self.now - e.at < self.ttl)
+        {
+            return Probe {
+                ok: true,
+                note: format!("{} (cached)", e.note),
+            };
+        }
+        let probe = self.inner.check(url);
+        if probe.ok
+            && let Ok(mut entries) = self.entries.lock()
+        {
+            entries.insert(
+                url.to_owned(),
+                Entry {
+                    at: self.now,
+                    note: probe.note.clone(),
+                },
+            );
+        }
+        probe
+    }
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+    use std::cell::Cell;
+    use std::io::{Read, Write};
+
+    struct Counting(Cell<u32>, bool);
+    impl LinkChecker for Counting {
+        fn check(&self, _: &str) -> Probe {
+            self.0.set(self.0.get() + 1);
+            Probe {
+                ok: self.1,
+                note: "HTTP 200".into(),
+            }
+        }
+    }
+
+    #[test]
+    fn good_answers_are_cached_for_24_hours_and_failures_are_not() {
+        let t0: DateTime<Utc> = "2026-11-23T10:00:00Z".parse().unwrap();
+        let dir = std::env::temp_dir().join(format!("news-proof-links-{}", uuid::Uuid::new_v4()));
+        let file = dir.join("cache.json");
+        let first = CachedLinks::new(Counting(Cell::new(0), true), Some(file.clone()), 24, t0);
+        assert!(first.check("https://a.example/x").ok);
+        assert!(
+            first
+                .check("https://a.example/x")
+                .note
+                .ends_with("(cached)")
+        );
+        assert_eq!(first.inner.0.get(), 1);
+        first.save().unwrap();
+        // A later run within 24 hours reads the file; after 24 hours it asks again.
+        let soon = CachedLinks::new(
+            Counting(Cell::new(0), true),
+            Some(file.clone()),
+            24,
+            t0 + Duration::hours(23),
+        );
+        assert!(soon.check("https://a.example/x").ok);
+        assert_eq!(soon.inner.0.get(), 0);
+        let later = CachedLinks::new(
+            Counting(Cell::new(0), true),
+            Some(file),
+            24,
+            t0 + Duration::hours(25),
+        );
+        later.check("https://a.example/x");
+        assert_eq!(later.inner.0.get(), 1);
+        let bad = CachedLinks::new(Counting(Cell::new(0), false), None, 24, t0);
+        assert!(!bad.check("https://b.example/").ok);
+        assert!(!bad.check("https://b.example/").ok);
+        assert_eq!(bad.inner.0.get(), 2);
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    /// A tiny HTTP server: answers each request with the status its path names (`/404`), HEAD and GET alike
+    /// except `/nohead`, which refuses HEAD with 405.
+    fn server() -> String {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let base = format!("http://{}", listener.local_addr().unwrap());
+        std::thread::spawn(move || {
+            for stream in listener.incoming() {
+                let Ok(mut s) = stream else { break };
+                let mut buf = [0u8; 2048];
+                let n = s.read(&mut buf).unwrap_or(0);
+                let req = String::from_utf8_lossy(&buf[..n]).to_string();
+                let line = req.lines().next().unwrap_or_default().to_owned();
+                let path = line
+                    .split(' ')
+                    .nth(1)
+                    .unwrap_or("/")
+                    .trim_start_matches('/')
+                    .to_owned();
+                let status = if path == "nohead" {
+                    if line.starts_with("HEAD") { 405 } else { 200 }
+                } else {
+                    path.parse().unwrap_or(200)
+                };
+                let _ = write!(
+                    s,
+                    "HTTP/1.1 {status} X\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+                );
+            }
+        });
+        base
+    }
+
+    #[test]
+    fn the_live_probe_reads_status_codes() {
+        let _ = rustls::crypto::ring::default_provider().install_default();
+        let base = server();
+        let p = HttpProbe::new().unwrap();
+        assert!(p.check(&format!("{base}/200")).ok);
+        assert!(p.check(&format!("{base}/nohead")).ok, "falls back to GET");
+        assert!(
+            p.check(&format!("{base}/403")).ok,
+            "403 means the server is there"
+        );
+        assert!(!p.check(&format!("{base}/404")).ok);
+        assert!(!p.check(&format!("{base}/500")).ok);
+        assert!(!p.check("http://127.0.0.1:1/").ok);
+    }
+}

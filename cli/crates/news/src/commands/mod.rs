@@ -7,6 +7,7 @@ mod db;
 mod entities;
 mod jobs;
 mod nose;
+mod proof;
 mod run;
 mod schema;
 mod sources;
@@ -85,7 +86,8 @@ pub async fn run(cli: Cli, path: &str, shape: &Shape) -> NewsResult<Reply> {
         C::Plan { run } => nose::plan(&run).await,
         C::Scores(cmd) => nose::scores(cmd, path).await,
         C::Stats => stub(path, news_telemetry::ISSUE),
-        C::Save { .. } | C::Render { .. } | C::Check { .. } => stub(path, news_proof::ISSUE),
+        C::Check { story } => proof::check(&story).await,
+        C::Save { .. } | C::Render { .. } => stub(path, news_proof::ISSUE),
         C::Brief { .. } => stub(path, news_fixer::ISSUE),
         C::Ai(_) => stub(path, news_ghost::ISSUE),
         C::Eval(_) | C::Review(_) => stub(path, news_critic::ISSUE),
@@ -146,6 +148,7 @@ pub const BUILT: &[&str] = &[
     "stories.show",
     "stories.members",
     "stories.similar",
+    "check",
 ];
 
 /// Dotted names of the commands that have a contract file.
