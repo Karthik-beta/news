@@ -1,0 +1,457 @@
+{
+  "about": "Spike pair set for the embedding benchmark (issue #15). NOT golden set G3: G3 is 200 pairs Karthik confirms. Texts come from the recorded fixtures (cli/crates/news-connectors/tests/fixtures, news-diary/tests/fixtures, news-roster/tests/g7/mentions.json); where a fixture has only one source for a story, side b is a 'rewrite': a wire-style paraphrase written for this spike from facts in the fixture only. Labelled by rule: same = same entity and same event (event key, or entity + event type + period); a later release, another meeting or another period of the same series is different.",
+  "pairs": [
+    {
+      "id": "p01",
+      "same": true,
+      "src": "boc-feed / rewrite",
+      "a": "Bank of Canada raises the policy rate by 25 basis points to 2½%\n\nThe Bank of Canada today increased its target for the overnight rate by 25 basis points to 2.5%, with the Bank Rate at 2.75% and the deposit rate at 2.45%.",
+      "b": "Canada's central bank lifts rates a quarter point\n\nThe Bank of Canada raised its overnight rate target to 2.5% on 28 October 2026, taking the Bank Rate to 2.75% and the deposit rate to 2.45%."
+    },
+    {
+      "id": "p02",
+      "same": true,
+      "src": "boc-feed / g7 mention",
+      "a": "Bank of Canada raises the policy rate by 25 basis points to 2½%",
+      "b": "Bank of Canada raises the policy rate"
+    },
+    {
+      "id": "p03",
+      "same": true,
+      "src": "boe-feed / rewrite",
+      "a": "Bank rate increased to 4% - November 2026 Monetary Policy Summary and Minutes\n\nThe Bank of England's Monetary Policy Committee is responsible for making decisions about Bank Rate.",
+      "b": "Bank of England raises rates again\n\nThe Bank of England's Monetary Policy Committee lifted Bank Rate to 4% at its November 2026 meeting and published its summary and minutes."
+    },
+    {
+      "id": "p04",
+      "keyed": true,
+      "same": true,
+      "src": "boe-feed / boe-summary html title",
+      "a": "Bank rate increased to 4% - November 2026 Monetary Policy Summary and Minutes",
+      "b": "Bank rate increased to 4% - November 2026 Monetary Policy Summary and Minutes | Bank of England – the UK's central bank"
+    },
+    {
+      "id": "p05",
+      "keyed": true,
+      "same": true,
+      "src": "fed-feed / diary fomc calendar",
+      "a": "Federal Reserve issues FOMC statement",
+      "b": "FOMC meeting October 27-28, 2026: statement, implementation note and press conference"
+    },
+    {
+      "id": "p06",
+      "keyed": true,
+      "same": true,
+      "src": "fed-feed (Sep 16 statement) / fed-feed (Sep projections)",
+      "a": "Federal Reserve issues FOMC statement",
+      "b": "Federal Reserve Board and Federal Open Market Committee release economic projections from the September 15-16 FOMC meeting"
+    },
+    {
+      "id": "p07",
+      "same": true,
+      "src": "fed-feed / rewrite",
+      "a": "Federal Reserve Board and Federal Open Market Committee release economic projections from the June 16-17 FOMC meeting",
+      "b": "Fed officials publish new economic projections after June meeting\n\nThe Federal Open Market Committee released its Summary of Economic Projections following its June 16-17, 2026 meeting."
+    },
+    {
+      "id": "p08",
+      "same": true,
+      "src": "fed-feed / rewrite",
+      "a": "Federal Reserve announces revised tentative schedule of Federal Open Market Committee meetings in 2027",
+      "b": "Fed publishes revised 2027 FOMC calendar\n\nThe Federal Reserve released a revised tentative schedule for next year's Federal Open Market Committee meetings, starting January 26-27, 2027."
+    },
+    {
+      "id": "p09",
+      "same": true,
+      "src": "boc-feed / rewrite",
+      "a": "Bank of Canada Governor Tiff Macklem to step down in June 2027\n\nThe Board of Directors of the Bank of Canada announced today that Governor Tiff Macklem has informed them that he will not seek a second term as Governor when his seven-year term expires on June 2, 2027.",
+      "b": "Macklem will not seek second term at Bank of Canada\n\nTiff Macklem will leave the governorship when his seven-year term ends on June 2, 2027, the central bank's board said."
+    },
+    {
+      "id": "p10",
+      "same": true,
+      "src": "boc-feed / rewrite",
+      "a": "Bank of Canada unveils new vertical $20 bank note\n\nHer Excellency the Right Honourable Louise Arbour, Governor General of Canada, and the Honourable Wayne Long, Secretary of State (Canada Revenue Agency and Financial Institutions), joined Bank of Canada Governor Tiff Macklem today at an event to unveil Canada's new vertical $20 bank note featuring a portrait of His Majesty King Charles III.",
+      "b": "New vertical $20 note with King Charles III unveiled\n\nCanada's new vertical $20 bank note, which carries a portrait of King Charles III, was unveiled by Governor General Louise Arbour and Bank of Canada Governor Tiff Macklem."
+    },
+    {
+      "id": "p11",
+      "same": true,
+      "src": "boc-feed / rewrite",
+      "a": "Joint Statement of the Government of Canada and the Bank of Canada on the Renewal of the Monetary Policy Framework\n\nThe Government and the Bank agree that monetary policy must work to promote the economic and financial well-being of Canadians. We also agree that the best way monetary policy can do this is by keeping inflation low, stable and predictable, thereby protecting Canadians from large increases in the cost of living.",
+      "b": "Ottawa and Bank of Canada renew monetary policy framework\n\nThe federal government and the Bank of Canada renewed their monetary policy agreement, keeping the focus on low, stable and predictable inflation."
+    },
+    {
+      "id": "p12",
+      "same": true,
+      "src": "boc-feed / rewrite",
+      "a": "Bank of Canada publishes report on monetary policy framework consultations\n\nThe Bank of Canada today published a report summarizing the feedback it received from stakeholders and the Canadian public during consultations on its monetary policy framework.",
+      "b": "Bank of Canada releases what Canadians told it about its policy framework\n\nA new report from the Bank of Canada summarises feedback from the public and stakeholders gathered in its monetary policy framework consultations."
+    },
+    {
+      "id": "p13",
+      "same": true,
+      "src": "boc-feed / rewrite",
+      "a": "Bank of Canada Board launches process to fill external Deputy Governor position\n\nThe Board of Directors of the Bank of Canada has initiated a recruitment process to fill the external Deputy Governor position left vacant by the appointment of Nicolas Vincent as a full-time Deputy Governor.",
+      "b": "Bank of Canada starts search for external deputy governor\n\nThe Bank of Canada's board is recruiting an external Deputy Governor after Nicolas Vincent moved into a full-time Deputy Governor role."
+    },
+    {
+      "id": "p14",
+      "same": true,
+      "src": "boc-feed / rewrite",
+      "a": "G7 2026 Cross-Border Coordination Exercise (CBCE)\n\nThe G7 Cyber Expert Group (CEG) successfully concluded its 2026 Cross-border coordination exercise (CBCE) on May 18, 2026. This exercise demonstrates the Group's ongoing commitment to strengthening cyber resilience across the G7 financial sector.",
+      "b": "G7 cyber experts complete cross-border financial sector drill\n\nThe G7 Cyber Expert Group finished its 2026 cross-border coordination exercise on 18 May, testing cyber resilience across G7 financial systems."
+    },
+    {
+      "id": "p15",
+      "same": true,
+      "src": "boe-feed / rewrite",
+      "a": "The Bank of England, the Monetary Authority of Singapore, and the Bank of Thailand: Project Meridian FX APAC\n\nJoint media release",
+      "b": "Bank of England, MAS and Bank of Thailand team up on Project Meridian FX for Asia-Pacific\n\nThe three central banks announced a joint project on foreign exchange settlement in the Asia-Pacific region."
+    },
+    {
+      "id": "p16",
+      "same": true,
+      "src": "boe-feed / rewrite",
+      "a": "Bank of England sets out approach to tokenised collateral in central clearing\n\nThe Bank of England has today launched a consultation supporting central counterparties (CCPs) acceptance of tokenised forms of eligible collateral.",
+      "b": "BoE consults on letting clearing houses accept tokenised collateral\n\nCentral counterparties could take tokenised forms of eligible collateral under a Bank of England consultation launched on 29 October 2026."
+    },
+    {
+      "id": "p17",
+      "same": true,
+      "src": "boe-feed / rewrite",
+      "a": "Regulators explore credit union reforms to support growth, innovation and better outcomes for members\n\nCredit unions could benefit from several ideas put forward today by the Prudential Regulation Authority and Financial Conduct Authority aimed at helping the sector grow, innovate and meet the changing needs of their members.",
+      "b": "PRA and FCA float reforms for UK credit unions\n\nThe Prudential Regulation Authority and the Financial Conduct Authority set out ideas to help credit unions grow and innovate."
+    },
+    {
+      "id": "p18",
+      "same": true,
+      "src": "boe-feed / rewrite",
+      "a": "Regulators unveil plans to simplify Senior Manager and Certification Regime\n\nThe number of financial services roles required to face enhanced checks from regulators will fall significantly under proposals that will support growth.",
+      "b": "Fewer finance jobs to face enhanced vetting under SM&CR overhaul\n\nUK regulators proposed simplifying the Senior Managers and Certification Regime, cutting the number of roles that need enhanced checks."
+    },
+    {
+      "id": "p19",
+      "same": true,
+      "src": "ecb-feed / rewrite",
+      "a": "ECB wage tracker suggests slightly higher wage growth in first three quarters of 2027 compared with the full year of 2026",
+      "b": "Euro area wage growth set to edge up in 2027, ECB tracker shows\n\nThe European Central Bank's wage tracker points to slightly faster negotiated wage growth in the first three quarters of 2027 than over 2026 as a whole."
+    },
+    {
+      "id": "p20",
+      "same": true,
+      "src": "ecb-feed / rewrite",
+      "a": "Results of the ECB Survey of Professional Forecasters for the fourth quarter of 2026",
+      "b": "ECB publishes Q4 2026 Survey of Professional Forecasters\n\nThe European Central Bank released the results of its Survey of Professional Forecasters for the fourth quarter of 2026."
+    },
+    {
+      "id": "p21",
+      "same": true,
+      "src": "ecb-feed / rewrite",
+      "a": "ECB publishes consolidated banking data for end-June 2026",
+      "b": "ECB releases consolidated banking data as of June 2026\n\nThe European Central Bank published consolidated data on EU banking groups for the end of June 2026."
+    },
+    {
+      "id": "p22",
+      "same": true,
+      "src": "rba-feed / rewrite",
+      "a": "Designation of Prosegur Australia Pty Ltd under the Cash Distribution Framework Act 2026\n\nMedia release number 2026-31: The RBA has today designated Prosegur Australia Pty Ltd (Prosegur Australia) (ACN 004 247 358) under the Cash Distribution Framework Act 2026 (the Act).",
+      "b": "RBA designates Prosegur under new cash distribution law\n\nThe Reserve Bank of Australia designated cash-in-transit firm Prosegur Australia under the Cash Distribution Framework Act 2026."
+    },
+    {
+      "id": "p23",
+      "same": true,
+      "src": "nasa search / rewrite",
+      "a": "Artemis II Launch\n\nFour astronauts aboard NASA's Orion spacecraft atop the SLS (Space Launch System) rocket launch on the agency's Artemis II test flight, Wednesday, April 1 from Launch Complex 39B at NASA's Kennedy Space Center in Florida. Artemis II lifted off at 6:35 p.m. ET. Artemis II is the first crewed mission of the agency's Artemis campaign.",
+      "b": "Artemis II lifts off with four astronauts\n\nNASA's Space Launch System rocket launched the Orion spacecraft and its crew of four from Kennedy Space Center at 6:35 p.m. ET on 1 April 2026, the first crewed flight of the Artemis campaign."
+    },
+    {
+      "id": "p24",
+      "same": true,
+      "src": "arxiv list (title) / arxiv record (title + abstract)",
+      "a": "Coal Mining, Women's Work, and Local Demographic Change: Evidence from Interwar Japan",
+      "b": "Coal Mining, Women's Work, and Local Demographic Change: Evidence from Interwar Japan\n\nThis paper examines how coal mining shaped local demographic change in interwar Japan, focusing on the role of women's work. Coal mines initially employed married couples as underground teams, offering women wages well above those in textile mills. The mechanization of haulage and the subsequent revision of labor regulations, enforced in 1933, removed most women from the pits."
+    },
+    {
+      "id": "p25",
+      "same": true,
+      "src": "sec submissions (8-K 2026-10-30) / rewrite",
+      "a": "Apple Inc. Form 8-K, 2026-10-30: Item 2.02 Results of Operations and Financial Condition; Item 9.01 Financial Statements and Exhibits",
+      "b": "Apple reports fourth-quarter results for fiscal 2026\n\nApple Inc. published its results for the quarter ended September 26, 2026 in a filing with the SEC on October 30."
+    },
+    {
+      "id": "p26",
+      "keyed": true,
+      "same": true,
+      "src": "sec submissions 8-K / 8-K/A same report date",
+      "a": "Apple Inc. Form 8-K, 2026-10-30: Item 2.02 Results of Operations and Financial Condition; Item 9.01 Financial Statements and Exhibits",
+      "b": "Apple Inc. Form 8-K/A (amendment), filed 2026-10-31 for report date 2026-10-30: Item 2.02 Results of Operations and Financial Condition; Item 9.01 Financial Statements and Exhibits"
+    },
+    {
+      "id": "p27",
+      "same": true,
+      "src": "diary bea calendar / rewrite",
+      "a": "GDP (Advance Estimate), 3rd Quarter 2026",
+      "b": "US third-quarter GDP: first estimate out from BEA\n\nThe Bureau of Economic Analysis released its advance estimate of gross domestic product for the third quarter of 2026 on October 29."
+    },
+    {
+      "id": "p28",
+      "same": true,
+      "src": "diary bea calendar / rewrite",
+      "a": "Personal Income and Outlays, September 2026",
+      "b": "US personal income and spending for September\n\nThe Bureau of Economic Analysis published September 2026 figures for personal income, consumer spending and the PCE price index."
+    },
+
+    {
+      "id": "n01",
+      "keyed": true,
+      "same": false,
+      "src": "boc-feed: 2 Sep vs 15 Jul decisions (identical text)",
+      "a": "Bank of Canada maintains the policy rate at 2¼%\n\nThe Bank of Canada today held its target for the overnight rate at 2.25%, with the Bank Rate at 2.5% and the deposit rate at 2.20%.",
+      "b": "Bank of Canada maintains the policy rate at 2¼%\n\nThe Bank of Canada today held its target for the overnight rate at 2.25%, with the Bank Rate at 2.5% and the deposit rate at 2.20%."
+    },
+    {
+      "id": "n02",
+      "keyed": true,
+      "same": false,
+      "src": "fed-feed: Oct vs Sep statements (identical text)",
+      "a": "Federal Reserve issues FOMC statement",
+      "b": "Federal Reserve issues FOMC statement"
+    },
+    {
+      "id": "n03",
+      "keyed": true,
+      "same": false,
+      "src": "fed-feed: minutes of different meetings",
+      "a": "Minutes of the Federal Open Market Committee, July 28–29, 2026",
+      "b": "Minutes of the Federal Open Market Committee, September 15-16, 2026"
+    },
+    {
+      "id": "n04",
+      "keyed": true,
+      "same": false,
+      "src": "fed-feed: projections from different meetings",
+      "a": "Federal Reserve Board and Federal Open Market Committee release economic projections from the June 16-17 FOMC meeting",
+      "b": "Federal Reserve Board and Federal Open Market Committee release economic projections from the September 15-16 FOMC meeting"
+    },
+    {
+      "id": "n05",
+      "keyed": true,
+      "same": false,
+      "src": "fed-feed: discount rate minutes, different meetings",
+      "a": "Minutes of the Board's discount rate meetings on August 17, September 9, and September 16, 2026",
+      "b": "Minutes of the Board's discount rate meetings on July 20 and July 29, 2026"
+    },
+    {
+      "id": "n06",
+      "keyed": true,
+      "same": false,
+      "src": "diary bea: same series, different month",
+      "a": "Personal Income and Outlays, September 2026",
+      "b": "Personal Income and Outlays, October 2026"
+    },
+    {
+      "id": "n07",
+      "keyed": true,
+      "same": false,
+      "src": "diary bea: same series, different month",
+      "a": "U.S. International Trade in Goods and Services, August 2026",
+      "b": "U.S. International Trade in Goods and Services, September 2026"
+    },
+    {
+      "id": "n08",
+      "keyed": true,
+      "same": false,
+      "src": "diary bea: advance vs second estimate (separate releases)",
+      "a": "GDP (Advance Estimate), 3rd Quarter 2026",
+      "b": "GDP (Second Estimate) and Corporate Profits, 3rd Quarter 2026"
+    },
+    {
+      "id": "n09",
+      "keyed": true,
+      "same": false,
+      "src": "diary bea: different quarter",
+      "a": "GDP (Advance Estimate), 3rd Quarter 2026",
+      "b": "GDP (Advance Estimate), 4th Quarter and Year 2026"
+    },
+    {
+      "id": "n10",
+      "keyed": true,
+      "same": false,
+      "src": "boc-feed: Oct hike vs Sep hold",
+      "a": "Bank of Canada raises the policy rate by 25 basis points to 2½%\n\nThe Bank of Canada today increased its target for the overnight rate by 25 basis points to 2.5%, with the Bank Rate at 2.75% and the deposit rate at 2.45%.",
+      "b": "Bank of Canada maintains the policy rate at 2¼%\n\nThe Bank of Canada today held its target for the overnight rate at 2.25%, with the Bank Rate at 2.5% and the deposit rate at 2.20%."
+    },
+    {
+      "id": "n11",
+      "keyed": true,
+      "same": false,
+      "src": "boc-feed vs boe-feed: two central banks hike",
+      "a": "Bank of Canada raises the policy rate by 25 basis points to 2½%\n\nThe Bank of Canada today increased its target for the overnight rate by 25 basis points to 2.5%, with the Bank Rate at 2.75% and the deposit rate at 2.45%.",
+      "b": "Bank rate increased to 4% - November 2026 Monetary Policy Summary and Minutes\n\nThe Bank of England's Monetary Policy Committee is responsible for making decisions about Bank Rate."
+    },
+    {
+      "id": "n12",
+      "same": false,
+      "src": "g7 mentions: different central banks",
+      "a": "Bank of England raises rates again",
+      "b": "European Central Bank cuts deposit rate"
+    },
+    {
+      "id": "n13",
+      "same": false,
+      "src": "g7 mention vs boc-feed",
+      "a": "Federal Reserve holds rates steady",
+      "b": "Bank of Canada maintains the policy rate at 2¼%\n\nThe Bank of Canada today held its target for the overnight rate at 2.25%, with the Bank Rate at 2.5% and the deposit rate at 2.20%."
+    },
+    {
+      "id": "n14",
+      "same": false,
+      "src": "g7 mentions: Apple vs Apple Hospitality REIT",
+      "a": "Apple reports record iPhone sales",
+      "b": "Apple Hospitality REIT reports third quarter results"
+    },
+    {
+      "id": "n15",
+      "keyed": true,
+      "same": false,
+      "src": "sec submissions: two Apple 8-Ks",
+      "a": "Apple Inc. Form 8-K, 2026-10-30: Item 2.02 Results of Operations and Financial Condition; Item 9.01 Financial Statements and Exhibits",
+      "b": "Apple Inc. Form 8-K, 2026-09-10: Item 5.07 Submission of Matters to a Vote of Security Holders"
+    },
+    {
+      "id": "n16",
+      "keyed": true,
+      "same": false,
+      "src": "sec submissions: 10-K vs 10-Q",
+      "a": "Apple Inc. Form 10-K annual report for the fiscal year ended September 26, 2026",
+      "b": "Apple Inc. Form 10-Q quarterly report for the quarter ended June 27, 2026"
+    },
+    {
+      "id": "n17",
+      "same": false,
+      "src": "boe-feed: two committee minutes, same month",
+      "a": "Minutes of the Securities Lending Committee meeting – September 2026\n\nThe Securities Lending Committee is a forum for market participants and authorities to discuss the UK securities lending market.",
+      "b": "Minutes of the Money Market Committee meeting – September 2026\n\nThe Money Markets Committee is a forum for market participants and authorities to discuss the UK unsecured deposits and funding market and securities lending and repo markets."
+    },
+    {
+      "id": "n18",
+      "same": false,
+      "src": "boe-feed: SONIA group vs Money Market Committee",
+      "a": "Minutes of the SONIA Stakeholder Advisory Group - 25 September 2026\n\nThe SONIA Stakeholder Advisory Group supports the Bank's administration of SONIA by providing advice and technical input to the Bank and the SONIA Oversight Committee",
+      "b": "Minutes of the Money Market Committee meeting – September 2026\n\nThe Money Markets Committee is a forum for market participants and authorities to discuss the UK unsecured deposits and funding market and securities lending and repo markets."
+    },
+    {
+      "id": "n19",
+      "same": false,
+      "src": "boe-feed: Court minutes vs MPC summary",
+      "a": "Minutes of the Meeting of the Court of Directors held on 17 September 2026\n\nThe Bank's Court of Directors acts as a unitary board, setting the organisation's strategy and budget and taking key decisions on resourcing and appointments.",
+      "b": "Bank rate increased to 4% - November 2026 Monetary Policy Summary and Minutes\n\nThe Bank of England's Monetary Policy Committee is responsible for making decisions about Bank Rate."
+    },
+    {
+      "id": "n20",
+      "same": false,
+      "src": "arxiv list: two econometrics papers",
+      "a": "Linear Multidimensional Regression with Interactive Fixed-Effects\n\nThis paper studies a linear model for multidimensional panel data of three or more dimensions with unobserved interactive fixed-effects. The main estimator is a weighted-within transformation, which is Neyman orthogonal and requires one preliminary step.",
+      "b": "Sensitivity Analysis for Linear Estimators\n\nWe propose a framework for building sensitivity analyses for linear estimators. We measure the degree of identification failure by the change of measure between the observed distribution and a hypothetical target distribution under which a standard estimator would identify the parameter of interest."
+    },
+    {
+      "id": "n21",
+      "same": false,
+      "src": "crossref list: two sleep apnoea papers",
+      "a": "Evaluation and Management of Adults with Obstructive Sleep Apnea Syndrome",
+      "b": "A mandibular advancement device attenuates the abnormal morphology and function of mitochondria from the genioglossus in obstructive sleep apnea-hypopnea syndrome rabbits"
+    },
+    {
+      "id": "n22",
+      "same": false,
+      "src": "ecb-feed: two monetary policy speeches",
+      "a": "Isabel Schnabel: Navigating stormy waters: reflections on monetary policy",
+      "b": "Philip R. Lane: The practice and science of monetary policy communication: the ECB experience"
+    },
+    {
+      "id": "n23",
+      "same": false,
+      "src": "ecb-feed: two Cipollone speeches",
+      "a": "Piero Cipollone: Cash and the digital euro: two sides of the same coin",
+      "b": "Piero Cipollone: Shaping the future of money"
+    },
+    {
+      "id": "n24",
+      "same": false,
+      "src": "boc-feed vs fed-feed: 2027 schedules",
+      "a": "Bank of Canada publishes its 2027 schedule for policy interest rate announcements and other major publications\n\nThe Bank of Canada today published its 2027 schedule for policy interest rate announcements and the release of the quarterly Monetary Policy Report.",
+      "b": "Federal Reserve announces revised tentative schedule of Federal Open Market Committee meetings in 2027"
+    },
+    {
+      "id": "n25",
+      "same": false,
+      "src": "g7 mentions: two tech earnings",
+      "a": "Microsoft beats expectations on cloud revenue",
+      "b": "Google parent Alphabet posts profit"
+    },
+    {
+      "id": "n26",
+      "same": false,
+      "src": "boe-feed: two Chancellor-Governor letters",
+      "a": "Remit for the Monetary Policy Committee - October 2026\n\nLetter from the Chancellor to the Governor",
+      "b": "Exchange of letters between the Governor and the Chancellor on the Asset Purchase Facility - November 2026\n\nExchange of letters between the Governor and the Chancellor"
+    },
+    {
+      "id": "n27",
+      "same": false,
+      "src": "boe-feed vs boc-feed: banknotes",
+      "a": "Banknote imagery advisory group minutes – 15 July 2026\n\nMeeting held 15 July 2026",
+      "b": "Bank of Canada unveils new vertical $20 bank note\n\nHer Excellency the Right Honourable Louise Arbour, Governor General of Canada, and the Honourable Wayne Long joined Bank of Canada Governor Tiff Macklem today at an event to unveil Canada's new vertical $20 bank note featuring a portrait of His Majesty King Charles III."
+    },
+    {
+      "id": "n28",
+      "same": false,
+      "src": "g7 mention vs nasa (pre-launch vs launch)",
+      "a": "NASA: Artemis crew ready for launch",
+      "b": "Artemis II Launch\n\nFour astronauts aboard NASA's Orion spacecraft atop the SLS (Space Launch System) rocket launch on the agency's Artemis II test flight, Wednesday, April 1 from Launch Complex 39B at NASA's Kennedy Space Center in Florida."
+    },
+    {
+      "id": "n29",
+      "same": false,
+      "src": "boc-feed: Macklem step-down vs deputy governor search",
+      "a": "Bank of Canada Governor Tiff Macklem to step down in June 2027\n\nThe Board of Directors of the Bank of Canada announced today that Governor Tiff Macklem has informed them that he will not seek a second term as Governor when his seven-year term expires on June 2, 2027.",
+      "b": "Bank of Canada Board launches process to fill external Deputy Governor position\n\nThe Board of Directors of the Bank of Canada has initiated a recruitment process to fill the external Deputy Governor position left vacant by the appointment of Nicolas Vincent as a full-time Deputy Governor."
+    },
+    {
+      "id": "n30",
+      "same": false,
+      "src": "easy: nasa vs boc",
+      "a": "Artemis II Launch\n\nFour astronauts aboard NASA's Orion spacecraft atop the SLS (Space Launch System) rocket launch on the agency's Artemis II test flight.",
+      "b": "Bank of Canada unveils new vertical $20 bank note"
+    },
+    {
+      "id": "n31",
+      "same": false,
+      "src": "easy: g7 mention vs fed-feed",
+      "a": "Tesla recalls vehicles over software fault",
+      "b": "Federal Reserve issues FOMC statement"
+    },
+    {
+      "id": "n32",
+      "same": false,
+      "src": "easy: g7 mention vs ecb-feed",
+      "a": "Amazon Web Services outage hits customers",
+      "b": "ECB wage tracker suggests slightly higher wage growth in first three quarters of 2027 compared with the full year of 2026"
+    },
+    {
+      "id": "n33",
+      "same": false,
+      "src": "easy: arxiv vs boe-feed",
+      "a": "Coal Mining, Women's Work, and Local Demographic Change: Evidence from Interwar Japan\n\nThis paper examines how coal mining shaped local demographic change in interwar Japan, focusing on the role of women's work.",
+      "b": "Regulators explore credit union reforms to support growth, innovation and better outcomes for members\n\nCredit unions could benefit from several ideas put forward today by the Prudential Regulation Authority and Financial Conduct Authority."
+    },
+    {
+      "id": "n34",
+      "same": false,
+      "src": "easy: rba-feed vs g7 mention",
+      "a": "Designation of Prosegur Australia Pty Ltd under the Cash Distribution Framework Act 2026",
+      "b": "SEC sues Acme over disclosures"
+    }
+  ]
+}

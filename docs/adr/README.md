@@ -8,4 +8,5 @@ File names: `NNNN-short-title.md`. Status is one of proposed, accepted, supersed
 |---|---|---|---|
 | [0001](0001-openui-server-rendering.md) | Server rendering of OpenUI pages (and the component index token budget) | accepted | 2026-11-15 |
 | [0010](0010-ssr-routing-and-caching.md) | SSR site routing, data adapter and edge caching | proposed | 2026-11-22 |
+| [0011](0011-embedding-model.md) | Embedding model for Taster (bge-small-en-v1.5, 384 dimensions) | proposed | 2026-11-23 |
 | [0012](0012-scoring-and-selection.md) | Scoring and selection (Nose and Desk) | proposed | 2026-11-23 |
