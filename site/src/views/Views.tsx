@@ -220,7 +220,12 @@ function Search({ body }: { body: SearchBody }) {
       ) : !body.searched ? null : body.hits.length === 0 ? (
         <StateMessage
           message={`No pages match "${body.query}". Try fewer words, or remove a filter.`}
-          action={{ href: "/latest", label: "See the latest pages" }}
+          action={
+            // design/components.md "Empty state": with filters set, the way on is to clear them.
+            Object.values(f).some(Boolean)
+              ? { href: `/search?q=${encodeURIComponent(body.query)}`, label: "Clear the filters" }
+              : { href: "/latest", label: "See the latest pages" }
+          }
         />
       ) : (
         <>
