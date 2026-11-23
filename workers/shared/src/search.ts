@@ -133,7 +133,88 @@ export function toFtsQuery(text: string): string | null {
 
 const dayEnd = (d: string) => `${d}T23:59:59.999Z`;
 
-/** Searches the newest shards first and stops once `limit` hits are found. */
+/** A D1 failure while reading the index, most likely the free database's daily limit. Callers answer 503. */
+export class SearchUnavailableError extends Error {
+  constructor(cause: unknown) {
+    super("search is unavailable", { cause });
+    this.name = "SearchUnavailableError";
+  }
+}
+
+const CATEGORY = /^[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[a-z0-9]+(?:-[a-z0-9]+)*){0,3}$/;
+const REGION = /^[a-z]+(?:-[a-z]+)*$/;
+const PAGE_TYPES = ["earnings", "macro", "policy", "report", "news", "science", "explainer"];
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
+const realDate = (d: string) => DATE.test(d) && new Date(`${d}T00:00:00Z`).toISOString().startsWith(d);
+
+/**
+ * The search parameters of a request (contracts/cloud/search-api.openapi.json), checked: the one parser the API and
+ * the site's search page share. `q` is required unless `optionalQuery` (the page shows its empty form).
+ */
+export function parseSearchParams(
+  sp: URLSearchParams,
+  { optionalQuery = false }: { optionalQuery?: boolean } = {},
+): { ok: true; params: SearchParams } | { ok: false; message: string } {
+  const q = sp.get("q")?.trim() ?? "";
+  if (q.length > 200) return { ok: false, message: "q is at most 200 characters" };
+  if (q === "" && !optionalQuery) return { ok: false, message: "q is required" };
+  const get = (k: string) => sp.get(k) || undefined;
+  const params: SearchParams = { query: q };
+  const category = get("category");
+  const region = get("region");
+  const type = get("type");
+  const from = get("from");
+  const to = get("to");
+  if (category !== undefined) {
+    if (category.length > 120 || !CATEGORY.test(category)) return { ok: false, message: "category is not a slug" };
+    params.category = category;
+  }
+  if (region !== undefined) {
+    if (region.length > 40 || !REGION.test(region)) return { ok: false, message: "region is not a region code" };
+    params.region = region;
+  }
+  if (type !== undefined) {
+    if (!PAGE_TYPES.includes(type)) return { ok: false, message: "type is not a page type" };
+    params.page_type = type;
+  }
+  for (const [name, value] of [
+    ["from", from],
+    ["to", to],
+  ] as const) {
+    if (value === undefined) continue;
+    if (!realDate(value)) return { ok: false, message: `${name} is a date as YYYY-MM-DD` };
+    params[name] = value;
+  }
+  const limit = sp.get("limit");
+  if (limit !== null) {
+    if (!/^\d{1,2}$/.test(limit) || Number(limit) < 1 || Number(limit) > 50)
+      return { ok: false, message: "limit is 1 to 50" };
+    params.limit = Number(limit);
+  }
+  return { ok: true, params };
+}
+
+/**
+ * The cache key suffix of a search: lower-cased words in order, the filters in a fixed order, so `Inflation  US` and
+ * `inflation us` share one cached answer. Not the search itself: only the words toFtsQuery keeps count.
+ */
+export function searchCacheKey(p: SearchParams): string {
+  const words = (p.query.match(/[\p{L}\p{N}][\p{L}\p{N}\p{M}]*/gu) ?? []).map((w) => w.toLowerCase());
+  const q = new URLSearchParams();
+  q.set("q", words.join(" "));
+  for (const [k, v] of [
+    ["category", p.category],
+    ["from", p.from],
+    ["limit", p.limit],
+    ["region", p.region],
+    ["to", p.to],
+    ["type", p.page_type],
+  ] as const)
+    if (v !== undefined) q.set(k, String(v));
+  return q.toString();
+}
+
+/** Searches the newest shards first and stops once `limit` hits are found. D1 failures are a SearchUnavailableError. */
 export async function searchPages(shards: SearchShard[], params: SearchParams): Promise<SearchHit[]> {
   const match = toFtsQuery(params.query);
   if (!match) return [];
@@ -164,12 +245,57 @@ export async function searchPages(shards: SearchShard[], params: SearchParams): 
          LIMIT ${limit - hits.length}`,
       )
       .bind(...binds)
-      .all<Omit<SearchHit, "categories"> & { categories: string }>();
+      .all<Omit<SearchHit, "categories"> & { categories: string }>()
+      .catch((e: unknown) => {
+        throw new SearchUnavailableError(e);
+      });
     for (const row of results) hits.push({ ...row, categories: row.categories.trim().split(" ").filter(Boolean) });
     if (hits.length >= limit) break;
   }
   return hits;
 }
+
+/** The months ("2025-01") that have at least one `index` page, oldest first: the children of /sitemap.xml. */
+export async function indexedMonths(shards: SearchShard[]): Promise<string[]> {
+  const months = new Set<string>();
+  for (const shard of shards) {
+    const { results } = await shard.db
+      .prepare("SELECT DISTINCT substr(published_at, 1, 7) AS month FROM pages WHERE index_status = 'index'")
+      .all<{ month: string }>()
+      .catch((e: unknown) => {
+        throw new SearchUnavailableError(e);
+      });
+    for (const r of results) months.add(r.month);
+  }
+  return [...months].sort();
+}
+
+/** The `index` pages first published in `month` ("2025-01"), newest first: one sitemap file. At most 50,000 (the protocol's cap). */
+export async function indexedPages(
+  shards: SearchShard[],
+  month: string,
+): Promise<{ path: string; updated_at: string }[]> {
+  const shard = shards.find((s) => s.year === Number(month.slice(0, 4)));
+  if (!shard) return [];
+  const { results } = await shard.db
+    .prepare(
+      `SELECT path, updated_at FROM pages
+       WHERE index_status = 'index' AND published_at >= ?1 AND published_at < ?2
+       ORDER BY published_at DESC LIMIT 50000`,
+    )
+    .bind(`${month}-01`, `${nextMonth(month)}-01`)
+    .all<{ path: string; updated_at: string }>()
+    .catch((e: unknown) => {
+      throw new SearchUnavailableError(e);
+    });
+  return results;
+}
+
+const nextMonth = (month: string) => {
+  const d = new Date(`${month}-01T00:00:00Z`);
+  d.setUTCMonth(d.getUTCMonth() + 1);
+  return d.toISOString().slice(0, 7);
+};
 
 /** What the write API needs from the search index. */
 export interface SearchIndex {
