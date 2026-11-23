@@ -2,7 +2,7 @@
 // in one place. `matchRoute` is pure (it reads no storage): it says what a URL is, rejects what cannot be a page, and
 // gives the canonical cache key, so the key of `/?utm_source=x` is the key the api purges for `/`.
 import { decodeCursor } from "@news/worker-shared/read";
-import { parseSearchParams, type SearchParams, searchCacheKey } from "@news/worker-shared/search";
+import { parseSearchParams, type SearchParams, searchCacheKey, searchWords } from "@news/worker-shared/search";
 import { RESERVED_SLUGS } from "@news/worker-shared/urls";
 
 /** Seconds. `edge` is `s-maxage` (the fresh time at the edge); `browser` is `max-age`. */
@@ -156,7 +156,11 @@ export function matchRoute(url: URL, origin: string, regions: readonly string[])
     const parsed = parseSearchParams(url.searchParams, { optionalQuery: true });
     if (!parsed.ok) return { type: "reject", status: 400, message: parsed.message };
     const { limit: _limit, ...params } = parsed.params;
-    return other("search", params.query === "" ? "/search" : `/search?${searchCacheKey(params)}`, {
+    // Only the empty form with no filters is the same page for everyone, so only it gets the bare key.
+    const bare =
+      searchWords(params.query).length === 0 &&
+      !(params.category || params.region || params.page_type || params.from || params.to);
+    return other("search", bare ? "/search" : `/search?${searchCacheKey(params)}`, {
       search: params,
       limited: true,
     });

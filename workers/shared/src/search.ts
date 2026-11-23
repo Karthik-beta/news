@@ -194,14 +194,17 @@ export function parseSearchParams(
   return { ok: true, params };
 }
 
+/** The lower-cased words of a query: all the cache key keeps of it, and all a cached page may show of it. */
+export const searchWords = (query: string): string[] =>
+  (query.match(/[\p{L}\p{N}][\p{L}\p{N}\p{M}]*/gu) ?? []).map((w) => w.toLowerCase());
+
 /**
  * The cache key suffix of a search: lower-cased words in order, the filters in a fixed order, so `Inflation  US` and
  * `inflation us` share one cached answer. Not the search itself: only the words toFtsQuery keeps count.
  */
 export function searchCacheKey(p: SearchParams): string {
-  const words = (p.query.match(/[\p{L}\p{N}][\p{L}\p{N}\p{M}]*/gu) ?? []).map((w) => w.toLowerCase());
   const q = new URLSearchParams();
-  q.set("q", words.join(" "));
+  q.set("q", searchWords(p.query).join(" "));
   for (const [k, v] of [
     ["category", p.category],
     ["from", p.from],

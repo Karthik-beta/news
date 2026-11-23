@@ -73,8 +73,8 @@ export async function serve(request: Request, m: PageMatch, deps: ServeDeps): Pr
   let res: Response;
   try {
     res = await deps.render();
-    // A 5xx with Retry-After is an answer (search's daily limit), not a failure to hide behind a stored copy.
-    if (res.status >= 500 && !res.headers.has("retry-after")) throw new Error(`render answered ${res.status}`);
+    // On search, a 5xx with Retry-After is an answer (the daily limit), not a failure to hide behind a stored copy.
+    if (res.status >= 500 && !(m.kind === "search" && res.headers.has("retry-after"))) throw new Error(`render answered ${res.status}`);
   } catch (error) {
     console.error(
       JSON.stringify({

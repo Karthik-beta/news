@@ -81,6 +81,36 @@ describe("/search", () => {
     expect(html).toContain('href="/latest"');
   });
 
+  it("renders only what the cache key keeps: different raw text with the same key gives identical HTML", async () => {
+    const key = (qs: string) => {
+      const m = matchRoute(new URL(`${ORIGIN}/search${qs}`), ORIGIN, REGIONS);
+      return m.type === "page" ? m.key : m.type;
+    };
+    for (const [a, b] of [
+      ["?q=!!!&region=india", "?q=???&region=india"],
+      ["?q=Inflation++US", "?q=inflation%20us!!"],
+    ] as const) {
+      expect(key(a)).toBe(key(b));
+      const [x, y] = [await search(a, []), await search(b, [])];
+      expect(x.html).toBe(y.html);
+      expect(x.html).not.toContain("!!");
+      expect(x.html).not.toContain("???");
+    }
+    expect((await search("?q=Inflation++US", [])).html).toContain("No pages match &quot;inflation us&quot;");
+  });
+
+  it("filters with an empty query get their own key, not /search", () => {
+    const key = (qs: string) => {
+      const m = matchRoute(new URL(`${ORIGIN}/search${qs}`), ORIGIN, REGIONS);
+      return m.type === "page" ? m.key : m.type;
+    };
+    expect(key("")).toBe(`${ORIGIN}/search`);
+    expect(key("?q=!!!")).toBe(`${ORIGIN}/search`);
+    expect(key("?region=india")).not.toBe(key(""));
+    expect(key("?region=india")).not.toBe(key("?region=europe"));
+    expect(key("?q=%20&type=macro")).not.toBe(key(""));
+  });
+
   it("a query of more than 8 words says so and reads nothing", async () => {
     const { calls, html } = await search("?q=one+two+three+four+five+six+seven+eight+nine");
     expect(calls).toHaveLength(0);

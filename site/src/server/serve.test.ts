@@ -375,6 +375,26 @@ describe("search and machine routes", () => {
     expect(await res.text()).toBe("daily limit");
     expect(cache.puts).toEqual([]);
   });
+
+  it("any other route's 5xx with a Retry-After still gets the stored stale copy", async () => {
+    const cache = new MemoryCache(() => 0);
+    const home = matchRoute(new URL(`${ORIGIN}/`), ORIGIN, REGIONS);
+    if (home.type !== "page") throw new Error("not a page");
+    const deps = (now: number, render: () => Promise<Response>) => ({
+      cache,
+      waitUntil: () => {},
+      now: () => now,
+      render,
+    });
+    await serve(new Request(`${ORIGIN}/`), home, deps(0, async () => new Response("old home")));
+    const res = await serve(
+      new Request(`${ORIGIN}/`),
+      home,
+      deps(10 * 60 * 60 * 1000, async () => new Response("x", { status: 503, headers: { "retry-after": "60" } })),
+    );
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe("old home");
+  });
 });
 
 describe("the 404 page", () => {

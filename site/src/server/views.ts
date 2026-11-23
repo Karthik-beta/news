@@ -12,6 +12,7 @@ import {
   type SearchParams,
   SearchUnavailableError,
   searchPages,
+  searchWords,
 } from "@news/worker-shared/search";
 import { newsLibrary } from "../components/library";
 import type { NavLink } from "../components/Masthead/Masthead";
@@ -380,7 +381,8 @@ const hitListing = (h: SearchHit): ListedPage => ({
 
 /** `/search`: the form, and the matches when there is a query. D1 failing is the daily-limit answer, not an error page. */
 async function loadSearch(ctx: Ctx, m: PageMatch): Promise<View> {
-  const params = m.search as SearchParams;
+  // Only the words the cache key keeps: the page is a pure function of its key, so one visitor's text never reaches another.
+  const params = { ...(m.search as SearchParams), query: searchWords((m.search as SearchParams).query).join(" ") };
   const tax = await ctx.taxonomy();
   const sent = (k: "category" | "region" | "from" | "to" | "page_type") => params[k] ?? "";
   let hits: SearchHit[] = [];
