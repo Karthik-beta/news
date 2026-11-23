@@ -2,23 +2,10 @@
 //! 08:40 in New York, settings v12, Catchup waiting at its plan gate, three schedules, a Huddle 8 days
 //! ago, a Rollcall 2 days ago, seven dead jobs since Salvage r_29c0 and 0.4M Bureau tokens today.
 //!
-//! The golden text is what Chief's code renders for that database (`tests/golden/status_board_8_1.txt`).
-//! It is not byte for byte the example in the design document, because Chief does not read everything
-//! the example shows yet. What differs, and why:
-//!
-//! | In §8.1's example                         | In the rendered board                      | Why |
-//! | ----------------------------------------- | ------------------------------------------ | --- |
-//! | `Catchup r_51d2 … (news run status …)`     | `catchup r_51d2 gate plan since …`          | the text names the preset by id and omits the hint line |
-//! | `Edition today 11:00 · Frontpage Fri 09:00` | `edition Thu 12 Nov 11:00 · frontpage Fri 13 Nov 09:00` | schedules print preset id and local date |
-//! | `Diary today …` (3 events), `Stories waiting`, `Frontpage` age | absent; `due.diary` is `[]`, `due.stories_waiting` and `due.frontpage` are `null` | `board::status` queries none of `calendar_events`, `stories`, `scores` or `home_curations` |
-//! | `Sources ons red … bea amber`              | absent; `problems.sources` is `[]`          | it queries no source health either |
-//! | `Huddle … 8 days ago` / `Rollcall … Sitrep` | `last r_3e11, 8.0 days ago`                 | the age prints as a decimal, and Rollcall names the last run, not a Sitrep |
-//! | `Usage … 0.4M tokens · cap and reserve not set` | `Bureau today 400000 tokens`            | the usage line prints tokens as is |
-//! | `NEXT Start Edition` (rule 2, `tier1_waiting`) | `r_51d2 waits for your answer at gate plan` (rule 3) | rules 2, 4, 5, 6 and 8 are `fire: \|_\| None` in `board::RULES`, so the first rule that can match is the open gate |
-//!
-//! The tables those rules would read exist now (`calendar_events`, `stories`, `scores`, `sources`,
-//! `home_curations`); what is missing is the reader in `board.rs`, not fixture rows, so no rows are built
-//! for them here. When the reader lands, this test gains those rows and the golden file the missing lines.
+//! The golden text (`tests/golden/status_board_8_1.txt`) is the design document's example board, byte
+//! for byte, rendered by Chief's code from this fixture database. The fixture also holds rows the board
+//! must leave out (a story with a page, one below the Tier 2 floor, a cancelled event, a green source),
+//! so the readers' filters are tested too.
 
 use super::fixture::Fixture;
 use chrono::{DateTime, Utc};
@@ -188,6 +175,96 @@ async fn the_status_board_of_the_bureau_8_1_example_day_is_rendered_from_a_fixtu
         }
     }
 
+    // Sources: the three the Diary names are green; ons is red and bea amber, with why, since and the Sitrep.
+    for (id, health, reason, since, sitrep) in [
+        ("ecb", "green", None, None, None),
+        ("bls", "green", None, None, None),
+        ("fed", "green", None, None, None),
+        (
+            "ons",
+            "red",
+            Some("upstream_changed"),
+            Some("2026-11-10"),
+            Some("r_44aa"),
+        ),
+        ("bea", "amber", Some("free key not set"), None, None),
+    ] {
+        sqlx::query(
+            "insert into sources (source_id, name, publisher, connector, base_url, source_tier, licence,
+                                  attribution, redistribution, image_policy, rate_per_sec, regions, categories,
+                                  health, health_reason, health_since, health_sitrep)
+             values ($1, $1, 'x', $1, 'https://x.test/', 1, 'public-domain', 'x', true, 'none', 1.0, '{us}',
+                     '{economy}', $2, $3, $4::text::date, $5)",
+        )
+        .bind(id)
+        .bind(health)
+        .bind(reason)
+        .bind(since)
+        .bind(sitrep)
+        .execute(&f.pool)
+        .await
+        .unwrap();
+    }
+
+    // The Diary: three events today (New York), a cancelled one and one tomorrow that must not show.
+    sqlx::raw_sql(
+        "insert into calendar_events (source_id, event_key, title, expected_at, expected_day, precision, origin, status)
+         values
+          ('ecb', 'macro:ecb.account:2026-10', 'ECB account of the October meeting', '2026-11-12T12:30:00Z', '2026-11-12', 'exact', 'ics', 'captured'),
+          ('bls', 'macro:us.cpi:2026-10', 'US CPI, October 2026', '2026-11-12T13:30:00Z', '2026-11-12', 'exact', 'ics', 'captured'),
+          ('fed', 'macro:fed.h41:2026-11-12', 'Fed balance sheet (H.4.1)', '2026-11-12T21:30:00Z', '2026-11-12', 'exact', 'ics', 'expected'),
+          ('ecb', 'macro:ecb.cancelled', 'A cancelled release', '2026-11-12T15:00:00Z', '2026-11-12', 'exact', 'ics', 'cancelled'),
+          ('fed', 'macro:fed.h41:2026-11-13', 'Fed balance sheet tomorrow', '2026-11-13T21:30:00Z', '2026-11-13', 'exact', 'ics', 'expected');",
+    )
+    .execute(&f.pool)
+    .await
+    .unwrap();
+
+    // Stories and their latest scores: 23 wait for a page (3 Tier 1: the CPI story at 75.2, one at 71.0 and one
+    // at 62.0 whose main entity is a flagship), and six that do not count.
+    sqlx::raw_sql(
+        "insert into stories (story_id, event_key, title, first_seen, last_seen, status, page_id, score_input)
+         values
+          (81229, 'macro:ecb.account:2026-10', 'ECB account', '2026-11-12T12:30:00Z', '2026-11-12T12:30:00Z', 'open', null, null),
+          (81234, 'macro:us.cpi:2026-10', 'US CPI', '2026-11-12T13:30:00Z', '2026-11-12T13:30:00Z', 'open', null, null),
+          (91001, 'macro:t1.a', 'Tier 1 by S', '2026-11-12T10:00:00Z', '2026-11-12T10:00:00Z', 'open', null, null),
+          (91002, 'macro:t1.b', 'Tier 1 by prominence', '2026-11-12T10:00:00Z', '2026-11-12T10:00:00Z', 'open', null,
+           '{\"main_entity\": {\"id\": \"e1\", \"prominence\": 1}}'),
+          (91003, null, 'Below the floor', '2026-11-12T10:00:00Z', '2026-11-12T10:00:00Z', 'open', null, null),
+          (91004, null, 'Already on a page', '2026-11-12T10:00:00Z', '2026-11-12T10:00:00Z', 'covered', 'p1', null),
+          (91005, null, 'Fell below the floor', '2026-11-12T10:00:00Z', '2026-11-12T10:00:00Z', 'open', null, null),
+          (91006, null, 'Closed', '2026-11-12T10:00:00Z', '2026-11-12T10:00:00Z', 'closed', null, null);
+         insert into stories (story_id, title, first_seen, last_seen)
+           select 90000 + n, 'Tier 2 story ' || n, '2026-11-12T10:00:00Z', '2026-11-12T10:00:00Z' from generate_series(1, 19) n;
+         insert into scores (story_id, computed_at, scorer_version, components, total, explain)
+         values
+          (81229, '2026-11-12T13:00:00Z', 'v1', '{}', 58.1, 'x'),
+          (81234, '2026-11-12T13:00:00Z', 'v1', '{}', 75.2, 'x'),
+          (91001, '2026-11-12T13:00:00Z', 'v1', '{}', 71.0, 'x'),
+          (91002, '2026-11-12T13:00:00Z', 'v1', '{}', 62.0, 'x'),
+          (91003, '2026-11-12T13:00:00Z', 'v1', '{}', 35.0, 'x'),
+          (91004, '2026-11-12T13:00:00Z', 'v1', '{}', 80.0, 'x'),
+          (91005, '2026-11-12T10:00:00Z', 'v1', '{}', 80.0, 'x'),
+          (91005, '2026-11-12T13:00:00Z', 'v1', '{}', 30.0, 'x'),
+          (91006, '2026-11-12T13:00:00Z', 'v1', '{}', 90.0, 'x');
+         insert into scores (story_id, computed_at, scorer_version, components, total, explain)
+           select 90000 + n, '2026-11-12T13:00:00Z', 'v1', '{}', 45.0, 'x' from generate_series(1, 19) n;",
+    )
+    .execute(&f.pool)
+    .await
+    .unwrap();
+
+    // The home curation: v41 published 3.2 days ago (due after 2 days, stale after 4); older and draft rows ignored.
+    sqlx::raw_sql(
+        "insert into home_curations (status, version, slots, published_at)
+         values ('published', 41, '[]', '2026-11-09T08:52:00Z'),
+                ('superseded', 40, '[]', '2026-11-05T09:00:00Z');
+         insert into home_curations (status, slots) values ('draft', '[]');",
+    )
+    .execute(&f.pool)
+    .await
+    .unwrap();
+
     // Bureau usage today: 0.4M tokens, no cap or reserve set.
     let policy = news_rota::RotaPolicy::default();
     policy.set_usage(
@@ -272,11 +349,41 @@ async fn the_status_board_of_the_bureau_8_1_example_day_is_rendered_from_a_fixtu
         due["rollcall"],
         json!({"last_run": "r_44aa", "age_days": 2.0, "every_days": 7, "state": "not_due"})
     );
-    // What Chief does not read yet (see the table above): absent, not wrong.
-    assert_eq!(due["diary"], json!([]));
-    assert_eq!(due["stories_waiting"], Value::Null);
-    assert_eq!(due["frontpage"], Value::Null);
-    assert_eq!(board["problems"]["sources"], json!([]));
+    assert_eq!(
+        due["diary"],
+        json!([
+            {"event_key": "macro:ecb.account:2026-10", "title": "ECB account of the October meeting",
+             "expected_at": t("2026-11-12T12:30:00Z"), "status": "captured", "story_id": 81229,
+             "score": 58.1, "tier": 2},
+            {"event_key": "macro:us.cpi:2026-10", "title": "US CPI, October 2026",
+             "expected_at": t("2026-11-12T13:30:00Z"), "status": "captured", "story_id": 81234,
+             "score": 75.2, "tier": 1},
+            {"event_key": "macro:fed.h41:2026-11-12", "title": "Fed balance sheet (H.4.1)",
+             "expected_at": t("2026-11-12T21:30:00Z"), "status": "expected", "story_id": null,
+             "score": null, "tier": null},
+        ])
+    );
+    assert_eq!(due["stories_waiting"]["total"], 23);
+    assert_eq!(due["stories_waiting"]["tier1"], 3);
+    assert_eq!(due["stories_waiting"]["last_edition"]["short_id"], "r_6b90");
+    assert_eq!(
+        due["stories_waiting"]["last_edition"]["finished_at"],
+        json!(t("2026-11-11T23:10:00Z"))
+    );
+    assert_eq!(
+        due["frontpage"],
+        json!({"version": 41, "age_days": 3.2, "due_after_days": 2, "stale_after_days": 4,
+               "state": "due"})
+    );
+    assert_eq!(
+        board["problems"]["sources"],
+        json!([
+            {"source_id": "ons", "health": "red", "reason": "upstream_changed", "since": "2026-11-10",
+             "sitrep": "r_44aa"},
+            {"source_id": "bea", "health": "amber", "reason": "free key not set", "since": null,
+             "sitrep": null},
+        ])
+    );
     assert_eq!(
         board["problems"]["dead_jobs"],
         json!({"total": 7, "by_class": {"ai_invalid_output": 3, "transient": 4},
@@ -286,12 +393,12 @@ async fn the_status_board_of_the_bureau_8_1_example_day_is_rendered_from_a_fixtu
     assert_eq!(board["problems"]["refused_control"], json!([]));
     assert_eq!(board["problems"]["usage"]["bureau_today"], 400_000);
     assert_eq!(board["problems"]["usage"]["cap_today"], Value::Null);
-    assert_eq!(board["next"]["rule"], "gate_open");
-    assert_eq!(board["next"]["action"], "open.run");
-    assert_eq!(board["next"]["short_id"], "r_51d2");
+    assert_eq!(board["next"]["rule"], "tier1_waiting");
+    assert_eq!(board["next"]["action"], "run.start");
+    assert_eq!(board["next"]["preset"], "edition");
     assert_eq!(
         board["next"]["reason"],
-        "r_51d2 waits for your answer at gate plan"
+        "3 Tier 1 stories captured and not yet on a page"
     );
 
     // The terminal's `news run status` in-process, on the same database, gives the same sections.
