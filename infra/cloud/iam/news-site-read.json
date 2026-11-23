@@ -1,0 +1,16 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "NewsSitePublicReads",
+      "Effect": "Allow",
+      "Action": ["dynamodb:GetItem", "dynamodb:BatchGetItem", "dynamodb:Query"],
+      "Resource": "arn:aws:dynamodb:${REGION}:${ACCOUNT_ID}:table/${TABLE}",
+      "Condition": {
+        "ForAllValues:StringLike": {
+          "dynamodb:LeadingKeys": ["PAGE#*", "HUB#*", "ENT#*", "TAX#tree", "URL#*", "HOME#CURATION"]
+        }
+      }
+    }
+  ]
+}

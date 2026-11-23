@@ -1,5 +1,9 @@
 # Cloudflare deploys: the three Workers (api, mcp, search) and, from Phase 6, the site's SSR Worker.
-# Manual only: run it from the Actions tab (Run workflow) on main. Nothing deploys on push or from a PR.
+# Runs from the Actions tab or Board (workflow_dispatch) on main, and from ci.yml's `cd` job after a push to main
+# whose CI passed (workflow_call). Nothing deploys from a PR or from another branch: the plan stage refuses (a dry run
+# excepted, which deploys nothing) and the `production` environment only admits `main`.
+# After a deploy of the site (target all or site) a smoke test checks the live site (infra/cloud/smoke.ts); a deploy
+# of a single Worker has none.
 #
 # Needs, all set by Karthik and never by an agent or this file:
 #   - environment `production` (Settings > Environments) with a required reviewer, and deployment branches limited
@@ -33,10 +37,16 @@ on:
         description: Bundle and validate only; deploy nothing (needs no secrets)
         type: boolean
         default: false
-  # Deploy on every merge to main instead of by hand. Leave this off until the Worker configs are ready and CI is a
-  # required check on main, otherwise a push deploys before CI has finished. Empty `target` is treated as `all`.
-  # push:
-  #   branches: [main]
+  # Continuous deployment: ci.yml calls this workflow on a push to main, in a job that needs every CI job, so a
+  # deploy never starts before CI has passed. Same stages, same guards, same environment approval.
+  workflow_call:
+    inputs:
+      target:
+        type: string
+        default: all
+      dry_run:
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -241,3 +251,22 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           WRANGLER_SEND_METRICS: "false"
         run: bunx wrangler deploy
+
+  smoke:
+    name: Production smoke test
+    needs: [workers, site]
+    # Only after the site itself was deployed (target all or site): the checks need the whole site, so a deploy of a
+    # single Worker has no smoke test. Runs even when a Worker job failed, to show what is live. No secrets, no
+    # environment, nothing installed: the script only makes GET requests (and one MCP POST) to the public site.
+    if: ${{ !cancelled() && needs.site.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.3
+      # An article from R2 (the first in the feed), home, a hub, search, MCP tools/list, robots.txt, a sitemap, a feed.
+      - run: bun infra/cloud/smoke.ts
