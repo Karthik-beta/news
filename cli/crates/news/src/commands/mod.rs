@@ -8,6 +8,7 @@ mod entities;
 mod jobs;
 mod run;
 mod schema;
+mod sources;
 
 use crate::cli::*;
 use news_core::shape::DEFAULT_LIMIT;
@@ -56,7 +57,7 @@ pub async fn run(cli: Cli, path: &str, shape: &Shape) -> NewsResult<Reply> {
         C::Ai(AiCmd::Schema { step }) => schema::ai(&step),
 
         // Not built yet: each names the issue that builds its subsystem.
-        C::Sources(_) => stub(path, news_contacts::ISSUE),
+        C::Sources(cmd) => sources::run(cmd).await,
         // `prune` deletes working files; Wire owns them and the `work.prune` job (#9).
         C::Discover { .. } | C::Fetch { .. } | C::Prune => stub(path, news_wire::ISSUE),
         C::Parse { .. } => stub(path, news_clerk::ISSUE),
@@ -131,6 +132,11 @@ pub const BUILT: &[&str] = &[
     "entities.resolve",
     "entities.show",
     "entities.unresolved",
+    "sources.list",
+    "sources.show",
+    "sources.health",
+    "sources.probe",
+    "sources.sync",
 ];
 
 /// Dotted names of the commands that have a contract file.
