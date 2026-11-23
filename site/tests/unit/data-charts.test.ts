@@ -12,7 +12,7 @@ import { parsePage, renderPage } from "../../src/renderer/render";
 
 const library = fixtureLibrary();
 const CHARTS_2 = ["Waterfall", "Sankey", "StackedBar", "SegmentedBar", "DotPlot", "Slope"];
-const CHARTS_3 = ["SmallMultiples", "Heatmap", "Histogram"];
+const CHARTS_3 = ["SmallMultiples", "Heatmap", "Histogram", "ChoroplethMap"];
 const CHART_NAMES = [
   "ColumnChart",
   "BarChart",
