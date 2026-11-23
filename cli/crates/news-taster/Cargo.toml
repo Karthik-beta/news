@@ -1,6 +1,6 @@
 [package]
 name = "news-taster"
-description = "Taster, story detection. Skeleton with handler stubs; built in #15."
+description = "Taster (Bureau Design §3.6): duplicates, event keys, stories, update detection and the scoring inputs Nose reads."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,6 +8,15 @@ publish.workspace = true
 
 [dependencies]
 news-core = { workspace = true }
+news-store = { workspace = true }
+news-clerk = { workspace = true }
+news-dispatch = { workspace = true }
+news-nose = { workspace = true }
+chrono = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sqlx = { workspace = true }
+toml = { workspace = true }
 
 [lints]
 workspace = true
