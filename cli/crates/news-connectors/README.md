@@ -16,7 +16,7 @@ One `Connector` per source (Bureau Design §3.2), named by `sources.connector`. 
 | `nasa` | Image search per tracked term | Lookup by `nasa_id` | `ImageRef` (URL, credit, licence, alt, `rehost` only for NASA-credited images) | none |
 | `openalex` (key, disabled), `crossref` (contact e-mail, disabled), `arxiv` (OAI-PMH) | Works since the cursor date per tracked filter or set | One work or record | Paper candidate | `paper:doi:<doi>`, `paper:arxiv:<id>` |
 
-Not built, and why: **StatCan WDS** (the host answers automated requests with 403), **IMF DataMapper** (bot protection answers 403 on some requests, and no unit is given with the values), **BoJ** and **RBI** (their sites refuse automated access), **arXiv query API** (its robots.txt disallows everything; OAI-PMH is used instead), **BIS**. See ADR 0009.
+Not built, and why: **StatCan WDS** (the host answers automated requests with 403), **IMF DataMapper** (bot protection answers 403 on some requests, and no unit is given with the values), **BoJ** and **RBI** (their sites refuse automated access), **arXiv query API** (its robots.txt disallows everything; OAI-PMH is used instead), **BIS** and the **Eurostat** ICS calendar (checked 23 Nov 2026: no machine-readable calendar URL found; Eurostat's release calendar is a script-driven page). See ADR 0009.
 
 OpenAlex needs a free key (`OPENALEX_API_KEY`, added by the Runner) and ships disabled; without one the API gives each IP address a tiny shared daily budget. The statistics Stringers share `stat.rs` (catalogue, probe, history); the SDMX reader is `sdmx.rs`, RSS and Atom are `feed.rs`. What a deployment follows is `Cx::tracked(<connector id>)`.
 
@@ -47,5 +47,6 @@ Follow `.claude/skills/news-source-connector/SKILL.md`: a `data/sources/<id>.tom
 ## Not built yet
 
 - SEC Atom "latest filings" feed and the nightly daily index (discovery is per tracked CIK for now); 8-K press-release text blocks (`documents`/`text_blocks`).
-- Shared CSV and PDF-text parsers; Docling and Tesseract output parsers (the PDF path, #12, is not built: nothing in the first batch needs it).
+- Shared CSV and PDF-text parsers.
+- The Docling (`docling.rs`, DoclingDocument JSON) and Tesseract (`tesseract.rs`, TSV) output parsers exist as library functions returning `docparse::{TextBlock, Table}` (the `text_blocks` row shape, plus tables with PDF cell locators). No source uses them yet, and the `doc.parse_docling` handler still needs the service context (#10, #29) to run Docling in its container. hOCR is not parsed (TSV carries the same words).
 - `news discover|fetch|parse` and `news sources …` CLI commands, and the job handlers: they need the Bureau service context (#10, #29).
