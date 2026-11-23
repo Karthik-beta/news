@@ -77,7 +77,7 @@
     "/v1/pages/{page_id}/index": {
       "post": {
         "summary": "Set a page's index status (index promotion)",
-        "description": "Updates index_status on PAGE#/LATEST, its hub entries and its search row, and purges the page's URL. 409 page_withdrawn for a withdrawn page.",
+        "description": "Updates index_status on PAGE#/LATEST, the robots meta tag in the page's R2 index.html, its hub entries and its search row, and purges the page's URL. 400 invalid_bundle when the stored index.html has no single robots tag to rewrite. 409 page_withdrawn for a withdrawn page.",
         "parameters": [
           { "$ref": "#/components/parameters/pageId" },
           { "$ref": "#/components/parameters/idempotencyKey" }

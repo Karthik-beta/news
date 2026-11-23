@@ -2,7 +2,7 @@
 title: "BarChart: edge-cases"
 fly_title: "Component fixture"
 summary: "The BarChart component's \"edge-cases\" fixture, rendered by the page renderer."
-generator: "news-renderer 1.0.0"
+generator: "news-renderer 1.1.0"
 ---
 
 Component fixture

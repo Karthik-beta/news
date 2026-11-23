@@ -104,6 +104,17 @@ describe("renderer: HTML", () => {
     expect(islandPage.html).toContain('<script type="module" src="/islands.js"></script>');
   });
 
+  it("writes exactly one robots meta tag from index_status, noindex by default", () => {
+    const robots = (html: string) => html.match(/<meta name="robots"[^>]*>/g);
+    expect(robots(render(fixtureBundles.static).html)).toEqual(['<meta name="robots" content="noindex">']);
+    expect(robots(renderPage(fixtureBundles.static, { library, indexStatus: "index" }).html)).toEqual([
+      '<meta name="robots" content="index, follow">',
+    ]);
+    expect(robots(renderPage(fixtureBundles.static, { library, indexStatus: "noindex" }).html)).toEqual([
+      '<meta name="robots" content="noindex">',
+    ]);
+  });
+
   it("produces the same HTML with the fallback walker (ADR 0001, option C)", () => {
     for (const name of Object.keys(fixtureBundles) as (keyof typeof fixtureBundles)[]) {
       const b = renderPage(fixtureBundles[name], { library }).html;

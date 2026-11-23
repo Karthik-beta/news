@@ -19,7 +19,7 @@ Design: ADR 0004 (data layer), 0005 (home curation), 0006 (security). Contracts:
 | `GET /health` | none | Liveness |
 | `PUT /v1/pages/{id}` | key + Idempotency-Key | Publish a bundle (at most 1 MiB): R2 files, `PAGE#`, `HUB#`, `ENT#`, D1 row, purge |
 | `POST /v1/pages/{id}/withdraw` | key + Idempotency-Key | Withdraw: record kept, hubs, search row and public files removed (a retry finishes a partial one) |
-| `POST /v1/pages/{id}/index` | key + Idempotency-Key | Set `index_status` |
+| `POST /v1/pages/{id}/index` | key + Idempotency-Key | Set `index_status`, and the robots tag in R2's `index.html` |
 | `PUT /v1/home/curation` | key + Idempotency-Key | Re-check, write `V#<n>`, move `LATEST`, purge home and region views |
 | `POST /v1/home/curation/rollback` | key + Idempotency-Key | Make an earlier version live |
 | `PUT /v1/taxonomy`, `PUT /v1/redirects` | key + Idempotency-Key | Category nodes, redirects |
@@ -27,6 +27,8 @@ Design: ADR 0004 (data layer), 0005 (home curation), 0006 (security). Contracts:
 | `POST /v1/reports`, `OPTIONS /v1/reports` | none (rate-limited, daily cap) | Public report intake |
 
 Full contract: `contracts/cloud/write-api.openapi.json`. Everything under `/v1/` except the report intake is authenticated before routing. Publish, withdraw and index promotion of one page run one at a time (page lock; a second gets 409 `page_busy`), and a retry with the same Idempotency-Key finishes whatever a failed attempt left undone (ADR 0004).
+
+**Robots tag.** Article pages are served straight from R2, so the one `<meta name="robots">` tag in `index.html` is the page's indexing switch (`api/src/robots.ts`). A bundle must carry exactly one, in one of the renderer's two forms (`content="noindex"` or `content="index, follow"`), or publish answers 400 `invalid_bundle` (`bundle.robots_missing`, `bundle.robots_duplicate`, `bundle.robots_invalid`). `LATEST.index_status` is the truth: every R2 put of `index.html` writes the live status read under the page lock, not the bundle's, so a retried older publish never undoes a promotion. An index change writes `noindex` to R2 before its commit and `index` after it, so a crash between the two leaves the page `noindex`, and the retry rewrites both (ADR 0004, "Robots tag").
 
 ## mcp
 

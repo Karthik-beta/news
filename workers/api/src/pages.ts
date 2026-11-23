@@ -20,7 +20,7 @@ import {
   pathClaimKey,
 } from "@news/worker-shared/keys";
 import { PURGE_BATCH } from "@news/worker-shared/purge";
-import { deletePageFiles, putPageFile } from "@news/worker-shared/r2";
+import { deletePageFiles, pageObjectKey, putPageFile } from "@news/worker-shared/r2";
 import { Reader } from "@news/worker-shared/read";
 import type {
   EntityRecord,
@@ -40,6 +40,7 @@ import type { Deps } from "./deps";
 import { ApiError } from "./errors";
 import { committedResult, resultItem } from "./idempotency";
 import { Fence } from "./lock";
+import { findRobotsTag, type IndexStatus, withRobots } from "./robots";
 
 export const REQUIRED_FILES = ["index.html", "index.md", "data.json", "sources.json", "meta.json", "page.oui"];
 /** Page record items stay far below DynamoDB's 400 KB: metadata only, files in R2 (ADR 0004). */
@@ -143,6 +144,10 @@ export async function checkBundle(pageId: string, body: unknown): Promise<Checke
       bad("bundle.invalid_json", `${name} is not valid JSON`, `/files/${name}`);
     }
   }
+  // Exactly one robots tag the api can rewrite when index_status changes (robots.ts).
+  const html = files["index.html"];
+  const robots = html === undefined ? undefined : findRobotsTag(html);
+  if (robots && "code" in robots) issues.push(robots);
   if (issues.length > 0) throw new ApiError("invalid_bundle", "the bundle is not consistent", issues);
 
   let metaJson: unknown;
@@ -437,9 +442,12 @@ export async function executePut(deps: Deps, p: PreparedPage, ctx: OpContext = u
     throw e;
   }
 
-  // 3. The files, each stamped with its version, so a reader can tell which version it got.
+  // 3. The files, each stamped with its version, so a reader can tell which version it got. index.html carries the
+  //    live index_status read under the lock (preparePut), never the bundle's: a retried older publish cannot undo a
+  //    promotion made since.
   const stamp = { version: page.version, bundle_sha256: page.bundle_sha256 };
-  await eachLimited(Object.entries(p.files), CONCURRENCY, ([name, text]) => {
+  const files = { ...p.files, "index.html": withRobots(p.files["index.html"] as string, page.index_status) };
+  await eachLimited(Object.entries(files), CONCURRENCY, ([name, text]) => {
     fence.check();
     return fence.bounded(`R2 put ${name}`, putPageFile(bucket, page.path, name, text, stamp));
   });
@@ -671,15 +679,45 @@ export async function prepareIndex(
 }
 
 /**
+ * Reads the page's index.html from R2 (whichever version wrote it, one ahead of LATEST too) and sets its robots tag to
+ * `status`, before anything is written: a stored file without exactly one tag the api can rewrite is refused here.
+ * Returns the write to run, or undefined when there is no index.html (nothing is served, so nothing to index).
+ */
+async function robotsWrite(deps: Deps, fence: Fence, page: PageRecord, status: IndexStatus) {
+  const bucket = deps.bucket();
+  const key = pageObjectKey(page.path, "index.html");
+  const read = async () => {
+    const o = await bucket.get(key);
+    return o && { text: await o.text(), meta: o.customMetadata ?? {} };
+  };
+  fence.check();
+  const stored = await fence.bounded("R2 get index.html", read());
+  if (!stored) return undefined;
+  const html = withRobots(stored.text, status);
+  // The file keeps the version stamp it had: only its robots tag changes.
+  const stamp = { version: Number(stored.meta.version), bundle_sha256: stored.meta.bundle_sha256 ?? "" };
+  return () => {
+    fence.check();
+    return fence.bounded("R2 put index.html", putPageFile(bucket, page.path, "index.html", html, stamp));
+  };
+}
+
+/**
  * Sets index_status on the live record (only while it is still the published version that was read, and only while
- * this request holds the page lock), its hub entries and its search row, then purges the page. Every step runs on
- * every attempt, so a retry finishes.
+ * this request holds the page lock), the robots tag in R2, its hub entries and its search row, then purges the page.
+ * Every step runs on every attempt, so a retry finishes.
+ *
+ * LATEST and the R2 file cannot change in one transaction, so they are ordered for the safe side: noindex is written
+ * to R2 before the commit, index after it. The served page is never indexable while LATEST says noindex; a crash
+ * between the two leaves it noindex in R2, and the retry (which reads LATEST again) writes both again.
  */
 export async function executeIndex(deps: Deps, p: PreparedPageOp, ctx: OpContext = unlocked(deps)): Promise<OpResult> {
   const table = deps.table();
   const { fence } = ctx;
-  const status = p.indexStatus as "index" | "noindex";
+  const status = p.indexStatus as IndexStatus;
   const page: PageRecord = { ...p.page, index_status: status };
+  const writeHtml = await robotsWrite(deps, fence, page, status);
+  if (status === "noindex") await writeHtml?.();
   try {
     await fence.put(table, page as unknown as Doc, and(eq("version", page.version), eq("status", "published")));
   } catch (e) {
@@ -687,6 +725,7 @@ export async function executeIndex(deps: Deps, p: PreparedPageOp, ctx: OpContext
       throw new ApiError("version_conflict", "the page changed; read it again and retry");
     throw e;
   }
+  if (status === "index") await writeHtml?.();
   await writeBatches(
     table,
     fence,
