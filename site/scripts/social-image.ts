@@ -59,11 +59,14 @@ export async function layoutSocialCard(page: Page, chart: string, url: string): 
         for (const el of card.querySelectorAll(`[fill="url(#${old})"]`)) el.setAttribute("fill", `url(#${pattern.id})`);
       }
       const fig = card.querySelector("figure") as HTMLElement;
+      if (fig.querySelector(".chart-figure__missing")) return `chart "${chart}" has no data to show`;
       // The plot gives up height for the card (never the text its size): a chart's plot box, or the map.
       const over = fig.scrollHeight - fig.clientHeight;
       const plots = [...card.querySelectorAll<HTMLElement>(".chart-plot__inner, .choropleth__map")];
       if (over > 1 && plots.length > 0) {
-        const share = over / plots.length;
+        // Plots side by side (small multiples) shrink together, so the height is shared between rows, not plots.
+        const rows = new Set(plots.map((p) => Math.round(p.getBoundingClientRect().top))).size;
+        const share = over / rows;
         for (const p of plots) {
           const h = Math.max(96, p.getBoundingClientRect().height - share);
           if (p.matches(".choropleth__map")) Object.assign(p.style, { height: `${h}px`, width: "auto" });

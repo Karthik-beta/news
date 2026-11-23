@@ -25,11 +25,15 @@
   margin: 0;
   padding: 0;
   list-style: none;
+  /* Shrinks with the classes when the figure is narrower than the scale (a phone at 200% text), so the legend never
+     pushes the page sideways. */
+  min-width: 0;
 }
 .choropleth__class {
   position: relative;
-  /* Wide enough for a label such as "1,000" under each join. */
+  /* Wide enough for a label such as "1,000" under each join; narrower only when the figure is. */
   width: 3.5em;
+  min-width: 0;
   /* Room for the edge labels under the swatches. */
   padding-block-end: 1.4em;
 }

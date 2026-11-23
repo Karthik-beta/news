@@ -3474,6 +3474,125 @@
         "kind": "json",
         "series": "dp_fx_sk_net"
       }
+    },
+    "dp_imf_lur_can_2024": {
+      "label": "Unemployment rate",
+      "value": "6.4",
+      "value_text": "6.4",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "decimals": 1,
+      "period": "pd_y2024",
+      "source": "src_imf_weo_lur",
+      "locator": {
+        "kind": "json",
+        "indicator": "LUR",
+        "country": "CAN",
+        "period": "2024"
+      }
+    },
+    "dp_imf_lur_fra_2024": {
+      "label": "Unemployment rate",
+      "value": "7.4",
+      "value_text": "7.4",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "decimals": 1,
+      "period": "pd_y2024",
+      "source": "src_imf_weo_lur",
+      "locator": {
+        "kind": "json",
+        "indicator": "LUR",
+        "country": "FRA",
+        "period": "2024"
+      }
+    },
+    "dp_imf_lur_deu_2024": {
+      "label": "Unemployment rate",
+      "value": "3.4",
+      "value_text": "3.4",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "decimals": 1,
+      "period": "pd_y2024",
+      "source": "src_imf_weo_lur",
+      "locator": {
+        "kind": "json",
+        "indicator": "LUR",
+        "country": "DEU",
+        "period": "2024"
+      }
+    },
+    "dp_imf_lur_ita_2024": {
+      "label": "Unemployment rate",
+      "value": "6.6",
+      "value_text": "6.6",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "decimals": 1,
+      "period": "pd_y2024",
+      "source": "src_imf_weo_lur",
+      "locator": {
+        "kind": "json",
+        "indicator": "LUR",
+        "country": "ITA",
+        "period": "2024"
+      }
+    },
+    "dp_imf_lur_jpn_2024": {
+      "label": "Unemployment rate",
+      "value": "2.5",
+      "value_text": "2.5",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "decimals": 1,
+      "period": "pd_y2024",
+      "source": "src_imf_weo_lur",
+      "locator": {
+        "kind": "json",
+        "indicator": "LUR",
+        "country": "JPN",
+        "period": "2024"
+      }
+    },
+    "dp_imf_lur_gbr_2024": {
+      "label": "Unemployment rate",
+      "value": "4.3",
+      "value_text": "4.3",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "decimals": 1,
+      "period": "pd_y2024",
+      "source": "src_imf_weo_lur",
+      "locator": {
+        "kind": "json",
+        "indicator": "LUR",
+        "country": "GBR",
+        "period": "2024"
+      }
+    },
+    "dp_imf_lur_usa_2024": {
+      "label": "Unemployment rate",
+      "value": "4",
+      "value_text": "4",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "decimals": 0,
+      "period": "pd_y2024",
+      "source": "src_imf_weo_lur",
+      "locator": {
+        "kind": "json",
+        "indicator": "LUR",
+        "country": "USA",
+        "period": "2024"
+      }
     }
   },
   "derived": {
@@ -4809,6 +4928,11 @@
     "pd_fx_m_2024_12": {
       "label": "Dec 2024",
       "start": "2024-12-01"
+    },
+    "pd_y2024": {
+      "label": "2024",
+      "start": "2024-01-01",
+      "end": "2024-12-31"
     }
   },
   "quotes": {},

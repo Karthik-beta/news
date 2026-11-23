@@ -130,15 +130,27 @@ export const ChoroplethMap: ComponentRenderer<ChoroplethMapProps> = ({ props, st
   if (hasValues(model) && chart.classes) {
     const summary = modelSummary(model, ROWS_ARE);
     const missing = Object.keys(regions).some((code) => !chart.steps.has(code));
+    // The map carries the summary; the ranked table or bars are named "Ranked: <title>", so a screen reader neither
+    // hears the summary twice nor finds two tables of the same name once "Show the data table" is open.
+    const rankedId = statementId ? `${statementId}-ranked` : undefined;
     body = (
       <div className="choropleth">
         <MapLegend classes={chart.classes} missing={missing} />
         <WorldMap steps={chart.steps} summary={summary} />
         <div className="choropleth__table">
-          <TableView model={model} labelledBy={statementId ? `${statementId}-title` : undefined} />
+          {rankedId ? (
+            <span id={rankedId} hidden>
+              Ranked:
+            </span>
+          ) : null}
+          <TableView model={model} labelledBy={rankedId ? `${rankedId} ${statementId}-title` : undefined} />
         </div>
         <div className="choropleth__bars">
-          <Island name="BarChartPlot" component={BarChartPlot} props={{ ...barPlot(chart, data), summary }} />
+          <Island
+            name="BarChartPlot"
+            component={BarChartPlot}
+            props={{ ...barPlot(chart, data), summary: `Ranked: ${model.title}` }}
+          />
         </div>
       </div>
     );

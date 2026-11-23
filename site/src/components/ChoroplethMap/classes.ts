@@ -27,18 +27,20 @@ export function roundOne(n: number): string {
 }
 
 /**
- * Breaks near the quintiles, rounded to one significant figure. Breaks that round to the same number, or fall
- * outside the data, are dropped, so there are 1 to 5 classes and none is empty at its lower end.
+ * Breaks near the quintiles, rounded to one significant figure. Breaks that round to the same number, fall outside
+ * the data, or would leave a class empty are dropped, so there are 1 to 5 classes and every one holds a value.
  */
 export function mapClasses(values: readonly string[], measure: Measure, exponent: number): MapClasses {
   const sorted = values.map(Number).sort((a, b) => a - b);
-  const lo = sorted[0] as number;
   const hi = sorted.at(-1) as number;
   const quantile = (q: number) => sorted[Math.min(sorted.length - 1, Math.floor(q * sorted.length))] as number;
   const breaks: string[] = [];
   for (let i = 1; i < MAX_CLASSES; i++) {
     const b = roundOne(quantile(i / MAX_CLASSES));
-    if (Number(b) > lo && Number(b) <= hi && !breaks.some((x) => Number(x) === Number(b))) breaks.push(b);
+    // Rounding can carry a break past the values above the last one (8.75 → 9 with 12.5 next): keep a break only
+    // when some value lies between the last break and it, so no legend class is empty.
+    const below = Number(breaks.at(-1) ?? Number.NEGATIVE_INFINITY);
+    if (Number(b) <= hi && sorted.some((v) => v >= below && v < Number(b))) breaks.push(b);
   }
   // Labels in the display unit the ranked values use (bn, trn); the top break carries "%", as an axis's top tick does.
   const pct = unitKind(measure.unit) === "percent" ? "%" : "";

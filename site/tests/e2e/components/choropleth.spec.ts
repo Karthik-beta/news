@@ -40,7 +40,11 @@ test("phones get ranked bars under a small map; wider screens the full map and t
   const table = fig.locator(".choropleth__table");
   const map = fig.locator("svg.choropleth__map");
   const plotWidth = await fig.evaluate((f) => f.getBoundingClientRect().width);
-  if ((page.viewportSize()?.width ?? 0) <= 360) {
+  // Narrow is under 36em of the map's own text (every phone, 390 and 430 too), not a fixed screen width.
+  const ems = await fig
+    .locator(".choropleth")
+    .evaluate((c) => c.clientWidth / Number.parseFloat(getComputedStyle(c).fontSize));
+  if (ems < 36) {
     await expect(bars).toBeVisible();
     await expect(table).toBeHidden();
     await expect(bars.locator(".bar-chart__row")).toHaveCount(7);
