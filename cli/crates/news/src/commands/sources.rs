@@ -99,7 +99,7 @@ struct Facts {
     fetched: i64,
     unchanged: i64,
     /// The most consecutive errors on any URL of the source.
-    worst_errors: i16,
+    worst_errors: i32,
 }
 
 /// Green, amber or red with the reasons (Bureau §3.1: a missing free key is amber).
