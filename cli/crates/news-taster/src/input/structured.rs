@@ -8,7 +8,7 @@
 //! anchor point's, so a re-run gives the same input.
 
 use super::Member;
-use chrono::{DateTime, NaiveDate, Utc};
+use chrono::{DateTime, Datelike, NaiveDate, Utc};
 use news_clerk::news_ledger::units::{UnitClass, classify};
 use news_nose::score::Page;
 use sqlx::{PgConnection, Row, postgres::PgRow};
@@ -88,6 +88,50 @@ fn latest<'a>(points: impl Iterator<Item = &'a Dp>) -> Option<&'a Dp> {
         .max_by(|x, y| (x.end, x.vintage, &x.dp_id).cmp(&(y.end, y.vintage, &y.dp_id)))
 }
 
+/// The anchor point: the latest of the best member's own points; the other members' only when the
+/// best member has none (two members can hold different series, e.g. SA and NSA, of one event).
+fn anchor<'a>(pts: &'a [Dp], best_ids: &[String]) -> Option<&'a Dp> {
+    latest(pts.iter().filter(|p| best_ids.contains(&p.dp_id))).or_else(|| latest(pts.iter()))
+}
+
+/// The history's last run of consecutive periods (`per_year` per year, compared on the end month), so
+/// a missing period is not read as a one-step change across the gap.
+fn trailing_run(h: &[Dp], per_year: u32) -> &[Dp] {
+    let step = i64::from(12 / per_year);
+    let month = |p: &Dp| {
+        p.end
+            .map(|e| i64::from(e.year()) * 12 + i64::from(e.month()))
+    };
+    let mut from = h.len().saturating_sub(1);
+    while from > 0
+        && month(&h[from])
+            .zip(month(&h[from - 1]))
+            .is_some_and(|(a, b)| a - b == step)
+    {
+        from -= 1;
+    }
+    &h[from..]
+}
+
+/// The revenue point to anchor on: the latest period across all revenue concepts (a filing's older
+/// comparative may use another concept than its current year), then a quarter over a year, then the
+/// concept's priority, the latest vintage.
+fn pick_revenue(pts: &[Dp]) -> Option<&Dp> {
+    let rank = |p: &Dp| REVENUE.iter().position(|c| *c == p.concept);
+    let key = |p: &Dp| {
+        (
+            p.end,
+            std::cmp::Reverse(p.class()),
+            std::cmp::Reverse(rank(p)),
+            p.vintage,
+            p.dp_id.clone(),
+        )
+    };
+    pts.iter()
+        .filter(|p| rank(p).is_some() && p.class().is_some())
+        .max_by_key(|p| key(p))
+}
+
 /// The anchor's series as of its vintage, one point per period, oldest first.
 async fn history(tx: &mut PgConnection, a: &Dp) -> Result<Vec<Dp>, sqlx::Error> {
     let mut h: Vec<Dp> = sqlx::query(
@@ -153,24 +197,28 @@ pub async fn load(
         return Ok(None);
     }
     match kind {
-        "macro" => macro_page(tx, &ids).await,
-        "policy" => policy(tx, &ids).await,
+        "macro" => macro_page(tx, &best.dp_ids, &ids).await,
+        "policy" => policy(tx, &best.dp_ids, &ids).await,
         "earnings" => earnings(tx, &ids).await,
         _ => report(tx, &ids).await,
     }
 }
 
-/// The observations of the latest point's series, latest last.
-async fn macro_page(tx: &mut PgConnection, ids: &[String]) -> Result<Option<Page>, sqlx::Error> {
+/// The observations of the anchor's series, latest last, the trailing run without a missing period.
+async fn macro_page(
+    tx: &mut PgConnection,
+    best_ids: &[String],
+    ids: &[String],
+) -> Result<Option<Page>, sqlx::Error> {
     let pts = points(tx, ids).await?;
-    let Some(a) = latest(pts.iter()) else {
+    let Some(a) = anchor(&pts, best_ids) else {
         return Ok(None);
     };
     let Some(per_year) = a.days().and_then(per_year) else {
         return Ok(None);
     };
-    let values = history(tx, a)
-        .await?
+    let h = history(tx, a).await?;
+    let values = trailing_run(&h, per_year)
         .iter()
         .filter_map(|p| p.value)
         .collect();
@@ -179,9 +227,16 @@ async fn macro_page(tx: &mut PgConnection, ids: &[String]) -> Result<Option<Page
 
 /// A policy rate series with one point per decision: the last move, the holds before it and whether
 /// it reverses the move before. `statement_change` is left at 0: the statement text diff is not built.
-async fn policy(tx: &mut PgConnection, ids: &[String]) -> Result<Option<Page>, sqlx::Error> {
+///
+/// Groundwork only: no connector yet supplies decision-dated rate points (statement candidates have no
+/// dp_ids, and the ECB series is business-day), and `holds_before` assumes one point per decision.
+async fn policy(
+    tx: &mut PgConnection,
+    best_ids: &[String],
+    ids: &[String],
+) -> Result<Option<Page>, sqlx::Error> {
     let pts = points(tx, ids).await?;
-    let Some(a) = latest(pts.iter()) else {
+    let Some(a) = anchor(&pts, best_ids) else {
         return Ok(None);
     };
     if classify(&a.unit).map(|u| u.class) != Some(UnitClass::Percent) {
@@ -215,24 +270,7 @@ async fn policy(tx: &mut PgConnection, ids: &[String]) -> Result<Option<Page>, s
 /// net income.
 async fn earnings(tx: &mut PgConnection, ids: &[String]) -> Result<Option<Page>, sqlx::Error> {
     let pts = points(tx, ids).await?;
-    let revenue = REVENUE
-        .iter()
-        .map(|c| {
-            pts.iter()
-                .filter(move |p| p.concept == *c && p.class().is_some())
-        })
-        // A quarter over a year, then the latest period and vintage.
-        .find_map(|it| {
-            it.max_by(|x, y| {
-                (std::cmp::Reverse(x.class()), x.end, x.vintage, &x.dp_id).cmp(&(
-                    std::cmp::Reverse(y.class()),
-                    y.end,
-                    y.vintage,
-                    &y.dp_id,
-                ))
-            })
-        });
-    let Some(a) = revenue else {
+    let Some(a) = pick_revenue(&pts) else {
         return Ok(None);
     };
     let mut h = history(tx, a).await?;
@@ -347,5 +385,81 @@ mod tests {
         assert_eq!(d("2025-09-28", "2026-09-26").class(), Some(2));
         // A nine-month year-to-date is neither.
         assert_eq!(d("2025-09-28", "2026-06-27").class(), None);
+    }
+
+    fn dp(id: &str, series: &str, concept: &str, s: &str, e: &str, vintage: &str) -> Dp {
+        Dp {
+            dp_id: id.into(),
+            series_key: series.into(),
+            unit: "USD".into(),
+            concept: concept.into(),
+            start: s.parse().ok(),
+            end: e.parse().ok(),
+            vintage: vintage.parse().unwrap(),
+            value: Some(1.0),
+        }
+    }
+
+    #[test]
+    fn anchor_stays_on_the_best_members_series() {
+        let (s, e) = ("2026-10-01", "2026-10-31");
+        let sa = dp("dp_sa", "fred:CPIAUCSL", "c", s, e, "2026-11-13T00:00:00Z");
+        let nsa = dp(
+            "dp_nsa",
+            "bls:CUUR0000SA0",
+            "c",
+            s,
+            e,
+            "2026-11-14T00:00:00Z",
+        );
+        let best = ["dp_sa".to_string()];
+        // The other member's later vintage does not move the anchor, in either order.
+        let id = |pts: &[Dp]| anchor(pts, &best).unwrap().dp_id.clone();
+        assert_eq!(id(&[sa.clone(), nsa.clone()]), "dp_sa");
+        assert_eq!(id(&[nsa.clone(), sa]), "dp_sa");
+        // A best member with no points falls back to the others.
+        assert_eq!(id(&[nsa]), "dp_nsa");
+    }
+
+    #[test]
+    fn revenue_anchors_on_the_latest_period_across_concepts() {
+        let v = "2026-10-30T00:00:00Z";
+        let old = dp(
+            "old",
+            "s",
+            "us-gaap:Revenues",
+            "2024-09-29",
+            "2025-09-27",
+            v,
+        );
+        let other = "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax";
+        let cur = dp("cur", "s", other, "2025-09-28", "2026-09-26", v);
+        assert_eq!(pick_revenue(&[old, cur.clone()]).unwrap().dp_id, "cur");
+        // The same period: the higher-priority concept wins.
+        let same = dp(
+            "same",
+            "s",
+            "us-gaap:Revenues",
+            "2025-09-28",
+            "2026-09-26",
+            v,
+        );
+        assert_eq!(pick_revenue(&[cur, same]).unwrap().dp_id, "same");
+    }
+
+    #[test]
+    fn history_is_cut_to_the_trailing_run_of_periods() {
+        let m = |id: &str, s: &str, e: &str| dp(id, "s", "c", s, e, "2026-11-13T00:00:00Z");
+        let h = [
+            m("a", "2025-08-01", "2025-08-31"),
+            m("b", "2025-09-01", "2025-09-30"),
+            // October 2025 is missing.
+            m("c", "2025-11-01", "2025-11-30"),
+            m("d", "2025-12-01", "2025-12-31"),
+        ];
+        let ids = |r: &[Dp]| r.iter().map(|p| p.dp_id.clone()).collect::<Vec<_>>();
+        assert_eq!(ids(trailing_run(&h, 12)), ["c", "d"]);
+        assert_eq!(ids(trailing_run(&h[..2], 12)), ["a", "b"]);
+        assert!(trailing_run(&[], 12).is_empty());
     }
 }

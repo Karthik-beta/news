@@ -279,12 +279,12 @@ async fn sources_snapshots_and_the_ledger_end_to_end() {
         ));
     }
     // FRED CPI: the observations as of this release, the August revision in, the missing October 2025
-    // print out; headline macro in the US.
+    // print out and the history cut to the run after that gap; headline macro in the US.
     assert_eq!(pages[0].0, "macro_headline");
     assert_eq!(
         pages[0].1,
         serde_json::json!({"type": "macro", "per_year": 12,
-            "values": [323.364, 324.368, 331.112, 332.0, 333.01]})
+            "values": [331.112, 332.0, 333.01]})
     );
     assert_eq!(pages[1].1["type"], "macro");
     // Apple's 10-K: fiscal 2026 revenue growth against fiscal 2025's; the filing restates fiscal
