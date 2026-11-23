@@ -21,6 +21,11 @@ if (m.type === "reject" && m.status === 400) {
 const view = m.type === "page" ? await loadView(ctx, m) : await notFoundView(ctx);
 if (view.type === "redirect") return Astro.redirect(view.location, view.status);
 if (view.body.type === "notfound") Astro.response.status = 404;
+// Search's daily limit: a 503 the reader can wait out, and the edge must not keep (serve.ts leaves it uncached).
+if (view.body.type === "search" && view.body.unavailable) {
+  Astro.response.status = 503;
+  Astro.response.headers.set("retry-after", String(view.body.unavailable.retryAfter));
+}
 ---
 <Shell chrome={view.chrome} origin={ctx.origin}>
   <Views body={view.body} />

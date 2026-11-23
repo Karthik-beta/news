@@ -45,7 +45,9 @@ export function settings(env: Pick<SiteEnv, "NEWS_SITE_ORIGIN" | "NEWS_REGION_VI
 }
 
 export async function siteContext(env: SiteEnv, now: Date = new Date()): Promise<Ctx & { origin: string }> {
-  const data = await siteData(env);
+  let data = await siteData(env);
+  // A preview build (NEWS_PREVIEW=1) reads a held draft in place of the live curation; production builds drop this.
+  if (typeof __NEWS_PREVIEW__ !== "undefined" && __NEWS_PREVIEW__) data = (await import("../preview")).withDraft(data);
   const { origin, regions } = settings(env);
   return { data, origin, regions, now, taxonomy: () => taxonomyCache.get(data.reader) };
 }

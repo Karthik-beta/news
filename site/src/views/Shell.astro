@@ -21,6 +21,10 @@ const title = chrome.title === "Home" ? "News" : `${chrome.title} | News`;
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content={chrome.robots} />
     {chrome.canonical ? <link rel="canonical" href={`${origin}${chrome.canonical}`} /> : null}
+    <link rel="alternate" type="application/rss+xml" title="News" href="/rss.xml" />
+    <link rel="alternate" type="application/atom+xml" title="News" href="/atom.xml" />
+    {chrome.feedCategory ? <link rel="alternate" type="application/rss+xml" title={chrome.title} href={`/${chrome.feedCategory}/rss.xml`} /> : null}
+    {chrome.feedCategory ? <link rel="alternate" type="application/atom+xml" title={chrome.title} href={`/${chrome.feedCategory}/atom.xml`} /> : null}
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preload" href="/fonts/literata-latin-opsz-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/fira-sans-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />

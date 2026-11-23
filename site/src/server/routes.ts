@@ -2,6 +2,7 @@
 // in one place. `matchRoute` is pure (it reads no storage): it says what a URL is, rejects what cannot be a page, and
 // gives the canonical cache key, so the key of `/?utm_source=x` is the key the api purges for `/`.
 import { decodeCursor } from "@news/worker-shared/read";
+import { parseSearchParams, type SearchParams, searchCacheKey, searchWords } from "@news/worker-shared/search";
 import { RESERVED_SLUGS } from "@news/worker-shared/urls";
 
 /** Seconds. `edge` is `s-maxage` (the fresh time at the edge); `browser` is `max-age`. */
@@ -26,6 +27,12 @@ export const POLICY = {
   hubPage: { edge: 3600, browser: 60 },
   /** A redirect from a `URL#` item. Purged when the redirect is written. */
   redirect: { edge: 86_400, browser: 86_400 },
+  /** `/search`. Not purged. */
+  search: { edge: 600, browser: 60 },
+  /** RSS and Atom feeds. Not purged. */
+  feed: { edge: 3600, browser: 900 },
+  /** The sitemaps and `llms.txt`. Not purged. */
+  daily: { edge: 86_400, browser: 3600 },
   notFound: { edge: 600, browser: 60 },
   /** A stored copy served because the render or the data failed. */
   stale: { edge: 30, browser: 30 },
@@ -42,7 +49,7 @@ const SLUG_SEGMENT = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 /** A hub sort key: the first publication time, '#', the page ID. */
 const CURSOR_KEY = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z#[a-z0-9][a-z0-9-]*$/;
 
-export type RouteKind = "home" | "region" | "latest" | "entity" | "category";
+export type RouteKind = "home" | "region" | "latest" | "entity" | "category" | "search" | "feed" | "sitemap" | "llms";
 
 export type Match =
   /** Not a route of this Worker (a static page, search or a feed from another part of the site). */
@@ -64,6 +71,12 @@ export type Match =
       purged: boolean;
       /** Cache misses of this request count against the rate limiter (404, cursor and filter requests). */
       limited: boolean;
+      /** `search`: the checked query and filters. */
+      search?: SearchParams;
+      /** `feed`: the format and the category slug (the site-wide feed has none). */
+      feed?: { format: "rss" | "atom"; category?: string };
+      /** `sitemap`: the month ("2025-01") of a child sitemap; none for the index. */
+      month?: string;
     };
 
 /** The canonical path: each segment encoded exactly as `hubPath()` writes it. */
@@ -124,8 +137,51 @@ export function matchRoute(url: URL, origin: string, regions: readonly string[])
     };
   };
 
+  /** A page the Worker renders that is never purged: it has its own key and no cursor or region view. */
+  const other = (kind: RouteKind, key: string, extra: Partial<Extract<Match, { type: "page" }>> = {}): Match => ({
+    type: "page",
+    kind,
+    segments,
+    key: `${origin}${key}`,
+    purged: false,
+    limited: false,
+    ...extra,
+  });
+
   const [first, second] = segments;
+  const last = segments[segments.length - 1];
   if (first === undefined) return page("home", {});
+  if (first === "search") {
+    if (segments.length > 1) return notFound;
+    const parsed = parseSearchParams(url.searchParams, { optionalQuery: true });
+    if (!parsed.ok) return { type: "reject", status: 400, message: parsed.message };
+    const { limit: _limit, ...params } = parsed.params;
+    // Only the empty form with no filters is the same page for everyone, so only it gets the bare key.
+    const bare =
+      searchWords(params.query).length === 0 &&
+      !(params.category || params.region || params.page_type || params.from || params.to);
+    return other("search", bare ? "/search" : `/search?${searchCacheKey(params)}`, {
+      search: params,
+      limited: true,
+    });
+  }
+  if (segments.length === 1 && first === "sitemap.xml") return other("sitemap", "/sitemap.xml");
+  if (segments.length === 1 && first === "llms.txt") return other("llms", "/llms.txt");
+  if (first === "sitemaps") {
+    const month = /^(\d{4}-(?:0[1-9]|1[0-2]))\.xml$/.exec(second ?? "")?.[1];
+    return segments.length === 2 && month
+      ? other("sitemap", `/sitemaps/${month}.xml`, { month, limited: true })
+      : notFound;
+  }
+  if (last === "rss.xml" || last === "atom.xml") {
+    const category = segments.slice(0, -1);
+    if (category.length > 4 || !category.every((s) => SLUG_SEGMENT.test(s))) return notFound;
+    const slug = category.join("/");
+    return other("feed", `/${slug === "" ? "" : `${slug}/`}${last}`, {
+      feed: { format: last === "rss.xml" ? "rss" : "atom", ...(slug ? { category: slug } : {}) },
+      limited: slug !== "",
+    });
+  }
   if (first === "latest") return segments.length === 1 ? page("latest", { region: true, after: true }) : notFound;
   if (first === "region")
     return segments.length === 2 && regions.includes(second as string) ? page("region", { after: true }) : notFound;

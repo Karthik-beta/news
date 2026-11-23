@@ -26,6 +26,7 @@ describe("static-page config", () => {
         "contact",
         "corrections",
         "data-access",
+        "feeds",
         "glossary",
         "legal",
         "methodology",
@@ -54,6 +55,7 @@ describe("static-page config", () => {
   it("lists the placeholder keys Karthik must fill", () => {
     expect(unsetKeys().sort()).toEqual(
       [
+        "api.origin",
         "contact.email",
         "operator.jurisdiction",
         "operator.legalName",
@@ -100,9 +102,18 @@ describe("static-page copy", () => {
   describe("never hard-codes a configured value", () => {
     const sources = [
       ...PAGES.map((n) => [`content/pages/${n}.md`, stripComments(copy[n] as string)] as const),
-      ...["methodology", "about", "glossary", "privacy", "legal", "contact", "report", "data", "corrections"].map(
-        (n) => [`src/pages/${n}.astro`, readFileSync(join(siteRoot, "src/pages", `${n}.astro`), "utf8")] as const,
-      ),
+      ...[
+        "methodology",
+        "about",
+        "glossary",
+        "privacy",
+        "legal",
+        "contact",
+        "report",
+        "data",
+        "corrections",
+        "feeds",
+      ].map((n) => [`src/pages/${n}.astro`, readFileSync(join(siteRoot, "src/pages", `${n}.astro`), "utf8")] as const),
       ...["StaticPage.astro", "StaticDoc.astro"].map(
         (n) => [`src/layouts/${n}`, readFileSync(join(siteRoot, "src/layouts", n), "utf8")] as const,
       ),

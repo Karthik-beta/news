@@ -227,7 +227,8 @@ describe("the search schema", () => {
       .prepare("UPDATE pages SET index_status = ?2 WHERE page_id = ?1")
       .bind("trigger-page", "index")
       .run();
-    expect(status.meta.rows_written).toBe(1);
+    // The row plus the pages_index_status index entry (migration 0002); a full-text trigger would add more.
+    expect(status.meta.rows_written).toBe(2);
     expect((await searchPages([{ year: 2025, db }], { query: "trigger probe" })).map((h) => h.page_id)).toEqual([
       "trigger-page",
     ]);

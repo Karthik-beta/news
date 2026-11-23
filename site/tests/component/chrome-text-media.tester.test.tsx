@@ -139,13 +139,14 @@ describe("Rendering every prop of the template parts", () => {
     expect(document.querySelector("[aria-current]")).toBeNull();
   });
 
-  it("Footer: the five links in order and the three fixed lines", () => {
+  it("Footer: the six links in order and the three fixed lines", () => {
     render(<Footer />);
     const nav = screen.getByRole("navigation", { name: "About this site" });
     expect([...nav.querySelectorAll("a")].map((a) => a.textContent)).toEqual([
       "How pages are made",
       "Glossary",
       "Data access and MCP",
+      "RSS feeds",
       "Report an error",
       "Privacy",
     ]);

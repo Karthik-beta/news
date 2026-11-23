@@ -26,7 +26,11 @@
         "NEWS_SITE_ORIGIN": "https://news.karthik.nz",
         "NEWS_REGION_VIEWS": "north-america,europe,india,china,asia,australia,global"
       },
-      "ratelimits": [{ "name": "SEARCH_RATE_LIMITER", "namespace_id": "1301", "simple": { "limit": 30, "period": 60 } }]
+      "ratelimits": [
+        { "name": "SEARCH_RATE_LIMITER", "namespace_id": "1301", "simple": { "limit": 30, "period": 60 } }
+      ],
+      // Miniflare's local D1 for the fixture pages' year; src/data/local.ts migrates and fills it. Never a real database.
+      "d1_databases": [{ "binding": "SEARCH_2025", "database_name": "news-search-local", "database_id": "local" }]
     }
   }
 

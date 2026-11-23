@@ -9,6 +9,7 @@ export const FOOTER_LINKS: readonly NavLink[] = [
   { label: "How pages are made", href: "/methodology/" },
   { label: "Glossary", href: "/glossary/" },
   { label: "Data access and MCP", href: "/data/" },
+  { label: "RSS feeds", href: "/feeds/" },
   { label: "Report an error", href: "/report/" },
   { label: "Privacy", href: "/privacy/" },
 ];

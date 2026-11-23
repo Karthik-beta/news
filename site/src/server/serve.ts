@@ -42,6 +42,9 @@ function policyOf(m: PageMatch, status: number): PolicyName | undefined {
   if (status === 404) return "notFound";
   if (status === 301 || status === 308) return "redirect";
   if (status !== 200) return undefined;
+  if (m.kind === "search") return "search";
+  if (m.kind === "feed") return "feed";
+  if (m.kind === "sitemap" || m.kind === "llms") return "daily";
   return m.purged ? (m.kind === "home" || m.kind === "region" ? "home" : "hub") : "hubPage";
 }
 
@@ -70,7 +73,9 @@ export async function serve(request: Request, m: PageMatch, deps: ServeDeps): Pr
   let res: Response;
   try {
     res = await deps.render();
-    if (res.status >= 500) throw new Error(`render answered ${res.status}`);
+    // On search, a 5xx with Retry-After is an answer (the daily limit), not a failure to hide behind a stored copy.
+    if (res.status >= 500 && !(m.kind === "search" && res.headers.has("retry-after")))
+      throw new Error(`render answered ${res.status}`);
   } catch (error) {
     console.error(
       JSON.stringify({

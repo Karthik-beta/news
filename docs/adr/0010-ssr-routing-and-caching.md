@@ -55,7 +55,7 @@ One table in code, `site/src/server/routes.ts`, gives each route its rendering a
 | `/llms.txt` | taxonomy, config | SSR | 1 day | 1 h | not purged |
 | Redirect: a path with `URL#<path>` / `REDIRECT` | DynamoDB | SSR, the stored status (301 or 308) | 1 day | 1 day | redirect write |
 | 404 | (the lookups that missed) | SSR, prerendered template | 10 min | 60 s | — |
-| `/robots.txt`, `/methodology`, `/about`, `/glossary`, `/privacy`, `/legal`, `/contact`, `/report`, `/data` | config at build | prerendered asset | Cloudflare's asset cache, replaced on deploy | 1 h | — |
+| `/robots.txt`, `/methodology`, `/about`, `/glossary`, `/privacy`, `/legal`, `/contact`, `/report`, `/data`, `/feeds` | config at build | prerendered asset | Cloudflare's asset cache, replaced on deploy | 1 h | — |
 | `/_astro/*` | — | asset | as above | content-hashed: 1 year, `immutable`; fixed names: 1 h | — |
 | Search daily-cap answer | — | SSR, 503, `Retry-After` to 00:00 UTC | `no-store` | `no-store` | — |
 | Preview mode, `/fixtures/*` | — | local builds only | `no-store` | `no-store` | — |
@@ -105,7 +105,7 @@ export function composeRegion(input: HomeInput, region: string, regionEntries: H
 
 ### 8. Static pages and the report form
 
-Prerendered from `site/src/config/` at build: methodology, about, glossary, privacy, legal, contact, `/report`, `/data` (data access and MCP instructions), 404. No statistic is typed into their prose; configured values are inserted from config. `/report?page=<page_id>` holds one island that posts JSON to the api's `POST /v1/reports` (origin from `NEWS_API_ORIGIN` at build), with the `website` honeypot, and shows the confirmation text on 202; without JavaScript the page says so and gives the contact address.
+Prerendered from `site/src/config/` at build: methodology, about, glossary, privacy, legal, contact, `/report`, `/data` (data access and MCP instructions), `/feeds` (the feed addresses, linked from the footer), 404. No statistic is typed into their prose; configured values are inserted from config. `/report` holds one island (`ReportForm.client.tsx`) that posts JSON to the api's `POST /v1/reports` (origin from `NEWS_API_ORIGIN` at build): the form's `what` is the intake's `text`, its `page` field takes a page ID or the address of a page (the last path segment is the ID; `?page=<page_id>` fills it in), the `website` honeypot is hidden from people, the limits are checked before sending, and the copy's "Form text" table is every word the form shows, including the confirmation on 202; without JavaScript the page says so and gives the contact address.
 
 ## Tests that prove it (#14 "Done when")
 
@@ -120,7 +120,7 @@ Prerendered from `site/src/config/` at build: methodology, about, glossary, priv
 | Cache policy | Every row of the route table requested in Miniflare: `Cache-Control` matches `routes.ts`, and `routes.ts` matches this ADR; `/?utm_source=x` hits the entry for `/`; `bun run validate` fails on differing site/api origin or region values |
 | Stale copy and abuse | A render error with a stored copy serves it with `s-maxage=30`, without one a 503; an unknown first segment makes no `URL#` read; the rate limiter is hit on 404, cursor and filter misses; a malformed cursor is 400; the taxonomy is read once per ~60 s |
 | Preview | Preview requests neither read nor write the cache; `X-News-Preview` is absent with no draft held and equals the sha256 of the draft while one is held (#20 asserts the same against the draft it pushed) |
-| Production guards | A production build has no `__preview` string in `dist/`; preview handlers 404 with `NEWS_ENV=production` or a non-loopback host; `NEWS_DATA=local` with `NEWS_ENV=production` fails; `ai-guard` covers `site/` |
+| Production guards | A production build has no `/__preview/curation` route string and no preview code in `dist/server`; preview handlers 404 with `NEWS_ENV=production` or a non-loopback host; `NEWS_DATA=local` with `NEWS_ENV=production` fails; `ai-guard` covers `site/` |
 | api changes | Reserved category slugs, and slugs not starting with a letter, refused |
 | Report form | Miniflare with the api Worker and local `REPORTS`: the form posts, the row is stored, the confirmation shows |
 | Quality | axe clean on every template, light and dark; home and hub meet `site/TESTING.md`'s browser budgets, and their server render (data in memory) stays under 4 ms p95 in Bun |
