@@ -105,7 +105,18 @@
           }
         }
       },
-      "required": ["text", "window_days", "pages", "coverage", "failures", "tokens_per_page", "index_budget", "curation", "unresolved_entities", "top_rejected"],
+      "required": [
+        "text",
+        "window_days",
+        "pages",
+        "coverage",
+        "failures",
+        "tokens_per_page",
+        "index_budget",
+        "curation",
+        "unresolved_entities",
+        "top_rejected"
+      ],
       "additionalProperties": false
     }
   }

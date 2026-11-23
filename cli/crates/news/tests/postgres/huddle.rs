@@ -4,9 +4,11 @@
 
 use super::fixture::Fixture;
 use chrono::{DateTime, TimeDelta, Utc};
+use news_hotline::{Bus, Peer, Service};
 use news_nose::huddle;
 use serde_json::{Value, json};
 use std::collections::HashSet;
+use std::sync::Arc;
 
 const DEBRIEF_GOLDEN: &str = include_str!("../../../news-critic/tests/golden/debrief-fixture.txt");
 
@@ -177,6 +179,85 @@ async fn questions_skip_labelled_pairs_and_ask_about_a_story_at_most_twice() {
         *seen.entry(q.b.story_id).or_default() += 1;
     }
     assert!(seen.values().all(|c| *c <= 2));
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn huddle_answers_go_over_the_hotline_from_board_only_and_questions_to_anyone() {
+    let f = Fixture::migrated().await;
+    seed(&f, 40, Utc::now()).await;
+    let state = Arc::new(news_service::State::default());
+    state.set(news_chief::board::ServiceState::Up);
+    let bureau = Arc::new(news_service::handlers::Bureau::new(
+        state,
+        Arc::new(Bus::default()),
+        Arc::new(news_service::log::LogRing::default()),
+    ));
+    bureau.set_core(Some(Arc::new(news_service::handlers::Core {
+        db: f.pool.clone(),
+        chief: news_chief::Chief::builder(f.pool.clone(), Arc::new(news_core::clock::SystemClock))
+            .build(),
+        policy: Arc::new(news_chief::AllowAll),
+        stopper: Arc::new(news_chief::NoStopper),
+    })));
+    let call = |peer: Peer, cmd: &'static str, args: Value| {
+        let svc: Arc<dyn Service> = bureau.clone();
+        async move {
+            let (mut client, server) = tokio::io::duplex(1 << 20);
+            let h = tokio::spawn(news_hotline::serve_conn(server, peer, svc));
+            let env = news_hotline::call(&mut client, "t-1", cmd, args)
+                .await
+                .unwrap();
+            drop(client);
+            let _ = h.await;
+            env
+        }
+    };
+    let terminal = Peer {
+        argv1_is_board: false,
+        ..Peer::board()
+    };
+
+    // `huddle.questions` is a read: both peers get the same questions.
+    let from_terminal = call(terminal.clone(), "huddle.questions", json!({})).await;
+    assert_eq!(from_terminal["ok"], true, "{from_terminal}");
+    let qs = from_terminal["data"]["questions"]
+        .as_array()
+        .unwrap()
+        .clone();
+    assert!(!qs.is_empty() && qs.len() <= 30);
+    let from_board = call(Peer::board(), "huddle.questions", json!({})).await;
+    assert_eq!(
+        from_board["data"]["questions"],
+        from_terminal["data"]["questions"]
+    );
+
+    // `huddle.answer` is H tier: a terminal is refused as `gated`, nothing is stored, the refusal is logged.
+    let labels: Vec<Value> = qs
+        .iter()
+        .take(3)
+        .map(|q| json!({"a": q["a"]["story_id"], "b": q["b"]["story_id"], "winner": "a"}))
+        .collect();
+    let answer = json!({"run": "r_hud1", "labels": labels});
+    let env = call(terminal, "huddle.answer", answer.clone()).await;
+    assert_eq!(env["error"]["code"], "gated", "{env}");
+    assert_eq!(f.scalar_i64("select count(*) from score_labels").await, 0);
+    assert_eq!(
+        f.scalar_i64(
+            "select count(*) from hotline_refusals where cmd = 'huddle.answer' and refusal = 'not_board'"
+        )
+        .await,
+        1
+    );
+
+    // Board's answer is stored, one row per label.
+    let env = call(Peer::board(), "huddle.answer", answer).await;
+    assert_eq!(
+        (&env["ok"], &env["data"]["stored"]),
+        (&json!(true), &json!(3)),
+        "{env}"
+    );
+    assert_eq!(f.scalar_i64("select count(*) from score_labels").await, 3);
 }
 
 #[tokio::test]

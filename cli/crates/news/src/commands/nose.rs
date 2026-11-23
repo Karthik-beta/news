@@ -123,12 +123,14 @@ pub async fn scores(cmd: ScoresCmd) -> NewsResult<Reply> {
     match cmd {
         ScoresCmd::Weights => {
             // The live version needs the database; without `DATABASE_URL` this is the seed, v1.
-            let cfg = if std::env::var("DATABASE_URL").is_ok_and(|u| !u.is_empty()) {
+            let live = std::env::var("DATABASE_URL").is_ok_and(|u| !u.is_empty());
+            let cfg = if live {
                 huddle::current_config(&database(2).await?.0).await?
             } else {
                 news_nose::config::v1().map_err(NewsError::internal)?
             };
             Ok(Reply::new(json!({
+                "live": if live { "database" } else { "seed" },
                 "version": cfg.version,
                 "weights": cfg.weights,
                 "half_life_hours": cfg.half_life_hours,

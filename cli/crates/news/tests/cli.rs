@@ -434,7 +434,10 @@ fn scores_weights_prints_scorer_config_v1_without_a_database() {
     let (env, code, stderr) = call(&["scores", "weights"]);
     assert_eq!(code, 0, "{env} {stderr}");
     let d = &env["data"];
-    assert_eq!(d["version"], "v1");
+    assert_eq!(
+        (d["live"].as_str(), d["version"].as_str()),
+        (Some("seed"), Some("v1"))
+    );
     assert_eq!(d["weights"]["I"], 0.30);
     assert_eq!(d["weights"]["G"], 0.10);
     assert_eq!(d["half_life_hours"]["report"], 96.0);

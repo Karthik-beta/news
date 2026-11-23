@@ -22,6 +22,10 @@
     "output": {
       "type": "object",
       "properties": {
+        "live": {
+          "description": "Where the config came from: `database` (the latest adopted version) or `seed` (v1; no DATABASE_URL, so adoptions are not read).",
+          "enum": ["database", "seed"]
+        },
         "version": {
           "type": "string"
         },
@@ -45,7 +49,7 @@
           "additionalProperties": false
         }
       },
-      "required": ["version", "weights", "half_life_hours", "event_weights", "coverage_targets"],
+      "required": ["live", "version", "weights", "half_life_hours", "event_weights", "coverage_targets"],
       "additionalProperties": false
     }
   }

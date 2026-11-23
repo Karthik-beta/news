@@ -144,6 +144,37 @@ pub async fn save(
             .fetch_optional(&mut *tx)
             .await?;
     let (status, step) = run.ok_or_else(|| SaveError::Locked(format!("no run {run_id}")))?;
+    let stored: Vec<PlanRow> = sqlx::query_as(
+        "select story_id, rank, tier, bucket, reason, action, adjusted::float8 from run_plans
+          where run_id = $1 order by story_id",
+    )
+    .bind(run_id)
+    .fetch_all(&mut *tx)
+    .await?;
+    let same = same_budget(&stored, &plan_rows(plan));
+    let moved_on: bool = sqlx::query_scalar(
+        "select exists (select 1 from approvals where run_id = $1)
+             or exists (select 1 from run_steps l
+                         where l.run_id = $1 and l.status <> 'pending'
+                           and l.seq > (select seq from run_steps where run_id = $1 and step = 'plan'))",
+    )
+    .bind(run_id)
+    .fetch_one(&mut *tx)
+    .await?;
+    let locked = !matches!(status.as_str(), "queued" | "running")
+        || step.as_deref().is_some_and(|s| s != "plan")
+        || moved_on;
+    if locked {
+        if !same {
+            return Err(SaveError::Locked(format!(
+                "run {run_id} is {status} at step {}, past planning, or its plan is approved: \
+                 the Budget cannot change",
+                step.as_deref().unwrap_or("none")
+            )));
+        }
+        // A locked plan re-run with the same Budget: nothing new to store or log.
+        return Ok(false);
+    }
     let mut inserted = 0;
     for (story_id, s) in scores {
         inserted += sqlx::query(
@@ -161,33 +192,7 @@ pub async fn save(
         .await?
         .rows_affected();
     }
-    let stored: Vec<PlanRow> = sqlx::query_as(
-        "select story_id, rank, tier, bucket, reason, action, adjusted::float8 from run_plans
-          where run_id = $1 order by story_id",
-    )
-    .bind(run_id)
-    .fetch_all(&mut *tx)
-    .await?;
-    if !same_budget(&stored, &plan_rows(plan)) {
-        let moved_on: bool = sqlx::query_scalar(
-            "select exists (select 1 from approvals where run_id = $1)
-                 or exists (select 1 from run_steps l
-                             where l.run_id = $1 and l.status <> 'pending'
-                               and l.seq > (select seq from run_steps where run_id = $1 and step = 'plan'))",
-        )
-        .bind(run_id)
-        .fetch_one(&mut *tx)
-        .await?;
-        if !matches!(status.as_str(), "queued" | "running")
-            || step.as_deref().is_some_and(|s| s != "plan")
-            || moved_on
-        {
-            return Err(SaveError::Locked(format!(
-                "run {run_id} is {status} at step {}, past planning, or its plan is approved: \
-                 the Budget cannot change",
-                step.as_deref().unwrap_or("none")
-            )));
-        }
+    if !same {
         sqlx::query("delete from run_plans where run_id = $1")
             .bind(run_id)
             .execute(&mut *tx)
