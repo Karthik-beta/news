@@ -174,10 +174,12 @@ Today neither the bar nor the column chart takes a comparison value, so for both
 - The highlighted bar is crimson (the neutral highlight when it fell); all others are one colour (context, or blue for a single series). Never colour bars by their value otherwise.
 
 ### Maps
-- Equal Earth projection for world maps; national projections for single countries.
+- Equal Earth projection for world maps; national projections for single countries (proposed in [README.md](README.md#open-items), "Map details").
 - Sequential blue fills; borders as 0.75px lines in the paper colour; no basemap imagery, no terrain, no labels other than those needed.
-- Regions without data in `chart.neutral` with hatching, and "No data" in the legend.
-- A legend bar with 5–7 steps above the map. Always paired with a ranked table.
+- Regions without data in `chart.neutral` with hatching, and "No data" in the legend. A country the page lists with no value is also "No data" in the table; a value in another unit is left out (hatched), never converted.
+- A legend bar above the map: one swatch per class, each break under its join. Up to five classes in the heatmap's validated steps (light 300–700, dark 600, 400, 300, 200, 100), broken at round numbers (one significant figure) near the quintiles, a break dropped when rounding would leave a class with no country; one class labelled with its value when every value is equal. (The "5–7 steps" first written here awaits Karthik's approval of the change; see README.md.)
+- Always paired with a ranked table, largest first. When the plot is narrower than 36em of its own text (every phone), the bar chart's ranked bars show under a small map instead, by CSS alone (a container query); both are rendered on the server.
+- Geometry: Natural Earth 1:50m admin-0 countries (public domain), projected and simplified at build time by `site/scripts/gen-map-geometry.ts` into one SVG path per country (about 34 KB, 12 KB gzip, in the page's HTML). The map is static SVG, so it ships no JavaScript; the phone's bars reuse the bar chart's island. No hover tooltips on the map itself: the values are in the table or the bars.
 
 ### Small multiples
 - Same scales and the same size in every panel. Panel titles in Fira Sans 600, 14px (the chart-subtitle size, 14.5px; the highlighted panel's bold).
@@ -244,6 +246,7 @@ For manual sharing (and later auto-posting), any chart can be exported as a 1200
 - Paper background, the chart's brand rule and tag, title, subtitle, the chart, the source line.
 - The wordmark "News" at the bottom right, and the page URL at the bottom left, in `ink-3`.
 - Light mode only. 48px padding. Text at least 20px.
+- Made on the laptop with `bun scripts/social-image.ts <page path> <chart id> [--base URL] [--out file.png]` (in `site/`, with the site running): Chromium lays the chart out at 720×405 CSS px and captures it at 5/3 device pixels, so 12px chart text is 20px in the image. The data table, downloads and a map's ranked table or bars are left out; the plot (a chart's plot box or the map) gives up height to fit, and a chart that still does not fit is an error, never shrunk.
 
 ## Checklist before a chart ships
 
