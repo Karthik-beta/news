@@ -1,0 +1,24 @@
+Bureau · Thu 12 Nov 2026 08:40 EST · service up · settings v12
+
+RUNNING
+  Nothing running. Heavy slot free.
+
+WAITING FOR YOU
+  catchup r_51d2     gate plan since Wed 11 Nov 21:05
+                      340 items in 7 chunks, estimated 4.1M input tokens, about 6 h
+
+QUEUED
+  Nothing queued.
+
+DUE
+  Schedules           edition Thu 12 Nov 11:00 · frontpage Fri 13 Nov 09:00 · rollcall Mon 16 Nov 07:00
+  Huddle              last r_3e11, 8.0 days ago: due
+  Rollcall            last r_44aa, 2.0 days ago: not due
+
+PROBLEMS
+  Dead jobs           7 since r_29c0: ai_invalid_output 3, transient 4
+  Failed runs         none in 7 days
+  Usage               Bureau today 400000 tokens
+
+NEXT
+  r_51d2 waits for your answer at gate plan
