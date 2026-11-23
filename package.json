@@ -20,6 +20,7 @@
     "test": "bun --filter '*' test",
     "test:integration": "bun --filter '*' test:integration && bun scripts/test-cli.ts integration",
     "test:e2e": "bun --filter '*' test:e2e",
+    "cloud:provision": "bun --no-env-file infra/cloud/provision.ts",
     "validate": "bun scripts/validate-config.ts && bun scripts/validate-skills.ts",
     "typecheck": "bun --filter '*' typecheck",
     "lint": "biome check .",
