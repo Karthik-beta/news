@@ -2946,7 +2946,16 @@ dependencies = [
 name = "news-taster"
 version = "0.0.1"
 dependencies = [
+ "chrono",
+ "news-clerk",
  "news-core",
+ "news-dispatch",
+ "news-nose",
+ "news-store",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "toml",
 ]
 
 [[package]]

@@ -1,0 +1,21 @@
+# Taster thresholds, version 1 (Bureau Design §3.6). Starting values (speculative): the Phase 4 golden
+# set G3 (200 labelled same/different pairs) calibrates the three cosines. Compiled into the binary and
+# checked on load (0 < grey < join <= update <= 1).
+
+version = "taster-v1"
+
+# Cosine against a story centroid: join at `join` with a shared resolved entity, grey zone from `grey`.
+join = 0.82
+grey = 0.72
+# Cosine to a page published within `page_days` that makes a candidate an update (needs a shared entity).
+update = 0.85
+
+# Near duplicates: SimHash-64 Hamming distance within `simhash_days`.
+simhash_distance = 3
+simhash_days = 7
+# Exact duplicates: the same content hash within `exact_days`.
+exact_days = 30
+
+# Story centroids considered for a candidate without an event key.
+window_hours = 72
+page_days = 30

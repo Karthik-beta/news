@@ -38,6 +38,8 @@ mod migrations;
 mod nose;
 #[path = "postgres/sources.rs"]
 mod sources;
+#[path = "postgres/taster.rs"]
+mod taster;
 #[path = "postgres/wire.rs"]
 mod wire;
 
