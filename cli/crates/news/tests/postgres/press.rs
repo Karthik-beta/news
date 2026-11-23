@@ -281,10 +281,12 @@ async fn an_authorised_step_stages_and_the_drain_publishes_and_promotes_within_t
             .await,
         "ready"
     );
+    // a-page has one put; d-page's dead row was revived, not duplicated; nothing else was staged
+    // (b1, which the authorisation did not cover, has none).
     assert_eq!(
-        f.scalar_i64("select count(*) from publish_outbox where op = 'put_page'")
+        f.scalar_str("select string_agg(page_id, ',' order by page_id) from publish_outbox where op = 'put_page'")
             .await,
-        1
+        "a-page,d-page"
     );
     assert_eq!(
         f.scalar_str("select string_agg(page_id, ',' order by outbox_id) from publish_outbox where op = 'index_promote'").await,
