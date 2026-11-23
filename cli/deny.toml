@@ -60,15 +60,18 @@ allow = [
     # redistributing the fonts inside a built binary.
     "OFL-1.1",
     "Ubuntu-font-1.0",
-    # The Mozilla CA root list as data (webpki-roots, webpki-root-certs, via ureq under hf-hub under
-    # fastembed, news-taster feature `embed`): permissive, allows redistribution.
-    "CDLA-Permissive-2.0",
 ]
 
 # One crate may carry a weak-copyleft licence, named here so nothing else can. MPL-2.0 is file-level: it
 # binds only changes to option-ext's own files, and it ships unmodified. It comes in through dirs-sys under
 # hf-hub under fastembed (news-taster feature `embed`).
-exceptions = [{ allow = ["MPL-2.0"], crate = "option-ext" }]
+# CDLA-Permissive-2.0 (permissive, allows redistribution) covers the Mozilla CA root list as data in
+# webpki-roots and webpki-root-certs, via ureq under hf-hub under fastembed (same feature); no other crate.
+exceptions = [
+    { allow = ["MPL-2.0"], crate = "option-ext" },
+    { allow = ["CDLA-Permissive-2.0"], crate = "webpki-roots" },
+    { allow = ["CDLA-Permissive-2.0"], crate = "webpki-root-certs" },
+]
 
 [licenses.private]
 # Our own crates are `publish = false` with `license = "UNLICENSED"`, which is not an SPDX expression.

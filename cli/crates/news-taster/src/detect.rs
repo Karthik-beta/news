@@ -61,8 +61,19 @@ pub trait Joiner {
         t: &Thresholds,
     ) -> impl Future<Output = Result<Vec<Neighbour>, sqlx::Error>> + Send;
 
-    /// Called once the candidate is in `story_id` (its own new story included), so a joiner can keep the
-    /// story's centroid. Only for candidates that went through [`Joiner::neighbours`].
+    /// Called for a candidate with an event key (it is never matched by similarity, so `neighbours` is
+    /// skipped) so its vector still reaches its story's centroid, where a later keyless candidate can
+    /// find it. Candidates without a key store theirs inside `neighbours`.
+    fn store_vector(
+        &self,
+        _: &mut PgConnection,
+        _: &Cand,
+    ) -> impl Future<Output = Result<(), sqlx::Error>> + Send {
+        async { Ok(()) }
+    }
+
+    /// Called once a candidate that is not a duplicate is in `story_id` (its own new story included), so
+    /// a joiner can keep the story's centroid.
     fn assigned(
         &self,
         _: &mut PgConnection,
@@ -230,7 +241,10 @@ async fn run<J: Joiner>(db: &PgPool, joiner: &J, t: &Thresholds) -> Result<Repor
             .bind(story)
             .execute(&mut *tx)
             .await?;
-        if !duplicate && c.event_key.is_none() {
+        if !duplicate {
+            if c.event_key.is_some() {
+                joiner.store_vector(&mut tx, &c).await?;
+            }
             joiner.assigned(&mut tx, &c, story).await?;
         }
         // Step 5: a new member of a story that already has a page is an update. A copy of something

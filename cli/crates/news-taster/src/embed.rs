@@ -1,16 +1,19 @@
 //! The embedding joiner (Bureau §3.6 step 4, ADR 0011).
 //!
-//! A candidate without an event key is embedded (title, a blank line, the first paragraph), its vector
-//! stored as `embeddings(owner_kind = 'candidate')`, and the nearest story centroids are read back with
-//! pgvector. When detection puts the candidate in a story the story's centroid, the mean of its
-//! members' vectors (`owner_kind = 'story'`), is recomputed.
+//! A candidate is embedded (title, a blank line, the first paragraph) and its vector stored as
+//! `embeddings(owner_kind = 'candidate')`. Only a candidate without an event key is then matched: the
+//! nearest story centroids are read back with pgvector (ADR 0011 decision 7: a keyed candidate joins by
+//! key alone, but its vector still feeds its story's centroid, so a later keyless article can find that
+//! story). When detection puts the candidate in a story the story's centroid, the unnormalised mean of
+//! its members' vectors (`owner_kind = 'story'`), is recomputed.
 //!
 //! The model sits behind [`Embedder`]. [`FastEmbedder`] (cargo feature `embed`, off by default) is
 //! bge-small-en-v1.5 fp32 on ONNX Runtime with 2 intra-op threads; without the feature nothing
 //! downloads or links the runtime and the service uses [`NoEmbedder`](crate::detect::NoEmbedder).
 //! Tests give [`EmbedJoiner`] an embedder that returns stored vectors.
 //!
-//! The embedder is synchronous, about 0.2 s a document: run detection on a multi-thread runtime.
+//! The embedder is synchronous, about 0.2 s a document; on a multi-thread runtime the call runs inside
+//! `block_in_place` so it does not stall the other tasks.
 
 use sqlx::PgConnection;
 
@@ -68,7 +71,8 @@ pub fn text(title: Option<&str>, paragraph: Option<&str>) -> Option<String> {
     }
 }
 
-/// A pgvector text literal of `v` scaled to unit length, so a centroid (a mean) stays comparable.
+/// A pgvector text literal of `v` scaled to unit length. A centroid is the unnormalised mean of such
+/// vectors, which is fine: `<=>` (cosine distance) ignores scale.
 fn literal(v: &[f32]) -> Result<String, sqlx::Error> {
     let norm = v.iter().map(|x| x * x).sum::<f32>().sqrt();
     if v.len() != DIM || !norm.is_finite() || norm == 0.0 {
@@ -90,15 +94,25 @@ impl<E: Embedder> EmbedJoiner<E> {
     pub fn new(embedder: E) -> Self {
         Self { embedder }
     }
-}
 
-impl<E: Embedder> Joiner for EmbedJoiner<E> {
-    async fn neighbours(
+    fn embed_blocking(&self, text: &str) -> Result<Vec<f32>, String> {
+        use tokio::runtime::{Handle, RuntimeFlavor};
+        // block_in_place panics on a current-thread runtime (some tests); there it runs inline.
+        match Handle::try_current().map(|h| h.runtime_flavor()) {
+            Ok(RuntimeFlavor::MultiThread) => {
+                tokio::task::block_in_place(|| self.embedder.embed(text))
+            }
+            _ => self.embedder.embed(text),
+        }
+    }
+
+    /// Embed the candidate and store its vector; returns the pgvector literal. `None` when there is
+    /// nothing to embed or the embedder fails (logged): the candidate then has no neighbours.
+    async fn embed_and_store(
         &self,
         db: &mut PgConnection,
         cand: &Cand,
-        t: &Thresholds,
-    ) -> Result<Vec<Neighbour>, sqlx::Error> {
+    ) -> Result<Option<String>, sqlx::Error> {
         // shortcut: the first block of the document that is not a heading stands for its first paragraph;
         // revisit when Clerk's block kinds settle.
         let paragraph: Option<String> = sqlx::query_scalar(
@@ -110,14 +124,18 @@ impl<E: Embedder> Joiner for EmbedJoiner<E> {
         .fetch_optional(&mut *db)
         .await?;
         let Some(text) = text(cand.title.as_deref(), paragraph.as_deref()) else {
-            return Ok(Vec::new());
+            return Ok(None);
         };
-        let v = literal(
-            &self
-                .embedder
-                .embed(&text)
-                .map_err(|e| sqlx::Error::Protocol(format!("embedding failed: {e}")))?,
-        )?;
+        let v = match self
+            .embed_blocking(&text)
+            .and_then(|v| literal(&v).map_err(|e| e.to_string()))
+        {
+            Ok(v) => v,
+            Err(e) => {
+                tracing::warn!(cand = cand.cand_id, error = %e, "embedding failed; no neighbours for this candidate");
+                return Ok(None);
+            }
+        };
         sqlx::query(
             "insert into embeddings (owner_kind, owner_id, model, v)
              values ('candidate', $1::bigint::text, $2, $3::text::halfvec)
@@ -128,31 +146,44 @@ impl<E: Embedder> Joiner for EmbedJoiner<E> {
         .bind(&v)
         .execute(&mut *db)
         .await?;
+        Ok(Some(v))
+    }
+}
+
+impl<E: Embedder> Joiner for EmbedJoiner<E> {
+    async fn neighbours(
+        &self,
+        db: &mut PgConnection,
+        cand: &Cand,
+        t: &Thresholds,
+    ) -> Result<Vec<Neighbour>, sqlx::Error> {
+        let Some(v) = self.embed_and_store(db, cand).await? else {
+            return Ok(Vec::new());
+        };
         // The HNSW index also holds candidate and page vectors; iterative scans keep the owner and
         // window filters below from starving the result.
         sqlx::query("select set_config('hnsw.iterative_scan', 'relaxed_order', true)")
             .execute(&mut *db)
             .await?;
         // A story is a neighbour while it was active in the last `window_hours`, or for `page_days` after
-        // its page was published. ADR 0011 decision 7: a candidate with an event key is never matched by
-        // cosine to a story that has one (only key equality joins those); a candidate without a key is
-        // matched to any.
+        // its page was published. Closed and merged-away stories never are. Only keyless candidates get
+        // here (ADR 0011 decision 7), and they may match a keyed story.
         let rows: Vec<(i64, f64, bool, bool)> = sqlx::query_as(
             "select s.story_id, (1 - (e.v <=> $1::text::halfvec))::float8,
                     s.entity_ids && $2::bigint[],
                     exists (select 1 from pages p where p.story_id = s.story_id and p.status = 'published')
                from embeddings e join stories s on e.owner_id = s.story_id::text
               where e.owner_kind = 'story' and e.model = $3
-                and (not $4 or s.event_key is null)
-                and (s.last_seen >= $5 - make_interval(hours => $6)
+                and s.status <> 'closed'
+                and not exists (select 1 from story_redirects r where r.from_story = s.story_id)
+                and (s.last_seen >= $4 - make_interval(hours => $5)
                      or exists (select 1 from pages p where p.story_id = s.story_id and p.status = 'published'
-                                   and p.published_at >= $5 - make_interval(days => $7)))
-              order by e.v <=> $1::text::halfvec limit $8",
+                                   and p.published_at >= $4 - make_interval(days => $6)))
+              order by e.v <=> $1::text::halfvec limit $7",
         )
         .bind(&v)
         .bind(&cand.entity_ids)
         .bind(MODEL)
-        .bind(cand.event_key.is_some())
         .bind(cand.first_seen)
         .bind(t.window_hours)
         .bind(t.page_days)
@@ -170,27 +201,46 @@ impl<E: Embedder> Joiner for EmbedJoiner<E> {
             .collect())
     }
 
-    /// The story's centroid is the mean of its candidates' vectors.
+    async fn store_vector(&self, db: &mut PgConnection, cand: &Cand) -> Result<(), sqlx::Error> {
+        self.embed_and_store(db, cand).await.map(|_| ())
+    }
+
     async fn assigned(
         &self,
         db: &mut PgConnection,
         _: &Cand,
         story_id: i64,
     ) -> Result<(), sqlx::Error> {
-        sqlx::query(
-            "insert into embeddings (owner_kind, owner_id, model, v)
-             select 'story', $1::bigint::text, $2::text, avg(e.v)
-               from candidates c join embeddings e
-                 on e.owner_kind = 'candidate' and e.owner_id = c.cand_id::text and e.model = $2
-              where c.story_id = $1 having count(*) > 0
-             on conflict (owner_kind, owner_id, model) do update set v = excluded.v, created_at = now()",
-        )
-        .bind(story_id)
-        .bind(MODEL)
-        .execute(db)
-        .await?;
-        Ok(())
+        recompute_centroid(db, story_id).await
     }
+}
+
+/// Set a story's centroid to the mean of its candidates' vectors; a story left with none (merged away)
+/// loses its centroid. Also called by merge and split, which move candidates between stories.
+pub async fn recompute_centroid(db: &mut PgConnection, story_id: i64) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        "insert into embeddings (owner_kind, owner_id, model, v)
+         select 'story', $1::bigint::text, $2::text, avg(e.v)
+           from candidates c join embeddings e
+             on e.owner_kind = 'candidate' and e.owner_id = c.cand_id::text and e.model = $2
+          where c.story_id = $1 having count(*) > 0
+         on conflict (owner_kind, owner_id, model) do update set v = excluded.v, created_at = now()",
+    )
+    .bind(story_id)
+    .bind(MODEL)
+    .execute(&mut *db)
+    .await?;
+    sqlx::query(
+        "delete from embeddings where owner_kind = 'story' and owner_id = $1::bigint::text and model = $2
+            and not exists (select 1 from candidates c join embeddings e
+                 on e.owner_kind = 'candidate' and e.owner_id = c.cand_id::text and e.model = $2
+              where c.story_id = $1)",
+    )
+    .bind(story_id)
+    .bind(MODEL)
+    .execute(db)
+    .await?;
+    Ok(())
 }
 
 #[cfg(test)]

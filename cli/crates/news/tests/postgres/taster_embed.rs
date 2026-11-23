@@ -12,7 +12,7 @@ use super::taster::{cand, doc, n, publish_page, source, t0};
 use chrono::TimeDelta;
 use news_taster::config;
 use news_taster::detect::{Cand, Joiner, detect};
-use news_taster::embed::{DIM, EmbedJoiner, Embedder, MODEL};
+use news_taster::embed::{DIM, EmbedJoiner, Embedder};
 use sqlx::PgPool;
 
 fn axis(i: usize) -> Vec<f32> {
@@ -26,11 +26,6 @@ fn mix(i: usize, j: usize, c: f32) -> Vec<f32> {
     v[i] = c;
     v[j] = (1.0 - c * c).sqrt();
     v
-}
-
-fn lit(v: &[f32]) -> String {
-    let parts: Vec<String> = v.iter().map(f32::to_string).collect();
-    format!("[{}]", parts.join(","))
 }
 
 /// The embedder of these tests: the vector stored for the exact text it is given.
@@ -216,33 +211,32 @@ async fn the_nearest_story_wins_and_only_inside_the_window() {
 
 #[tokio::test(flavor = "multi_thread")]
 #[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
-async fn a_cosine_never_joins_two_event_keys_and_a_story_with_a_page_is_flagged() {
+async fn a_keyed_story_has_a_centroid_a_keyless_article_finds_but_a_keyed_one_never_matches() {
     let f = Fixture::migrated().await;
     let p = &f.pool;
     let t = config::v1().unwrap();
     source(p, "wire-a", 2).await;
-    // A keyed story, and a stored centroid for it (a keyed candidate is not embedded itself).
-    cand(p, "wire-a", "ECB holds", Some("ecb:2026-10"), None, t0()).await;
-    detect(p, &joiner(&[]), &t).await.unwrap();
-    let story = n(p, "select story_id from stories").await;
-    sqlx::query("insert into embeddings (owner_kind, owner_id, model, v) values ('story', $1::bigint::text, $2, $3::text::halfvec)")
-        .bind(story)
-        .bind(MODEL)
-        .bind(lit(&axis(0)))
-        .execute(p)
-        .await
-        .unwrap();
+    let j = joiner(&[
+        ("ECB holds", axis(0)),
+        ("same words", axis(0)),
+        ("ECB holds again", axis(0)),
+    ]);
+    // A keyed candidate is embedded too, so its story gets a centroid (decision 7 only stops it being
+    // matched by similarity).
+    let keyed = cand(p, "wire-a", "ECB holds", Some("ecb:2026-10"), None, t0()).await;
+    entities(p, keyed, &[7]).await;
+    detect(p, &j, &t).await.unwrap();
+    let story = story_of(p, keyed).await;
+    assert_eq!(
+        n(
+            p,
+            "select count(*) from embeddings where owner_kind = 'story'"
+        )
+        .await,
+        1
+    );
 
-    let j = joiner(&[("same words", axis(0))]);
-    let mut conn = p.acquire().await.unwrap();
-    let probe = |event_key: Option<&str>, id: i64| Cand {
-        cand_id: id,
-        title: Some("same words".into()),
-        event_key: event_key.map(str::to_owned),
-        entity_ids: vec![],
-        first_seen: t0() + TimeDelta::hours(1),
-        doc: None,
-    };
+    // A keyless article with the same vector and a shared entity finds the keyed story (the FOMC case).
     let keyless = cand(
         p,
         "wire-a",
@@ -252,37 +246,123 @@ async fn a_cosine_never_joins_two_event_keys_and_a_story_with_a_page_is_flagged(
         t0() + TimeDelta::hours(1),
     )
     .await;
-    let keyed = cand(
+    entities(p, keyless, &[7]).await;
+    let r = detect(p, &j, &t).await.unwrap();
+    assert_eq!((r.by_similarity, r.new_stories), (1, 0));
+    assert_eq!(story_of(p, keyless).await, story);
+
+    // A keyed candidate with a different key and an identical vector is a new story: no cosine match.
+    let other = cand(
         p,
         "wire-a",
-        "same words",
+        "ECB holds again",
         Some("ecb:2026-11"),
+        None,
+        t0() + TimeDelta::hours(2),
+    )
+    .await;
+    entities(p, other, &[7]).await;
+    let r = detect(p, &j, &t).await.unwrap();
+    assert_eq!(
+        (r.by_similarity, r.grey_zone, r.by_event_key, r.new_stories),
+        (0, 0, 0, 1)
+    );
+    assert_ne!(story_of(p, other).await, story);
+
+    // Its page makes the story one that needs the update threshold (0.85); it stays a neighbour 10 days on.
+    publish_page(p, story).await;
+    let mut conn = p.acquire().await.unwrap();
+    let late = Cand {
+        cand_id: keyless,
+        title: Some("same words".into()),
+        event_key: None,
+        entity_ids: vec![],
+        first_seen: t0() + TimeDelta::days(10),
+        doc: None,
+    };
+    let ns = j.neighbours(&mut conn, &late, &t).await.unwrap();
+    assert_eq!(ns.len(), 1);
+    assert_eq!(ns[0].story_id, story);
+    assert!(ns[0].has_page);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn merge_and_split_keep_centroids_and_a_merged_away_story_is_never_matched() {
+    let f = Fixture::migrated().await;
+    let p = &f.pool;
+    let t = config::v1().unwrap();
+    source(p, "wire-a", 2).await;
+    let j = joiner(&[
+        ("three", axis(0)),
+        ("five", axis(1)),
+        ("echo of five", axis(1)),
+    ]);
+    let c3 = cand(p, "wire-a", "three", None, None, t0()).await;
+    let c5 = cand(p, "wire-a", "five", None, None, t0()).await;
+    entities(p, c3, &[7]).await;
+    entities(p, c5, &[7]).await;
+    detect(p, &j, &t).await.unwrap();
+    let (s3, s5) = (story_of(p, c3).await, story_of(p, c5).await);
+    assert_ne!(s3, s5);
+    let centroids = |s: i64| async move {
+        n(
+            p,
+            &format!(
+                "select count(*) from embeddings where owner_kind = 'story' and owner_id = '{s}'"
+            ),
+        )
+        .await
+    };
+
+    // Merge 5 into 3: 5's centroid goes, 3's becomes the mean of both (cosine 0.707 to each axis).
+    news_taster::edit::merge(p, s5, s3).await.unwrap();
+    assert_eq!((centroids(s5).await, centroids(s3).await), (0, 1));
+    let cos_to = |c: i64| {
+        sqlx::query_scalar::<_, f64>(
+            "select (1 - (s.v <=> c.v))::float8 from embeddings s, embeddings c
+              where s.owner_kind = 'story' and s.owner_id = $1::bigint::text
+                and c.owner_kind = 'candidate' and c.owner_id = $2::bigint::text",
+        )
+        .bind(s3)
+        .bind(c)
+        .fetch_one(p)
+    };
+    assert!((0.70..0.72).contains(&cos_to(c5).await.unwrap()));
+
+    // A new keyless article exactly like 5's old centroid never joins 5 (closed, redirected): 0.707 to
+    // 3's mean is under the 0.72 floor, so it is a new story.
+    let x = cand(
+        p,
+        "wire-a",
+        "echo of five",
+        None,
         None,
         t0() + TimeDelta::hours(1),
     )
     .await;
+    entities(p, x, &[7]).await;
+    let r = detect(p, &j, &t).await.unwrap();
+    assert_eq!((r.by_similarity, r.grey_zone, r.new_stories), (0, 0, 1));
+    assert_ne!(story_of(p, x).await, s5);
 
-    // Identical vectors: with no key on the candidate the keyed story is a neighbour; with a key of
-    // its own it is not (only key equality joins those).
-    let ns = j
-        .neighbours(&mut conn, &probe(None, keyless), &t)
-        .await
-        .unwrap();
-    assert_eq!(ns.len(), 1);
-    assert_eq!(ns[0].story_id, story);
-    assert!(ns[0].cos > 0.999, "{}", ns[0].cos);
-    assert!(!ns[0].shared_entity && !ns[0].has_page);
-    let ns = j
-        .neighbours(&mut conn, &probe(Some("ecb:2026-11"), keyed), &t)
-        .await
-        .unwrap();
-    assert!(ns.is_empty());
+    // Split 5's candidate back out of 3: 3's centroid is the first candidate's vector again, and the
+    // new story has one of its own.
+    let new = news_taster::edit::split(p, s3, &[c5]).await.unwrap();
+    assert!(cos_to(c3).await.unwrap() > 0.999);
+    assert_eq!(centroids(new).await, 1);
+}
 
-    // Its page makes it a story that needs the update threshold (0.85); it stays a neighbour 10 days on.
-    publish_page(p, story).await;
-    let mut late = probe(None, keyless);
-    late.first_seen = t0() + TimeDelta::days(10);
-    let ns = j.neighbours(&mut conn, &late, &t).await.unwrap();
-    assert_eq!(ns.len(), 1);
-    assert!(ns[0].has_page);
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn an_embedding_failure_is_no_neighbours_not_an_error() {
+    let f = Fixture::migrated().await;
+    let p = &f.pool;
+    let t = config::v1().unwrap();
+    source(p, "wire-a", 2).await;
+    // The lookup embedder has no vector for this text and returns an error.
+    cand(p, "wire-a", "unknown", None, None, t0()).await;
+    let r = detect(p, &joiner(&[]), &t).await.unwrap();
+    assert_eq!((r.candidates, r.new_stories), (1, 1));
+    assert_eq!(n(p, "select count(*) from embeddings").await, 0);
 }
