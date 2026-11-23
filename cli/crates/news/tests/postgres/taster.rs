@@ -189,7 +189,7 @@ async fn a_release_syndicated_by_two_wires_is_one_story_and_a_rerun_changes_noth
     assert_eq!(
         n(
             p,
-            "select member_count from stories order by story_id limit 1"
+            "select member_count::bigint from stories order by story_id limit 1"
         )
         .await,
         3
@@ -279,7 +279,7 @@ async fn a_candidate_for_a_covered_story_is_an_update_nose_can_score() {
         &cfg,
     )
     .unwrap();
-    assert_eq!(n(p, "select member_count from stories").await, 3);
+    assert_eq!(n(p, "select member_count::bigint from stories").await, 3);
 }
 
 /// Neighbours fixed by the test, standing in for the embedder.
@@ -460,7 +460,7 @@ async fn merge_and_split_move_candidates_and_keep_event_keys_pointing_home() {
     assert_eq!(
         n(
             p,
-            &format!("select member_count from stories where story_id = {b}")
+            &format!("select member_count::bigint from stories where story_id = {b}")
         )
         .await,
         3
@@ -486,7 +486,7 @@ async fn merge_and_split_move_candidates_and_keep_event_keys_pointing_home() {
     assert_eq!(
         n(
             p,
-            &format!("select member_count from stories where story_id = {b}")
+            &format!("select member_count::bigint from stories where story_id = {b}")
         )
         .await,
         4
@@ -539,7 +539,7 @@ async fn merge_and_split_move_candidates_and_keep_event_keys_pointing_home() {
     assert_eq!(
         n(
             p,
-            &format!("select member_count from stories where story_id = {new}")
+            &format!("select member_count::bigint from stories where story_id = {new}")
         )
         .await,
         2
@@ -547,7 +547,7 @@ async fn merge_and_split_move_candidates_and_keep_event_keys_pointing_home() {
     assert_eq!(
         n(
             p,
-            &format!("select member_count from stories where story_id = {cs}")
+            &format!("select member_count::bigint from stories where story_id = {cs}")
         )
         .await,
         all.len() as i64 - 2
