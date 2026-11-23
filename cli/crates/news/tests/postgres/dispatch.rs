@@ -154,6 +154,59 @@ async fn eight_workers_and_200_jobs_never_exceed_max_running_and_never_double_cl
     }
 }
 
+/// Docling is heavy: with many workers racing for `doc.parse_docling` jobs, never two run at once.
+#[tokio::test(flavor = "multi_thread", worker_threads = 6)]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn docling_jobs_never_overlap() {
+    let f = Fixture::migrated().await;
+    for i in 0..12 {
+        queue::enqueue(
+            &f.pool,
+            &NewJob::new("doc.parse_docling")
+                .pool("docling")
+                .args(json!({"i": i})),
+        )
+        .await
+        .unwrap();
+    }
+    let running = Arc::new(AtomicUsize::new(0));
+    let peak = Arc::new(AtomicUsize::new(0));
+    let done = Arc::new(AtomicUsize::new(0));
+    let mut workers = Vec::new();
+    for w in 0..6 {
+        let (db, running, peak, done) =
+            (f.pool(2).await, running.clone(), peak.clone(), done.clone());
+        workers.push(tokio::spawn(async move {
+            let name = format!("w{w}");
+            let mut idle = 0;
+            while done.load(Ordering::SeqCst) < 12 && idle < 2000 {
+                let c = queue::claim(&db, "docling", 4, LEASE, &name).await.unwrap();
+                idle += usize::from(c.jobs.is_empty());
+                for job in c.jobs {
+                    let now = running.fetch_add(1, Ordering::SeqCst) + 1;
+                    peak.fetch_max(now, Ordering::SeqCst);
+                    tokio::time::sleep(Duration::from_millis(15)).await;
+                    running.fetch_sub(1, Ordering::SeqCst);
+                    queue::complete(&db, job.job_id, job.lease(&name), &json!({"ok": true}))
+                        .await
+                        .unwrap();
+                    done.fetch_add(1, Ordering::SeqCst);
+                }
+                tokio::task::yield_now().await;
+            }
+        }));
+    }
+    for w in workers {
+        w.await.unwrap();
+    }
+    assert_eq!(done.load(Ordering::SeqCst), 12);
+    assert_eq!(
+        peak.load(Ordering::SeqCst),
+        1,
+        "two docling jobs overlapped"
+    );
+}
+
 #[tokio::test(flavor = "multi_thread")]
 #[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
 async fn a_killed_workers_job_returns_to_retryable_through_the_rescuer() {

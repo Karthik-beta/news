@@ -107,6 +107,20 @@ mod tests {
     }
 
     #[test]
+    fn docling_jobs_run_only_in_the_single_slot_docling_pool() {
+        assert_eq!(spec("doc.parse_docling").map(|s| s.pool), Some("docling"));
+        for s in all().filter(|s| s.pool == "docling") {
+            assert_eq!(s.kind, "doc.parse_docling");
+        }
+        // The claim query enforces `pools.max_running`; the migration seeds docling at 1 (§5.7).
+        let seed = include_str!("../../../migrations/0006_dispatch.sql");
+        assert!(
+            seed.contains("('docling', 1,"),
+            "docling max_running is not 1"
+        );
+    }
+
+    #[test]
     fn publishing_kinds_never_run_in_work_pools() {
         for s in all().filter(|s| s.owner == "press") {
             assert!(!crate::BACKGROUND_POOLS.contains(&s.pool), "{}", s.kind);

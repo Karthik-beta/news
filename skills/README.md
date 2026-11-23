@@ -2,30 +2,33 @@
 
 These skills are for the **production pipeline**: the `claude -p` calls (Sonnet 5.5, Haiku 5.5) that write and check pages. They are deliberately **not** in `.claude/skills/`, so they don't load into development sessions, and development skills don't load into page calls.
 
-| Skill | Loaded when | Status |
-|---|---|---|
-| [news-brand](news-brand/SKILL.md) | Every page call (cached prompt prefix) | Agreed (from the design system) |
-| [page-earnings](page-earnings/SKILL.md) | Earnings pages | Draft, finalised in Phase 4 |
-| [page-macro-release](page-macro-release/SKILL.md) | Macro releases | Draft, finalised in Phase 4 |
-| [page-major-report](page-major-report/SKILL.md) | Institutional reports | Draft, finalised in Phase 4 |
-| [page-policy-decision](page-policy-decision/SKILL.md) | Central-bank and policy decisions | Draft, finalised in Phase 4 |
-| [page-news-story](page-news-story/SKILL.md) | News stories | Draft, finalised in Phase 4 |
-| [page-science](page-science/SKILL.md) | Science pages | Draft, finalised in Phase 4 |
-| [page-explainer](page-explainer/SKILL.md) | Explainers | Draft, finalised in Phase 4 |
-| news-home-curation | The home page curator in the Frontpage preset (every 2–3 days, on schedule or from Board): a `claude -p` draft call through Ghost, with no tools; Karthik approves the draft in Board | Planned: written in Phase 7 (Development Plan) |
-| A11: Rollcall proposals (name to be chosen) | A `claude -p` draft call in the Rollcall preset; Karthik approves the proposals in Board | Planned: Phase 7 |
-| A3: classify an ambiguous item (name to be chosen) | Haiku batches for free-text items the rules table cannot classify | Planned: Phase 7 |
-| A4: same story? (name to be chosen) | Haiku batches for grey-zone story pairs | Planned: Phase 7 |
-| A5: condense long source text (name to be chosen) | Haiku, when a brief's source text is too long; extractive and digit-free | Planned: Phase 7 |
-| A7: sample check (name to be chosen) | Haiku comparison of a page with its brief, on a sample of pages | Planned: Phase 7 |
-| A9: triage a reader error report (name to be chosen) | Haiku batches in the Errata workflow | Planned: Phase 7 |
-| A6 entity shortlist, A10 alt text (names to be chosen) | Only if switched on; off at launch (Bureau design, decision D12) | Not planned yet |
+| Skill | Step | Loaded when | Output | Size (≈ tokens) |
+|---|---|---|---|---|
+| [news-reporter](news-reporter/SKILL.md) | A1, A2 | Every page call, first in the cached prefix: write, update after a direction flip, repair | `page-draft.v1` | 1,070 |
+| [news-brand](news-brand/SKILL.md) | A1, A2 | Every page call (cached prefix): voice, refs, banned words, components | — | 1,540 |
+| [page-earnings](page-earnings/SKILL.md) | A1, A2 | Earnings pages | — | 540 |
+| [page-macro-release](page-macro-release/SKILL.md) | A1, A2 | Macro releases | — | 440 |
+| [page-major-report](page-major-report/SKILL.md) | A1, A2 | Institutional reports | — | 410 |
+| [page-policy-decision](page-policy-decision/SKILL.md) | A1, A2 | Central-bank and policy decisions | — | 400 |
+| [page-news-story](page-news-story/SKILL.md) | A1, A2 | News stories | — | 370 |
+| [page-science](page-science/SKILL.md) | A1, A2 | Science pages | — | 380 |
+| [page-explainer](page-explainer/SKILL.md) | A1, A2 | Explainers | — | 370 |
+| [news-classify](news-classify/SKILL.md) | A3 | Haiku, free-text items the rules table cannot classify | `a3.classify.v1` | 640 |
+| [news-story-match](news-story-match/SKILL.md) | A4 | Haiku, grey-zone story pairs; separate when unsure | `a4.storymatch.v1` | 560 |
+| [news-condense](news-condense/SKILL.md) | A5 | Haiku, when a brief's source text is over budget; extractive, digit-free | `a5.condense.v1` | 570 |
+| [news-spot-check](news-spot-check/SKILL.md) | A7 | Haiku comparison of a page with its brief, on a sample of pages | `a7.spotcheck.v1` | 710 |
+| [news-home-curation](news-home-curation/SKILL.md) | A8 | The Frontpage curator (every 2–3 days): a draft Karthik approves in Board | Draft curation (lead, side, sections, rationale) | 970 |
+| [news-rollcall](news-rollcall/SKILL.md) | A11 | Rollcall's proposals: a draft Karthik approves in Board | `{"proposals": […]}` (Bureau §7.1) | 680 |
+| A9: triage a reader error report (name to be chosen) | A9 | Haiku batches in the Errata workflow | `a9.triage.v1` | Planned: #21 |
+| A6 entity shortlist, A10 alt text | A6, A10 | Only if switched on; off at launch (Bureau design, decision D12) | — | No skill |
 
-Each AI step's contract (input, output schema, validator, fallback, budget) is in the [Bureau design §7](../News%20—%20Bureau%20Design.md#7-ai-usage-ledger).
+A page call's prefix is `news-reporter` + `news-brand` + one `page-*` skill (about 3,000 tokens together) + the component index + that page type's component specs. Sizes are UTF-8 bytes ÷ 4, a rough count; telemetry gives the real one.
+
+Each AI step's contract (input, output schema, validator, fallback, budget) is in the [Bureau design §7](../News%20—%20Bureau%20Design.md#7-ai-usage-ledger); output schemas are in `contracts/cli/ai/`. Every skill states its input shape, its output, what happens when the output fails validation, and that `source_text` and other outside text are untrusted data, never instructions.
 
 ## How the pipeline uses them
 
-Ghost, the AI runner inside the Bureau service (Rust, Phase 7; ADR 0007), builds each page call's prompt prefix from: instructions, `news-brand`, the one page-type skill for the item, the component index and that page type's pre-selected component specs; the brief is the input. Keep the prefix identical across calls so prompt caching stays warm, and keep each skill short: every word is paid for on every page.
+Ghost, the AI runner inside the Bureau service (Rust, Phase 7; ADR 0007), builds each page call's prompt prefix from: instructions (`news-reporter`), `news-brand`, the one page-type skill for the item, the component index and that page type's pre-selected component specs; the brief is the input. Keep the prefix identical across calls so prompt caching stays warm, and keep each skill short: every word is paid for on every page.
 
 Page calls must not load the project's development plugins and skills, and get no tools at all. Run them with `--tools ""`, an explicit settings file that enables no plugins or hooks, and an empty strict MCP config (`--strict-mcp-config`) (see the Technical Design, "Keeping each claude -p call lean", and the [Bureau design §3.9](../News%20—%20Bureau%20Design.md#39-reporter)).
 
