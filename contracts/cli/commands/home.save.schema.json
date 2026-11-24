@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/home.save.schema.json",
+  "title": "news home save",
+  "description": "Store a draft curation (home-draft.v1, ../home-draft.v1.schema.json) from a file, or - for stdin. Only the shape is refused here; slot counts, ID formats and the breadth rules are `news home check`'s. The same open draft saved again returns its id. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "W",
+  "x-news-status": "built",
+  "x-news-errors": ["validation_failed", "not_found"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "file": { "type": "string" }
+      },
+      "required": ["file"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "draft_id": { "type": "integer" },
+        "created": { "description": "False when an identical open draft already existed.", "type": "boolean" },
+        "pages": { "type": "integer" }
+      },
+      "required": ["draft_id", "created", "pages"],
+      "additionalProperties": false
+    }
+  }
+}

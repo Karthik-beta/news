@@ -24,7 +24,7 @@ One Rust binary that gives agents, Bun code and Karthik every operation on the l
 
 ## Stubs
 
-Commands whose subsystem is not built yet return `precondition` (exit 4) with a hint naming the issue that builds it: Contacts, Wire (with `prune`), Clerk #9 (the libraries are built; the commands follow the Bureau service, #10/#29) Â· Chief #10 Â· Taster #15 Â· Ticker (`stats`) #16 Â· render, save, Proof #17 Â· Ghost #18 Â· Critic, Huddle, `scores propose|label` #19 Â· Press, home, Rewrite #20 Â· Errata #21. Built now: `version`, `db`, `components`, `component`, `schema`, `ai schema`, `jobs *`, `calendar upcoming|sync|late`, `entities resolve|show|unresolved` (#12; ADR 0009), `plan --run` and `scores explain|weights` (#15; ADR 0012), and `brief` and `related` (#18). `alias add` and `merge` are H-tier, so they have no command form.
+Commands whose subsystem is not built yet return `precondition` (exit 4) with a hint naming the issue that builds it: Contacts, Wire (with `prune`), Clerk #9 (the libraries are built; the commands follow the Bureau service, #10/#29) · Chief #10 · Taster #15 · Ticker (`stats`) #16 · render, save, Proof #17 · Ghost #18 · Critic, Huddle, `scores propose|label` #19 · Press, Rewrite #20 (`news home candidates|save|check|preview|show` are built; `home publish` is the gated G-tier form) · Errata #21. Built now: `version`, `db`, `components`, `component`, `schema`, `ai schema`, `jobs *`, `calendar upcoming|sync|late`, `entities resolve|show|unresolved` (#12; ADR 0009), `plan --run` and `scores explain|weights` (#15; ADR 0012), and `brief` and `related` (#18). `alias add` and `merge` are H-tier, so they have no command form.
 
 ## Crate map
 
@@ -52,6 +52,7 @@ Commands whose subsystem is not built yet return `precondition` (exit 4) with a 
 | `news-proof`, `news-rewrite`, `news-press`, `news-critic` | Subsystem skeletons: `ISSUE`, the job kinds they own and a stub `handle` (fails with class `bug`, "not built yet") |
 | `news-taster` | Taster (#15): exact and SimHash duplicates, event keys, update detection, grey-zone A4 jobs, `stories.score_input` for Nose, H-tier `merge`/`split`; thresholds in `data/seeds/taster-v1.toml`; the embedding step is the `Joiner` seam (none until ADR 0011); the `story.detect` handler still refuses as not built |
 | `news-nose` | Nose and Desk (#15, ADR 0012): story scores with the Pitch, the Budget (`run_plans`), scorer config v1 from `data/seeds/`; its job kinds still refuse as not built |
+| `news-home` | Home curation (#20, ADR 0005): `home_score` candidates with bucket diversity, the draft and its `curation.v1` body, the check rules (a port of `workers/shared/src/curation.ts`), `home_curations`, the local preview push, and `publish` through a small write-API client (G tier, called in process by Chief's step; `rollback` is Board's, over the Hotline) |
 | `news-diary` | Diary (#12): ICS, FOMC HTML and seed-file calendars, derived earnings windows, the capture schedule, `calendar_events`; its job handlers refuse with `bug` until the Bureau service gives them a context |
 | `news-roster` | Roster (#12): normalisation, the deterministic resolver, seed loaders (SEC, GLEIF, ROR, Wikidata), the unresolved queue, H-tier `add_alias` and `merge`; no job kinds |
 

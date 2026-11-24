@@ -422,7 +422,7 @@ mod tests {
             );
             stubs += 1;
         }
-        assert!(stubs >= 25, "only {stubs} stubs");
+        assert!(stubs >= 20, "only {stubs} stubs");
     }
 
     #[test]
@@ -434,11 +434,11 @@ mod tests {
     }
 
     #[test]
-    fn every_bureau_command_has_a_contract_except_home_and_publish() {
+    fn every_bureau_command_has_a_contract_except_publish() {
         let have = commands::schema_commands();
         for (path, _) in leaves() {
             // `board` opens a window and prints no envelope: it has no contract.
-            if path.starts_with("home.") || path == "publish" || path == "board" {
+            if path == "publish" || path == "board" {
                 continue;
             }
             assert!(
