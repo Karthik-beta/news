@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/home.show.schema.json",
+  "title": "news home show",
+  "description": "The newest curation Press recorded as published, with its age in days. Read from PostgreSQL (`home_curations`), not from the cloud. `text` is the short table for Karthik. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "R",
+  "x-news-status": "built",
+  "x-news-errors": ["not_found"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "draft_id": { "type": "integer" },
+        "version": { "type": ["integer", "null"] },
+        "published_at": { "type": "string", "format": "date-time" },
+        "age_days": { "type": "number", "minimum": 0 },
+        "curator_model": { "type": "string" },
+        "slots": { "description": "The curation's slots, as in home-draft.v1.", "type": "object" },
+        "text": { "type": "string" }
+      },
+      "required": ["draft_id", "version", "published_at", "age_days", "curator_model", "slots", "text"],
+      "additionalProperties": false
+    }
+  }
+}

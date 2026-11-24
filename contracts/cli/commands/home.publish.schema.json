@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/home.publish.schema.json",
+  "title": "news home publish",
+  "description": "Publish an approved curation: PUT /v1/home/curation with `Idempotency-Key: home-curation:<draft>:<sha256 of the body>`, which validates again, writes the next version, moves LATEST and purges the home page and region views. G tier: Chief runs it in process as the authorised step of a live run (the `publish` approval); this CLI form always answers `gated`. Checks run again first; the approval time and results are fixed once, so a rerun after a crash sends the same bytes under the same key and the API answers with the version it already committed. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "G",
+  "x-news-status": "built",
+  "x-news-errors": ["gated", "not_found", "precondition", "validation_failed", "conflict", "upstream_unavailable"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "draft": { "type": "string" }
+      },
+      "required": ["draft"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "draft_id": { "type": "integer" },
+        "version": { "type": ["integer", "null"] },
+        "live_version": { "type": "integer" },
+        "purged": { "type": "array", "items": { "type": "string" } },
+        "idempotency_key": { "type": "string", "pattern": "^[A-Za-z0-9:._-]{8,255}$" },
+        "approved_at": { "type": ["string", "null"], "format": "date-time" },
+        "already_published": {
+          "description": "Present and true when the draft was already live; nothing was sent.",
+          "type": "boolean"
+        }
+      },
+      "required": ["draft_id", "version"],
+      "additionalProperties": false
+    }
+  }
+}
