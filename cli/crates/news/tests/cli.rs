@@ -438,12 +438,35 @@ fn scores_weights_prints_scorer_config_v1_without_a_database() {
     let (env, code, stderr) = call(&["scores", "weights"]);
     assert_eq!(code, 0, "{env} {stderr}");
     let d = &env["data"];
-    assert_eq!(d["version"], "v1");
+    assert_eq!(
+        (d["live"].as_str(), d["version"].as_str()),
+        (Some("seed"), Some("v1"))
+    );
     assert_eq!(d["weights"]["I"], 0.30);
     assert_eq!(d["weights"]["G"], 0.10);
     assert_eq!(d["half_life_hours"]["report"], 96.0);
     assert_eq!(d["event_weights"]["policy_major"], 1.0);
     assert_eq!(d["coverage_targets"]["region"]["india"], 0.15);
+}
+
+#[test]
+fn huddle_commands_refuse_bad_input_before_the_database() {
+    for (args, code, kind) in [
+        (vec!["scores", "adopt", "v-two"], 2, "usage"),
+        (vec!["scores", "propose"], 2, "usage"),
+        (
+            vec!["scores", "label", "--run", "r_1", "no-such-file.json"],
+            3,
+            "not_found",
+        ),
+    ] {
+        let (env, got, _) = call(&args);
+        assert_eq!(
+            (got, env["error"]["code"].as_str()),
+            (code, Some(kind)),
+            "{args:?}: {env}"
+        );
+    }
 }
 
 #[test]

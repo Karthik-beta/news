@@ -401,6 +401,8 @@ pub enum ScoresCmd {
         run: String,
         file: String,
     },
+    /// Make a proposed scorer version live (G tier)
+    Adopt { version: String },
 }
 
 #[derive(Subcommand, Debug)]

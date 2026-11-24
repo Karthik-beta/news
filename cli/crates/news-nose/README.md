@@ -8,8 +8,10 @@ Nose scores each open story 0–100 by code and explains the score (the Pitch); 
 | `score` | `StoryInput`, the ten signals, S, tiers and the Pitch (pure) |
 | `desk` | Greedy selection under the hard limits, and the `news plan` output (pure) |
 | `store` | `stories.score_input`, coverage, `scores`, `run_plans` |
+| `calibrate` | Huddle's Bradley–Terry fit of the weights, the ±0.05 / sum-to-1 rules, Kendall's τ (pure) |
+| `huddle` | `score_labels`, `scorer_versions`, the questions, `propose` and `adopt` |
 
-Commands: `news plan --run <uuid>` (W), `news scores explain <story>` (R), `news scores weights` (R).
+Commands: `news plan --run <uuid>` (W), `news scores explain <story>` (R), `news scores weights` (R), `news scores label --run <run> <file>` (W), `news scores propose --from-labels` (W), `news scores adopt <version>` (G, always gated from the CLI). Calibration: [ADR 0012](../../../docs/adr/0012-scoring-and-selection.md).
 
 ## Signals (all in [0, 1])
 

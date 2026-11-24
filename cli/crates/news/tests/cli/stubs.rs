@@ -11,11 +11,8 @@ pub const STUBS: &[(&str, &str)] = &[
     ("discover --source fred", "#9"),
     ("fetch 81234", "#9"),
     ("parse 81234", "#9"),
-    ("scores propose --from-labels", "#19"),
-    ("scores label --run r_1 labels.json", "#19"),
     ("eval run g1", "#19"),
     ("eval report e1", "#19"),
-    ("review weekly", "#19"),
     ("update 2026/11/us-cpi-october-2026", "#20"),
     ("corrections pull", "#21"),
     ("corrections show c1", "#21"),
@@ -51,6 +48,7 @@ pub const G_TIER: &[&str] = &[
     "publish 81234",
     "home publish 3",
     "eval promote A1 v3",
+    "scores adopt v2",
     "corrections resolve c1 --action update",
 ];
 

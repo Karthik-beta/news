@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/hotline/commands/huddle.answer.schema.json",
+  "title": "Hotline huddle.answer",
+  "description": "Store Karthik's pairwise answers from Huddle's Board form, the same call as `news scores label`: each label says which of two stories deserved a page first. Answering a pair again replaces the earlier answer. Input is the request's args; output is the reply envelope's data.",
+  "x-news-tier": "H",
+  "x-hotline-from": ["board"],
+  "x-news-status": "#19",
+  "x-news-cli": null,
+  "x-news-errors": ["usage", "not_found", "validation_failed", "upstream_unavailable"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "run": {
+          "$ref": "../common.schema.json#/$defs/runRef"
+        },
+        "labels": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "a": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "A story id from the question"
+              },
+              "b": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "The other story id"
+              },
+              "winner": {
+                "enum": ["a", "b"]
+              }
+            },
+            "required": ["a", "b", "winner"],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 200
+        }
+      },
+      "required": ["run", "labels"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "stored": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "text": {
+          "$ref": "../common.schema.json#/$defs/text"
+        }
+      },
+      "required": ["stored", "text"],
+      "additionalProperties": false
+    }
+  }
+}

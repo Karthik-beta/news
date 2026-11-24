@@ -27,7 +27,6 @@ const RETIRED: &[(&str, &str)] = &[
     ("jobs unpause net", "unpause"),
     ("sources enable fred", "enable"),
     ("sources disable fred", "disable"),
-    ("scores adopt v2", "adopt"),
     ("stories merge 1 2", "merge"),
     ("stories split 1 7 8", "split"),
     ("entities alias add Apple 1", "alias"),

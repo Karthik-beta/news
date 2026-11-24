@@ -2,11 +2,17 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://news.karthik.nz/contracts/cli/commands/review.weekly.schema.json",
   "title": "news review weekly",
-  "description": "The Debrief: the week's statistics. Input is the command's arguments as an object; output is the envelope's data.",
+  "description": "The Debrief: the 7 days' statistics, built in SQL from existing tables. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "R",
-  "x-news-status": "stub until #19",
+  "x-news-status": "built",
   "x-news-errors": [],
   "$defs": {
+    "counts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer"
+      }
+    },
     "input": {
       "type": "object",
       "properties": {},
@@ -20,17 +26,97 @@
           "type": "string",
           "description": "Code-rendered text, printed verbatim to Karthik"
         },
+        "window_days": {
+          "type": "integer"
+        },
+        "pages": {
+          "type": "object",
+          "properties": {
+            "total": { "type": "integer" },
+            "by_tier": { "$ref": "#/$defs/counts" },
+            "by_type": { "$ref": "#/$defs/counts" }
+          },
+          "required": ["total", "by_tier", "by_type"],
+          "additionalProperties": false
+        },
         "coverage": {
-          "type": "object"
+          "type": "object",
+          "description": "Per dimension (category, region, page_type), per bucket: the actual share of the window's pages and the target",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "actual": { "type": "number" },
+                "target": { "type": ["number", "null"] }
+              },
+              "required": ["actual", "target"],
+              "additionalProperties": false
+            }
+          }
         },
         "failures": {
-          "type": "object"
+          "type": "object",
+          "properties": {
+            "jobs_discarded": { "$ref": "#/$defs/counts" },
+            "runs_failed": { "type": "integer" }
+          },
+          "required": ["jobs_discarded", "runs_failed"],
+          "additionalProperties": false
         },
         "tokens_per_page": {
-          "type": "object"
+          "type": "object",
+          "description": "Not recorded until Ghost (#18) stores token counts"
+        },
+        "index_budget": {
+          "type": "object",
+          "properties": {
+            "indexed": { "type": "integer" },
+            "per_day": { "type": "integer" },
+            "window": { "type": "integer" }
+          },
+          "required": ["indexed", "per_day", "window"],
+          "additionalProperties": false
+        },
+        "curation": {
+          "type": "object",
+          "properties": {
+            "published_at": { "type": ["string", "null"], "format": "date-time" },
+            "age_days": { "type": ["integer", "null"] },
+            "stale": { "type": "boolean" }
+          },
+          "required": ["published_at", "age_days", "stale"],
+          "additionalProperties": false
+        },
+        "unresolved_entities": {
+          "type": "integer"
+        },
+        "top_rejected": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "story_id": { "type": "integer" },
+              "title": { "type": "string" },
+              "total": { "type": "number" }
+            },
+            "required": ["story_id", "title", "total"],
+            "additionalProperties": false
+          }
         }
       },
-      "required": ["text", "coverage", "failures", "tokens_per_page"],
+      "required": [
+        "text",
+        "window_days",
+        "pages",
+        "coverage",
+        "failures",
+        "tokens_per_page",
+        "index_budget",
+        "curation",
+        "unresolved_entities",
+        "top_rejected"
+      ],
       "additionalProperties": false
     }
   }

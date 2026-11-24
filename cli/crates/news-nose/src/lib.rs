@@ -4,13 +4,16 @@
 //! * [`score`]: the signals, the score S and the Pitch.
 //! * [`desk`]: the Budget, greedy with diminishing returns per bucket under hard limits.
 //! * [`store`]: `stories.score_input`, `scores` and `run_plans` in PostgreSQL.
+//! * [`calibrate`] and [`huddle`]: Huddle's ranking calibration (Bradley–Terry fit, labels, scorer versions).
 //!
 //! `news plan --run` and `news scores explain|weights` call these. The Dispatch job handlers
 //! (`story.score`, `run.select`) still fail with class `bug` ("not built yet"): Chief's Edition step
 //! that calls Desk lands with the step handlers.
 
+pub mod calibrate;
 pub mod config;
 pub mod desk;
+pub mod huddle;
 pub mod score;
 pub mod store;
 

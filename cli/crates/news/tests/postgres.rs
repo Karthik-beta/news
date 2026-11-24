@@ -42,6 +42,8 @@ mod fixture;
 mod ghost;
 #[path = "postgres/home.rs"]
 mod home;
+#[path = "postgres/huddle.rs"]
+mod huddle;
 #[path = "postgres/migrations.rs"]
 mod migrations;
 #[path = "postgres/nose.rs"]

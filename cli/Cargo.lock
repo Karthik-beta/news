@@ -3142,7 +3142,13 @@ dependencies = [
 name = "news-critic"
 version = "0.0.1"
 dependencies = [
+ "chrono",
  "news-core",
+ "news-nose",
+ "news-standing",
+ "news-store",
+ "serde_json",
+ "sqlx",
 ]
 
 [[package]]
@@ -3267,6 +3273,7 @@ version = "0.0.1"
 dependencies = [
  "chrono",
  "news-core",
+ "news-store",
  "serde",
  "serde_json",
  "sqlx",
@@ -3353,6 +3360,7 @@ dependencies = [
  "news-core",
  "news-dispatch",
  "news-hotline",
+ "news-nose",
  "news-rota",
  "news-standing",
  "news-store",
