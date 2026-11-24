@@ -422,7 +422,8 @@ mod tests {
             );
             stubs += 1;
         }
-        assert!(stubs >= 25, "only {stubs} stubs");
+        // Floor drops as subsystems land; it guards against the loop silently skipping everything.
+        assert!(stubs >= 15, "only {stubs} stubs");
     }
 
     #[test]
