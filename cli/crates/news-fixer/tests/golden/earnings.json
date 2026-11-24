@@ -1,0 +1,177 @@
+{
+  "brief_version": 1,
+  "components": {
+    "suggested": [
+      "KeyFigures",
+      "Prose",
+      "Waterfall",
+      "Sankey",
+      "BarChart",
+      "LineChart",
+      "DataTable",
+      "Note",
+      "VideoEmbed"
+    ]
+  },
+  "context": [],
+  "entities": [
+    {
+      "id": "ent_3",
+      "kind": "company",
+      "name": "Apple Inc."
+    }
+  ],
+  "facts": [
+    {
+      "label": "Entity Common Stock, Shares Outstanding",
+      "period": "2026-10-17",
+      "ref": "dp_o7eczpdrwry4bvc5",
+      "unit": "shares",
+      "value": "14700000000"
+    },
+    {
+      "label": "Derivative, Notional Amount per Contract",
+      "period": "2026-09-26",
+      "ref": "dp_lu7nvjnoiuk5ptsf",
+      "unit": "USD/Contract",
+      "value": "1.0E3"
+    },
+    {
+      "label": "Earnings Per Share, Diluted",
+      "period": "2025-09-28/2026-09-26",
+      "ref": "dp_3khm4dm4sqqxqm66",
+      "unit": "USD/shares",
+      "value": "8.10"
+    },
+    {
+      "label": "Net Income (Loss) Attributable to Parent",
+      "period": "2025-09-28/2026-09-26",
+      "ref": "dp_rurnaplntzkg2tzo",
+      "unit": "USD",
+      "value": "118500000000"
+    },
+    {
+      "label": "Revenue from Contract with Customer, Excluding Assessed Tax",
+      "period": "2025-09-28/2026-09-26",
+      "ref": "dp_kjfhexdo774vzbdy",
+      "unit": "USD",
+      "value": "440000000000"
+    },
+    {
+      "derived": "pct_change",
+      "label": "Earnings Per Share, Diluted, change from 2024-09-29/2025-09-27",
+      "period": "2025-09-28/2026-09-26",
+      "ref": "dv_pm7a6pdcvbd7opg6",
+      "unit": "Percent",
+      "value": "8.6"
+    },
+    {
+      "derived": "pct_change",
+      "label": "Net Income (Loss) Attributable to Parent, change from 2024-09-29/2025-09-27",
+      "period": "2025-09-28/2026-09-26",
+      "ref": "dv_ybnfbllfvrimgdn5",
+      "unit": "Percent",
+      "value": "5.8"
+    },
+    {
+      "derived": "pct_change",
+      "label": "Revenue from Contract with Customer, Excluding Assessed Tax, change from 2024-09-29/2025-09-27",
+      "period": "2025-09-28/2026-09-26",
+      "ref": "dv_p2i5dzw4nh7n65e6",
+      "unit": "Percent",
+      "value": "5.7"
+    },
+    {
+      "label": "Earnings Per Share, Diluted",
+      "period": "2024-09-29/2025-09-27",
+      "ref": "dp_zs3q4ryr6qdpeoso",
+      "unit": "USD/shares",
+      "value": "7.46"
+    },
+    {
+      "label": "Net Income (Loss) Attributable to Parent",
+      "period": "2024-09-29/2025-09-27",
+      "ref": "dp_4naomxhk45ywoxbi",
+      "unit": "USD",
+      "value": "111990000000"
+    },
+    {
+      "label": "Revenue from Contract with Customer, Excluding Assessed Tax",
+      "period": "2026-03-29/2026-06-27",
+      "ref": "dp_7ge2itowxqphsn5r",
+      "unit": "USD",
+      "value": "99000000000"
+    },
+    {
+      "label": "Revenue from Contract with Customer, Excluding Assessed Tax",
+      "period": "2024-09-29/2025-09-27",
+      "ref": "dp_r4zwqi6pratb2pgl",
+      "unit": "USD",
+      "value": "416161000000"
+    }
+  ],
+  "item": {
+    "action": "new",
+    "data_as_of": "2026-10-31",
+    "event_key": "earnings:0000320193:2026FY",
+    "page_type": "earnings",
+    "slug_hint": "earnings-0000320193-2026fy",
+    "story_id": 81300,
+    "tier": 1
+  },
+  "media": {
+    "images": [],
+    "video": null
+  },
+  "periods": [
+    {
+      "label": "2026-10-17",
+      "ref": "pd_2026_10_17"
+    },
+    {
+      "label": "2026-09-26",
+      "ref": "pd_2026_09_26"
+    },
+    {
+      "label": "2025-09-28/2026-09-26",
+      "ref": "pd_20250928_20260926"
+    },
+    {
+      "label": "2024-09-29/2025-09-27",
+      "ref": "pd_20240929_20250927"
+    },
+    {
+      "label": "2023-10-01/2024-09-28",
+      "ref": "pd_20231001_20240928"
+    },
+    {
+      "label": "2025-03-30/2025-06-28",
+      "ref": "pd_20250330_20250628"
+    },
+    {
+      "label": "2025-09-28/2026-06-27",
+      "ref": "pd_20250928_20260627"
+    },
+    {
+      "label": "2026-03-29/2026-06-27",
+      "ref": "pd_20260329_20260627"
+    }
+  ],
+  "quotes": [],
+  "related_pages": [],
+  "rules": {
+    "disclaimer": "not-investment-advice",
+    "fiscal_note": "Periods are the company's fiscal periods, labelled as it labels them; its fiscal year ends on 2026-09-26"
+  },
+  "series": [
+    {
+      "label": "Revenue from Contract with Customer, Excluding Assessed Tax, 2023-10-01/2024-09-28 to 2025-09-28/2026-09-26",
+      "points": 6,
+      "ref": "sr_5n6kwkwjqlfc"
+    }
+  ],
+  "source_text": {
+    "points": [],
+    "untrusted": true
+  }
+}

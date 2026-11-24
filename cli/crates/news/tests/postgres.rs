@@ -32,6 +32,8 @@ mod cli_db;
 mod diary_roster;
 #[path = "postgres/dispatch.rs"]
 mod dispatch;
+#[path = "postgres/fixer.rs"]
+mod fixer;
 #[path = "postgres/fixture.rs"]
 mod fixture;
 #[path = "postgres/ghost.rs"]
