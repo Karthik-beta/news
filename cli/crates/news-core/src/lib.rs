@@ -1,10 +1,11 @@
 //! Shared core of the `news` CLI (Bureau Design §6.2): the JSON envelope, stable error codes and their
 //! exit codes, output shaping (`--limit`, `--fields`, `--cursor`), the job contract every subsystem
-//! handler implements, permission tiers and the write-API key guard.
+//! handler implements, permission tiers, the write-API key guard and the brief type ([`brief`]).
 //!
 //! Nothing here touches the database or the network, and only `clock::SystemClock` reads the time, so
 //! all of it is unit-tested.
 
+pub mod brief;
 pub mod clock;
 pub mod envelope;
 pub mod error;

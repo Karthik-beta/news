@@ -4,7 +4,7 @@
   "title": "news related",
   "description": "Up to 10 related pages and entities. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "R",
-  "x-news-status": "stub until #15",
+  "x-news-status": "built",
   "x-news-errors": [],
   "$defs": {
     "input": {
