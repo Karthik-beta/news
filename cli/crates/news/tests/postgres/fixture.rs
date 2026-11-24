@@ -73,7 +73,9 @@ impl Fixture {
             .env_remove("NEWS_OTEL_HTTP")
             .env_remove("NEWS_LOG")
             .env_remove("NEWS_WRITE_API_KEY")
-            .env("NO_COLOR", "1");
+            .env("NO_COLOR", "1")
+            // A hung command fails the test with its arguments instead of stalling CI for 20 minutes.
+            .timeout(std::time::Duration::from_secs(120));
         cmd
     }
 
@@ -104,7 +106,10 @@ pub fn call(
     cmd: &mut assert_cmd::Command,
     args: &[&str],
 ) -> (serde_json::Value, i32, String, String) {
-    let out = cmd.args(args).output().unwrap();
+    let out = cmd
+        .args(args)
+        .output()
+        .unwrap_or_else(|e| panic!("news {args:?}: {e}"));
     let stdout = String::from_utf8(out.stdout).unwrap();
     let stderr = String::from_utf8(out.stderr).unwrap();
     assert_eq!(
