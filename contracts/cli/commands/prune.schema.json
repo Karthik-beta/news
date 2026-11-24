@@ -4,8 +4,8 @@
   "title": "news prune",
   "description": "Delete working files for published items. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "W",
-  "x-news-status": "stub until #9",
-  "x-news-errors": [],
+  "x-news-status": "built",
+  "x-news-errors": ["precondition"],
   "$defs": {
     "input": {
       "type": "object",

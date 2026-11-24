@@ -277,6 +277,8 @@ pub struct Authorized<'t> {
     pub run_id: Uuid,
     pub step_seq: i16,
     pub command: GCommand,
+    /// The item this authorisation was checked for (`GRequest::item`); `None` means a step-wide check.
+    pub item: Option<String>,
 }
 
 impl Authorized<'_> {
@@ -399,6 +401,7 @@ pub async fn authorize<'t>(
         run_id: req.run_id,
         step_seq: req.step_seq,
         command: req.command,
+        item: req.item.map(str::to_owned),
     })
 }
 
