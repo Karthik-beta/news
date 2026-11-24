@@ -13,6 +13,7 @@
     "dev": "CLOUDFLARE_ENV=local bun --bun astro dev --host 127.0.0.1",
     "prebuild": "bun run sync",
     "build": "bun --bun astro build",
+    "plate": "bun src/renderer/plate.ts --port 4329",
     "preview": "CLOUDFLARE_ENV=local wrangler dev -c dist/server/wrangler.json --local --ip 127.0.0.1",
     "typecheck": "bun --bun astro check",
     "pretest": "bun run sync",

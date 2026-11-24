@@ -3296,12 +3296,15 @@ name = "news-proof"
 version = "0.0.1"
 dependencies = [
  "chrono",
+ "jsonschema",
  "news-core",
  "news-ledger",
  "reqwest 0.13.5",
  "rustls",
  "serde",
  "serde_json",
+ "sha2 0.11.1",
+ "tokio",
  "toml",
  "uuid",
 ]
