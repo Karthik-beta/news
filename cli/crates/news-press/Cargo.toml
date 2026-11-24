@@ -1,6 +1,6 @@
 [package]
 name = "news-press"
-description = "Press, the publisher. Skeleton with handler stubs; built in #20."
+description = "Press (Bureau Design §3.12): the publish outbox, the paced write-API client, taxonomy sync and the index budget."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,6 +8,19 @@ publish.workspace = true
 
 [dependencies]
 news-core = { workspace = true }
+news-store = { workspace = true }
+news-chief = { workspace = true }
+news-wire = { workspace = true }
+chrono = { workspace = true }
+# The write API is HTTPS; the TLS provider is installed by news_wire::runner::install_tls_provider().
+reqwest = { workspace = true, features = ["rustls-no-provider"] }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+sqlx = { workspace = true }
+uuid = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }
 
 [lints]
 workspace = true

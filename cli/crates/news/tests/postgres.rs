@@ -46,6 +46,8 @@ mod huddle;
 mod migrations;
 #[path = "postgres/nose.rs"]
 mod nose;
+#[path = "postgres/press.rs"]
+mod press;
 #[path = "postgres/sources.rs"]
 mod sources;
 #[path = "postgres/status_board.rs"]
