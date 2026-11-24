@@ -36,12 +36,12 @@ mod dispatch;
 mod fixer;
 #[path = "postgres/fixture.rs"]
 mod fixture;
-#[path = "postgres/huddle.rs"]
-mod huddle;
 #[path = "postgres/ghost.rs"]
 mod ghost;
 #[path = "postgres/home.rs"]
 mod home;
+#[path = "postgres/huddle.rs"]
+mod huddle;
 #[path = "postgres/migrations.rs"]
 mod migrations;
 #[path = "postgres/nose.rs"]
