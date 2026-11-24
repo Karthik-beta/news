@@ -2,10 +2,10 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://news.karthik.nz/contracts/cli/commands/check.schema.json",
   "title": "news check",
-  "description": "Code checks C1–C14 on a story's page (the Markup). Input is the command's arguments as an object; output is the envelope's data.",
+  "description": "Code checks C1–C14 on a story's rendered page bundle (the Markup). Input is the command's arguments as an object; output is the envelope's data. `story` is a story id (the bundle is work/pages/<id>/) or a bundle directory. A page that fails a blocking check is a `validation_failed` error whose `details` are this same object.",
   "x-news-tier": "W",
-  "x-news-status": "stub until #17",
-  "x-news-errors": ["validation_failed"],
+  "x-news-status": "built",
+  "x-news-errors": ["validation_failed", "not_found"],
   "$defs": {
     "input": {
       "type": "object",
@@ -17,13 +17,44 @@
       "required": ["story"],
       "additionalProperties": false
     },
+    "problem": {
+      "type": "object",
+      "properties": {
+        "check": {
+          "type": "string",
+          "pattern": "^C[0-9]+$"
+        },
+        "where": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": ["check", "where", "message"],
+      "additionalProperties": false
+    },
     "output": {
       "type": "object",
       "properties": {
+        "page_id": {
+          "type": "string"
+        },
         "pass": {
           "type": "boolean"
         },
         "failures": {
+          "description": "Blocking problems.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/problem" }
+        },
+        "warnings": {
+          "description": "Non-blocking problems (C10 images, C12).",
+          "type": "array",
+          "items": { "$ref": "#/$defs/problem" }
+        },
+        "checks": {
+          "description": "One entry per check, in order.",
           "type": "array",
           "items": {
             "type": "object",
@@ -32,19 +63,23 @@
                 "type": "string",
                 "pattern": "^C[0-9]+$"
               },
-              "where": {
+              "name": {
                 "type": "string"
               },
-              "message": {
+              "status": {
+                "enum": ["pass", "fail", "warn", "skipped"]
+              },
+              "note": {
+                "description": "Why a check was skipped.",
                 "type": "string"
               }
             },
-            "required": ["check", "where", "message"],
+            "required": ["check", "name", "status"],
             "additionalProperties": false
           }
         }
       },
-      "required": ["pass", "failures"],
+      "required": ["page_id", "pass", "failures", "warnings", "checks"],
       "additionalProperties": false
     }
   }

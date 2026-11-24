@@ -10,6 +10,7 @@ mod home;
 mod jobs;
 mod nose;
 mod press;
+mod proof;
 mod run;
 mod schema;
 mod sources;
@@ -88,7 +89,8 @@ pub async fn run(cli: Cli, path: &str, shape: &Shape) -> NewsResult<Reply> {
         C::Plan { run } => nose::plan(&run).await,
         C::Scores(cmd) => nose::scores(cmd).await,
         C::Stats => press::stats().await,
-        C::Save { .. } | C::Render { .. } | C::Check { .. } => stub(path, news_proof::ISSUE),
+        C::Check { story } => proof::check(&story).await,
+        C::Save { .. } | C::Render { .. } => stub(path, news_proof::ISSUE),
         C::Brief { story } => fixer::brief(&story).await,
         C::Ai(_) => stub(path, news_ghost::ISSUE),
         C::Review(ReviewCmd::Weekly) => nose::review_weekly().await,
@@ -161,6 +163,7 @@ pub const BUILT: &[&str] = &[
     "stories.show",
     "stories.members",
     "stories.similar",
+    "check",
     "brief",
     "related",
 ];

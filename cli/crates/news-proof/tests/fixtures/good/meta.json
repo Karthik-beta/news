@@ -1,0 +1,22 @@
+{
+  "schema": "meta.v1",
+  "id": "us-cpi-october-2026",
+  "path": "/2026/11/us-cpi-october-2026",
+  "version": 1,
+  "lang": "en",
+  "title": "Annual inflation in America fell to {dp_cpi_2026_10} in {pd_2026_10}",
+  "fly_title": "US consumer prices",
+  "summary": "The rate fell by {dv_cpi_change} from {pd_2026_09}, {cx_lowest}. The figures come from the Bureau of Labor Statistics.",
+  "page_type": "macro",
+  "tier": 1,
+  "categories": ["economy/inflation"],
+  "entities": [{ "id": "ent_us", "name": "United States", "kind": "country" }],
+  "tags": ["cpi"],
+  "region": "north-america",
+  "published_at": "2026-11-13T14:30:00Z",
+  "updated_at": "2026-11-13T14:30:00Z",
+  "index_status": "noindex",
+  "renderer_version": "1",
+  "data_ids": ["dp_cpi_2026_10"],
+  "chart_ids": ["sr-cpi"]
+}

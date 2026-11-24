@@ -1,0 +1,5 @@
+root = Page([figures, prose, chart])
+figures = KeyFigures([rate])
+rate = KeyFigure("Annual inflation", "dp_cpi_2026_10", "dv_cpi_change", "pd_2026_09")
+prose = Prose("Annual inflation in America fell to {dp_cpi_2026_10} in {pd_2026_10}, down {dv_cpi_change} from {pd_2026_09}. The Bureau of Labor Statistics said [shelter](glossary:shelter) was the largest contributor: {q_shelter}")
+chart = LineChart("Inflation has eased since the summer", "Consumer prices, change on a year earlier, %", ["sr_cpi"])

@@ -13,7 +13,6 @@ pub const STUBS: &[(&str, &str)] = &[
     ("parse 81234", "#9"),
     ("save 81234 copy.json", "#17"),
     ("render 81234", "#17"),
-    ("check 81234", "#17"),
     ("ai input 1", "#18"),
     ("ai accept 1 out.json", "#18"),
     ("ai fallback 1", "#18"),

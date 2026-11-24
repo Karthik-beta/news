@@ -3302,7 +3302,15 @@ dependencies = [
 name = "news-proof"
 version = "0.0.1"
 dependencies = [
+ "chrono",
  "news-core",
+ "news-ledger",
+ "reqwest 0.13.5",
+ "rustls",
+ "serde",
+ "serde_json",
+ "toml",
+ "uuid",
 ]
 
 [[package]]
