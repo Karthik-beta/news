@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "points": {
+    "dp_cpi_2026_10": {
+      "label": "CPI-U, all items, 12-month change, NSA",
+      "value": "2.4",
+      "value_text": "2.4",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "decimals": 1,
+      "period": "pd_2026_10",
+      "seasonal_adjustment": "NSA",
+      "source": "src_bls_cpi",
+      "locator": { "kind": "json", "series": "CUUR0000SA0" }
+    },
+    "dp_cpi_2026_09": {
+      "label": "CPI-U, all items, 12-month change, NSA",
+      "value": "2.7",
+      "value_text": "2.7",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "decimals": 1,
+      "period": "pd_2026_09",
+      "seasonal_adjustment": "NSA",
+      "source": "src_bls_cpi",
+      "locator": { "kind": "json", "series": "CUUR0000SA0" }
+    }
+  },
+  "derived": {
+    "dv_cpi_change": {
+      "label": "Change in the 12-month rate",
+      "value": "-0.3",
+      "unit": "pp",
+      "currency": null,
+      "scale": null,
+      "formula": "pp_change",
+      "inputs": ["dp_cpi_2026_10", "dp_cpi_2026_09"],
+      "rounding": 1
+    }
+  },
+  "series": {
+    "sr_cpi": {
+      "label": "CPI-U 12-month change",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "points": [
+        { "period": "pd_2026_09", "point": "dp_cpi_2026_09" },
+        { "period": "pd_2026_10", "point": "dp_cpi_2026_10" }
+      ]
+    }
+  },
+  "periods": {
+    "pd_2026_09": { "label": "September 2026" },
+    "pd_2026_10": { "label": "October 2026" }
+  },
+  "quotes": {
+    "q_shelter": {
+      "text": "The index for shelter was the largest contributor",
+      "source": "src_bls_cpi",
+      "locator": { "kind": "text_block", "doc": 5521, "block": 3 }
+    }
+  },
+  "context": {
+    "cx_lowest": {
+      "text": "the lowest rate since March 2021",
+      "rule": "series_min_since",
+      "inputs": ["sr_cpi"]
+    }
+  }
+}
