@@ -4,8 +4,8 @@
   "title": "news stats",
   "description": "Run and coverage summary. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "R",
-  "x-news-status": "stub until #16",
-  "x-news-errors": [],
+  "x-news-status": "built",
+  "x-news-errors": ["precondition"],
   "$defs": {
     "input": {
       "type": "object",
