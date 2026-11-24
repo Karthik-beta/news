@@ -12,7 +12,7 @@ import {
 } from "../workers/test-support/src/dynamodb";
 import { requireDynamoDb } from "../workers/test-support/src/service-check";
 import { expandedKeys } from "./env-file";
-import { chQuery, env, mark, root, run } from "./lib";
+import { chQuery, env, mark, root, run, SHORTS_NETWORK, shortsNetworkProblem } from "./lib";
 
 const e2e = process.argv.includes("--e2e");
 let failures = 0;
@@ -80,6 +80,9 @@ for (const name of ["news-postgres", "news-otel", "news-dynamodb", env("NEWS_CH_
   ]);
   line(r.ok && r.out.startsWith("running"), name, r.ok ? r.out : "not found");
 }
+
+const network = shortsNetworkProblem();
+line(network === null, `${SHORTS_NETWORK} network (news-otel reaches ClickHouse over it)`, network ?? "");
 
 console.log("\nServices");
 try {

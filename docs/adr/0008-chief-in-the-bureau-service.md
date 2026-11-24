@@ -607,3 +607,7 @@ create index if not exists hotline_refusals_at on hotline_refusals (at);
 ```
 
 `skipped` scheduled runs are rows in `runs` (with a Wrap), so Problems lists them with failed runs; a `missed` slot is only a `rota_fires` row.
+
+## Amended after the Kiri move (24 Nov 2026)
+
+The container engine is now Kiri, not Docker Desktop (ADR 0007, "Amended after the Kiri move"). The Docker Desktop statements above (§7.1, §9, the open-questions table) describe the engine as measured on 16 Nov 2026; whether Kiri runs before sign-in is not yet checked, so nothing in Chief, Rota or recovery changes.
