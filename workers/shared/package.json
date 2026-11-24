@@ -17,10 +17,10 @@
     "aws4fetch": "1.0.20"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^5.20261115.1",
+    "@cloudflare/workers-types": "^5.20261119.1",
     "@types/node": "^26.6.6",
     "ajv": "8.20.0",
     "typescript": "^6.0.3",
-    "vitest": "^5.1.0"
+    "vitest": "^5.1.1"
   }
 }
