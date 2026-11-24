@@ -22,6 +22,7 @@ news-clerk = { path = "crates/news-clerk" }
 news-roster = { path = "crates/news-roster" }
 news-taster = { path = "crates/news-taster" }
 news-nose = { path = "crates/news-nose" }
+news-home = { path = "crates/news-home" }
 news-fixer = { path = "crates/news-fixer" }
 news-ghost = { path = "crates/news-ghost" }
 news-proof = { path = "crates/news-proof" }

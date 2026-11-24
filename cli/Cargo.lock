@@ -3029,6 +3029,7 @@ dependencies = [
  "news-dispatch",
  "news-fixer",
  "news-ghost",
+ "news-home",
  "news-hotline",
  "news-nose",
  "news-press",
@@ -3218,6 +3219,25 @@ dependencies = [
  "sqlx",
  "tokio",
  "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "news-home"
+version = "0.0.1"
+dependencies = [
+ "chrono",
+ "jsonschema",
+ "news-core",
+ "news-nose",
+ "news-store",
+ "reqwest 0.13.5",
+ "rustls",
+ "serde",
+ "serde_json",
+ "sha2 0.11.1",
+ "sqlx",
+ "tokio",
  "uuid",
 ]
 

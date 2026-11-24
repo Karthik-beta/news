@@ -25,6 +25,7 @@ news-clerk = { workspace = true }
 news-roster = { workspace = true }
 news-taster = { workspace = true }
 news-nose = { workspace = true }
+news-home = { workspace = true }
 news-fixer = { workspace = true }
 news-ghost = { workspace = true }
 news-proof = { workspace = true }
