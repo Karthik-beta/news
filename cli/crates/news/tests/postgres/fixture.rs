@@ -112,6 +112,13 @@ pub fn call(
         .unwrap_or_else(|e| panic!("news {args:?}: {e}"));
     let stdout = String::from_utf8(out.stdout).unwrap();
     let stderr = String::from_utf8(out.stderr).unwrap();
+    // assert_cmd kills a command that passes its timeout and returns normally, with no exit code.
+    let Some(code) = out.status.code() else {
+        panic!(
+            "news {args:?}: killed ({}; timed out?) / {stderr}",
+            out.status
+        )
+    };
     assert_eq!(
         stdout.matches('\n').count(),
         1,
@@ -120,7 +127,7 @@ pub fn call(
     let env: serde_json::Value =
         serde_json::from_str(&stdout).unwrap_or_else(|e| panic!("{e}: {stdout}"));
     check_output(args, &env);
-    (env, out.status.code().unwrap(), stdout, stderr)
+    (env, code, stdout, stderr)
 }
 
 /// The command a call ran, as the dotted name of its contract file (`jobs.claim`): the longest run of

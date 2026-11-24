@@ -394,6 +394,22 @@ pub struct Adopted {
 /// still keeps the rules against its parent (≥ 0, sum 1, each weight within ±0.05).
 pub async fn adopt(db: &PgPool, version: &str) -> NewsResult<Adopted> {
     let mut tx = db.begin().await.map_err(map_err)?;
+    let out = adopt_in(&mut tx, version).await;
+    // End the transaction here on every path. Dropping it only queues the rollback for a task that
+    // runs when the connection goes back to the pool; on a current-thread runtime that task may not
+    // run before the caller blocks, so the `for update` lock would outlive the call.
+    match &out {
+        Ok(a) if !a.already => tx.commit().await.map_err(map_err)?,
+        Ok(_) => tx.rollback().await.map_err(map_err)?,
+        Err(_) => {
+            // The refusal is the error worth reporting; a failed rollback closes the connection.
+            let _ = tx.rollback().await;
+        }
+    }
+    out
+}
+
+async fn adopt_in(tx: &mut sqlx::PgConnection, version: &str) -> NewsResult<Adopted> {
     let row: Option<(String, i32, Json<Weights>, String)> = sqlx::query_as(
         "select parent, n, weights, status from scorer_versions where version = $1 for update",
     )
@@ -446,7 +462,6 @@ pub async fn adopt(db: &PgPool, version: &str) -> NewsResult<Adopted> {
     .execute(&mut *tx)
     .await
     .map_err(map_err)?;
-    tx.commit().await.map_err(map_err)?;
     Ok(Adopted {
         version: version.to_owned(),
         parent,
