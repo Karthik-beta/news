@@ -1,0 +1,9 @@
+{
+  "headline": "Annual inflation in America fell to {dp_7kq2} in {pd_2026_10}",
+  "fly_title": "America's inflation",
+  "summary": "Consumer prices rose by {dp_7kq2} on a year earlier, a change of {dv_3ab8} on the month before.",
+  "oui": "root = Page([figs])\nfigs = KeyFigures([a, b])\na = KeyFigure(\"Inflation\", \"dp_7kq2\")\nb = KeyFigure(\"Change in the rate\", \"dv_3ab8\")\n",
+  "refs_used": ["dp_7kq2", "dv_3ab8", "pd_2026_10"],
+  "components_used": ["KeyFigures", "KeyFigure"],
+  "angle": "change"
+}

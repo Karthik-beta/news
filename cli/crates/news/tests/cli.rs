@@ -15,6 +15,8 @@ mod components;
 mod contract;
 #[path = "cli/contracts.rs"]
 mod contracts;
+#[path = "cli/proof.rs"]
+mod proof;
 #[path = "cli/retired.rs"]
 mod retired;
 #[path = "cli/secrets.rs"]

@@ -1,6 +1,7 @@
 //! Command routing. Built commands live in their own modules; every other command is a stub that
 //! returns `precondition` (exit 4) naming the issue that builds it.
 
+mod ai;
 mod calendar;
 mod components;
 mod db;
@@ -11,6 +12,7 @@ mod jobs;
 mod nose;
 mod press;
 mod proof;
+mod render;
 mod run;
 mod schema;
 mod sources;
@@ -89,10 +91,11 @@ pub async fn run(cli: Cli, path: &str, shape: &Shape) -> NewsResult<Reply> {
         C::Plan { run } => nose::plan(&run).await,
         C::Scores(cmd) => nose::scores(cmd).await,
         C::Stats => press::stats().await,
+        C::Save { story, file } => render::save(&story, &file),
+        C::Render { story } => render::render(&story).await,
         C::Check { story } => proof::check(&story).await,
-        C::Save { .. } | C::Render { .. } => stub(path, news_proof::ISSUE),
         C::Brief { story } => fixer::brief(&story).await,
-        C::Ai(_) => stub(path, news_ghost::ISSUE),
+        C::Ai(cmd) => ai::run(cmd).await,
         C::Review(ReviewCmd::Weekly) => nose::review_weekly().await,
         C::Eval(_) => stub(path, news_critic::ISSUE),
         C::Update { .. } => stub(path, news_rewrite::ISSUE),
@@ -163,6 +166,11 @@ pub const BUILT: &[&str] = &[
     "stories.show",
     "stories.members",
     "stories.similar",
+    "save",
+    "render",
+    "ai.input",
+    "ai.accept",
+    "ai.fallback",
     "check",
     "brief",
     "related",

@@ -91,6 +91,10 @@ A chart offers CSV and JSON only when every source behind it allows redistributi
 
 Interactive parts are islands. Their server side is `islands/Island.tsx`: it renders the component with `renderToString` as its own React root, with its own `useId` prefix, inside `<div data-island="Name" data-props="…">`. The client side is `islands/hydrate.ts`: one shared entry that hydrates each island when it nears the viewport and loads its component on demand. Island props must be plain JSON. The island registry is generated from `src/components/*/<Name>.client.tsx` (`islands.generated.ts`). A page with no island gets no `<script>` at all.
 
+## Plate, the warm render server
+
+`plate.ts` serves the renderer on 127.0.0.1 so React, OpenUI and the component library load once (ADR 0007; the `render` pool's two slots share it). `POST /render` takes `{oui, data, sources, head, indexStatus}` and returns the files, chart IDs, references used and data problems; `POST /check` takes `{oui}` and returns the OpenUI parse and props errors, and every string and number the parser read, which the Copy lints check (`news ai accept`, `news render`); `GET /health` returns the renderer version. It answers only a loopback `Host` (127.0.0.1, localhost or [::1] with a port), and a POST only with `Content-Type: application/json`; `news` refuses a `NEWS_PLATE_URL` that is not loopback. `bun run plate` (in `site/`) starts it on port 4329 for `NEWS_PLATE_URL=http://127.0.0.1:4329`. Without that variable, `news render` and `news ai accept` start their own with `--port 0 --lifeline`: it prints `{"port": N}` once loaded and exits when its stdin closes. `news render` assembles the bundle (`meta.json`, `manifest.json`, the bundle SHA) in Rust (`cli/crates/news-proof`).
+
 ## Renderer version
 
 `version.ts` holds `RENDERER_VERSION`. It is written to the `generator` meta tag, the article's `data-renderer` attribute, `index.md`'s front matter, every chart JSON, and `result.rendererVersion` (for `meta.json`). Bump it when the output for the same bundle changes, so pages can be re-rendered in batches.
@@ -100,6 +104,7 @@ Interactive parts are islands. Their server side is `islands/Island.tsx`: it ren
 | File | Role |
 |---|---|
 | `render.tsx` | `renderPage`, `parsePage`, `checkProps`, `renderDocument`, the article template and sources list |
+| `plate.ts` | Plate, the warm render server (`/render`, `/check`, `/health`) |
 | `bundle/schema.ts` | The zod schemas for `data.json` and `sources.json`; `bun run contracts` writes the JSON Schemas |
 | `data/resolve.ts` | `PageDataResolver`: references to values, text segments, problems, `formatValue` |
 | `data/context.tsx` | `PageDataProvider` and `usePageData()` for components |

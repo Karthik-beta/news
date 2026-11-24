@@ -1,6 +1,6 @@
 [package]
 name = "news-proof"
-description = "Proof (Bureau Design §3.10): the code checks C1-C14 on a rendered page bundle, and the Markup they produce. Render is built in a separate issue branch; its job handlers stay stubs."
+description = "Render and Proof (#17): the stored Copy, Copy validators, the templated fallback page, page bundles through Plate, and the code checks C1-C14 with the Markup they produce."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -10,10 +10,13 @@ publish.workspace = true
 news-core = { workspace = true }
 news-ledger = { workspace = true }
 chrono = { workspace = true }
+jsonschema = { workspace = true }
 # Blocking client for the link checks (C10); TLS is installed by the `news` binary (news-wire's Runner).
 reqwest = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+sha2 = { workspace = true }
+tokio = { workspace = true, features = ["process"] }
 toml = { workspace = true }
 
 [dev-dependencies]

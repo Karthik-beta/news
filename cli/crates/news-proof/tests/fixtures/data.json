@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "points": {
+    "dp_cpi_2026_08": {
+      "label": "CPI-U, all items, 12-month change, NSA",
+      "value": "2.9",
+      "value_text": "2.9",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_2026_08",
+      "source": "src_bls_cpi",
+      "locator": { "kind": "json", "path": "$.observations[0]" }
+    },
+    "dp_9mz1": {
+      "label": "CPI-U, all items, 12-month change, NSA",
+      "value": "2.7",
+      "value_text": "2.7",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_2026_09",
+      "source": "src_bls_cpi",
+      "locator": { "kind": "json", "path": "$.observations[1]" }
+    },
+    "dp_7kq2": {
+      "label": "CPI-U, all items, 12-month change, NSA",
+      "value": "2.4",
+      "value_text": "2.4",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "period": "pd_2026_10",
+      "source": "src_bls_cpi",
+      "locator": { "kind": "json", "path": "$.observations[2]" }
+    }
+  },
+  "derived": {
+    "dv_3ab8": {
+      "label": "Change in the 12-month rate",
+      "value": "-0.3",
+      "unit": "pp",
+      "currency": null,
+      "scale": null,
+      "formula": "pp_change",
+      "inputs": ["dp_9mz1", "dp_7kq2"],
+      "rounding": 1
+    }
+  },
+  "series": {
+    "sr_cpi_yoy": {
+      "label": "CPI-U 12-month change, monthly",
+      "unit": "Percent",
+      "currency": null,
+      "scale": null,
+      "points": [
+        { "period": "pd_2026_08", "point": "dp_cpi_2026_08" },
+        { "period": "pd_2026_09", "point": "dp_9mz1" },
+        { "period": "pd_2026_10", "point": "dp_7kq2" }
+      ]
+    }
+  },
+  "periods": {
+    "pd_2026_08": { "label": "August 2026", "start": "2026-08-01", "end": "2026-08-31" },
+    "pd_2026_09": { "label": "September 2026", "start": "2026-09-01", "end": "2026-09-30" },
+    "pd_2026_10": { "label": "October 2026", "start": "2026-10-01", "end": "2026-10-31" }
+  },
+  "quotes": {},
+  "context": {}
+}
