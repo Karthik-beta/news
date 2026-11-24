@@ -6,6 +6,7 @@ mod calendar;
 mod components;
 mod db;
 mod entities;
+mod fixer;
 mod jobs;
 mod nose;
 mod render;
@@ -81,8 +82,7 @@ pub async fn run(cli: Cli, path: &str, shape: &Shape) -> NewsResult<Reply> {
         }
         C::Calendar(cmd) => calendar::run(cmd).await,
         C::Entities(cmd) => entities::run(cmd).await,
-        // Related pages come from stories, which Taster builds.
-        C::Related { .. } => stub(path, news_taster::ISSUE),
+        C::Related { story } => fixer::related(&story).await,
         C::Stories(cmd) => stories::run(cmd).await,
         C::Plan { run } => nose::plan(&run).await,
         C::Scores(cmd) => nose::scores(cmd, path).await,
@@ -90,7 +90,7 @@ pub async fn run(cli: Cli, path: &str, shape: &Shape) -> NewsResult<Reply> {
         C::Save { story, file } => render::save(&story, &file),
         C::Render { story } => render::render(&story).await,
         C::Check { .. } => stub(path, news_proof::ISSUE),
-        C::Brief { .. } => stub(path, news_fixer::ISSUE),
+        C::Brief { story } => fixer::brief(&story).await,
         C::Ai(cmd) => ai::run(cmd).await,
         C::Eval(_) | C::Review(_) => stub(path, news_critic::ISSUE),
         C::Update { .. } => stub(path, news_rewrite::ISSUE),
@@ -155,6 +155,8 @@ pub const BUILT: &[&str] = &[
     "ai.input",
     "ai.accept",
     "ai.fallback",
+    "brief",
+    "related",
 ];
 
 /// Dotted names of the commands that have a contract file.

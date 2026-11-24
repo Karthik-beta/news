@@ -4,6 +4,8 @@
   "name": "news-mcp",
   "main": "src/index.ts",
   "compatibility_date": "2026-11-01",
+  // Reached only through the zone route; no public *.workers.dev address, which would bypass the zone's rate limit.
+  "workers_dev": false,
   // Our own structured logs only. Invocation logs record request metadata (client IP, user agent), which these
   // Workers promise never to keep (ADR 0006); Karthik checks a real log once deployed (#21).
   "observability": { "enabled": true, "logs": { "invocation_logs": false } },

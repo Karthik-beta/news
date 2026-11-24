@@ -1,0 +1,123 @@
+{
+  "brief_version": 1,
+  "components": {
+    "suggested": [
+      "PolicyDecision",
+      "Quote",
+      "StepLineChart",
+      "Prose",
+      "Timeline",
+      "VideoEmbed"
+    ]
+  },
+  "context": [
+    {
+      "id": "cx_1",
+      "rule": "series_max_since",
+      "text": "Financial market data: highest since 2025-03-12"
+    }
+  ],
+  "entities": [
+    {
+      "id": "ent_4",
+      "kind": "central_bank",
+      "name": "European Central Bank"
+    }
+  ],
+  "facts": [
+    {
+      "label": "Financial market data",
+      "period": "2026-09-16",
+      "ref": "dp_ayvmv67k6qwi2tu5",
+      "unit": "Percent per annum",
+      "value": "2.65"
+    },
+    {
+      "label": "Financial market data",
+      "period": "2026-06-17",
+      "ref": "dp_zqmtgkcrnjro6jq4",
+      "unit": "Percent per annum",
+      "value": "2.4"
+    }
+  ],
+  "item": {
+    "action": "new",
+    "data_as_of": "2026-11-18",
+    "event_key": "macro:ea.policy_rate:2026-09-16",
+    "page_type": "policy-decision",
+    "slug_hint": "macro-ea-policy-rate-2026-09-16",
+    "story_id": 81400,
+    "tier": 1
+  },
+  "media": {
+    "images": [],
+    "video": null
+  },
+  "periods": [
+    {
+      "label": "2026-09-16",
+      "ref": "pd_2026_09_16"
+    },
+    {
+      "label": "2023-08-02",
+      "ref": "pd_2023_08_02"
+    },
+    {
+      "label": "2023-09-20",
+      "ref": "pd_2023_09_20"
+    },
+    {
+      "label": "2024-06-12",
+      "ref": "pd_2024_06_12"
+    },
+    {
+      "label": "2024-09-18",
+      "ref": "pd_2024_09_18"
+    },
+    {
+      "label": "2024-10-23",
+      "ref": "pd_2024_10_23"
+    },
+    {
+      "label": "2024-12-18",
+      "ref": "pd_2024_12_18"
+    },
+    {
+      "label": "2025-02-05",
+      "ref": "pd_2025_02_05"
+    },
+    {
+      "label": "2025-03-12",
+      "ref": "pd_2025_03_12"
+    },
+    {
+      "label": "2025-04-23",
+      "ref": "pd_2025_04_23"
+    },
+    {
+      "label": "2025-06-11",
+      "ref": "pd_2025_06_11"
+    },
+    {
+      "label": "2026-06-17",
+      "ref": "pd_2026_06_17"
+    }
+  ],
+  "quotes": [],
+  "related_pages": [],
+  "rules": {
+    "disclaimer": "not-investment-advice",
+    "fiscal_note": null
+  },
+  "series": [
+    {
+      "label": "Financial market data, 2023-08-02 to 2026-09-16",
+      "points": 12,
+      "ref": "sr_liw7sejpktdh"
+    }
+  ],
+  "source_text": {
+    "points": [],
+    "untrusted": true
+  }
+}

@@ -7,12 +7,15 @@ use crate::presets;
 use crate::row::{self, RUN_COLUMNS, RunRow};
 use crate::state::Status;
 use crate::{RunStopper, StartPolicy, gates, is_stalled};
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration, NaiveDate, Utc};
 use news_core::NewsError;
 use news_store::{PgPool, map_err};
 use serde_json::{Map, Value, json};
 use sqlx::{PgConnection, Row};
 use uuid::Uuid;
+
+/// The 22 columns that the second and later lines of a board row start at.
+const INDENT: &str = "                      ";
 
 /// The run's current step, its place and its progress (jobs of that step).
 async fn position(
@@ -412,6 +415,30 @@ pub struct Facts {
     pub dead_jobs_min: i64,
     pub rollcall_due_unscheduled: bool,
     pub huddle_due_unscheduled: bool,
+    pub heavy_free: bool,
+    /// Open stories with no page yet and S at or above `stories_score_min`, and the Tier 1 ones among them
+    /// (with their event keys, or story ids when a story has no key).
+    pub stories_waiting: i64,
+    pub stories_waiting_min: i64,
+    pub stories_score_min: i64,
+    pub tier1_waiting: i64,
+    pub tier1_keys: Vec<String>,
+    pub tier1_flash_max: i64,
+    pub edition_gap_hours: i64,
+    /// Since the last successful Edition finished, and until the next scheduled one.
+    pub last_edition_age: Option<Duration>,
+    pub next_edition_in: Option<Duration>,
+    /// A source today's Diary still waits on whose health is red.
+    pub red_diary_source: Option<String>,
+    pub curation_stale: bool,
+    pub frontpage_due_unscheduled: bool,
+}
+
+impl Facts {
+    fn edition_soon(&self) -> bool {
+        self.next_edition_in
+            .is_some_and(|d| d <= Duration::hours(1))
+    }
 }
 
 /// One next-action rule: its id (the contract's `rule`) and when it fires.
@@ -431,9 +458,8 @@ fn next(
            "args": if action == "run.start" { json!({}) } else { Value::Null }, "rule": rule, "reason": reason})
 }
 
-/// Bureau §8.1's next-action rules, first match wins. Rules 2, 4, 5, 6 and 8 read stories, the Diary,
-/// sources, the home curation and deferred revisions, which land with #9, #12, #15 and #20; until then
-/// their facts are absent and they never fire.
+/// Bureau §8.1's next-action rules, first match wins. Rule 8 (revisions an Edition deferred above the
+/// `bulk` threshold) has no table to read until Followup lands (#20), so it never fires.
 pub const RULES: &[Rule] = &[
     Rule {
         id: "stalled_heavy",
@@ -451,7 +477,27 @@ pub const RULES: &[Rule] = &[
     },
     Rule {
         id: "tier1_waiting",
-        fire: |_| None,
+        fire: |f| {
+            if f.tier1_waiting == 0 || !f.heavy_free || f.edition_soon() {
+                return None;
+            }
+            let n = f.tier1_waiting;
+            let reason = format!(
+                "{n} Tier 1 {} captured and not yet on a page",
+                if n == 1 { "story" } else { "stories" }
+            );
+            let flash = n <= f.tier1_flash_max
+                && f.last_edition_age.is_some_and(|a| a < Duration::hours(3));
+            let mut v = if flash {
+                next("run.start", Some("flash"), None, "tier1_waiting", reason)
+            } else {
+                next("run.start", Some("edition"), None, "tier1_waiting", reason)
+            };
+            if flash {
+                v["args"] = json!({"keys": f.tier1_keys});
+            }
+            Some(v)
+        },
     },
     Rule {
         id: "gate_open",
@@ -469,15 +515,54 @@ pub const RULES: &[Rule] = &[
     },
     Rule {
         id: "diary_source_red",
-        fire: |_| None,
+        fire: |f| {
+            f.red_diary_source.as_ref().map(|s| {
+                let mut v = next(
+                    "run.start",
+                    Some("rollcall"),
+                    None,
+                    "diary_source_red",
+                    format!("Today's Diary needs {s}, which is red"),
+                );
+                v["args"] = json!({"source": s});
+                v
+            })
+        },
     },
     Rule {
         id: "curation_stale",
-        fire: |_| None,
+        fire: |f| {
+            f.curation_stale.then(|| {
+                next(
+                    "run.start",
+                    Some("frontpage"),
+                    None,
+                    "curation_stale",
+                    "The live home curation is stale".into(),
+                )
+            })
+        },
     },
     Rule {
         id: "stories_waiting",
-        fire: |_| None,
+        fire: |f| {
+            let gap = Duration::hours(f.edition_gap_hours);
+            (f.stories_waiting >= f.stories_waiting_min
+                && f.last_edition_age.is_none_or(|a| a >= gap)
+                && !f.edition_soon())
+            .then(|| {
+                next(
+                    "run.start",
+                    Some("edition"),
+                    None,
+                    "stories_waiting",
+                    format!(
+                        "{} stories with S ≥ {} are waiting",
+                        f.stories_waiting, f.stories_score_min
+                    ),
+                )
+            })
+        },
     },
     Rule {
         id: "dead_jobs",
@@ -513,7 +598,17 @@ pub const RULES: &[Rule] = &[
     },
     Rule {
         id: "frontpage_due",
-        fire: |_| None,
+        fire: |f| {
+            f.frontpage_due_unscheduled.then(|| {
+                next(
+                    "run.start",
+                    Some("frontpage"),
+                    None,
+                    "frontpage_due",
+                    "Frontpage is due and not scheduled".into(),
+                )
+            })
+        },
     },
     Rule {
         id: "rollcall_due",
@@ -545,7 +640,7 @@ async fn cadence(
     preset: &str,
     every: i64,
     now: DateTime<Utc>,
-) -> Result<Value, NewsError> {
+) -> Result<(Value, Option<DateTime<Utc>>), NewsError> {
     let last: Option<(String, DateTime<Utc>)> = sqlx::query_as(
         "select short_id, finished_at from runs where preset = $1 and status = 'succeeded'
           order by finished_at desc limit 1",
@@ -558,15 +653,64 @@ async fn cadence(
         .as_ref()
         .map(|l| (now - l.1).num_minutes() as f64 / 1440.0);
     let due = age.is_none_or(|a| a >= every as f64);
-    Ok(
-        json!({"last_run": last.map(|l| l.0), "age_days": age.map(|a| (a * 10.0).round() / 10.0),
+    Ok((
+        json!({"last_run": last.as_ref().map(|l| &l.0), "age_days": age.map(|a| (a * 10.0).round() / 10.0),
               "every_days": every, "state": if due { "due" } else { "not_due" }}),
-    )
+        last.map(|l| l.1),
+    ))
 }
 
 fn local(t: DateTime<Utc>, tz: chrono_tz::Tz) -> String {
     t.with_timezone(&tz).format("%a %d %b %H:%M").to_string()
 }
+
+/// A time as the board prints it: `today 11:00` (or just `11:00` when `today` is `None`), `Fri 09:00` within
+/// a week of now, else `Thu 19 Nov 11:00`.
+fn when(t: DateTime<Utc>, now: DateTime<Utc>, tz: chrono_tz::Tz, today: Option<&str>) -> String {
+    let (t, n) = (t.with_timezone(&tz), now.with_timezone(&tz));
+    let hm = t.format("%H:%M");
+    match (t.date_naive() - n.date_naive()).num_days().abs() {
+        0 => today.map_or_else(|| hm.to_string(), |w| format!("{w} {hm}")),
+        1..=6 => format!("{} {hm}", t.format("%a")),
+        _ => format!("{} {hm}", t.format("%a %-d %b")),
+    }
+}
+
+/// `14 h ago` under two days, else `8 days ago`.
+fn ago(d: Duration) -> String {
+    match d.num_hours() {
+        h if h < 48 => format!("{h} h ago"),
+        _ => format!("{} days ago", d.num_days()),
+    }
+}
+
+/// Token counts as `0.4M` or `35k`.
+fn tokens(n: i64) -> String {
+    match n {
+        100_000.. => format!("{:.1}M", n as f64 / 1e6),
+        1_000.. => format!("{}k", n / 1000),
+        _ => n.to_string(),
+    }
+}
+
+/// The zone's abbreviation at `now`; North American zones print `ET`, not `EST` or `EDT`.
+fn zone(tz: chrono_tz::Tz, now: DateTime<Utc>) -> String {
+    let abbr = now.with_timezone(&tz).format("%Z").to_string();
+    match abbr.as_bytes() {
+        [c @ (b'E' | b'C' | b'M' | b'P'), b'S' | b'D', b'T']
+            if tz.name().starts_with("America/") =>
+        {
+            format!("{}T", *c as char)
+        }
+        _ => abbr,
+    }
+}
+
+/// The Tier of a story's latest score `sc.total` (`s.score_input` has the main entity), as in
+/// `news_nose::score::tier`: 1 if S ≥ 70 or the main entity is flagship and S ≥ 60, 2 if S ≥ 40.
+const TIER: &str = "case when sc.total >= 70 or (sc.total >= 60 and s.score_input #>> '{main_entity,prominence}' = '1')
+                         then 1 when sc.total >= 40 then 2 end";
+const LATEST_SCORE: &str = "left join lateral (select total from scores where story_id = s.story_id order by computed_at desc limit 1) sc on true";
 
 /// The status board (`status`, `news run status`).
 pub async fn status(
@@ -590,7 +734,17 @@ pub async fn status(
     .map_err(map_err)?;
     let mut facts = Facts {
         dead_jobs_min: standing.int("next.dead_jobs_min"),
+        heavy_free: slot.is_null(),
+        stories_score_min: standing.int("next.stories_score_min"),
+        stories_waiting_min: standing.int("next.stories_waiting_min"),
+        tier1_flash_max: standing.int("next.tier1_flash_max"),
+        edition_gap_hours: standing.int("next.edition_gap_hours"),
         ..Facts::default()
+    };
+    // Waiting rows start with the preset and run, padded so the lines under them align.
+    let lead = |preset: &str, short: &str| {
+        let name = presets::preset(preset).map_or(preset, |p| p.name);
+        format!("  {:<19} ", format!("{name} {short}"))
     };
     let mut running = Vec::new();
     let mut waiting = Vec::new();
@@ -656,16 +810,25 @@ pub async fn status(
                         )
                     }
                 };
+                let answer = if kind == "gate" {
+                    format!(
+                        "answer in Board: Approve · Request changes · Reject   (news run status {} to read it)",
+                        r.short_id
+                    )
+                } else {
+                    "answer in Board".to_owned()
+                };
+                // The lines under the first start in the column where "gate" does.
+                let head = lead(&r.preset, &r.short_id);
+                let ind = " ".repeat(head.chars().count());
                 text_waiting.push(format!(
-                    "  {} {:<10} {} since {}\n                      {}",
-                    r.preset,
-                    r.short_id,
+                    "{head}{}, open since {}\n{ind}{}\n{ind}{answer}",
                     if kind == "gate" {
                         format!("gate {}", gate_v["gate"].as_str().unwrap_or("?"))
                     } else {
                         "form".into()
                     },
-                    local(since, tz),
+                    when(since, now, tz, Some("today")),
                     summary["text"].as_str().unwrap_or("")
                 ));
                 waiting.push(json!({"kind": kind, "run_id": r.run_id, "short_id": r.short_id, "preset": r.preset,
@@ -685,7 +848,7 @@ pub async fn status(
                     }
                     _ => "Paused by you".to_owned(),
                 };
-                text_waiting.push(format!("  {} {:<10} {}", r.preset, r.short_id, text));
+                text_waiting.push(format!("{}{text}", lead(&r.preset, &r.short_id)));
                 waiting.push(json!({"kind": "paused", "run_id": r.run_id, "short_id": r.short_id, "preset": r.preset,
                     "since": since, "summary": {"text": text}, "gate": null, "paused_reason": r.paused_reason,
                     "resume_at": r.resume_at, "actions": ["run.resume", "run.cancel"]}));
@@ -707,14 +870,14 @@ pub async fn status(
     }
     schedules.sort_by(|a, b| a["next_at"].as_str().cmp(&b["next_at"].as_str()));
     let scheduled = |preset: &str| schedules.iter().any(|s| s["preset"] == preset);
-    let huddle = cadence(
+    let (huddle, huddle_at) = cadence(
         &mut conn,
         "huddle",
         standing.int("board.huddle_every_days"),
         now,
     )
     .await?;
-    let rollcall = cadence(
+    let (rollcall, rollcall_at) = cadence(
         &mut conn,
         "rollcall",
         standing.int("board.rollcall_every_days"),
@@ -723,6 +886,111 @@ pub async fn status(
     .await?;
     facts.rollcall_due_unscheduled = rollcall["state"] == "due" && !scheduled("rollcall");
     facts.huddle_due_unscheduled = huddle["state"] == "due" && !scheduled("huddle");
+    let next_edition_at: Option<DateTime<Utc>> = schedules
+        .iter()
+        .find(|s| s["preset"] == "edition")
+        .and_then(|s| s["next_at"].as_str()?.parse().ok());
+    facts.next_edition_in = next_edition_at.map(|at| at - now);
+
+    // The Diary today: each event with its story's latest score and tier.
+    let diary_rows = sqlx::query(sqlx::AssertSqlSafe(format!(
+        "select e.event_key, e.title, e.expected_at, e.status, s.story_id as story_id, sc.total::float8 as score,
+                {TIER} as tier, src.source_id, src.health
+           from calendar_events e join sources src on src.source_id = e.source_id
+                left join stories s on s.event_key = e.event_key
+                {LATEST_SCORE}
+          where e.expected_day = $1 and e.status <> 'cancelled'
+          order by e.expected_at nulls last, e.cal_id"
+    )))
+    .bind(now.with_timezone(&tz).date_naive())
+    .fetch_all(&mut *conn)
+    .await
+    .map_err(map_err)?;
+    let mut diary = Vec::new();
+    let mut text_diary = Vec::new();
+    for r in &diary_rows {
+        let status: String = r.get("status");
+        let (story, score, tier): (Option<i64>, Option<f64>, Option<i32>) =
+            (r.get("story_id"), r.get("score"), r.get("tier"));
+        let expected_at: Option<DateTime<Utc>> = r.get("expected_at");
+        let title: String = r.get("title");
+        if facts.red_diary_source.is_none()
+            && status != "captured"
+            && r.get::<String, _>("health") == "red"
+        {
+            facts.red_diary_source = Some(r.get("source_id"));
+        }
+        text_diary.push(format!(
+            "{}  {title:<40}{status:<8}{}",
+            expected_at.map_or_else(
+                || "--:--".to_owned(),
+                |t| t.with_timezone(&tz).format("%H:%M").to_string()
+            ),
+            story.map_or_else(String::new, |id| format!(
+                "  story {id}{}{}",
+                score.map_or_else(String::new, |s| format!("  S {s:.1}")),
+                tier.map_or_else(String::new, |t| format!("  Tier {t}"))
+            ))
+        ));
+        diary.push(
+            json!({"event_key": r.get::<String, _>("event_key"), "title": title,
+                          "expected_at": expected_at, "status": status, "story_id": story,
+                          "score": score, "tier": tier}),
+        );
+    }
+
+    // Stories waiting for an Edition: open, no page yet, S at or above the floor.
+    let (waiting_total, tier1, tier1_keys): (i64, i64, Vec<String>) =
+        sqlx::query_as(sqlx::AssertSqlSafe(format!(
+            "select count(*), count(*) filter (where tier = 1),
+                    coalesce(array_agg(ekey order by total desc) filter (where tier = 1), '{{}}'::text[])
+               from (select coalesce(s.event_key, s.story_id::text) as ekey, sc.total, {TIER} as tier
+                       from stories s {LATEST_SCORE}
+                      where s.status = 'open' and s.page_id is null and sc.total >= $1::int8) w"
+        )))
+        .bind(facts.stories_score_min)
+        .fetch_one(&mut *conn)
+        .await
+        .map_err(map_err)?;
+    facts.stories_waiting = waiting_total;
+    facts.tier1_waiting = tier1;
+    facts.tier1_keys = tier1_keys;
+    let last_edition: Option<(Uuid, String, DateTime<Utc>)> = sqlx::query_as(
+        "select run_id, short_id, finished_at from runs where preset = 'edition' and status = 'succeeded'
+          order by finished_at desc limit 1",
+    )
+    .fetch_optional(&mut *conn)
+    .await
+    .map_err(map_err)?;
+    facts.last_edition_age = last_edition.as_ref().map(|e| now - e.2);
+    let stories_waiting = json!({"total": waiting_total, "tier1": tier1,
+        "last_edition": last_edition.as_ref().map(|e| json!({"run_id": e.0, "short_id": e.1, "finished_at": e.2}))});
+
+    // Frontpage: the live (published) curation's age against the due and stale days.
+    let (due_after, stale_after) = (
+        standing.int("board.frontpage_due_days"),
+        standing.int("home.stale_days"),
+    );
+    let live: Option<(i32, DateTime<Utc>)> = sqlx::query_as(
+        "select version, published_at from home_curations
+          where status = 'published' and version is not null and published_at is not null
+          order by version desc limit 1",
+    )
+    .fetch_optional(&mut *conn)
+    .await
+    .map_err(map_err)?;
+    let frontpage = live.map_or(Value::Null, |(version, at)| {
+        let age = (now - at).num_minutes() as f64 / 1440.0;
+        let state = match age {
+            a if a >= stale_after as f64 => "stale",
+            a if a >= due_after as f64 => "due",
+            _ => "not_due",
+        };
+        facts.curation_stale = state == "stale";
+        facts.frontpage_due_unscheduled = state != "not_due" && !scheduled("frontpage");
+        json!({"version": version, "age_days": (age * 10.0).round() / 10.0, "due_after_days": due_after,
+               "stale_after_days": stale_after, "state": state})
+    });
 
     // Problems: dead jobs since the last Salvage, failed or skipped runs in 7 days, refusals.
     let last_salvage: Option<(String, DateTime<Utc>)> = sqlx::query_as(
@@ -735,7 +1003,7 @@ pub async fn status(
     let dead: Vec<(String, i64)> = sqlx::query_as(
         "select coalesce(error_class, 'unknown'), count(*) from jobs
           where state = 'discarded' and ($1::timestamptz is null or finished_at > $1)
-          group by 1 order by 1",
+          group by 1 order by 2 desc, 1",
     )
     .bind(last_salvage.as_ref().map(|s| s.1))
     .fetch_all(&mut *conn)
@@ -774,13 +1042,33 @@ pub async fn status(
                "image": r.get::<Option<String>, _>("image"), "run_id": r.get::<Option<Uuid>, _>("run_id")})
     })
     .collect();
+    // Red and amber sources, red first. The Sitrep is the Rollcall run that last saw the source.
+    let source_rows = sqlx::query(
+        "select source_id, health, coalesce(health_reason, 'no reason recorded') as reason, health_since,
+                health_sitrep
+           from sources where enabled and health in ('amber', 'red')
+          order by health = 'red' desc, source_id",
+    )
+    .fetch_all(&mut *conn)
+    .await
+    .map_err(map_err)?;
+    let source_problems: Vec<Value> = source_rows
+        .iter()
+        .map(|r| {
+            json!({"source_id": r.get::<String, _>("source_id"), "health": r.get::<String, _>("health"),
+                   "reason": r.get::<String, _>("reason"),
+                   "since": r.get::<Option<NaiveDate>, _>("health_since").map(|d| d.to_string()),
+                   "sitrep": r.get::<Option<String>, _>("health_sitrep")})
+        })
+        .collect();
     let usage = policy.map_or_else(|| crate::AllowAll.usage(), |p| p.usage());
     let next_v = next_action(&facts);
 
     // Text.
     let mut t = format!(
-        "Bureau · {} · service {} · settings v{}\n\nRUNNING\n",
-        now.with_timezone(&tz).format("%a %d %b %Y %H:%M %Z"),
+        "Bureau · {} {} · service {} · settings v{}\n\nRUNNING\n",
+        now.with_timezone(&tz).format("%a %d %b %Y %H:%M"),
+        zone(tz, now),
         service.as_str(),
         standing.version
     );
@@ -820,7 +1108,9 @@ pub async fn status(
         .iter()
         .filter_map(|s| {
             let at: DateTime<Utc> = s["next_at"].as_str()?.parse().ok()?;
-            Some(format!("{} {}", s["preset"].as_str()?, local(at, tz)))
+            let id = s["preset"].as_str()?;
+            let name = presets::preset(id).map_or(id, |p| p.name);
+            Some(format!("{name} {}", when(at, now, tz, Some("today"))))
         })
         .collect();
     t.push_str(&format!(
@@ -831,21 +1121,94 @@ pub async fn status(
             sched.join(" · ")
         }
     ));
-    for (name, c) in [("Huddle", &huddle), ("Rollcall", &rollcall)] {
+    t.push_str(&format!(
+        "  {:<20}{}\n",
+        "Diary today",
+        if text_diary.is_empty() {
+            "nothing expected".to_owned()
+        } else {
+            text_diary.join(&format!("\n{INDENT}"))
+        }
+    ));
+    t.push_str(&format!(
+        "  {:<20}{}\n",
+        "Stories waiting",
+        match &last_edition {
+            Some((_, short, at)) => format!(
+                "{waiting_total} ({tier1} Tier 1). Last Edition {short} finished {} ({})",
+                when(*at, now, tz, Some("today")),
+                ago(now - *at)
+            ),
+            None => format!("{waiting_total} ({tier1} Tier 1). No Edition has finished yet"),
+        }
+    ));
+    t.push_str(&format!(
+        "  {:<20}{}\n",
+        "Frontpage",
+        match (&live, frontpage["state"].as_str()) {
+            (Some((v, _)), Some(state)) => format!(
+                "Curation v{v} is {:.1} days old: {}{}",
+                frontpage["age_days"].as_f64().unwrap_or_default(),
+                state.replace('_', " "),
+                match state {
+                    "due" => format!(" (stale at {stale_after})"),
+                    "not_due" => format!(" (due at {due_after})"),
+                    _ => String::new(),
+                }
+            ),
+            _ => "No curation published yet".to_owned(),
+        }
+    ));
+    for (name, what, c, at) in [
+        ("Huddle", "Huddle", &huddle, huddle_at),
+        ("Rollcall", "Sitrep", &rollcall, rollcall_at),
+    ] {
         t.push_str(&format!(
             "  {name:<20}{}\n",
-            match c["last_run"].as_str() {
-                Some(l) => format!(
-                    "last {l}, {} days ago: {}",
-                    c["age_days"],
+            match (c["last_run"].as_str(), at) {
+                (Some(l), Some(at)) => format!(
+                    "Last {what} {l} on {} ({}): {}",
+                    at.with_timezone(&tz).format("%a %-d %b"),
+                    ago(now - at),
                     c["state"].as_str().unwrap_or("").replace('_', " ")
                 ),
-                None => "never run: due".to_owned(),
+                _ => "Never run: due".to_owned(),
             }
         ));
     }
     t.push_str("\nPROBLEMS\n");
     let dead_text: Vec<String> = dead.iter().map(|(c, n)| format!("{c} {n}")).collect();
+    let width = source_problems
+        .iter()
+        .filter_map(|p| p["source_id"].as_str().map(str::len))
+        .fold(5, usize::max);
+    let source_lines: Vec<String> = source_problems
+        .iter()
+        .map(|p| {
+            format!(
+                "{:<width$} {:<5}  {}{}{}",
+                p["source_id"].as_str().unwrap_or("?"),
+                p["health"].as_str().unwrap_or("?"),
+                p["reason"].as_str().unwrap_or(""),
+                p["since"]
+                    .as_str()
+                    .and_then(|d| d.parse::<NaiveDate>().ok())
+                    .map_or_else(String::new, |d| format!(" since {}", d.format("%a %-d %b"))),
+                p["sitrep"]
+                    .as_str()
+                    .map_or_else(String::new, |s| format!(" (Sitrep {s})"))
+            )
+        })
+        .collect();
+    t.push_str(&format!(
+        "  {:<20}{}\n",
+        "Sources",
+        if source_lines.is_empty() {
+            "none red or amber".to_owned()
+        } else {
+            source_lines.join(&format!("\n{INDENT}"))
+        }
+    ));
     t.push_str(&format!(
         "  Dead jobs           {}\n",
         if dead_text.is_empty() {
@@ -854,7 +1217,9 @@ pub async fn status(
             format!(
                 "{} since {}: {}",
                 facts.dead_since_salvage,
-                last_salvage.as_ref().map_or("the start", |s| s.0.as_str()),
+                last_salvage
+                    .as_ref()
+                    .map_or_else(|| "the start".to_owned(), |s| format!("Salvage {}", s.0)),
                 dead_text.join(", ")
             )
         }
@@ -876,15 +1241,45 @@ pub async fn status(
     t.push_str(&format!(
         "  Usage               {}\n",
         if usage["known"] == true {
-            format!("Bureau today {} tokens", usage["bureau_today"])
+            let (cap, reserve) = (usage["cap_today"].as_i64(), usage["reserve_today"].as_i64());
+            format!(
+                "Bureau today {} tokens · {}",
+                tokens(usage["bureau_today"].as_i64().unwrap_or_default()),
+                if cap.is_none() && reserve.is_none() {
+                    "cap and reserve not set".to_owned()
+                } else {
+                    format!(
+                        "cap {} · reserve {}",
+                        cap.map_or_else(|| "not set".to_owned(), tokens),
+                        reserve.map_or_else(|| "not set".to_owned(), tokens)
+                    )
+                }
+            )
         } else {
             "usage unknown".to_owned()
         }
     ));
-    t.push_str(&format!(
-        "\nNEXT\n  {}",
-        next_v["reason"].as_str().unwrap_or("")
-    ));
+    let name = |v: &Value| {
+        let id = v["preset"].as_str().unwrap_or("?");
+        presets::preset(id).map_or(id.to_owned(), |p| p.name.to_owned())
+    };
+    let short = next_v["short_id"].as_str().unwrap_or("?");
+    let label = match next_v["action"].as_str() {
+        Some("run.start") => format!("Start {}", name(&next_v)),
+        Some("run.pause") => format!("Pause {short}"),
+        Some("open.run") => format!("Open {short}"),
+        Some("open.form") => format!("Answer {}", name(&next_v)),
+        _ => "Nothing due".to_owned(),
+    };
+    let reason = next_v["reason"].as_str().unwrap_or("");
+    t.push_str(&match (next_v["rule"].as_str(), next_edition_at) {
+        (Some("nothing_due"), _) => "\nNEXT\n  Nothing due.".to_owned(),
+        (Some("tier1_waiting"), Some(at)) => format!(
+            "\nNEXT\n  {label:<20}{reason} (next scheduled Edition {})",
+            when(at, now, tz, None)
+        ),
+        _ => format!("\nNEXT\n  {label:<20}{reason}"),
+    });
 
     Ok(json!({
         "as_of": now,
@@ -894,9 +1289,9 @@ pub async fn status(
         "running": running,
         "waiting": waiting,
         "queued": queued,
-        "due": {"schedules": schedules, "diary": [], "stories_waiting": null, "frontpage": null,
-                "huddle": huddle, "rollcall": rollcall},
-        "problems": {"sources": [], "dead_jobs": {"total": facts.dead_since_salvage, "by_class": by_class,
+        "due": {"schedules": schedules, "diary": diary, "stories_waiting": stories_waiting,
+                "frontpage": frontpage, "huddle": huddle, "rollcall": rollcall},
+        "problems": {"sources": source_problems, "dead_jobs": {"total": facts.dead_since_salvage, "by_class": by_class,
                      "since_salvage": last_salvage.map(|s| s.0)},
                      "failed_runs": failed, "refused_control": refused, "usage": usage},
         "next": next_v,
@@ -914,6 +1309,7 @@ mod tests {
         let id = Uuid::nil();
         let mut f = Facts {
             dead_jobs_min: 10,
+            stories_waiting_min: 20,
             ..Facts::default()
         };
         assert_eq!(next_action(&f)["rule"], "nothing_due");
@@ -932,5 +1328,126 @@ mod tests {
         );
         let ids: Vec<&str> = RULES.iter().map(|r| r.id).collect();
         assert_eq!(ids.len(), 11);
+    }
+
+    #[test]
+    fn the_story_diary_and_curation_rules_fire_on_their_conditions() {
+        let base = Facts {
+            heavy_free: true,
+            stories_waiting_min: 20,
+            stories_score_min: 40,
+            tier1_flash_max: 3,
+            edition_gap_hours: 6,
+            dead_jobs_min: 10,
+            ..Facts::default()
+        };
+        let rule = |f: &Facts| next_action(f)["rule"].as_str().unwrap().to_owned();
+
+        // Rule 2: Tier 1 stories wait, the slot is free, no Edition within the hour.
+        let mut f = Facts {
+            tier1_waiting: 3,
+            tier1_keys: vec!["a".into(), "b".into(), "c".into()],
+            next_edition_in: Some(Duration::minutes(140)),
+            ..base.clone()
+        };
+        let n = next_action(&f);
+        assert_eq!(
+            (n["rule"].as_str(), n["preset"].as_str(), &n["args"]),
+            (Some("tier1_waiting"), Some("edition"), &json!({}))
+        );
+        f.next_edition_in = Some(Duration::minutes(59));
+        assert_eq!(rule(&f), "nothing_due", "an Edition is about to start");
+        f.next_edition_in = None;
+        f.heavy_free = false;
+        assert_eq!(rule(&f), "nothing_due", "the slot is busy");
+        // Few Tier 1 stories and a fresh Edition: Flash with their keys.
+        f.heavy_free = true;
+        f.last_edition_age = Some(Duration::hours(2));
+        let n = next_action(&f);
+        assert_eq!(n["preset"], "flash");
+        assert_eq!(n["args"], json!({"keys": ["a", "b", "c"]}));
+        f.last_edition_age = Some(Duration::hours(4));
+        assert_eq!(next_action(&f)["preset"], "edition");
+
+        // Rule 4: a source today's Diary needs is red.
+        let f = Facts {
+            red_diary_source: Some("ons".into()),
+            ..base.clone()
+        };
+        let n = next_action(&f);
+        assert_eq!(n["rule"], "diary_source_red");
+        assert_eq!(
+            (n["preset"].as_str(), &n["args"]),
+            (Some("rollcall"), &json!({"source": "ons"}))
+        );
+
+        // Rule 5, and rule 9's Frontpage part.
+        let f = Facts {
+            curation_stale: true,
+            frontpage_due_unscheduled: true,
+            ..base.clone()
+        };
+        let n = next_action(&f);
+        assert_eq!(
+            (n["rule"].as_str(), n["preset"].as_str()),
+            (Some("curation_stale"), Some("frontpage"))
+        );
+        let f = Facts {
+            frontpage_due_unscheduled: true,
+            ..base.clone()
+        };
+        assert_eq!(rule(&f), "frontpage_due");
+
+        // Rule 6: enough stories, the last Edition long enough ago.
+        let mut f = Facts {
+            stories_waiting: 20,
+            last_edition_age: Some(Duration::hours(6)),
+            ..base.clone()
+        };
+        assert_eq!(rule(&f), "stories_waiting");
+        f.stories_waiting = 19;
+        assert_eq!(rule(&f), "nothing_due");
+        f.stories_waiting = 20;
+        f.last_edition_age = Some(Duration::hours(5));
+        assert_eq!(rule(&f), "nothing_due");
+        f.last_edition_age = None;
+        assert_eq!(rule(&f), "stories_waiting", "no Edition yet");
+        f.next_edition_in = Some(Duration::minutes(30));
+        assert_eq!(rule(&f), "nothing_due");
+    }
+
+    #[test]
+    fn times_ages_tokens_and_zones_print_as_the_board_shows_them() {
+        let tz: chrono_tz::Tz = "America/New_York".parse().unwrap();
+        let now: DateTime<Utc> = "2026-11-12T13:40:00Z".parse().unwrap();
+        let at = |s: &str| s.parse::<DateTime<Utc>>().unwrap();
+        assert_eq!(zone(tz, now), "ET");
+        assert_eq!(zone(tz, at("2026-07-12T13:40:00Z")), "ET");
+        assert_eq!(zone("Asia/Shanghai".parse().unwrap(), now), "CST");
+        assert_eq!(zone("Europe/Paris".parse().unwrap(), now), "CET");
+        assert_eq!(
+            when(at("2026-11-12T16:00:00Z"), now, tz, Some("today")),
+            "today 11:00"
+        );
+        assert_eq!(when(at("2026-11-12T16:00:00Z"), now, tz, None), "11:00");
+        assert_eq!(
+            when(at("2026-11-13T14:00:00Z"), now, tz, Some("today")),
+            "Fri 09:00"
+        );
+        assert_eq!(
+            when(at("2026-11-12T02:05:00Z"), now, tz, Some("today")),
+            "Wed 21:05"
+        );
+        assert_eq!(
+            when(at("2026-11-19T16:00:00Z"), now, tz, None),
+            "Thu 19 Nov 11:00"
+        );
+        assert_eq!(ago(Duration::minutes(14 * 60 + 30)), "14 h ago");
+        assert_eq!(ago(Duration::hours(48)), "2 days ago");
+        assert_eq!(ago(Duration::days(8)), "8 days ago");
+        assert_eq!(tokens(400_000), "0.4M");
+        assert_eq!(tokens(2_000_000), "2.0M");
+        assert_eq!(tokens(35_000), "35k");
+        assert_eq!(tokens(900), "900");
     }
 }
