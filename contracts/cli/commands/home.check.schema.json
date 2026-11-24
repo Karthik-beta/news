@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/home.check.schema.json",
+  "title": "news home check",
+  "description": "Code checks on a draft curation, against the pages as PostgreSQL has them now (TD \"Home page curation\" and ADR 0005; the write API runs the same rules again). A passing draft becomes `checked`; failures go back to the curator. Failure codes: schema.invalid, page_missing, page_unpublished, page_withdrawn, duplicate_page, figure_not_on_page, chart_not_on_page, breadth_categories, breadth_regions, breadth_entity, breadth_non_finance, lead_stale. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "W",
+  "x-news-status": "built",
+  "x-news-errors": ["usage", "not_found", "precondition"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "draft": { "type": "string" }
+      },
+      "required": ["draft"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "draft_id": { "type": "integer" },
+        "status": { "enum": ["draft", "checked", "approved"] },
+        "pass": { "type": "boolean" },
+        "failures": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "code": { "type": "string" },
+              "message": { "type": "string" },
+              "path": {
+                "description": "JSON Pointer into the draft's body, when the failure is at one slot.",
+                "type": "string"
+              }
+            },
+            "required": ["code", "message"],
+            "additionalProperties": false
+          }
+        },
+        "results": {
+          "description": "One entry per rule: the `checks.results` a published curation carries.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "rule": { "type": "string" },
+              "ok": { "type": "boolean" },
+              "detail": { "type": "string", "maxLength": 300 }
+            },
+            "required": ["rule", "ok"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["draft_id", "status", "pass", "failures", "results"],
+      "additionalProperties": false
+    }
+  }
+}

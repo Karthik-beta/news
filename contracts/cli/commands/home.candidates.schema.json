@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/home.candidates.schema.json",
+  "title": "news home candidates",
+  "description": "The pages the curator may choose from: at most 40, ranked by home_score = 0.45·S_now + 20·[Tier 1] + 0.20·traffic_pct + 0.15·visual_richness (Bureau §4.5) and picked with Desk's bucket diversity (category cap, one entity at most twice). Eligible: published since the last curation, plus Tier 1 pages of the last 14 days. S_now is the page's story re-scored now; traffic_pct is the page's view percentile among candidates (0 until analytics exist). Every number is computed by code. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "R",
+  "x-news-status": "built",
+  "x-news-errors": ["precondition"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "as_of": { "type": "string", "format": "date-time" },
+        "eligible": { "type": "integer", "description": "Pages that could be scored, before the pick." },
+        "count": { "type": "integer" },
+        "items": {
+          "type": "array",
+          "maxItems": 40,
+          "items": {
+            "type": "object",
+            "properties": {
+              "rank": { "type": "integer", "minimum": 1 },
+              "page_id": { "type": "string" },
+              "title": { "type": ["string", "null"] },
+              "tier": { "type": ["integer", "null"] },
+              "page_type": { "type": ["string", "null"] },
+              "categories": { "type": "array", "items": { "type": "string" } },
+              "region": { "type": ["string", "null"] },
+              "published_at": { "type": ["string", "null"], "format": "date-time" },
+              "age_hours": { "type": ["integer", "null"] },
+              "home_score": { "type": "number" },
+              "s_now": { "type": "number" },
+              "traffic_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+              "visual_richness": { "type": "integer", "minimum": 0, "maximum": 100 },
+              "figures": {
+                "description": "Data IDs a slot may show (at most 8).",
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "charts": { "description": "Chart IDs a slot may show.", "type": "array", "items": { "type": "string" } },
+              "bucket": { "type": "string" },
+              "reason": { "type": "string" }
+            },
+            "required": [
+              "rank",
+              "page_id",
+              "home_score",
+              "s_now",
+              "traffic_pct",
+              "visual_richness",
+              "figures",
+              "charts",
+              "bucket",
+              "reason"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["as_of", "eligible", "count", "items"],
+      "additionalProperties": false
+    }
+  }
+}
