@@ -8,6 +8,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { extname, join, normalize, resolve } from "node:path";
 import AxeBuilder from "@axe-core/playwright";
 import { chromium } from "@playwright/test";
+
 // Same tags as WCAG_TAGS in tests/e2e/fixtures.ts (not imported: that file pulls in the test runner).
 const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 
@@ -35,11 +36,17 @@ try {
   await page.route("**/*", async (route) => {
     const url = new URL(route.request().url());
     if (url.origin !== origin) return route.abort();
-    const rel = normalize(decodeURIComponent(url.pathname === "/" ? "/index.html" : url.pathname)).replace(/^[/\\]+/, "");
+    const rel = normalize(decodeURIComponent(url.pathname === "/" ? "/index.html" : url.pathname)).replace(
+      /^[/\\]+/,
+      "",
+    );
     for (const root of [dir, assets]) {
       const file = join(root, rel);
       if (!file.startsWith(root) || !existsSync(file)) continue;
-      return route.fulfill({ body: readFileSync(file), contentType: TYPES[extname(file)] ?? "application/octet-stream" });
+      return route.fulfill({
+        body: readFileSync(file),
+        contentType: TYPES[extname(file)] ?? "application/octet-stream",
+      });
     }
     return route.fulfill({ status: 404, body: "" });
   });

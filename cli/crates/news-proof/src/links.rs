@@ -18,21 +18,90 @@ pub trait LinkChecker {
     fn check(&self, url: &str) -> Probe;
 }
 
-/// The live checker: HEAD, then GET when the server does not do HEAD.
+/// The live checker: HEAD, then GET when the server does not do HEAD. Only public addresses are probed: a page
+/// is written from outside data, so a link to `http://169.254.169.254/` or `http://localhost:5432/` must not make
+/// this machine call its own network. Redirects are re-checked at every hop. Only the status line is read (the
+/// body is never downloaded), and the whole request is capped at 10 seconds.
 pub struct HttpProbe {
     client: reqwest::blocking::Client,
+    allow_local: bool,
+}
+
+/// shortcut: the name is resolved here and again by the HTTP client, so a DNS server that answers differently the
+/// second time (rebinding) could slip past; upgrade to a pinned resolver if links ever come from untrusted pages.
+fn public_url(url: &reqwest::Url, allow_local: bool) -> Result<(), String> {
+    use std::net::ToSocketAddrs;
+    if allow_local {
+        return Ok(());
+    }
+    if !matches!(url.scheme(), "http" | "https") {
+        return Err("only http and https links are checked".into());
+    }
+    let host = url.host_str().ok_or("the link has no host")?;
+    let port = url.port_or_known_default().unwrap_or(80);
+    let addrs: Vec<_> = (host.trim_matches(['[', ']']), port)
+        .to_socket_addrs()
+        .map_err(|_| "the host does not resolve".to_string())?
+        .collect();
+    if addrs.is_empty() || addrs.iter().any(|a| !is_public(a.ip())) {
+        return Err("the link points at a private or local address".into());
+    }
+    Ok(())
+}
+
+fn is_public(ip: std::net::IpAddr) -> bool {
+    use std::net::IpAddr;
+    match ip {
+        IpAddr::V4(v4) => {
+            let o = v4.octets();
+            !(v4.is_loopback()
+                || v4.is_private()
+                || v4.is_link_local()
+                || v4.is_unspecified()
+                || v4.is_broadcast()
+                || v4.is_multicast()
+                || o[0] == 0
+                || (o[0] == 100 && (o[1] & 0xc0) == 64)) // 100.64.0.0/10, carrier-grade NAT
+        }
+        IpAddr::V6(v6) => match v6.to_ipv4_mapped() {
+            Some(v4) => is_public(IpAddr::V4(v4)),
+            None => {
+                let first = v6.segments()[0];
+                !(v6.is_loopback()
+                    || v6.is_unspecified()
+                    || v6.is_multicast()
+                    || (first & 0xfe00) == 0xfc00 // fc00::/7, unique local
+                    || (first & 0xffc0) == 0xfe80) // fe80::/10, link local
+            }
+        },
+    }
 }
 
 impl HttpProbe {
     pub fn new() -> Result<Self, String> {
+        Self::build(false)
+    }
+
+    fn build(allow_local: bool) -> Result<Self, String> {
         let client = reqwest::blocking::Client::builder()
             .user_agent(format!("News/{} link-check", news_core::VERSION))
             .connect_timeout(std::time::Duration::from_secs(5))
             .timeout(std::time::Duration::from_secs(10))
-            .redirect(reqwest::redirect::Policy::limited(5))
+            .redirect(reqwest::redirect::Policy::custom(move |attempt| {
+                if attempt.previous().len() >= 5 {
+                    attempt.error("too many redirects")
+                } else if let Err(why) = public_url(attempt.url(), allow_local) {
+                    attempt.error(why)
+                } else {
+                    attempt.follow()
+                }
+            }))
             .build()
             .map_err(|e| e.without_url().to_string())?;
-        Ok(Self { client })
+        Ok(Self {
+            client,
+            allow_local,
+        })
     }
 }
 
@@ -43,6 +112,13 @@ fn answers(status: u16) -> bool {
 
 impl LinkChecker for HttpProbe {
     fn check(&self, url: &str) -> Probe {
+        let refused = match reqwest::Url::parse(url) {
+            Ok(u) => public_url(&u, self.allow_local).err(),
+            Err(e) => Some(e.to_string()),
+        };
+        if let Some(note) = refused {
+            return Probe { ok: false, note };
+        }
         let head = self.client.head(url).send();
         let status = match head {
             Ok(r) if !matches!(r.status().as_u16(), 405 | 501) && r.status().as_u16() < 500 => {
@@ -233,7 +309,7 @@ mod tests {
     fn the_live_probe_reads_status_codes() {
         let _ = rustls::crypto::ring::default_provider().install_default();
         let base = server();
-        let p = HttpProbe::new().unwrap();
+        let p = HttpProbe::build(true).unwrap();
         assert!(p.check(&format!("{base}/200")).ok);
         assert!(p.check(&format!("{base}/nohead")).ok, "falls back to GET");
         assert!(
@@ -243,5 +319,37 @@ mod tests {
         assert!(!p.check(&format!("{base}/404")).ok);
         assert!(!p.check(&format!("{base}/500")).ok);
         assert!(!p.check("http://127.0.0.1:1/").ok);
+    }
+
+    #[test]
+    fn private_and_local_addresses_are_never_probed() {
+        let _ = rustls::crypto::ring::default_provider().install_default();
+        let base = server(); // a live loopback server: it must not be reached
+        let p = HttpProbe::new().unwrap();
+        for url in [
+            format!("{base}/200"),
+            "http://localhost/".into(),
+            "http://127.0.0.1/".into(),
+            "http://10.0.0.5/".into(),
+            "http://172.16.0.1/".into(),
+            "http://192.168.1.1/".into(),
+            "http://169.254.169.254/latest/meta-data/".into(),
+            "http://100.64.0.1/".into(),
+            "http://0.0.0.0/".into(),
+            "http://[::1]/".into(),
+            "http://[fd00::1]/".into(),
+            "http://[fe80::1]/".into(),
+            "http://[::ffff:127.0.0.1]/".into(),
+            "file:///etc/passwd".into(),
+        ] {
+            let probe = p.check(&url);
+            assert!(!probe.ok, "{url} must be refused");
+            assert!(
+                !probe.note.starts_with("HTTP "),
+                "{url} must not be fetched"
+            );
+        }
+        assert!(is_public("8.8.8.8".parse().unwrap()));
+        assert!(is_public("2606:4700::1111".parse().unwrap()));
     }
 }

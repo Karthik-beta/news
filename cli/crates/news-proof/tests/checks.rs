@@ -331,6 +331,22 @@ fn c4_allows_names_with_digits_and_references() {
     assert_eq!(status(&m, "C4"), "pass", "{:#?}", m.failures);
 }
 
+#[test]
+fn c4_exempts_a_templated_page() {
+    let f = Fixture::new();
+    f.edit(
+        "meta.json",
+        "The figures come from",
+        "The 2024 figures come from",
+    );
+    breaks(&f, "C4", "meta.json:summary");
+    f.patch("meta.json", |v| {
+        v["flags"] = serde_json::json!(["templated"])
+    });
+    let m = World::new().run(&f.0);
+    assert_eq!(status(&m, "C4"), "pass", "{:#?}", m.failures);
+}
+
 // C5: direction words.
 
 #[test]

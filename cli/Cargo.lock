@@ -3268,7 +3268,7 @@ dependencies = [
  "chrono",
  "news-core",
  "news-ledger",
- "reqwest",
+ "reqwest 0.13.5",
  "rustls",
  "serde",
  "serde_json",

@@ -1,7 +1,7 @@
 {
   "schema": "meta.v1",
   "id": "us-cpi-october-2026",
-  "path": "2026/11/us-cpi-october-2026",
+  "path": "/2026/11/us-cpi-october-2026",
   "version": 1,
   "lang": "en",
   "title": "Annual inflation in America fell to {dp_cpi_2026_10} in {pd_2026_10}",

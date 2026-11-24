@@ -126,6 +126,13 @@ pub fn numeric_lint(prose: &str, c4: &C4, names: &[String]) -> Vec<String> {
 }
 
 pub(super) fn c4(cx: &Ctx) -> Vec<Finding> {
+    // A templated page (D10) is built by code from source labels, which can carry digits ("Table 1").
+    if cx.b.meta["flags"]
+        .as_array()
+        .is_some_and(|f| f.iter().any(|v| v == "templated"))
+    {
+        return Vec::new();
+    }
     let names: Vec<String> = cx.b.meta["entities"]
         .as_array()
         .into_iter()
