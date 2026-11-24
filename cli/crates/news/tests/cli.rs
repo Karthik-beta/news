@@ -7,6 +7,8 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
+#[path = "cli/check.rs"]
+mod check;
 #[path = "cli/components.rs"]
 mod components;
 #[path = "cli/contract.rs"]

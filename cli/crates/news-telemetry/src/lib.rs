@@ -130,6 +130,19 @@ pub struct ScoreRow {
     pub tier: u8,
 }
 
+/// One row of `news.check_results` (`infra/clickhouse/003_ticker.sql`): one per check per page (Proof).
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct CheckResultRow {
+    #[serde(serialize_with = "ch_time")]
+    pub ts: DateTime<Utc>,
+    pub run_id: String,
+    pub page_id: String,
+    /// `C1` … `C14` (`A7` is the sample check).
+    pub check_id: String,
+    pub pass: u8,
+    pub message: String,
+}
+
 /// Where events go. Built from the environment; `None` when telemetry is off or not configured.
 #[derive(Clone)]
 pub struct ClickHouse {

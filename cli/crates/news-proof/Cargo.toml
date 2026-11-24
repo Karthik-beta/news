@@ -1,6 +1,6 @@
 [package]
 name = "news-proof"
-description = "Render and Proof: the stored Copy, Copy validators, the templated fallback page, page bundles through Plate, and code checks."
+description = "Render and Proof (#17): the stored Copy, Copy validators, the templated fallback page, page bundles through Plate, and the code checks C1-C14 with the Markup they produce."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,13 +8,22 @@ publish.workspace = true
 
 [dependencies]
 news-core = { workspace = true }
+news-ledger = { workspace = true }
 chrono = { workspace = true }
 jsonschema = { workspace = true }
+# Blocking client for the link checks (C10); TLS is installed by the `news` binary (news-wire's Runner).
 reqwest = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
 tokio = { workspace = true, features = ["process"] }
+toml = { workspace = true }
+
+[dev-dependencies]
+# Already in the tree (news-telemetry, news-wire): a test that builds a reqwest client needs the provider the
+# `news` binary installs in `main`.
+rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
+uuid = { workspace = true }
 
 [lints]
 workspace = true

@@ -3278,7 +3278,17 @@ dependencies = [
 name = "news-press"
 version = "0.0.1"
 dependencies = [
+ "chrono",
+ "news-chief",
  "news-core",
+ "news-store",
+ "news-wire",
+ "reqwest 0.13.5",
+ "serde_json",
+ "sha2 0.11.1",
+ "sqlx",
+ "tokio",
+ "uuid",
 ]
 
 [[package]]
@@ -3288,11 +3298,15 @@ dependencies = [
  "chrono",
  "jsonschema",
  "news-core",
+ "news-ledger",
  "reqwest 0.13.5",
+ "rustls",
  "serde",
  "serde_json",
  "sha2 0.11.1",
  "tokio",
+ "toml",
+ "uuid",
 ]
 
 [[package]]

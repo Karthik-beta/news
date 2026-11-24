@@ -10,6 +10,8 @@ mod fixer;
 mod home;
 mod jobs;
 mod nose;
+mod press;
+mod proof;
 mod render;
 mod run;
 mod schema;
@@ -64,8 +66,9 @@ pub async fn run(cli: Cli, path: &str, shape: &Shape) -> NewsResult<Reply> {
 
         // Not built yet: each names the issue that builds its subsystem.
         C::Sources(cmd) => sources::run(cmd).await,
-        // `prune` deletes working files; Wire owns them and the `work.prune` job (#9).
-        C::Discover { .. } | C::Fetch { .. } | C::Prune => stub(path, news_wire::ISSUE),
+        C::Discover { .. } | C::Fetch { .. } => stub(path, news_wire::ISSUE),
+        // Working files of published pages (Press); Wire's `work.prune` job keeps the raw snapshots.
+        C::Prune => press::prune().await,
         C::Parse { .. } => stub(path, news_clerk::ISSUE),
         C::Run(cmd) => run::run(cmd).await,
         C::Standing(cmd) => run::standing(cmd).await,
@@ -87,10 +90,10 @@ pub async fn run(cli: Cli, path: &str, shape: &Shape) -> NewsResult<Reply> {
         C::Stories(cmd) => stories::run(cmd).await,
         C::Plan { run } => nose::plan(&run).await,
         C::Scores(cmd) => nose::scores(cmd, path).await,
-        C::Stats => stub(path, news_telemetry::ISSUE),
+        C::Stats => press::stats().await,
         C::Save { story, file } => render::save(&story, &file),
         C::Render { story } => render::render(&story).await,
-        C::Check { .. } => stub(path, news_proof::ISSUE),
+        C::Check { story } => proof::check(&story).await,
         C::Brief { story } => fixer::brief(&story).await,
         C::Ai(cmd) => ai::run(cmd).await,
         C::Eval(_) | C::Review(_) => stub(path, news_critic::ISSUE),
@@ -151,6 +154,8 @@ pub const BUILT: &[&str] = &[
     "sources.probe",
     "sources.sync",
     "plan",
+    "prune",
+    "stats",
     "scores.explain",
     "scores.weights",
     "stories.show",
@@ -161,6 +166,7 @@ pub const BUILT: &[&str] = &[
     "ai.input",
     "ai.accept",
     "ai.fallback",
+    "check",
     "brief",
     "related",
 ];
