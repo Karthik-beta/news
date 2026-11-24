@@ -3181,7 +3181,18 @@ dependencies = [
 name = "news-fixer"
 version = "0.0.1"
 dependencies = [
+ "chrono",
+ "jsonschema",
+ "news-connectors",
  "news-core",
+ "news-dispatch",
+ "news-ledger",
+ "news-store",
+ "news-taster",
+ "serde",
+ "serde_json",
+ "sha2 0.11.1",
+ "sqlx",
 ]
 
 [[package]]
