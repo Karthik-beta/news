@@ -28,10 +28,20 @@ use windows_sys::Win32::System::JobObjects::{
 };
 use windows_sys::Win32::System::Pipes::{GetNamedPipeClientProcessId, GetNamedPipeServerProcessId};
 use windows_sys::Win32::System::Threading::{
-    GetCurrentProcess, OpenProcess, OpenProcessToken, PROCESS_QUERY_LIMITED_INFORMATION,
-    PROCESS_SET_QUOTA, PROCESS_TERMINATE, QueryFullProcessImageNameW,
+    CREATE_NO_WINDOW, CREATE_SUSPENDED, GetCurrentProcess, OpenProcess, OpenProcessToken,
+    PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_SET_QUOTA, PROCESS_SUSPEND_RESUME,
+    PROCESS_TERMINATE, QueryFullProcessImageNameW,
 };
 use windows_sys::Win32::UI::Shell::CommandLineToArgvW;
+
+/// Creation flags for a process the spawn marker adopts: suspended, with no console window.
+pub const SPAWN_SUSPENDED: u32 = CREATE_SUSPENDED | CREATE_NO_WINDOW;
+
+#[allow(unsafe_code)]
+#[link(name = "ntdll")]
+unsafe extern "system" {
+    fn NtResumeProcess(process: HANDLE) -> i32;
+}
 
 fn last() -> io::Error {
     io::Error::last_os_error()
@@ -361,6 +371,25 @@ impl Job {
         // SAFETY: both handles are valid.
         if unsafe { AssignProcessToJobObject(self.0.0, p.0) } == 0 {
             return Err(last());
+        }
+        Ok(())
+    }
+
+    /// The spawn marker (Bureau §3.9): put a process created with `CREATE_SUSPENDED` in this job, then
+    /// resume it, so it runs no instruction outside the job and everything it starts stays inside.
+    /// The caller holds the child's handle, so `pid` cannot be reused meanwhile; on an error the
+    /// caller kills the still-suspended child.
+    #[allow(unsafe_code)]
+    pub fn adopt_suspended(&self, pid: u32) -> io::Result<()> {
+        self.assign_pid(pid)?;
+        let p = open_process(pid, PROCESS_SUSPEND_RESUME)?;
+        // SAFETY: a valid process handle with PROCESS_SUSPEND_RESUME (ntdll; stable since XP, as the
+        // service spike used it). A negative NTSTATUS is an error.
+        let st = unsafe { NtResumeProcess(p.0) };
+        if st < 0 {
+            return Err(io::Error::other(format!(
+                "NtResumeProcess NTSTATUS {st:#x}"
+            )));
         }
         Ok(())
     }

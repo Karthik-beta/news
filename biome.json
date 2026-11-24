@@ -18,6 +18,7 @@
       "!**/dist",
       "!**/cli/target",
       "!**/cli/crates/*/tests/fixtures",
+      "!**/cli/crates/*/tests/golden",
       "!**/*.md"
     ]
   },
