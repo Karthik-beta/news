@@ -10,8 +10,9 @@ type Rendered = Awaited<ReturnType<typeof render>>;
 
 // The charts bundle uses production components only.
 const charts = readFixtureBundles().charts;
-const post = (path: string, body: unknown) =>
-  handle(new Request(`http://127.0.0.1${path}`, { method: "POST", body: JSON.stringify(body) }));
+const HEADERS = { host: "127.0.0.1:4321", "content-type": "application/json" };
+const post = (path: string, body: unknown, headers: Record<string, string> = HEADERS) =>
+  handle(new Request(`http://127.0.0.1:4321${path}`, { method: "POST", body: JSON.stringify(body), headers }));
 
 describe("Plate handler", () => {
   test("renders a bundle with its chart ids and exactly one noindex robots tag", async () => {
@@ -60,7 +61,33 @@ describe("Plate handler", () => {
     const bad = await post("/render", { ...charts, data: { version: 1 } });
     expect(bad.status).toBe(422);
     expect(((await bad.json()) as { error: { code: string } }).error.code).toBe("invalid-data");
-    expect((await handle(new Request("http://127.0.0.1/nope"))).status).toBe(404);
+    expect((await handle(new Request("http://127.0.0.1:4321/nope", { headers: HEADERS }))).status).toBe(404);
+  });
+
+  test("lists the literals the parser read, under their statements", () => {
+    const r = check(
+      'root = Page([f])\nf = KeyFigures([a, b])\na = KeyFigure("Up in 2024", "dp_a")\nb = KeyFigure("B", "dp_b")',
+    );
+    expect(r.literals).toContainEqual({ where: "oui:a", text: "Up in 2024", number: false });
+    expect(r.literals).toContainEqual({ where: "oui:b", text: "dp_b", number: false });
+  });
+
+  test("refuses a POST that is not Content-Type: application/json", async () => {
+    const res = await post("/check", { oui: charts.oui }, { host: "127.0.0.1:4321", "content-type": "text/plain" });
+    expect(res.status).toBe(415);
+    expect(
+      (await post("/check", { oui: charts.oui }, { ...HEADERS, "content-type": "application/json; charset=utf-8" }))
+        .status,
+    ).toBe(200);
+  });
+
+  test("refuses a Host that is not loopback with a port", async () => {
+    for (const host of ["evil.example:4321", "127.0.0.1", "127.0.0.1.evil.example:4321"]) {
+      expect((await post("/check", { oui: charts.oui }, { ...HEADERS, host })).status).toBe(403);
+    }
+    for (const host of ["localhost:4321", "[::1]:4321"]) {
+      expect((await post("/check", { oui: charts.oui }, { ...HEADERS, host })).status).toBe(200);
+    }
   });
 });
 

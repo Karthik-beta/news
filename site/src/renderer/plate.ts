@@ -5,7 +5,12 @@
 //   GET  /health                                               -> {renderer}
 //   POST /render {oui, data, sources, head, indexStatus}       -> {rendererVersion, files, charts, refsUsed,
 //                                                                  sourcesUsed, problems}
-//   POST /check  {oui}                                         -> {errors: [{rule, where, message}], components}
+//   POST /check  {oui}                                         -> {errors: [{rule, where, message}], components,
+//                                                                  literals: [{where, text, number}]}
+//
+// Plate is local-only: a request whose Host is not 127.0.0.1, localhost or [::1] with a port is refused (a web
+// page cannot reach it through DNS rebinding), and a POST must say Content-Type: application/json (a cross-site
+// form cannot send that without a preflight).
 //
 // Run: `bun src/renderer/plate.ts [--port N] [--lifeline]`. Port 0 picks a free port; the first stdout line is
 // {"port": N, "renderer": "x.y.z"} once the library is loaded. With --lifeline the server exits when its stdin
@@ -41,6 +46,26 @@ function lines(e: RenderError, rule: CheckError["rule"]): CheckError[] {
     });
 }
 
+export interface Literal {
+  where: string;
+  text: string;
+  number: boolean;
+}
+
+/** Every string and number the parser read, under its statement: what the Copy lints check (C4, banned words). */
+function literalsOf(value: unknown, where: string, out: Literal[]): Literal[] {
+  if (typeof value === "string") out.push({ where, text: value, number: false });
+  else if (typeof value === "number") out.push({ where, text: String(value), number: true });
+  else if (Array.isArray(value)) for (const v of value) literalsOf(v, where, out);
+  else if (value && typeof value === "object") {
+    const node = value as ElementNode;
+    if (node.type === "element") {
+      for (const v of Object.values(node.props)) literalsOf(v, `oui:${node.statementId ?? node.typeName}`, out);
+    } else for (const v of Object.values(value)) literalsOf(v, where, out);
+  }
+  return out;
+}
+
 function componentsOf(value: unknown, out: Set<string>): Set<string> {
   if (Array.isArray(value)) for (const v of value) componentsOf(v, out);
   else if (value && typeof value === "object" && (value as ElementNode).type === "element") {
@@ -52,23 +77,24 @@ function componentsOf(value: unknown, out: Set<string>): Set<string> {
 }
 
 /** OpenUI parse and props against the component specs: the two Copy validators that need the library. */
-export function check(oui: string): { errors: CheckError[]; components: string[] } {
+export function check(oui: string): { errors: CheckError[]; components: string[]; literals: Literal[] } {
   const { library } = newsLibrary();
   let root: ElementNode;
   try {
     root = parsePage(oui, library);
   } catch (e) {
-    if (e instanceof RenderError) return { errors: lines(e, "openui_parse"), components: [] };
+    if (e instanceof RenderError) return { errors: lines(e, "openui_parse"), components: [], literals: [] };
     throw e;
   }
   const components = [...componentsOf(root, new Set())].sort();
+  const literals = literalsOf(root, "oui", []);
   try {
     checkProps(root, library);
   } catch (e) {
-    if (e instanceof RenderError) return { errors: lines(e, "props"), components };
+    if (e instanceof RenderError) return { errors: lines(e, "props"), components, literals };
     throw e;
   }
-  return { errors: [], components };
+  return { errors: [], components, literals };
 }
 
 interface RenderRequest {
@@ -94,11 +120,17 @@ export function render(req: RenderRequest) {
   };
 }
 
+const LOOPBACK_HOST = /^(127\.0\.0\.1|localhost|\[::1\]):\d{1,5}$/i;
+
 export async function handle(request: Request): Promise<Response> {
   const path = new URL(request.url).pathname;
+  if (!LOOPBACK_HOST.test(request.headers.get("host") ?? ""))
+    return fail(403, "forbidden", "Plate answers loopback hosts only (127.0.0.1, localhost or [::1] with a port)");
   if (request.method === "GET" && path === "/health") return json({ renderer: RENDERER_VERSION });
   if (request.method !== "POST" || (path !== "/render" && path !== "/check"))
     return fail(404, "not_found", `${request.method} ${path} is not a Plate endpoint`);
+  const type = request.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase();
+  if (type !== "application/json") return fail(415, "unsupported_media_type", "Content-Type must be application/json");
   let body: Record<string, unknown>;
   try {
     body = (await request.json()) as Record<string, unknown>;

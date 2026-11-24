@@ -110,10 +110,15 @@ pub fn timestamp(t: DateTime<Utc>) -> String {
 
 /// Read and parse a JSON file; a missing file is `not_found`.
 pub fn read_json(path: &Path) -> NewsResult<Value> {
-    let text = std::fs::read_to_string(path)
-        .map_err(|e| NewsError::not_found(format!("cannot read {}: {e}", path.display())))?;
+    let text = read_text(path)?;
     serde_json::from_str(&text)
         .map_err(|e| NewsError::validation(format!("{} is not valid JSON: {e}", path.display())))
+}
+
+/// A file's text; a missing file is `not_found`.
+pub fn read_text(path: &Path) -> NewsResult<String> {
+    std::fs::read_to_string(path)
+        .map_err(|e| NewsError::not_found(format!("cannot read {}: {e}", path.display())))
 }
 
 /// Write `text` to `path` through a temporary file and a rename, so a reader never sees half a file.

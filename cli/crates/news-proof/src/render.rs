@@ -59,6 +59,8 @@ pub struct Inputs {
     pub brief: Brief,
     pub facts: PageFacts,
     pub data: Value,
+    /// data.json exactly as written: the bundle carries the source's digits byte for byte, never re-serialised.
+    pub data_text: String,
     pub sources: Value,
 }
 
@@ -86,7 +88,7 @@ impl Inputs {
 
 /// Read a story's render inputs from its page folder (work.rs).
 pub fn load_inputs(work: &crate::work::Work, story: &str) -> NewsResult<Inputs> {
-    use crate::work::read_json;
+    use crate::work::{read_json, read_text};
     let stored = crate::work::load(work, story)?;
     let copy: Copy = serde_json::from_value(stored.copy.clone())
         .map_err(|e| NewsError::validation(format!("the stored Copy is not page-draft.v1: {e}")))?;
@@ -96,12 +98,18 @@ pub fn load_inputs(work: &crate::work::Work, story: &str) -> NewsResult<Inputs> 
     let page = work.page(story);
     let facts: PageFacts = serde_json::from_value(read_json(&page.join("page.json"))?)
         .map_err(|e| NewsError::validation(format!("page.json for {story}: {e}")))?;
+    let data_path = page.join("data.json");
+    let data_text = read_text(&data_path)?;
+    let data = serde_json::from_str(&data_text).map_err(|e| {
+        NewsError::validation(format!("{} is not valid JSON: {e}", data_path.display()))
+    })?;
     Ok(Inputs {
         stored,
         copy,
         brief,
         facts,
-        data: read_json(&page.join("data.json"))?,
+        data,
+        data_text,
         sources: read_json(&page.join("sources.json"))?,
     })
 }
@@ -219,7 +227,7 @@ pub fn assemble(inputs: &Inputs, rendered: &Rendered) -> NewsResult<Bundle> {
 
     let mut files = BTreeMap::new();
     files.insert("page.oui".to_string(), inputs.copy.oui.clone());
-    files.insert("data.json".to_string(), pretty(&inputs.data));
+    files.insert("data.json".to_string(), inputs.data_text.clone());
     files.insert("sources.json".to_string(), pretty(&inputs.sources));
     for name in ["index.html", "index.md"] {
         let text = rendered
@@ -351,6 +359,9 @@ pub(crate) mod tests {
             )
             .unwrap(),
             data: json!({"version": 1, "points": {}}),
+            data_text: "{\"version\": 1, \"points\": {}}
+"
+            .into(),
             sources: json!({"version": 1, "sources": {}}),
         }
     }
@@ -412,6 +423,15 @@ pub(crate) mod tests {
             .collect();
         assert_eq!(sha256_hex(lines.as_bytes()), b.manifest["bundle_sha256"]);
         assert_eq!(b.manifest["files"][0]["bytes"], 3);
+    }
+
+    #[test]
+    fn data_json_keeps_the_source_digits_byte_for_byte() {
+        let text = r#"{"version": 1, "points": {"dp_x": {"value": "1.50", "n": 1.50, "big": 12345678901234567890, "e": 1e3}}}"#;
+        let mut i = inputs();
+        i.data = serde_json::from_str(text).unwrap();
+        i.data_text = text.into();
+        assert_eq!(assemble(&i, &rendered()).unwrap().files["data.json"], text);
     }
 
     #[test]

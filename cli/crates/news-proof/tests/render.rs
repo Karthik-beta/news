@@ -166,7 +166,7 @@ async fn plate_renders_the_same_inputs_to_the_same_bundle_sha_and_checks_copies(
         .check("root = Page([x])\nx = Nope(\"a\")")
         .await
         .unwrap();
-    assert_eq!(errors[0].rule, "openui_parse");
+    assert_eq!(errors.errors[0].rule, "openui_parse");
     std::fs::remove_dir_all(dir).unwrap();
 }
 

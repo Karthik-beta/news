@@ -133,3 +133,38 @@ fn render_needs_a_stored_copy_and_the_page_folder() {
     );
     std::fs::remove_dir_all(dir).unwrap();
 }
+
+#[test]
+fn render_validates_the_stored_copy_again() {
+    let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
+    let bun = std::process::Command::new("bun").arg("--version").output();
+    if !bun.is_ok_and(|o| o.status.success())
+        || !repo.join("node_modules/@openuidev/react-lang").is_dir()
+    {
+        eprintln!("skipped: Plate needs Bun and `bun install` at the repository root");
+        return;
+    }
+    let dir = work("tampered", true);
+    let (env, code, _) = run(
+        &dir,
+        &["save", "s1", fixture("copy.json").to_str().unwrap()],
+    );
+    assert_eq!(code, 0, "{env}");
+    for f in ["data.json", "sources.json", "page.json"] {
+        std::fs::copy(fixture(f), dir.join("pages/s1").join(f)).unwrap();
+    }
+    // The saved file is edited by hand after `news save` accepted it.
+    let path = dir.join("pages/s1/copy.json");
+    let mut stored: Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+    stored["copy"]["headline"] = "Annual inflation in America fell to 2.4% in {pd_2026_10}".into();
+    std::fs::write(&path, stored.to_string()).unwrap();
+    let (env, code, _) = run(&dir, &["render", "s1"]);
+    assert_eq!(
+        (code, env["error"]["code"].as_str()),
+        (6, Some("validation_failed")),
+        "{env}"
+    );
+    assert_eq!(env["error"]["details"]["errors"][0]["where"], "headline");
+    assert!(!dir.join("pages/s1/index.html").exists());
+    std::fs::remove_dir_all(dir).unwrap();
+}

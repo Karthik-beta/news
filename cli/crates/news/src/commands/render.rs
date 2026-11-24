@@ -55,12 +55,18 @@ pub fn save(story: &str, file: &str) -> NewsResult<Reply> {
     Ok(reply)
 }
 
-/// `news render <story>`: the bundle, written into the story's page folder, where `news check` reads it.
+/// `news render <story>`: the bundle, written into the story's page folder, where `news check` reads it. The stored
+/// Copy is validated again first, with Plate's parse: a file on disk may have changed since it was saved.
 pub async fn render(story: &str) -> NewsResult<Reply> {
     check_story(story)?;
     let work = Work::from_env();
     let inputs = bundle::load_inputs(&work, story)?;
     let plate = Plate::connect().await?;
+    let checked = plate.check(&inputs.copy.oui).await?;
+    let errors = validate(&inputs.stored.copy, Some(&inputs.brief), Some(&checked));
+    if !errors.is_empty() {
+        return Err(invalid(&errors));
+    }
     let rendered = plate.render(&inputs.render_request()).await?;
     let built = bundle::assemble(&inputs, &rendered)?;
     let dir = work.page(story);

@@ -6,9 +6,8 @@
 //! port, and exits when its stdin closes, so it never outlives the command that started it.
 
 use crate::render::Rendered;
-use crate::validate::RuleError;
+use crate::validate::Checked;
 use news_core::{NewsError, NewsResult};
-use serde::Deserialize;
 use serde_json::{Value, json};
 use std::path::PathBuf;
 use std::process::Stdio;
@@ -30,15 +29,25 @@ pub struct Plate {
     _child: Option<Child>,
 }
 
-#[derive(Deserialize)]
-struct CheckReply {
-    errors: Vec<RuleError>,
-}
-
 fn unavailable(message: impl Into<String>) -> NewsError {
     NewsError::precondition(message).with_hint(format!(
         "start Plate (`bun run plate` in site/) and set {URL_VAR}, or install Bun so news can start one"
     ))
+}
+
+/// `NEWS_PLATE_URL` without its trailing slash. Plate serves pages to this machine only, so a URL that is not
+/// http on 127.0.0.1, localhost or [::1] is refused rather than sent Copies.
+fn loopback_base(url: &str) -> NewsResult<String> {
+    let parsed = reqwest::Url::parse(url)
+        .map_err(|e| NewsError::usage(format!("{URL_VAR} {url:?} is not a URL: {e}")))?;
+    if parsed.scheme() != "http"
+        || !matches!(parsed.host_str(), Some("127.0.0.1" | "localhost" | "[::1]"))
+    {
+        return Err(NewsError::usage(format!(
+            "{URL_VAR} {url:?} is not a loopback address: Plate runs on 127.0.0.1, localhost or [::1]"
+        )));
+    }
+    Ok(url.trim_end_matches('/').to_string())
 }
 
 /// `plate.ts` in the nearest ancestor of the working directory, or `NEWS_PLATE_SCRIPT`.
@@ -67,7 +76,7 @@ impl Plate {
             .map_err(|e| NewsError::internal(e.to_string()))?;
         if let Some(url) = std::env::var(URL_VAR).ok().filter(|u| !u.is_empty()) {
             let plate = Plate {
-                base: url.trim_end_matches('/').to_string(),
+                base: loopback_base(&url)?,
                 http,
                 _child: None,
             };
@@ -126,13 +135,12 @@ impl Plate {
         Ok(v["renderer"].as_str().unwrap_or_default().to_string())
     }
 
-    /// OpenUI parse and props against the specs, as Copy validator errors (empty when both pass).
-    pub async fn check(&self, oui: &str) -> NewsResult<Vec<RuleError>> {
+    /// OpenUI parse and props against the specs, and the literals the parser read (for the lints).
+    pub async fn check(&self, oui: &str) -> NewsResult<Checked> {
         let v = self
             .call(reqwest::Method::POST, "/check", Some(json!({ "oui": oui })))
             .await?;
-        serde_json::from_value::<CheckReply>(v)
-            .map(|r| r.errors)
+        serde_json::from_value::<Checked>(v)
             .map_err(|e| NewsError::internal(format!("Plate's /check reply: {e}")))
     }
 
@@ -187,5 +195,33 @@ impl Plate {
         } else {
             err.with_details(details)
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn plate_url_must_be_loopback() {
+        for ok in [
+            "http://127.0.0.1:4321/",
+            "http://localhost:4321",
+            "http://[::1]:4321",
+        ] {
+            assert_eq!(
+                loopback_base(ok).ok().as_deref(),
+                Some(ok.trim_end_matches('/'))
+            );
+        }
+        for bad in [
+            "http://example.com:4321",
+            "http://10.0.0.5:4321",
+            "http://127.0.0.1.example.com:4321",
+            "https://127.0.0.1:4321",
+            "127.0.0.1:4321",
+        ] {
+            assert!(loopback_base(bad).is_err(), "{bad}");
+        }
     }
 }

@@ -1,7 +1,7 @@
 //! The Copy (`page-draft.v1`, Bureau Design §3.9) and its validators, run by `news ai accept` and `news save`:
 //! JSON schema → OpenUI Lang parses → every ref exists in the brief → numeric-literal lint (C4) → banned words →
 //! props against the component specs → lengths. Parsing and props need the component library, so they run in
-//! Plate and arrive here as [`RuleError`]s.
+//! Plate and arrive here as a [`Checked`]: its errors, and the literals the parser read, which the lints check.
 
 use crate::lint;
 use news_core::brief::Brief;
@@ -77,6 +77,36 @@ pub fn schema_errors(copy: &Value) -> Vec<RuleError> {
             )
         })
         .collect()
+}
+
+/// A literal of the page's OpenUI Lang as Plate's parser read it: a string's text, or a typed number.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct Literal {
+    #[serde(rename = "where")]
+    pub at: String,
+    pub text: String,
+    pub number: bool,
+}
+
+/// Plate's `/check`: the parse and props errors, and every literal its parser read.
+#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
+pub struct Checked {
+    pub errors: Vec<RuleError>,
+    pub literals: Vec<Literal>,
+}
+
+impl From<OuiToken> for Literal {
+    fn from(t: OuiToken) -> Self {
+        let (line, text, number) = match t {
+            OuiToken::Text { line, text } => (line, text, false),
+            OuiToken::Number { line, text } => (line, text, true),
+        };
+        Literal {
+            at: format!("oui:{line}"),
+            text,
+            number,
+        }
+    }
 }
 
 /// A piece of OpenUI Lang source: a string literal's text, or a number typed outside any string.
@@ -159,16 +189,14 @@ pub fn refs_in(text: &str) -> Vec<String> {
 }
 
 /// The texts of a Copy the lints read, with where each one is.
-fn texts(copy: &Copy) -> Vec<(String, String)> {
+fn texts(copy: &Copy, literals: &[Literal]) -> Vec<(String, String)> {
     let mut out = vec![
         ("headline".to_string(), copy.headline.clone()),
         ("fly_title".to_string(), copy.fly_title.clone()),
         ("summary".to_string(), copy.summary.clone()),
     ];
-    for t in oui_tokens(&copy.oui) {
-        if let OuiToken::Text { line, text } = t {
-            out.push((format!("oui:{line}"), text));
-        }
+    for l in literals.iter().filter(|l| !l.number) {
+        out.push((l.at.clone(), l.text.clone()));
     }
     out
 }
@@ -200,13 +228,9 @@ fn rendered_estimate(text: &str, brief: Option<&Brief>) -> String {
     out
 }
 
-/// Run the validators on a Copy. `plate` holds the parse and props errors from Plate (empty when it parsed);
-/// `None` skips those two validators. Without a brief, references are not checked against it.
-pub fn validate(
-    copy: &Value,
-    brief: Option<&Brief>,
-    plate: Option<&[RuleError]>,
-) -> Vec<RuleError> {
+/// Run the validators on a Copy. `plate` is Plate's check of its OpenUI Lang; `None` skips parse and props.
+/// Without a brief, references are not checked against it.
+pub fn validate(copy: &Value, brief: Option<&Brief>, plate: Option<&Checked>) -> Vec<RuleError> {
     let mut errors = schema_errors(copy);
     if !errors.is_empty() {
         return errors;
@@ -215,13 +239,22 @@ pub fn validate(
         return vec![RuleError::new("schema", "/", "not a page-draft.v1 Copy")];
     };
     let (parse, props): (Vec<RuleError>, Vec<RuleError>) = plate
+        .map(|p| p.errors.clone())
         .unwrap_or_default()
-        .iter()
-        .cloned()
+        .into_iter()
         .partition(|e| e.rule != "props");
     errors.extend(parse);
 
-    let texts = texts(&copy);
+    // shortcut: without Plate (`news save`) a local lexer stands in for the parser; `news ai accept` and
+    // `news render` lint exactly what Plate parsed.
+    let literals: Vec<Literal> = match plate {
+        Some(p) => p.literals.clone(),
+        None => oui_tokens(&copy.oui)
+            .into_iter()
+            .map(Literal::from)
+            .collect(),
+    };
+    let texts = texts(&copy, &literals);
     if let Some(brief) = brief {
         let known = brief.refs();
         let cited = texts
@@ -260,14 +293,15 @@ pub fn validate(
             ));
         }
     }
-    for t in oui_tokens(&copy.oui) {
-        if let OuiToken::Number { line, text } = t {
-            errors.push(RuleError::new(
-                "numeric_literal",
-                format!("oui:{line}"),
-                format!("typed number {text:?}: component props take references, not numbers"),
-            ));
-        }
+    for l in literals.iter().filter(|l| l.number) {
+        errors.push(RuleError::new(
+            "numeric_literal",
+            l.at.clone(),
+            format!(
+                "typed number {:?}: component props take references, not numbers",
+                l.text
+            ),
+        ));
     }
 
     for (at, text) in &texts {
@@ -363,7 +397,10 @@ pub(crate) mod tests {
 
     #[test]
     fn accepts_a_clean_copy() {
-        assert_eq!(validate(&clean(), Some(&brief()), Some(&[])), []);
+        assert_eq!(
+            validate(&clean(), Some(&brief()), Some(&Checked::default())),
+            []
+        );
         // Without a brief the brief-based checks are skipped, and the rest still pass.
         assert_eq!(validate(&clean(), None, None), []);
     }
@@ -468,10 +505,13 @@ pub(crate) mod tests {
 
     #[test]
     fn passes_plate_parse_and_props_errors_through_in_order() {
-        let plate = [
-            RuleError::new("props", "oui:a.value", "Invalid string"),
-            RuleError::new("openui_parse", "oui", "x is not defined"),
-        ];
+        let plate = Checked {
+            errors: vec![
+                RuleError::new("props", "oui:a.value", "Invalid string"),
+                RuleError::new("openui_parse", "oui", "x is not defined"),
+            ],
+            literals: vec![],
+        };
         let e = validate(
             &with(
                 "headline",
@@ -481,6 +521,30 @@ pub(crate) mod tests {
             Some(&plate),
         );
         assert_eq!(rules(&e), ["openui_parse", "banned_word", "props"]);
+    }
+
+    #[test]
+    fn lints_the_literals_plate_parsed_not_a_second_lexer() {
+        let oui = "root = Page([c])
+c = LineChart(\"Prices rose in 2024\", \"CPI, %\", [\"sr_cpi\"], null, null, 3)";
+        let copy = with("oui", json!(oui));
+        // Plate read no literal (say, the lexer saw a string the parser does not keep): nothing to lint.
+        assert_eq!(
+            validate(&copy, Some(&brief()), Some(&Checked::default())),
+            []
+        );
+        let lit = |text: &str, number| Literal {
+            at: "oui:c".into(),
+            text: text.into(),
+            number,
+        };
+        let parsed = Checked {
+            errors: vec![],
+            literals: vec![lit("Prices rose in 2024", false), lit("3", true)],
+        };
+        let e = validate(&copy, Some(&brief()), Some(&parsed));
+        assert_eq!(rules(&e), ["numeric_literal", "numeric_literal"]);
+        assert_eq!((e[0].at.as_str(), e[1].at.as_str()), ("oui:c", "oui:c"));
     }
 
     #[test]
