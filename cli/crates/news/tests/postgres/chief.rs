@@ -905,7 +905,7 @@ async fn rota_drops_missed_slots_fires_the_latest_and_skips_past_the_late_limit(
         Arc::new(news_rota::Unknown),
         Arc::new(|_, _| {}),
     );
-    // Signed out from 05:00 to 07:30 (no ticks). At sign-in: the hourly schedule's latest slot (07:00)
+    // Laptop asleep from 05:00 to 07:30 (no ticks). At the first tick after: the hourly schedule's latest slot (07:00)
     // is late with the next one 30 minutes away: missed. The 06:00 Frontpage slot is late, but the next
     // is 10.5 h away and it is within the late limit: it fires.
     c.set(t("2026-11-12T07:30:00Z"));
@@ -933,7 +933,7 @@ async fn rota_drops_missed_slots_fires_the_latest_and_skips_past_the_late_limit(
     );
     // Another tick fires nothing twice.
     assert!(rota.tick().await.unwrap().is_empty());
-    // Signed out again until 20:30: the 18:00 slot is past the late limit (2 h): skipped with a Wrap.
+    // Asleep again until 20:30: the 18:00 slot is past the late limit (2 h): skipped with a Wrap.
     let fp_run = sqlx::query_scalar::<_, Uuid>(
         "select run_id from rota_fires where schedule_key = 'schedules.fp'",
     )
