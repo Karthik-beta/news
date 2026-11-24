@@ -6,6 +6,8 @@
   "name": "news-site",
   "main": "@astrojs/cloudflare/entrypoints/server",
   "compatibility_date": "2026-11-01",
+  // Reached only through the zone route; no public *.workers.dev address, which would bypass the zone's rate limit.
+  "workers_dev": false,
   // Our own structured logs only: invocation logs record client IPs, which these Workers never keep (ADR 0006).
   "observability": { "enabled": true, "logs": { "invocation_logs": false } },
   "vars": {

@@ -24,22 +24,32 @@
 mod board;
 #[path = "postgres/chief.rs"]
 mod chief;
+#[path = "postgres/chief_gaps.rs"]
+mod chief_gaps;
 #[path = "postgres/cli_db.rs"]
 mod cli_db;
 #[path = "postgres/diary_roster.rs"]
 mod diary_roster;
 #[path = "postgres/dispatch.rs"]
 mod dispatch;
+#[path = "postgres/fixer.rs"]
+mod fixer;
 #[path = "postgres/fixture.rs"]
 mod fixture;
+#[path = "postgres/ghost.rs"]
+mod ghost;
 #[path = "postgres/migrations.rs"]
 mod migrations;
 #[path = "postgres/nose.rs"]
 mod nose;
 #[path = "postgres/sources.rs"]
 mod sources;
+#[path = "postgres/status_board.rs"]
+mod status_board;
 #[path = "postgres/taster.rs"]
 mod taster;
+#[path = "postgres/taster_embed.rs"]
+mod taster_embed;
 #[path = "postgres/wire.rs"]
 mod wire;
 

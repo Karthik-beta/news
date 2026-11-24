@@ -16,8 +16,8 @@ fn db_err(e: sqlx::Error) -> NewsError {
     news_store::map_err(e)
 }
 
-/// A story by number or event key.
-async fn find(db: &PgPool, story: &str) -> Result<i64, NewsError> {
+/// A story by number or event key (a merged-away key gives the story it went into).
+pub async fn find(db: &PgPool, story: &str) -> Result<i64, NewsError> {
     let id: Option<i64> = match story.parse::<i64>() {
         Ok(n) => {
             sqlx::query_scalar("select story_id from stories where story_id = $1")

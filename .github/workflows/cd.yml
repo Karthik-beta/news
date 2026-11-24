@@ -1,0 +1,27 @@
+# Continuous deployment: when CI completes successfully for a push to main, deploy.yml runs the same plan and deploy
+# stages as a manual run, then the production smoke test. It is a separate workflow so that main's CI run (and the
+# next push's) never waits for the `production` environment's reviewer. Not a required check. A Worker whose wrangler
+# config still has a `TODO(` is skipped with a notice (the guard lives in deploy.yml), and the plan stage deploys only
+# if the tested commit is still the head of main. The Cloudflare secrets are environment secrets there; none pass here.
+name: CD
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy (main)
+    # Push runs only: a pull request from a fork branch named main reports as a pull_request event.
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/deploy.yml
+    with:
+      target: all
+      sha: ${{ github.event.workflow_run.head_sha }}
