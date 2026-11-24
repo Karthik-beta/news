@@ -12,7 +12,8 @@ fn fixture(name: &str) -> PathBuf {
         .join(name)
 }
 
-/// An HTTP server that answers every request with `{"errors": [], "components": []}`.
+/// An HTTP server whose /check says the .oui parses. Its literals are the one string the validators must see in
+/// copy-digits.json's .oui (an unknown ref); a real Plate lists every literal it parsed.
 fn fake_plate() -> String {
     use std::io::{Read, Write};
     let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
@@ -21,8 +22,13 @@ fn fake_plate() -> String {
         for stream in listener.incoming() {
             let Ok(mut s) = stream else { continue };
             let mut buf = [0u8; 65536];
-            let _ = s.read(&mut buf);
-            let body = r#"{"errors":[],"components":[],"renderer":"fake"}"#;
+            let n = s.read(&mut buf).unwrap_or(0);
+            let unknown = String::from_utf8_lossy(&buf[..n]).contains("dp_unknown");
+            let body = if unknown {
+                r#"{"errors":[],"components":[],"literals":[{"where":"oui:b","text":"dp_unknown","number":false}],"renderer":"fake"}"#
+            } else {
+                r#"{"errors":[],"components":[],"literals":[],"renderer":"fake"}"#
+            };
             let _ = write!(
                 s,
                 "HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}",
