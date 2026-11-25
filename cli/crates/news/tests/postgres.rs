@@ -30,6 +30,8 @@ mod chief;
 mod chief_gaps;
 #[path = "postgres/cli_db.rs"]
 mod cli_db;
+#[path = "postgres/critic.rs"]
+mod critic;
 #[path = "postgres/diary_roster.rs"]
 mod diary_roster;
 #[path = "postgres/dispatch.rs"]

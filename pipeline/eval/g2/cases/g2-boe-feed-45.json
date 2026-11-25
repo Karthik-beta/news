@@ -1,0 +1,20 @@
+{
+  "id": "g2-boe-feed-45",
+  "item": {
+    "title": "Minutes of the Meeting of the Court of Directors held on 4 June 2026",
+    "source": "Bank of England, central bank news feed",
+    "opening": "The Bank's Court of Directors acts as a unitary board, setting the organisation's strategy and budget and taking key decisions on resourcing and appointments. Required to meet a minimum seven times per year, it has five executive members from the Bank and up to nine non-executive members."
+  },
+  "label": {
+    "page_type": "news-story",
+    "categories": [
+      "finance"
+    ],
+    "region": "uk"
+  },
+  "labelled_by": "opus-draft",
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/centralbank/boe-feed.xml",
+    "change": null
+  }
+}

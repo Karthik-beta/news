@@ -1,0 +1,465 @@
+{
+  "id": "g5-busy-week",
+  "scenario": "busy_week",
+  "now": "2026-11-20T09:00:00Z",
+  "pages": [
+    {
+      "page_id": "2026/11/bank-rate-increased-to-4-november-2026-monetary-policy-summa",
+      "status": "published",
+      "title": "Bank rate increased to 4% - November 2026 Monetary Policy Summary and Minutes",
+      "tier": 1,
+      "page_type": "policy",
+      "published_at": "2026-11-19T13:00:00Z",
+      "categories": [
+        "economy/monetary-policy"
+      ],
+      "region": "uk",
+      "entities": [
+        "institution:boe"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/main-refinancing-operations-fixed-rate-tenders-fixed-rate-da",
+      "status": "published",
+      "title": "Main refinancing operations - fixed rate tenders (fixed rate) (date of changes) - Level",
+      "tier": 1,
+      "page_type": "policy",
+      "published_at": "2026-11-19T03:00:00Z",
+      "categories": [
+        "economy/monetary-policy"
+      ],
+      "region": "europe",
+      "entities": [
+        "institution:ecb"
+      ],
+      "figures": [
+        "dp_ayvmv67k6qwi2tu5",
+        "dp_zqmtgkcrnjro6jq4"
+      ]
+    },
+    {
+      "page_id": "2026/11/consumer-price-index-for-all-urban-consumers-all-items-in-u",
+      "status": "published",
+      "title": "Consumer Price Index for All Urban Consumers: All Items in U.S. City Average",
+      "tier": 1,
+      "page_type": "macro",
+      "published_at": "2026-11-18T13:00:00Z",
+      "categories": [
+        "economy/inflation"
+      ],
+      "region": "north-america",
+      "entities": [
+        "institution:bls"
+      ],
+      "figures": [
+        "dp_4yog6v5qhiqchdrb",
+        "dp_4gbuxf2ixs5amiee"
+      ]
+    },
+    {
+      "page_id": "2026/11/apple-inc-10-k",
+      "status": "published",
+      "title": "Apple Inc. 10-K",
+      "tier": 1,
+      "page_type": "earnings",
+      "published_at": "2026-11-18T05:00:00Z",
+      "categories": [
+        "finance/earnings"
+      ],
+      "region": "north-america",
+      "entities": [
+        "company:apple"
+      ],
+      "figures": [
+        "dp_kjfhexdo774vzbdy",
+        "dp_rurnaplntzkg2tzo",
+        "dp_3khm4dm4sqqxqm66"
+      ]
+    },
+    {
+      "page_id": "2026/11/bank-of-canada-raises-the-policy-rate-by-25-basis-points-to",
+      "status": "published",
+      "title": "Bank of Canada raises the policy rate by 25 basis points to 2½%",
+      "tier": 1,
+      "page_type": "policy",
+      "published_at": "2026-11-17T21:00:00Z",
+      "categories": [
+        "economy/monetary-policy"
+      ],
+      "region": "north-america",
+      "entities": [
+        "institution:boc"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/federal-reserve-issues-fomc-statement",
+      "status": "published",
+      "title": "Federal Reserve issues FOMC statement",
+      "tier": 1,
+      "page_type": "policy",
+      "published_at": "2026-11-17T11:00:00Z",
+      "categories": [
+        "economy/monetary-policy"
+      ],
+      "region": "north-america",
+      "entities": [
+        "institution:fed"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/hicp-monthly-data-annual-rate-of-change",
+      "status": "published",
+      "title": "HICP - monthly data (annual rate of change)",
+      "tier": 1,
+      "page_type": "macro",
+      "published_at": "2026-11-19T07:00:00Z",
+      "categories": [
+        "economy/inflation"
+      ],
+      "region": "europe",
+      "entities": [
+        "institution:eurostat"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/gdp-current-us",
+      "status": "published",
+      "title": "GDP (current US$)",
+      "tier": 2,
+      "page_type": "report",
+      "published_at": "2026-11-16T15:00:00Z",
+      "categories": [
+        "economy/growth"
+      ],
+      "region": "north-america",
+      "entities": [
+        "country:US"
+      ],
+      "figures": [
+        "dp_4stpfufc74tc24cy",
+        "dp_2kkf6eorryn4eygg"
+      ]
+    },
+    {
+      "page_id": "2026/11/artemis-ii-launch",
+      "status": "published",
+      "title": "Artemis II Launch",
+      "tier": 2,
+      "page_type": "science",
+      "published_at": "2026-11-16T05:00:00Z",
+      "categories": [
+        "science"
+      ],
+      "region": "north-america",
+      "entities": [
+        "institution:nasa"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/results-of-the-ecb-survey-of-professional-forecasters-for-th",
+      "status": "published",
+      "title": "Results of the ECB Survey of Professional Forecasters for the fourth quarter of 2026",
+      "tier": 2,
+      "page_type": "macro",
+      "published_at": "2026-11-18T23:00:00Z",
+      "categories": [
+        "economy/growth"
+      ],
+      "region": "europe",
+      "entities": [
+        "institution:ecb"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/ecb-wage-tracker-suggests-slightly-higher-wage-growth-in-fir",
+      "status": "published",
+      "title": "ECB wage tracker suggests slightly higher wage growth in first three quarters of 2027 compared with the full year of 2026",
+      "tier": 2,
+      "page_type": "macro",
+      "published_at": "2026-11-18T17:00:00Z",
+      "categories": [
+        "economy/jobs"
+      ],
+      "region": "europe",
+      "entities": [
+        "institution:ecb"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/consumer-prices-index-including-owner-occupiers-housing-cost",
+      "status": "published",
+      "title": "Consumer Prices Index including owner occupiers' housing costs (CPIH)",
+      "tier": 2,
+      "page_type": "macro",
+      "published_at": "2026-11-17T05:00:00Z",
+      "categories": [
+        "economy/inflation"
+      ],
+      "region": "uk",
+      "entities": [
+        "institution:ons"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/consumer-price-index-cpi",
+      "status": "published",
+      "title": "Consumer Price Index (CPI)",
+      "tier": 2,
+      "page_type": "macro",
+      "published_at": "2026-11-15T19:00:00Z",
+      "categories": [
+        "economy/inflation"
+      ],
+      "region": "australia",
+      "entities": [
+        "institution:abs"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/consumer-price-indices-cpis-hicps-coicop-1999",
+      "status": "published",
+      "title": "Consumer price indices (CPIs, HICPs), COICOP 1999",
+      "tier": 3,
+      "page_type": "macro",
+      "published_at": "2026-11-15T09:00:00Z",
+      "categories": [
+        "economy/inflation"
+      ],
+      "region": "north-america",
+      "entities": [
+        "institution:oecd"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/pra-fines-hdi-global-se-4-165-000-for-inaccurate-reporting-o",
+      "status": "published",
+      "title": "PRA fines HDI Global SE £4,165,000 for inaccurate reporting of FSCS Liabilities and FSCS Fee Tariff data",
+      "tier": 3,
+      "page_type": "news",
+      "published_at": "2026-11-19T18:00:00Z",
+      "categories": [
+        "finance"
+      ],
+      "region": "uk",
+      "entities": [
+        "institution:pra",
+        "company:hdi-global"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/bank-of-england-sets-out-approach-to-tokenised-collateral-in",
+      "status": "published",
+      "title": "Bank of England sets out approach to tokenised collateral in central clearing",
+      "tier": 3,
+      "page_type": "news",
+      "published_at": "2026-11-17T17:00:00Z",
+      "categories": [
+        "finance"
+      ],
+      "region": "uk",
+      "entities": [
+        "institution:boe"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/bank-of-england-announces-the-four-animals-that-will-feature",
+      "status": "published",
+      "title": "Bank of England announces the four animals that will feature on our next series of banknotes",
+      "tier": 3,
+      "page_type": "news",
+      "published_at": "2026-11-14T23:00:00Z",
+      "categories": [
+        "finance"
+      ],
+      "region": "uk",
+      "entities": [
+        "institution:boe"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/the-bank-of-england-the-monetary-authority-of-singapore-and",
+      "status": "published",
+      "title": "The Bank of England, the Monetary Authority of Singapore, and the Bank of Thailand: Project Meridian FX APAC",
+      "tier": 3,
+      "page_type": "news",
+      "published_at": "2026-11-14T13:00:00Z",
+      "categories": [
+        "finance"
+      ],
+      "region": "global",
+      "entities": [
+        "institution:boe",
+        "institution:mas",
+        "institution:bot"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/federal-reserve-board-and-federal-open-market-committee-rele",
+      "status": "published",
+      "title": "Federal Reserve Board and Federal Open Market Committee release economic projections from the September 15-16 FOMC meeting",
+      "tier": 2,
+      "page_type": "report",
+      "published_at": "2026-11-17T01:00:00Z",
+      "categories": [
+        "economy/growth"
+      ],
+      "region": "north-america",
+      "entities": [
+        "institution:fed"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/bank-of-canada-governor-tiff-macklem-to-step-down-in-june-20",
+      "status": "published",
+      "title": "Bank of Canada Governor Tiff Macklem to step down in June 2027",
+      "tier": 2,
+      "page_type": "news",
+      "published_at": "2026-11-16T09:00:00Z",
+      "categories": [
+        "economy/monetary-policy"
+      ],
+      "region": "north-america",
+      "entities": [
+        "institution:boc",
+        "person:tiff-macklem"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/philip-r-lane-ai-adoption-in-europe",
+      "status": "published",
+      "title": "Philip R. Lane: AI adoption in Europe",
+      "tier": 3,
+      "page_type": "news",
+      "published_at": "2026-11-20T01:00:00Z",
+      "categories": [
+        "economy"
+      ],
+      "region": "europe",
+      "entities": [
+        "institution:ecb",
+        "person:philip-r-lane"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/coal-mining-women-s-work-and-local-demographic-change-eviden",
+      "status": "published",
+      "title": "Coal Mining, Women's Work, and Local Demographic Change: Evidence from Interwar Japan",
+      "tier": 3,
+      "page_type": "science",
+      "published_at": "2026-11-18T07:00:00Z",
+      "categories": [
+        "science"
+      ],
+      "region": "global",
+      "entities": [],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/evaluation-and-management-of-adults-with-obstructive-sleep-a",
+      "status": "published",
+      "title": "Evaluation and Management of Adults with Obstructive Sleep Apnea Syndrome",
+      "tier": 3,
+      "page_type": "science",
+      "published_at": "2026-11-14T03:00:00Z",
+      "categories": [
+        "science"
+      ],
+      "region": "global",
+      "entities": [],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/corporate-governance-and-bank-behaviour-uk-bank-dataset-2008",
+      "status": "published",
+      "title": "Corporate Governance and Bank Behaviour: UK Bank Dataset, 2008–2021.",
+      "tier": 3,
+      "page_type": "science",
+      "published_at": "2026-11-13T17:00:00Z",
+      "categories": [
+        "science",
+        "finance"
+      ],
+      "region": "uk",
+      "entities": [],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/pra-and-fca-propose-new-captive-insurance-regime-to-drive-uk",
+      "status": "draft",
+      "title": "PRA and FCA propose new captive insurance regime to drive UK growth and competitiveness",
+      "tier": 3,
+      "page_type": "news",
+      "published_at": null,
+      "categories": [
+        "finance"
+      ],
+      "region": "uk",
+      "entities": [
+        "institution:pra",
+        "institution:fca"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/designation-of-prosegur-australia-pty-ltd-under-the-cash-dis",
+      "status": "ready",
+      "title": "Designation of Prosegur Australia Pty Ltd under the Cash Distribution Framework Act 2026",
+      "tier": 3,
+      "page_type": "policy",
+      "published_at": null,
+      "categories": [
+        "finance"
+      ],
+      "region": "australia",
+      "entities": [
+        "institution:rba"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/ecb-publishes-consolidated-banking-data-for-end-june-2026",
+      "status": "withdrawn",
+      "title": "ECB publishes consolidated banking data for end-June 2026",
+      "tier": 3,
+      "page_type": "macro",
+      "published_at": "2026-11-19T11:00:00Z",
+      "categories": [
+        "finance"
+      ],
+      "region": "europe",
+      "entities": [
+        "institution:ecb"
+      ],
+      "figures": []
+    }
+  ],
+  "expect": {
+    "excluded": [
+      "2026/11/pra-and-fca-propose-new-captive-insurance-regime-to-drive-uk",
+      "2026/11/designation-of-prosegur-australia-pty-ltd-under-the-cash-dis",
+      "2026/11/ecb-publishes-consolidated-banking-data-for-end-june-2026"
+    ],
+    "notes": "Twenty-four published pages from the last seven days across economy, finance and science and five regions. Four ECB pages, three Bank of England pages and two Fed pages: at most two per entity may be placed. The draft, the ready (unpublished) page and the withdrawn page must not be placed."
+  },
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/abs/CPI.AUS-history.json; cli/crates/news-connectors/tests/fixtures/arxiv/record-2112.14514.xml; cli/crates/news-connectors/tests/fixtures/centralbank/boc-feed.xml; cli/crates/news-connectors/tests/fixtures/centralbank/boe-feed.xml; cli/crates/news-connectors/tests/fixtures/centralbank/ecb-feed.xml; cli/crates/news-connectors/tests/fixtures/centralbank/fed-feed.xml; cli/crates/news-connectors/tests/fixtures/centralbank/fed-statement-20261028.html; cli/crates/news-connectors/tests/fixtures/centralbank/rba-feed.xml; cli/crates/news-connectors/tests/fixtures/crossref/list.json; cli/crates/news-connectors/tests/fixtures/ecb/FM.MRR-history.json; cli/crates/news-connectors/tests/fixtures/eurostat/HICP.EA-history.json; cli/crates/news-connectors/tests/fixtures/nasa/search-artemis.json; cli/crates/news-connectors/tests/fixtures/oecd/CPI.USA-history.json; cli/crates/news-connectors/tests/fixtures/ons/dataset-cpih01.json; cli/crates/news-connectors/tests/fixtures/openalex/list-field20.json; cli/crates/news-fixer/tests/briefs.rs; cli/crates/news-fixer/tests/golden/macro-release.json; cli/crates/news-fixer/tests/golden/major-report.json",
+    "change": "assembled scenario: recorded titles (and golden-brief figure ids) with hand-set status, tier, dates, categories, region and entities"
+  }
+}

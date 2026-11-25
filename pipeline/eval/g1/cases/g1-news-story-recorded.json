@@ -1,0 +1,83 @@
+{
+  "id": "g1-news-story-recorded",
+  "page_type": "news-story",
+  "tags": [
+    "recorded",
+    "long_statement"
+  ],
+  "provenance": {
+    "from": "cli/crates/news-fixer/tests/golden/news-story.json",
+    "change": null
+  },
+  "brief": {
+    "brief_version": 1,
+    "components": {
+      "suggested": [
+        "KeyFigures",
+        "Prose",
+        "Timeline",
+        "ChoroplethMap",
+        "Quote"
+      ]
+    },
+    "context": [],
+    "entities": [
+      {
+        "id": "ent_5",
+        "kind": "central_bank",
+        "name": "Federal Reserve"
+      }
+    ],
+    "facts": [],
+    "item": {
+      "action": "new",
+      "event_key": "policy:cb-fed:2025-09-17",
+      "page_type": "news-story",
+      "slug_hint": "policy-cb-fed-2025-09-17",
+      "story_id": 81600,
+      "tier": 2
+    },
+    "media": {
+      "images": [],
+      "video": null
+    },
+    "periods": [],
+    "quotes": [
+      {
+        "block": 1,
+        "doc": 7001,
+        "id": "q_7001_1",
+        "text": "Recent indicators suggest that growth of economic activity moderated in the first half of the year. Job gains have slowed, and the unemployment rate has edged up but remains low. Inflation has moved up and remains somewhat elevated."
+      },
+      {
+        "block": 1,
+        "doc": 7002,
+        "id": "q_7002_1",
+        "text": "Recent indicators suggest that growth of economic activity moderated in the first half of the year. Job gains have slowed, and the unemployment rate has edged up but remains low. Inflation has moved up and remains somewhat elevated."
+      }
+    ],
+    "related_pages": [],
+    "rules": {
+      "disclaimer": "not-investment-advice",
+      "fiscal_note": null
+    },
+    "series": [],
+    "source_text": {
+      "points": [
+        "Federal Reserve Board issues FOMC statement",
+        "Recent indicators suggest that growth of economic activity moderated in the first half of the year. Job gains have slowed, and the unemployment rate has edged up but remains low. Inflation has moved up and remains somewhat elevated.",
+        "The Committee seeks to achieve maximum employment and inflation at the rate of 2 percent over the longer run. Uncertainty about the economic outlook remains elevated. The Committee is attentive to the risks to both sides of its dual mandate and judges that downside risks to employment have risen.",
+        "In support of its goals and in light of the shift in the balance of risks, the Committee decided to lower the target range for the federal funds rate by 1/4 percentage point to 4 to 4‑1/4 percent. In considering additional adjustments to the target range for the federal funds rate, the Committee will carefully assess incoming data, the evolving outlook, and the balance of risks. The Committee will continue reducing its holdings of Treasury securities and agency debt and agency mortgage‑backed securities. The Committee is strongly committed to supporting maximum employment and returning inflation to its 2 percent objective.",
+        "In assessing the appropriate stance of monetary policy, the Committee will continue to monitor the implications of incoming information for the economic outlook. The Committee would be prepared to adjust the stance of monetary policy as appropriate if risks emerge that could impede the attainment of the Committee's goals. The Committee's assessments will take into account a wide range of information, including readings on labor market conditions, inflation pressures and inflation expectations, and financial and international developments.",
+        "Voting for the monetary policy action were Jerome H. Powell, Chair; John C. Williams, Vice Chair; Michael S. Barr; Michelle W. Bowman; Susan M. Collins; Lisa D. Cook; Austan D. Goolsbee; Philip N. Jefferson; Alberto G. Musalem; Jeffrey R. Schmid; and Christopher J. Waller. Voting against this action was Stephen I. Miran, who preferred to lower the target range for the federal funds rate by 1/2 percentage point at this meeting.",
+        "FOMC statement",
+        "Recent indicators suggest that growth of economic activity moderated in the first half of the year. Job gains have slowed, and the unemployment rate has edged up but remains low. Inflation has moved up and remains somewhat elevated.",
+        "The Committee seeks to achieve maximum employment and inflation at the rate of 2 percent over the longer run. Uncertainty about the economic outlook remains elevated. The Committee is attentive to the risks to both sides of its dual mandate and judges that downside risks to employment have risen.",
+        "In support of its goals and in light of the shift in the balance of risks, the Committee decided to lower the target range for the federal funds rate by 1/4 percentage point to 4 to 4‑1/4 percent. In considering additional adjustments to the target range for the federal funds rate, the Committee will carefully assess incoming data, the evolving outlook, and the balance of risks. The Committee will continue reducing its holdings of Treasury securities and agency debt and agency mortgage‑backed securities. The Committee is strongly committed to supporting maximum employment and returning inflation to its 2 percent objective.",
+        "In assessing the appropriate stance of monetary policy, the Committee will continue to monitor the implications of incoming information for the economic outlook. The Committee would be prepared to adjust the stance of monetary policy as appropriate if risks emerge that could impede the attainment of the Committee's goals. The Committee's assessments will take into account a wide range of information, including readings on labor market conditions, inflation pressures and inflation expectations, and financial and international developments.",
+        "Voting for the monetary policy action were Jerome H. Powell, Chair; John C. Williams, Vice Chair; Michael S. Barr; Michelle W. Bowman; Susan M. Collins; Lisa D. Cook; Austan D. Goolsbee; Philip N. Jefferson; Alberto G. Musalem; Jeffrey R. Schmid; and Christopher J. Waller. Voting against this action was Stephen I. Miran, who preferred to lower the target range for the federal funds rate by 1/2 percentage point at this meeting."
+      ],
+      "untrusted": true
+    }
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "id": "g1-major-report-missing-data",
+  "page_type": "major-report",
+  "tags": [
+    "missing_data"
+  ],
+  "provenance": {
+    "from": "cli/crates/news-fixer/tests/golden/major-report.json",
+    "change": "removed the prior year's GDP and the year-on-year change, leaving the latest GDP level, its series and the context line"
+  },
+  "brief": {
+    "brief_version": 1,
+    "components": {
+      "suggested": [
+        "KeyFigures",
+        "DataTable",
+        "BarChart",
+        "Prose",
+        "Note",
+        "VideoEmbed"
+      ]
+    },
+    "context": [
+      {
+        "id": "cx_1",
+        "rule": "series_record_high",
+        "text": "GDP (current US$): highest of every observation held, which begin in 2021"
+      }
+    ],
+    "entities": [
+      {
+        "id": "ent_1",
+        "kind": "country",
+        "name": "United States"
+      }
+    ],
+    "facts": [
+      {
+        "label": "GDP (current US$)",
+        "period": "2025",
+        "ref": "dp_4stpfufc74tc24cy",
+        "unit": "current US$",
+        "value": "30769700000000"
+      }
+    ],
+    "item": {
+      "action": "new",
+      "data_as_of": "2026-11-11",
+      "event_key": "macro:us.gdp_wb:2025",
+      "page_type": "major-report",
+      "slug_hint": "macro-us-gdp-wb-2025",
+      "story_id": 81500,
+      "tier": 2
+    },
+    "media": {
+      "images": [],
+      "video": null
+    },
+    "periods": [
+      {
+        "label": "2025",
+        "ref": "pd_2025"
+      },
+      {
+        "label": "2021",
+        "ref": "pd_2021"
+      },
+      {
+        "label": "2022",
+        "ref": "pd_2022"
+      },
+      {
+        "label": "2023",
+        "ref": "pd_2023"
+      },
+      {
+        "label": "2024",
+        "ref": "pd_2024"
+      }
+    ],
+    "quotes": [],
+    "related_pages": [],
+    "rules": {
+      "disclaimer": "not-investment-advice",
+      "fiscal_note": null
+    },
+    "series": [
+      {
+        "label": "GDP (current US$), 2021 to 2025",
+        "points": 5,
+        "ref": "sr_am7mvf3ghynd"
+      }
+    ],
+    "source_text": {
+      "points": [],
+      "untrusted": true
+    }
+  }
+}

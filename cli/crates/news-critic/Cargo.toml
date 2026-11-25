@@ -1,6 +1,6 @@
 [package]
 name = "news-critic"
-description = "Critic, the evaluation harness, and the Debrief. Handler stubs; the harness is built in #19."
+description = "Critic, the evaluation harness, and the Debrief. Golden sets, deterministic metrics and news eval run|report."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,10 +8,13 @@ publish.workspace = true
 
 [dependencies]
 news-core = { workspace = true }
+news-home = { workspace = true }
 news-nose = { workspace = true }
 news-standing = { workspace = true }
 news-store = { workspace = true }
 chrono = { workspace = true }
+jsonschema = { workspace = true }
+serde = { workspace = true }
 serde_json = { workspace = true }
 sqlx = { workspace = true }
 

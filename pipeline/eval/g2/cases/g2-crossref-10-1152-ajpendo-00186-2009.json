@@ -1,0 +1,20 @@
+{
+  "id": "g2-crossref-10-1152-ajpendo-00186-2009",
+  "item": {
+    "title": "Functional significance of skeletal muscle adiponectin production, changes in animal models of obesity and diabetes, and regulation by rosiglitazone treatment",
+    "source": "Crossref, scholarly metadata: American Journal of Physiology-Endocrinology and Metabolism",
+    "opening": ""
+  },
+  "label": {
+    "page_type": "science",
+    "categories": [
+      "science"
+    ],
+    "region": "global"
+  },
+  "labelled_by": "opus-draft",
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/crossref/list.json",
+    "change": null
+  }
+}

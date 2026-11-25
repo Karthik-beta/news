@@ -1,0 +1,288 @@
+{
+  "id": "g5-withdrawn-lead",
+  "scenario": "withdrawn_lead",
+  "now": "2026-11-20T09:00:00Z",
+  "pages": [
+    {
+      "page_id": "2026/11/bank-rate-increased-to-4-november-2026-monetary-policy-summa",
+      "status": "withdrawn",
+      "title": "Bank rate increased to 4% - November 2026 Monetary Policy Summary and Minutes",
+      "tier": 1,
+      "page_type": "policy",
+      "published_at": "2026-11-20T03:00:00Z",
+      "categories": [
+        "economy/monetary-policy"
+      ],
+      "region": "uk",
+      "entities": [
+        "institution:boe"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/main-refinancing-operations-fixed-rate-tenders-fixed-rate-da",
+      "status": "published",
+      "title": "Main refinancing operations - fixed rate tenders (fixed rate) (date of changes) - Level",
+      "tier": 1,
+      "page_type": "policy",
+      "published_at": "2026-11-19T05:00:00Z",
+      "categories": [
+        "economy/monetary-policy"
+      ],
+      "region": "europe",
+      "entities": [
+        "institution:ecb"
+      ],
+      "figures": [
+        "dp_ayvmv67k6qwi2tu5",
+        "dp_zqmtgkcrnjro6jq4"
+      ]
+    },
+    {
+      "page_id": "2026/11/consumer-price-index-for-all-urban-consumers-all-items-in-u",
+      "status": "published",
+      "title": "Consumer Price Index for All Urban Consumers: All Items in U.S. City Average",
+      "tier": 1,
+      "page_type": "macro",
+      "published_at": "2026-11-18T17:00:00Z",
+      "categories": [
+        "economy/inflation"
+      ],
+      "region": "north-america",
+      "entities": [
+        "institution:bls"
+      ],
+      "figures": [
+        "dp_4yog6v5qhiqchdrb",
+        "dp_4gbuxf2ixs5amiee"
+      ]
+    },
+    {
+      "page_id": "2026/11/apple-inc-10-k",
+      "status": "published",
+      "title": "Apple Inc. 10-K",
+      "tier": 1,
+      "page_type": "earnings",
+      "published_at": "2026-11-18T02:00:00Z",
+      "categories": [
+        "finance/earnings"
+      ],
+      "region": "north-america",
+      "entities": [
+        "company:apple"
+      ],
+      "figures": [
+        "dp_kjfhexdo774vzbdy",
+        "dp_rurnaplntzkg2tzo",
+        "dp_3khm4dm4sqqxqm66"
+      ]
+    },
+    {
+      "page_id": "2026/11/bank-of-canada-raises-the-policy-rate-by-25-basis-points-to",
+      "status": "published",
+      "title": "Bank of Canada raises the policy rate by 25 basis points to 2½%",
+      "tier": 1,
+      "page_type": "policy",
+      "published_at": "2026-11-17T17:00:00Z",
+      "categories": [
+        "economy/monetary-policy"
+      ],
+      "region": "north-america",
+      "entities": [
+        "institution:boc"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/hicp-monthly-data-annual-rate-of-change",
+      "status": "published",
+      "title": "HICP - monthly data (annual rate of change)",
+      "tier": 1,
+      "page_type": "macro",
+      "published_at": "2026-11-17T05:00:00Z",
+      "categories": [
+        "economy/inflation"
+      ],
+      "region": "europe",
+      "entities": [
+        "institution:eurostat"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/results-of-the-ecb-survey-of-professional-forecasters-for-th",
+      "status": "published",
+      "title": "Results of the ECB Survey of Professional Forecasters for the fourth quarter of 2026",
+      "tier": 2,
+      "page_type": "macro",
+      "published_at": "2026-11-16T17:00:00Z",
+      "categories": [
+        "economy/growth"
+      ],
+      "region": "europe",
+      "entities": [
+        "institution:ecb"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/gdp-current-us",
+      "status": "published",
+      "title": "GDP (current US$)",
+      "tier": 2,
+      "page_type": "report",
+      "published_at": "2026-11-16T09:00:00Z",
+      "categories": [
+        "economy/growth"
+      ],
+      "region": "north-america",
+      "entities": [
+        "country:US"
+      ],
+      "figures": [
+        "dp_4stpfufc74tc24cy",
+        "dp_2kkf6eorryn4eygg"
+      ]
+    },
+    {
+      "page_id": "2026/11/artemis-ii-launch",
+      "status": "published",
+      "title": "Artemis II Launch",
+      "tier": 2,
+      "page_type": "science",
+      "published_at": "2026-11-16T01:00:00Z",
+      "categories": [
+        "science"
+      ],
+      "region": "north-america",
+      "entities": [
+        "institution:nasa"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/consumer-prices-index-including-owner-occupiers-housing-cost",
+      "status": "published",
+      "title": "Consumer Prices Index including owner occupiers' housing costs (CPIH)",
+      "tier": 2,
+      "page_type": "macro",
+      "published_at": "2026-11-15T17:00:00Z",
+      "categories": [
+        "economy/inflation"
+      ],
+      "region": "uk",
+      "entities": [
+        "institution:ons"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/consumer-price-index-cpi",
+      "status": "published",
+      "title": "Consumer Price Index (CPI)",
+      "tier": 2,
+      "page_type": "macro",
+      "published_at": "2026-11-15T09:00:00Z",
+      "categories": [
+        "economy/inflation"
+      ],
+      "region": "australia",
+      "entities": [
+        "institution:abs"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/pra-fines-hdi-global-se-4-165-000-for-inaccurate-reporting-o",
+      "status": "published",
+      "title": "PRA fines HDI Global SE £4,165,000 for inaccurate reporting of FSCS Liabilities and FSCS Fee Tariff data",
+      "tier": 3,
+      "page_type": "news",
+      "published_at": "2026-11-14T23:00:00Z",
+      "categories": [
+        "finance"
+      ],
+      "region": "uk",
+      "entities": [
+        "institution:pra",
+        "company:hdi-global"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/federal-reserve-board-and-federal-open-market-committee-rele",
+      "status": "published",
+      "title": "Federal Reserve Board and Federal Open Market Committee release economic projections from the September 15-16 FOMC meeting",
+      "tier": 2,
+      "page_type": "report",
+      "published_at": "2026-11-14T13:00:00Z",
+      "categories": [
+        "economy/growth"
+      ],
+      "region": "north-america",
+      "entities": [
+        "institution:fed"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/coal-mining-women-s-work-and-local-demographic-change-eviden",
+      "status": "published",
+      "title": "Coal Mining, Women's Work, and Local Demographic Change: Evidence from Interwar Japan",
+      "tier": 3,
+      "page_type": "science",
+      "published_at": "2026-11-14T03:00:00Z",
+      "categories": [
+        "science"
+      ],
+      "region": "global",
+      "entities": [],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/philip-r-lane-ai-adoption-in-europe",
+      "status": "published",
+      "title": "Philip R. Lane: AI adoption in Europe",
+      "tier": 3,
+      "page_type": "news",
+      "published_at": "2026-11-17T11:00:00Z",
+      "categories": [
+        "economy"
+      ],
+      "region": "europe",
+      "entities": [
+        "institution:ecb",
+        "person:philip-r-lane"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/the-bank-of-england-the-monetary-authority-of-singapore-and",
+      "status": "published",
+      "title": "The Bank of England, the Monetary Authority of Singapore, and the Bank of Thailand: Project Meridian FX APAC",
+      "tier": 3,
+      "page_type": "news",
+      "published_at": "2026-11-13T17:00:00Z",
+      "categories": [
+        "finance"
+      ],
+      "region": "global",
+      "entities": [
+        "institution:boe",
+        "institution:mas",
+        "institution:bot"
+      ],
+      "figures": []
+    }
+  ],
+  "expect": {
+    "excluded": [
+      "2026/11/bank-rate-increased-to-4-november-2026-monetary-policy-summa"
+    ],
+    "notes": "The newest Tier 1 page, the Bank of England rate decision, has been withdrawn and must not lead or appear anywhere; the lead must be another fresh page (for example the ECB rate or US CPI page)."
+  },
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/abs/CPI.AUS-history.json; cli/crates/news-connectors/tests/fixtures/arxiv/record-2112.14514.xml; cli/crates/news-connectors/tests/fixtures/centralbank/boc-feed.xml; cli/crates/news-connectors/tests/fixtures/centralbank/boe-feed.xml; cli/crates/news-connectors/tests/fixtures/centralbank/ecb-feed.xml; cli/crates/news-connectors/tests/fixtures/centralbank/fed-feed.xml; cli/crates/news-connectors/tests/fixtures/ecb/FM.MRR-history.json; cli/crates/news-connectors/tests/fixtures/eurostat/HICP.EA-history.json; cli/crates/news-connectors/tests/fixtures/nasa/search-artemis.json; cli/crates/news-connectors/tests/fixtures/ons/dataset-cpih01.json; cli/crates/news-fixer/tests/briefs.rs; cli/crates/news-fixer/tests/golden/macro-release.json; cli/crates/news-fixer/tests/golden/major-report.json",
+    "change": "assembled scenario: recorded titles (and golden-brief figure ids) with hand-set status, tier, dates, categories, region and entities"
+  }
+}

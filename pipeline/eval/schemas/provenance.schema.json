@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/pipeline/eval/schemas/provenance.schema.json",
+  "title": "Case provenance",
+  "description": "Where a case's data comes from: a recorded file in the repository, and the edit made to it, if any. Values that would appear on a page always come from the recorded file, never typed.",
+  "type": "object",
+  "properties": {
+    "from": { "type": "string", "minLength": 1, "description": "Repository path of the recorded file" },
+    "change": { "type": ["string", "null"], "description": "The edit made for this case, in words; null for an unchanged recording" }
+  },
+  "required": ["from", "change"],
+  "additionalProperties": false
+}

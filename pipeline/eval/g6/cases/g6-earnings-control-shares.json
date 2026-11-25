@@ -1,0 +1,10 @@
+{
+  "id": "g6-earnings-control-shares",
+  "brief_case": "g1-earnings-recorded",
+  "page": "# Apple's diluted earnings per share rise to {dp_3khm4dm4sqqxqm66}\n\nDiluted earnings per share rose in the fiscal year to {pd_2026_09_26}.\n\nApple Inc.'s diluted earnings per share were {dp_3khm4dm4sqqxqm66} in fiscal year {pd_20250928_20260926}, up {dv_pm7a6pdcvbd7opg6} from {dp_zs3q4ryr6qdpeoso} a year earlier. Net income attributable to the company was {dp_rurnaplntzkg2tzo}. Apple had {dp_o7eczpdrwry4bvc5} shares of common stock outstanding as of {pd_2026_10_17}.\n",
+  "fault": null,
+  "provenance": {
+    "from": "cli/crates/news-fixer/tests/golden/earnings.json",
+    "change": "hand-written faithful page in ref tokens; no fault (control)"
+  }
+}

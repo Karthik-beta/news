@@ -1,10 +1,13 @@
 //! Critic, the evaluation harness (Bureau Design §9.1), and Huddle's Debrief (§8.12).
 //!
-//! The harness is still a skeleton (#19, later PRs): its job handlers are registered with Dispatch, so the
-//! registry is complete, and until then they fail with class `bug` ("not built yet"). [`debrief`] is built:
-//! `news review weekly`.
+//! Built: the golden sets ([`golden`]), the deterministic metrics ([`metrics`]), `news eval run|report`
+//! ([`eval`]) and `news review weekly` ([`debrief`]). Audit's AI steps (candidate calls, A12 judges) are
+//! not built yet (#19); Critic has no job kinds of its own.
 
 pub mod debrief;
+pub mod eval;
+pub mod golden;
+pub mod metrics;
 
 use news_core::job::{Handler, JobFailure, JobFuture, JobInput};
 

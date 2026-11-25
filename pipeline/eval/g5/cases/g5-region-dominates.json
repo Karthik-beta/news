@@ -1,0 +1,286 @@
+{
+  "id": "g5-region-dominates",
+  "scenario": "region_dominates",
+  "now": "2026-11-20T09:00:00Z",
+  "pages": [
+    {
+      "page_id": "2026/11/federal-reserve-issues-fomc-statement",
+      "status": "published",
+      "title": "Federal Reserve issues FOMC statement",
+      "tier": 1,
+      "page_type": "policy",
+      "published_at": "2026-11-19T15:00:00Z",
+      "categories": [
+        "economy/monetary-policy"
+      ],
+      "region": "north-america",
+      "entities": [
+        "institution:fed"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/consumer-price-index-for-all-urban-consumers-all-items-in-u",
+      "status": "published",
+      "title": "Consumer Price Index for All Urban Consumers: All Items in U.S. City Average",
+      "tier": 1,
+      "page_type": "macro",
+      "published_at": "2026-11-19T07:00:00Z",
+      "categories": [
+        "economy/inflation"
+      ],
+      "region": "north-america",
+      "entities": [
+        "institution:bls"
+      ],
+      "figures": [
+        "dp_4yog6v5qhiqchdrb",
+        "dp_4gbuxf2ixs5amiee"
+      ]
+    },
+    {
+      "page_id": "2026/11/apple-inc-10-k",
+      "status": "published",
+      "title": "Apple Inc. 10-K",
+      "tier": 1,
+      "page_type": "earnings",
+      "published_at": "2026-11-18T17:00:00Z",
+      "categories": [
+        "finance/earnings"
+      ],
+      "region": "north-america",
+      "entities": [
+        "company:apple"
+      ],
+      "figures": [
+        "dp_kjfhexdo774vzbdy",
+        "dp_rurnaplntzkg2tzo",
+        "dp_3khm4dm4sqqxqm66"
+      ]
+    },
+    {
+      "page_id": "2026/11/gdp-current-us",
+      "status": "published",
+      "title": "GDP (current US$)",
+      "tier": 2,
+      "page_type": "report",
+      "published_at": "2026-11-18T07:00:00Z",
+      "categories": [
+        "economy/growth"
+      ],
+      "region": "north-america",
+      "entities": [
+        "country:US"
+      ],
+      "figures": [
+        "dp_4stpfufc74tc24cy",
+        "dp_2kkf6eorryn4eygg"
+      ]
+    },
+    {
+      "page_id": "2026/11/federal-reserve-board-and-federal-open-market-committee-rele",
+      "status": "published",
+      "title": "Federal Reserve Board and Federal Open Market Committee release economic projections from the September 15-16 FOMC meeting",
+      "tier": 2,
+      "page_type": "report",
+      "published_at": "2026-11-17T21:00:00Z",
+      "categories": [
+        "economy/growth"
+      ],
+      "region": "north-america",
+      "entities": [
+        "institution:fed"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/minutes-of-the-federal-open-market-committee-september-15-16",
+      "status": "published",
+      "title": "Minutes of the Federal Open Market Committee, September 15-16, 2026",
+      "tier": 3,
+      "page_type": "news",
+      "published_at": "2026-11-17T11:00:00Z",
+      "categories": [
+        "economy/monetary-policy"
+      ],
+      "region": "north-america",
+      "entities": [
+        "institution:fed"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/federal-reserve-announces-revised-tentative-schedule-of-fede",
+      "status": "published",
+      "title": "Federal Reserve announces revised tentative schedule of Federal Open Market Committee meetings in 2027",
+      "tier": 3,
+      "page_type": "news",
+      "published_at": "2026-11-16T21:00:00Z",
+      "categories": [
+        "economy/monetary-policy"
+      ],
+      "region": "north-america",
+      "entities": [
+        "institution:fed"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/bank-of-canada-raises-the-policy-rate-by-25-basis-points-to",
+      "status": "published",
+      "title": "Bank of Canada raises the policy rate by 25 basis points to 2½%",
+      "tier": 1,
+      "page_type": "policy",
+      "published_at": "2026-11-19T03:00:00Z",
+      "categories": [
+        "economy/monetary-policy"
+      ],
+      "region": "north-america",
+      "entities": [
+        "institution:boc"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/bank-of-canada-governor-tiff-macklem-to-step-down-in-june-20",
+      "status": "published",
+      "title": "Bank of Canada Governor Tiff Macklem to step down in June 2027",
+      "tier": 2,
+      "page_type": "news",
+      "published_at": "2026-11-16T15:00:00Z",
+      "categories": [
+        "economy/monetary-policy"
+      ],
+      "region": "north-america",
+      "entities": [
+        "institution:boc",
+        "person:tiff-macklem"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/joint-statement-of-the-government-of-canada-and-the-bank-of",
+      "status": "published",
+      "title": "Joint Statement of the Government of Canada and the Bank of Canada on the Renewal of the Monetary Policy Framework",
+      "tier": 2,
+      "page_type": "policy",
+      "published_at": "2026-11-15T19:00:00Z",
+      "categories": [
+        "economy/monetary-policy"
+      ],
+      "region": "north-america",
+      "entities": [
+        "institution:boc",
+        "country:CA"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/artemis-ii-launch",
+      "status": "published",
+      "title": "Artemis II Launch",
+      "tier": 2,
+      "page_type": "science",
+      "published_at": "2026-11-15T09:00:00Z",
+      "categories": [
+        "science"
+      ],
+      "region": "north-america",
+      "entities": [
+        "institution:nasa"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/consumer-price-indices-cpis-hicps-coicop-1999",
+      "status": "published",
+      "title": "Consumer price indices (CPIs, HICPs), COICOP 1999",
+      "tier": 3,
+      "page_type": "macro",
+      "published_at": "2026-11-14T23:00:00Z",
+      "categories": [
+        "economy/inflation"
+      ],
+      "region": "north-america",
+      "entities": [
+        "institution:oecd"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/main-refinancing-operations-fixed-rate-tenders-fixed-rate-da",
+      "status": "published",
+      "title": "Main refinancing operations - fixed rate tenders (fixed rate) (date of changes) - Level",
+      "tier": 1,
+      "page_type": "policy",
+      "published_at": "2026-11-18T21:00:00Z",
+      "categories": [
+        "economy/monetary-policy"
+      ],
+      "region": "europe",
+      "entities": [
+        "institution:ecb"
+      ],
+      "figures": [
+        "dp_ayvmv67k6qwi2tu5",
+        "dp_zqmtgkcrnjro6jq4"
+      ]
+    },
+    {
+      "page_id": "2026/11/bank-rate-increased-to-4-november-2026-monetary-policy-summa",
+      "status": "published",
+      "title": "Bank rate increased to 4% - November 2026 Monetary Policy Summary and Minutes",
+      "tier": 1,
+      "page_type": "policy",
+      "published_at": "2026-11-18T11:00:00Z",
+      "categories": [
+        "economy/monetary-policy"
+      ],
+      "region": "uk",
+      "entities": [
+        "institution:boe"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/coal-mining-women-s-work-and-local-demographic-change-eviden",
+      "status": "published",
+      "title": "Coal Mining, Women's Work, and Local Demographic Change: Evidence from Interwar Japan",
+      "tier": 3,
+      "page_type": "science",
+      "published_at": "2026-11-16T05:00:00Z",
+      "categories": [
+        "science"
+      ],
+      "region": "global",
+      "entities": [],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/hicp-monthly-data-annual-rate-of-change",
+      "status": "draft",
+      "title": "HICP - monthly data (annual rate of change)",
+      "tier": 1,
+      "page_type": "macro",
+      "published_at": null,
+      "categories": [
+        "economy/inflation"
+      ],
+      "region": "europe",
+      "entities": [
+        "institution:eurostat"
+      ],
+      "figures": []
+    }
+  ],
+  "expect": {
+    "excluded": [
+      "2026/11/hicp-monthly-data-annual-rate-of-change"
+    ],
+    "notes": "Twelve of the fifteen published pages are North American; exactly one each from Europe, the UK and global, so all three must be placed to reach three regions. Four Fed pages and three Bank of Canada pages: at most two of each. The draft must not be placed."
+  },
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/arxiv/record-2112.14514.xml; cli/crates/news-connectors/tests/fixtures/centralbank/boc-feed.xml; cli/crates/news-connectors/tests/fixtures/centralbank/boe-feed.xml; cli/crates/news-connectors/tests/fixtures/centralbank/fed-feed.xml; cli/crates/news-connectors/tests/fixtures/centralbank/fed-statement-20261028.html; cli/crates/news-connectors/tests/fixtures/ecb/FM.MRR-history.json; cli/crates/news-connectors/tests/fixtures/eurostat/HICP.EA-history.json; cli/crates/news-connectors/tests/fixtures/nasa/search-artemis.json; cli/crates/news-connectors/tests/fixtures/oecd/CPI.USA-history.json; cli/crates/news-fixer/tests/briefs.rs; cli/crates/news-fixer/tests/golden/macro-release.json; cli/crates/news-fixer/tests/golden/major-report.json",
+    "change": "assembled scenario: recorded titles (and golden-brief figure ids) with hand-set status, tier, dates, categories, region and entities"
+  }
+}

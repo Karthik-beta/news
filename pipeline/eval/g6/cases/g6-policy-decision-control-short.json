@@ -1,0 +1,10 @@
+{
+  "id": "g6-policy-decision-control-short",
+  "brief_case": "g1-policy-decision-recorded",
+  "page": "# European Central Bank's rate now {dp_ayvmv67k6qwi2tu5}\n\nThe rate changed on {pd_2026_09_16}.\n\nFrom {pd_2026_09_16}, the European Central Bank's policy rate was {dp_ayvmv67k6qwi2tu5}; it had been {dp_zqmtgkcrnjro6jq4} since {pd_2026_06_17}. The rate is the highest since {pd_2025_03_12}.\n",
+  "fault": null,
+  "provenance": {
+    "from": "cli/crates/news-fixer/tests/golden/policy-decision.json",
+    "change": "hand-written faithful page in ref tokens; no fault (control)"
+  }
+}

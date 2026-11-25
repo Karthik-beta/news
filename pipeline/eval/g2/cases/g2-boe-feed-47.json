@@ -1,0 +1,20 @@
+{
+  "id": "g2-boe-feed-47",
+  "item": {
+    "title": "Letter from the Governor to the Daily Mail",
+    "source": "Bank of England, central bank news feed",
+    "opening": "Letter from Governor Andrew Bailey to the Daily Mail on the subject of AI and cyber-attacks"
+  },
+  "label": {
+    "page_type": "news-story",
+    "categories": [
+      "finance"
+    ],
+    "region": "uk"
+  },
+  "labelled_by": "opus-draft",
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/centralbank/boe-feed.xml",
+    "change": null
+  }
+}

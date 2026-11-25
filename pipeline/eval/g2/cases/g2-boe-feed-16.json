@@ -1,0 +1,20 @@
+{
+  "id": "g2-boe-feed-16",
+  "item": {
+    "title": "Bank of England announces the four animals that will feature on our next series of banknotes",
+    "source": "Bank of England, central bank news feed",
+    "opening": "The Atlantic puffin, barn owl, buff-tailed bumblebee and European hedgehog will represent UK wildlife and feature as the central images on our next series of banknotes."
+  },
+  "label": {
+    "page_type": "news-story",
+    "categories": [
+      "finance"
+    ],
+    "region": "uk"
+  },
+  "labelled_by": "opus-draft",
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/centralbank/boe-feed.xml",
+    "change": null
+  }
+}

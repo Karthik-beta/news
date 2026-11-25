@@ -1,0 +1,10 @@
+{
+  "id": "g6-macro-release-control-short",
+  "brief_case": "g1-macro-release-recorded",
+  "page": "# Consumer price index up {dv_posldrq654yeigxx} on the month\n\nUS consumer prices rose in {pd_2026_10} compared with {pd_2026_09}.\n\nThe U.S. Bureau of Labor Statistics' index for all items in the U.S. city average rose to {dp_4yog6v5qhiqchdrb} in {pd_2026_10} from {dp_4gbuxf2ixs5amiee} in {pd_2026_09}, a rise of {dv_posldrq654yeigxx}.\n",
+  "fault": null,
+  "provenance": {
+    "from": "cli/crates/news-fixer/tests/golden/macro-release.json",
+    "change": "hand-written faithful page in ref tokens; no fault (control)"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "id": "g2-rba-feed-1",
+  "item": {
+    "title": "Designation of Prosegur Australia Pty Ltd under the Cash Distribution Framework Act 2026",
+    "source": "Reserve Bank of Australia, central bank media release feed",
+    "opening": "Media release number 2026-31: The RBA has today designated Prosegur Australia Pty Ltd (Prosegur Australia) (ACN 004 247 358) under the Cash Distribution Framework Act 2026 (the Act)."
+  },
+  "label": {
+    "page_type": "policy-decision",
+    "categories": [
+      "finance"
+    ],
+    "region": "au"
+  },
+  "labelled_by": "opus-draft",
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/centralbank/rba-feed.xml",
+    "change": null
+  }
+}

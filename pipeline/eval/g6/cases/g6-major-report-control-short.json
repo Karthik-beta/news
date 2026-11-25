@@ -1,0 +1,10 @@
+{
+  "id": "g6-major-report-control-short",
+  "brief_case": "g1-major-report-recorded",
+  "page": "# US GDP in current dollars rises {dv_kzlk4w44czg7dxrt}\n\nNominal US GDP was higher in {pd_2025} than in {pd_2024}.\n\nMeasured in current US dollars, US gross domestic product rose from {dp_2kkf6eorryn4eygg} in {pd_2024} to {dp_4stpfufc74tc24cy} in {pd_2025}.\n",
+  "fault": null,
+  "provenance": {
+    "from": "cli/crates/news-fixer/tests/golden/major-report.json",
+    "change": "hand-written faithful page in ref tokens; no fault (control)"
+  }
+}

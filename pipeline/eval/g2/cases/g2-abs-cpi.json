@@ -1,0 +1,21 @@
+{
+  "id": "g2-abs-cpi",
+  "item": {
+    "title": "Consumer Price Index (CPI)",
+    "source": "Australian Bureau of Statistics, statistical dataset",
+    "opening": "Dataset: CPI. The Consumer Price Index (CPI) measures changes in the price of a 'basket' of goods and services which account for a high proportion of expenditure by the CPI population group (i.e. metropolitan households). Unit of measure: Index. Geographic coverage: Australia/State. Catalogue number: 6401.0"
+  },
+  "label": {
+    "page_type": "macro-release",
+    "categories": [
+      "economy",
+      "inflation"
+    ],
+    "region": "au"
+  },
+  "labelled_by": "opus-draft",
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/abs/CPI.AUS-history.json",
+    "change": null
+  }
+}

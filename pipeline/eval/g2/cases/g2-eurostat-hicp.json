@@ -1,0 +1,21 @@
+{
+  "id": "g2-eurostat-hicp",
+  "item": {
+    "title": "HICP - monthly data (annual rate of change), Euro area (EA11-1999, EA12-2001, EA13-2007, EA15-2008, EA16-2009, EA17-2011, EA18-2014, EA19-2015, EA20-2023, EA21-2026)",
+    "source": "Eurostat, statistical dataset",
+    "opening": "The Harmonised Index of Consumer Prices (HICP) measures price changes of various consumer goods and services over time (inflation). The annual rate of change is the percentage change in one month compared to the same month of the previous year, also called annual inflation. It is calculated from the monthly indices and rounded to one decimal place."
+  },
+  "label": {
+    "page_type": "macro-release",
+    "categories": [
+      "economy",
+      "inflation"
+    ],
+    "region": "eu"
+  },
+  "labelled_by": "opus-draft",
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/eurostat/HICP.EA-history.json",
+    "change": "title is the dataset label followed by the geo label, both from the same file; opening is the dataset description with its HTML tags removed"
+  }
+}

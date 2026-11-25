@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/pipeline/eval/schemas/g5.case.schema.json",
+  "title": "G5 curator case",
+  "description": "A fixture candidate set for the home curator (A8) and what a good draft must leave out. The `news home check` rules run on a draft against these pages as of `now`.",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string", "pattern": "^g5-[a-z0-9-]+$" },
+    "scenario": { "enum": ["busy_week", "quiet_week", "region_dominates", "withdrawn_lead"] },
+    "now": { "type": "string", "format": "date-time" },
+    "pages": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "page_id": { "type": "string", "minLength": 1 },
+          "status": { "enum": ["draft", "ready", "published", "withdrawn"] },
+          "title": { "type": "string", "minLength": 1 },
+          "tier": { "type": ["integer", "null"], "minimum": 1, "maximum": 3 },
+          "page_type": { "type": "string" },
+          "published_at": { "type": ["string", "null"], "format": "date-time" },
+          "categories": { "type": "array", "items": { "type": "string" } },
+          "region": { "type": ["string", "null"] },
+          "entities": { "type": "array", "items": { "type": "string" } },
+          "figures": { "type": "array", "items": { "type": "string", "pattern": "^d[pv]_[a-z0-9_]+$" } }
+        },
+        "required": ["page_id", "status", "title", "tier", "page_type", "published_at", "categories", "region", "entities", "figures"],
+        "additionalProperties": false
+      }
+    },
+    "expect": {
+      "type": "object",
+      "properties": {
+        "excluded": { "type": "array", "items": { "type": "string" }, "description": "Pages a draft must not place" },
+        "notes": { "type": "string" }
+      },
+      "required": ["excluded"],
+      "additionalProperties": false
+    },
+    "provenance": { "$ref": "provenance.schema.json" }
+  },
+  "required": ["id", "scenario", "now", "pages", "expect", "provenance"],
+  "additionalProperties": false
+}

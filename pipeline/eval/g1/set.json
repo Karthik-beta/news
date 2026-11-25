@@ -1,0 +1,14 @@
+{
+  "set": "g1",
+  "name": "Writer",
+  "suite": "writer",
+  "version": 1,
+  "step": "A1",
+  "target_cases": 35,
+  "targets": {
+    "valid_first_try": { "min": 0.9 },
+    "valid_after_repair": { "min": 0.98 },
+    "c4_c5_after_repair": { "max": 0 }
+  },
+  "notes": "Frozen Fixer briefs, five per page type when recorded sources allow, with adversarial variants of recorded briefs."
+}

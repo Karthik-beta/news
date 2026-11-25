@@ -1,0 +1,20 @@
+{
+  "id": "g2-ecb-feed-4",
+  "item": {
+    "title": "Isabel Schnabel: Made in Europe",
+    "source": "European Central Bank, central bank press feed",
+    "opening": ""
+  },
+  "label": {
+    "page_type": "news-story",
+    "categories": [
+      "economy"
+    ],
+    "region": "eu"
+  },
+  "labelled_by": "opus-draft",
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/centralbank/ecb-feed.xml",
+    "change": null
+  }
+}

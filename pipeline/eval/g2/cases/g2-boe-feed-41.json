@@ -1,0 +1,20 @@
+{
+  "id": "g2-boe-feed-41",
+  "item": {
+    "title": "Results of the Semi-Annual FX Turnover Surveys in April 2026",
+    "source": "Bank of England, central bank news feed",
+    "opening": "In April 2026, 25 financial institutions active in the UK foreign exchange (FX) market participated in the semi-annual turnover survey for the Foreign Exchange Joint Standing Committee (FXJSC). The survey results are summarised below. Detailed tables for the April 2026 reporting period, linked below, are available separately."
+  },
+  "label": {
+    "page_type": "macro-release",
+    "categories": [
+      "finance"
+    ],
+    "region": "uk"
+  },
+  "labelled_by": "opus-draft",
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/centralbank/boe-feed.xml",
+    "change": null
+  }
+}

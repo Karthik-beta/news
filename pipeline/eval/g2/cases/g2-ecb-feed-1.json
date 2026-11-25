@@ -1,0 +1,21 @@
+{
+  "id": "g2-ecb-feed-1",
+  "item": {
+    "title": "Philip R. Lane: The practice and science of monetary policy communication: the ECB experience",
+    "source": "European Central Bank, central bank press feed",
+    "opening": ""
+  },
+  "label": {
+    "page_type": "news-story",
+    "categories": [
+      "economy",
+      "monetary-policy"
+    ],
+    "region": "eu"
+  },
+  "labelled_by": "opus-draft",
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/centralbank/ecb-feed.xml",
+    "change": null
+  }
+}

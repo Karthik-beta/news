@@ -1,0 +1,20 @@
+{
+  "id": "g2-boe-feed-10",
+  "item": {
+    "title": "Minutes of the Securities Lending Committee meeting – September 2026",
+    "source": "Bank of England, central bank news feed",
+    "opening": "The Securities Lending Committee is a forum for market participants and authorities to discuss the UK securities lending market."
+  },
+  "label": {
+    "page_type": "news-story",
+    "categories": [
+      "finance"
+    ],
+    "region": "uk"
+  },
+  "labelled_by": "opus-draft",
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/centralbank/boe-feed.xml",
+    "change": null
+  }
+}

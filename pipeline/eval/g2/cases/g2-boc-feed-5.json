@@ -1,0 +1,20 @@
+{
+  "id": "g2-boc-feed-5",
+  "item": {
+    "title": "Bank of Canada unveils new vertical $20 bank note",
+    "source": "Bank of Canada, central bank press release feed",
+    "opening": "Her Excellency the Right Honourable Louise Arbour, Governor General of Canada, and the Honourable Wayne Long, Secretary of State (Canada Revenue Agency and Financial Institutions), joined Bank of Canada Governor Tiff Macklem today at an event to unveil Canada’s new vertical $20 bank note featuring a portrait of His Majesty King Charles III."
+  },
+  "label": {
+    "page_type": "news-story",
+    "categories": [
+      "finance"
+    ],
+    "region": "ca"
+  },
+  "labelled_by": "opus-draft",
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/centralbank/boc-feed.xml",
+    "change": null
+  }
+}

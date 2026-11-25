@@ -1,0 +1,14 @@
+{
+  "id": "g6-macro-release-wrong-direction-fell",
+  "brief_case": "g1-macro-release-recorded",
+  "page": "# US consumer prices in {pd_2026_10}\n\nThe monthly reading for all urban consumers.\n\nConsumer prices fell {dv_posldrq654yeigxx} in {pd_2026_10}, with the index at {dp_4yog6v5qhiqchdrb}. The index was {dp_4gbuxf2ixs5amiee} in {pd_2026_09}.\n",
+  "fault": {
+    "kind": "wrong_direction",
+    "where": "Consumer prices fell {dv_posldrq654yeigxx} in {pd_2026_10}",
+    "note": "dv_posldrq654yeigxx is positive: prices rose."
+  },
+  "provenance": {
+    "from": "cli/crates/news-fixer/tests/golden/macro-release.json",
+    "change": "hand-written page in ref tokens with one seeded fault"
+  }
+}

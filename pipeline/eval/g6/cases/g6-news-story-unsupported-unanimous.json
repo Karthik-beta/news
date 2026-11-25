@@ -1,0 +1,14 @@
+{
+  "id": "g6-news-story-unsupported-unanimous",
+  "brief_case": "g1-news-story-recorded",
+  "page": "# Federal Reserve lowers the target range for the federal funds rate\n\nThe Federal Open Market Committee cut its policy rate, citing a shift in the balance of risks.\n\nThe Committee said job gains have slowed and the unemployment rate has edged up but remains low, while inflation has moved up and remains somewhat elevated. It judged that downside risks to employment have risen. The decision was unanimous.\n",
+  "fault": {
+    "kind": "unsupported_claim",
+    "where": "The decision was unanimous.",
+    "note": "The source text records Stephen I. Miran voting against the action."
+  },
+  "provenance": {
+    "from": "cli/crates/news-fixer/tests/golden/news-story.json",
+    "change": "hand-written page in ref tokens with one seeded fault"
+  }
+}

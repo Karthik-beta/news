@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/pipeline/eval/schemas/output.schema.json",
+  "title": "Stored output",
+  "description": "One line of pipeline/eval/<set>/outputs/<prompt_version>.jsonl: a recorded AI output for one case, never hand-written. For writer cases, `calls` are the job's ai_calls rows (A1, then any A2 repair) in order.",
+  "type": "object",
+  "properties": {
+    "case": { "type": "string", "pattern": "^g[0-9]-[a-z0-9-]+$" },
+    "output": { "type": ["object", "null"] },
+    "calls": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "step": { "type": "string" },
+          "validation": { "type": "string" },
+          "repair_round": { "type": "integer", "minimum": 0 },
+          "tokens": { "type": "integer", "minimum": 0 }
+        },
+        "required": ["step", "validation", "repair_round", "tokens"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["case", "output"],
+  "additionalProperties": false
+}

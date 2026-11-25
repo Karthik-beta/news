@@ -1,0 +1,266 @@
+{
+  "id": "g5-quiet-week",
+  "scenario": "quiet_week",
+  "now": "2026-11-20T09:00:00Z",
+  "pages": [
+    {
+      "page_id": "2026/11/bank-rate-increased-to-4-november-2026-monetary-policy-summa",
+      "status": "published",
+      "title": "Bank rate increased to 4% - November 2026 Monetary Policy Summary and Minutes",
+      "tier": 1,
+      "page_type": "policy",
+      "published_at": "2026-11-19T03:00:00Z",
+      "categories": [
+        "economy/monetary-policy"
+      ],
+      "region": "uk",
+      "entities": [
+        "institution:boe"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/results-of-the-ecb-survey-of-professional-forecasters-for-th",
+      "status": "published",
+      "title": "Results of the ECB Survey of Professional Forecasters for the fourth quarter of 2026",
+      "tier": 2,
+      "page_type": "macro",
+      "published_at": "2026-11-18T03:00:00Z",
+      "categories": [
+        "economy/growth"
+      ],
+      "region": "europe",
+      "entities": [
+        "institution:ecb"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/consumer-price-index-cpi",
+      "status": "published",
+      "title": "Consumer Price Index (CPI)",
+      "tier": 2,
+      "page_type": "macro",
+      "published_at": "2026-11-17T01:00:00Z",
+      "categories": [
+        "economy/inflation"
+      ],
+      "region": "australia",
+      "entities": [
+        "institution:abs"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/artemis-ii-launch",
+      "status": "published",
+      "title": "Artemis II Launch",
+      "tier": 2,
+      "page_type": "science",
+      "published_at": "2026-11-16T05:00:00Z",
+      "categories": [
+        "science"
+      ],
+      "region": "north-america",
+      "entities": [
+        "institution:nasa"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/sensitivity-analysis-for-linear-estimators",
+      "status": "published",
+      "title": "Sensitivity Analysis for Linear Estimators",
+      "tier": 3,
+      "page_type": "science",
+      "published_at": "2026-11-15T09:00:00Z",
+      "categories": [
+        "science"
+      ],
+      "region": "global",
+      "entities": [],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/designation-of-prosegur-australia-pty-ltd-under-the-cash-dis",
+      "status": "published",
+      "title": "Designation of Prosegur Australia Pty Ltd under the Cash Distribution Framework Act 2026",
+      "tier": 3,
+      "page_type": "policy",
+      "published_at": "2026-11-14T13:00:00Z",
+      "categories": [
+        "finance"
+      ],
+      "region": "australia",
+      "entities": [
+        "institution:rba"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/consumer-price-index-for-all-urban-consumers-all-items-in-u",
+      "status": "published",
+      "title": "Consumer Price Index for All Urban Consumers: All Items in U.S. City Average",
+      "tier": 1,
+      "page_type": "macro",
+      "published_at": "2026-11-11T09:00:00Z",
+      "categories": [
+        "economy/inflation"
+      ],
+      "region": "north-america",
+      "entities": [
+        "institution:bls"
+      ],
+      "figures": [
+        "dp_4yog6v5qhiqchdrb",
+        "dp_4gbuxf2ixs5amiee"
+      ]
+    },
+    {
+      "page_id": "2026/11/apple-inc-10-k",
+      "status": "published",
+      "title": "Apple Inc. 10-K",
+      "tier": 1,
+      "page_type": "earnings",
+      "published_at": "2026-11-09T09:00:00Z",
+      "categories": [
+        "finance/earnings"
+      ],
+      "region": "north-america",
+      "entities": [
+        "company:apple"
+      ],
+      "figures": [
+        "dp_kjfhexdo774vzbdy",
+        "dp_rurnaplntzkg2tzo",
+        "dp_3khm4dm4sqqxqm66"
+      ]
+    },
+    {
+      "page_id": "2026/11/gdp-current-us",
+      "status": "published",
+      "title": "GDP (current US$)",
+      "tier": 2,
+      "page_type": "report",
+      "published_at": "2026-11-07T09:00:00Z",
+      "categories": [
+        "economy/growth"
+      ],
+      "region": "north-america",
+      "entities": [
+        "country:US"
+      ],
+      "figures": [
+        "dp_4stpfufc74tc24cy",
+        "dp_2kkf6eorryn4eygg"
+      ]
+    },
+    {
+      "page_id": "2026/11/main-refinancing-operations-fixed-rate-tenders-fixed-rate-da",
+      "status": "published",
+      "title": "Main refinancing operations - fixed rate tenders (fixed rate) (date of changes) - Level",
+      "tier": 1,
+      "page_type": "policy",
+      "published_at": "2026-11-05T09:00:00Z",
+      "categories": [
+        "economy/monetary-policy"
+      ],
+      "region": "europe",
+      "entities": [
+        "institution:ecb"
+      ],
+      "figures": [
+        "dp_ayvmv67k6qwi2tu5",
+        "dp_zqmtgkcrnjro6jq4"
+      ]
+    },
+    {
+      "page_id": "2026/11/minutes-of-the-federal-open-market-committee-september-15-16",
+      "status": "published",
+      "title": "Minutes of the Federal Open Market Committee, September 15-16, 2026",
+      "tier": 3,
+      "page_type": "news",
+      "published_at": "2026-11-03T09:00:00Z",
+      "categories": [
+        "economy/monetary-policy"
+      ],
+      "region": "north-america",
+      "entities": [
+        "institution:fed"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/consumer-prices-index-including-owner-occupiers-housing-cost",
+      "status": "published",
+      "title": "Consumer Prices Index including owner occupiers' housing costs (CPIH)",
+      "tier": 2,
+      "page_type": "macro",
+      "published_at": "2026-11-01T09:00:00Z",
+      "categories": [
+        "economy/inflation"
+      ],
+      "region": "uk",
+      "entities": [
+        "institution:ons"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/10/hicp-monthly-data-annual-rate-of-change",
+      "status": "published",
+      "title": "HICP - monthly data (annual rate of change)",
+      "tier": 1,
+      "page_type": "macro",
+      "published_at": "2026-10-30T09:00:00Z",
+      "categories": [
+        "economy/inflation"
+      ],
+      "region": "europe",
+      "entities": [
+        "institution:eurostat"
+      ],
+      "figures": []
+    },
+    {
+      "page_id": "2026/10/evaluation-and-management-of-adults-with-obstructive-sleep-a",
+      "status": "published",
+      "title": "Evaluation and Management of Adults with Obstructive Sleep Apnea Syndrome",
+      "tier": 3,
+      "page_type": "science",
+      "published_at": "2026-10-28T09:00:00Z",
+      "categories": [
+        "science"
+      ],
+      "region": "global",
+      "entities": [],
+      "figures": []
+    },
+    {
+      "page_id": "2026/11/bank-of-england-sets-out-approach-to-tokenised-collateral-in",
+      "status": "draft",
+      "title": "Bank of England sets out approach to tokenised collateral in central clearing",
+      "tier": 3,
+      "page_type": "news",
+      "published_at": null,
+      "categories": [
+        "finance"
+      ],
+      "region": "uk",
+      "entities": [
+        "institution:boe"
+      ],
+      "figures": []
+    }
+  ],
+  "expect": {
+    "excluded": [
+      "2026/11/bank-of-england-sets-out-approach-to-tokenised-collateral-in"
+    ],
+    "notes": "Only six pages were published in the last seven days; eight older published pages fill the remaining slots. The lead should be one of the six fresh pages (an older lead fails lead_stale unless it is Tier 1 and marked still_leading). Breadth can still be met. The draft must not be placed."
+  },
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/abs/CPI.AUS-history.json; cli/crates/news-connectors/tests/fixtures/arxiv/list-econ.xml; cli/crates/news-connectors/tests/fixtures/centralbank/boe-feed.xml; cli/crates/news-connectors/tests/fixtures/centralbank/ecb-feed.xml; cli/crates/news-connectors/tests/fixtures/centralbank/fed-feed.xml; cli/crates/news-connectors/tests/fixtures/centralbank/rba-feed.xml; cli/crates/news-connectors/tests/fixtures/crossref/list.json; cli/crates/news-connectors/tests/fixtures/ecb/FM.MRR-history.json; cli/crates/news-connectors/tests/fixtures/eurostat/HICP.EA-history.json; cli/crates/news-connectors/tests/fixtures/nasa/search-artemis.json; cli/crates/news-connectors/tests/fixtures/ons/dataset-cpih01.json; cli/crates/news-fixer/tests/briefs.rs; cli/crates/news-fixer/tests/golden/macro-release.json; cli/crates/news-fixer/tests/golden/major-report.json",
+    "change": "assembled scenario: recorded titles (and golden-brief figure ids) with hand-set status, tier, dates, categories, region and entities"
+  }
+}

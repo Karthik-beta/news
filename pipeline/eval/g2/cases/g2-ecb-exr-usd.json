@@ -1,0 +1,20 @@
+{
+  "id": "g2-ecb-exr-usd",
+  "item": {
+    "title": "US dollar/Euro ECB reference exchange rate",
+    "source": "European Central Bank Data Portal, statistical series",
+    "opening": "ECB reference exchange rate, US dollar/Euro, 2.15 pm (C.E.T.)"
+  },
+  "label": {
+    "page_type": "macro-release",
+    "categories": [
+      "economy"
+    ],
+    "region": "eu"
+  },
+  "labelled_by": "opus-draft",
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/ecb/EXR.USD-history.json",
+    "change": null
+  }
+}

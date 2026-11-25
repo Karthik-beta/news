@@ -1,0 +1,117 @@
+{
+  "id": "g1-macro-release-recorded",
+  "page_type": "macro-release",
+  "tags": [
+    "recorded"
+  ],
+  "provenance": {
+    "from": "cli/crates/news-fixer/tests/golden/macro-release.json",
+    "change": null
+  },
+  "brief": {
+    "brief_version": 1,
+    "components": {
+      "suggested": [
+        "KeyFigures",
+        "LineChart",
+        "BarChart",
+        "Prose",
+        "DataTable"
+      ]
+    },
+    "context": [],
+    "entities": [
+      {
+        "id": "ent_1",
+        "kind": "country",
+        "name": "United States"
+      },
+      {
+        "id": "ent_2",
+        "kind": "agency",
+        "name": "U.S. Bureau of Labor Statistics"
+      }
+    ],
+    "facts": [
+      {
+        "label": "Consumer Price Index for All Urban Consumers: All Items in U.S. City Average",
+        "period": "2026-10-01",
+        "ref": "dp_4yog6v5qhiqchdrb",
+        "unit": "Index 1982-1984=100",
+        "value": "333.010"
+      },
+      {
+        "derived": "pct_change",
+        "label": "Consumer Price Index for All Urban Consumers: All Items in U.S. City Average, change from 2026-09-01",
+        "period": "2026-10-01",
+        "ref": "dv_posldrq654yeigxx",
+        "unit": "Percent",
+        "value": "0.3"
+      },
+      {
+        "label": "Consumer Price Index for All Urban Consumers: All Items in U.S. City Average",
+        "period": "2026-09-01",
+        "ref": "dp_4gbuxf2ixs5amiee",
+        "unit": "Index 1982-1984=100",
+        "value": "332.000"
+      }
+    ],
+    "item": {
+      "action": "new",
+      "data_as_of": "2026-11-13",
+      "event_key": "macro:us.cpi:2026-10",
+      "page_type": "macro-release",
+      "slug_hint": "macro-us-cpi-2026-10",
+      "story_id": 81234,
+      "tier": 1
+    },
+    "media": {
+      "images": [],
+      "video": null
+    },
+    "periods": [
+      {
+        "label": "2026-10-01",
+        "ref": "pd_2026_10"
+      },
+      {
+        "label": "2025-08-01",
+        "ref": "pd_2025_08"
+      },
+      {
+        "label": "2025-09-01",
+        "ref": "pd_2025_09"
+      },
+      {
+        "label": "2026-08-01",
+        "ref": "pd_2026_08"
+      },
+      {
+        "label": "2026-09-01",
+        "ref": "pd_2026_09"
+      }
+    ],
+    "quotes": [],
+    "related_pages": [
+      {
+        "page_id": "2026/10/us-cpi-september-2026",
+        "title": "us-cpi-september-2026"
+      }
+    ],
+    "rules": {
+      "disclaimer": "not-investment-advice",
+      "fiscal_note": null
+    },
+    "series": [
+      {
+        "label": "Consumer Price Index for All Urban Consumers: All Items in U.S. City Average, 2025-08-01 to 2026-10-01",
+        "points": 5,
+        "ref": "sr_7rhbsrgvclud"
+      }
+    ],
+    "source_text": {
+      "points": [],
+      "untrusted": true
+    }
+  }
+}

@@ -3143,10 +3143,13 @@ name = "news-critic"
 version = "0.0.1"
 dependencies = [
  "chrono",
+ "jsonschema",
  "news-core",
+ "news-home",
  "news-nose",
  "news-standing",
  "news-store",
+ "serde",
  "serde_json",
  "sqlx",
 ]

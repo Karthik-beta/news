@@ -1,0 +1,21 @@
+{
+  "id": "g2-boe-feed-30",
+  "item": {
+    "title": "Transcript of the Governor's pooled broadcast interview given on 17 September 2026",
+    "source": "Bank of England, central bank news feed",
+    "opening": "Following the publication of the Monetary Policy Summary and minutes of the Monetary Policy Committee meeting"
+  },
+  "label": {
+    "page_type": "news-story",
+    "categories": [
+      "economy",
+      "monetary-policy"
+    ],
+    "region": "uk"
+  },
+  "labelled_by": "opus-draft",
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/centralbank/boe-feed.xml",
+    "change": null
+  }
+}

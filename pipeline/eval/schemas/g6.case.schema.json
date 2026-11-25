@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/pipeline/eval/schemas/g6.case.schema.json",
+  "title": "G6 seeded-fault case",
+  "description": "A page for A7 with one injected fault, or none (a control). The page is Markdown with ref tokens ({dp_…}, {dv_…}, {pd_…}); code fills them from the brief of the named G1 case, so every value comes from the recording. `fault.where` is in the same token form and must occur in `page`.",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string", "pattern": "^g6-[a-z0-9-]+$" },
+    "brief_case": { "type": "string", "pattern": "^g1-[a-z0-9-]+$" },
+    "page": { "type": "string", "minLength": 1 },
+    "fault": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "enum": ["unsupported_claim", "wrong_direction", "missing_context", "tone", "attribution"] },
+            "where": { "type": "string", "minLength": 1 },
+            "note": { "type": "string" }
+          },
+          "required": ["kind", "where", "note"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "provenance": { "$ref": "provenance.schema.json" }
+  },
+  "required": ["id", "brief_case", "page", "fault", "provenance"],
+  "additionalProperties": false
+}

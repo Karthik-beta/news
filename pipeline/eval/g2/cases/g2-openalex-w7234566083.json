@@ -1,0 +1,21 @@
+{
+  "id": "g2-openalex-w7234566083",
+  "item": {
+    "title": "Replication materials for 'Firm Size and Functional Heterogeneity in Business Software Availability: Evidence from Peru'",
+    "source": "OpenAlex, scholarly metadata (dataset)",
+    "opening": ""
+  },
+  "label": {
+    "page_type": "science",
+    "categories": [
+      "science",
+      "economy"
+    ],
+    "region": "global"
+  },
+  "labelled_by": "opus-draft",
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/openalex/list-field20.json",
+    "change": null
+  }
+}

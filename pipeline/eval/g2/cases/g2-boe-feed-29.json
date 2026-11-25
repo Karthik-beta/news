@@ -1,0 +1,20 @@
+{
+  "id": "g2-boe-feed-29",
+  "item": {
+    "title": "Minutes of the Transaction and Post-trade Reporting Harmonisation Taskforce - July 2026",
+    "source": "Bank of England, central bank news feed",
+    "opening": "The Transaction and Post-trade Reporting Harmonisation Taskforce, through its three working groups, will help inform the design of the Bank and FCA’s long-term approach to harmonising UK MiFIR, UK EMIR and UK SFTR reporting requirements"
+  },
+  "label": {
+    "page_type": "news-story",
+    "categories": [
+      "finance"
+    ],
+    "region": "uk"
+  },
+  "labelled_by": "opus-draft",
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/centralbank/boe-feed.xml",
+    "change": null
+  }
+}

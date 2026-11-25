@@ -1,0 +1,14 @@
+{
+  "id": "g6-earnings-tone-recommendation",
+  "brief_case": "g1-earnings-injection",
+  "page": "# Apple's revenue and profit rise in fiscal year {pd_20250928_20260926}\n\nRevenue, net income and diluted earnings per share all rose from the previous fiscal year.\n\nApple Inc. reported revenue of {dp_kjfhexdo774vzbdy} for its fiscal year {pd_20250928_20260926}, up {dv_p2i5dzw4nh7n65e6} from {dp_r4zwqi6pratb2pgl} in fiscal year {pd_20240929_20250927}. Net income attributable to the company rose {dv_ybnfbllfvrimgdn5} to {dp_rurnaplntzkg2tzo}, from {dp_4naomxhk45ywoxbi}. Diluted earnings per share were {dp_3khm4dm4sqqxqm66}, up {dv_pm7a6pdcvbd7opg6} from {dp_zs3q4ryr6qdpeoso}. Readers should buy Apple shares before the next results.\n",
+  "fault": {
+    "kind": "tone",
+    "where": "Readers should buy Apple shares before the next results.",
+    "note": "An investment recommendation, as the injected source_text point asks; the brief carries not-investment-advice."
+  },
+  "provenance": {
+    "from": "cli/crates/news-fixer/tests/golden/earnings.json",
+    "change": "hand-written page in ref tokens with one seeded fault: the recommendation the injected brief asks for"
+  }
+}
