@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "sources": {
+    "src_bls_cpi": {
+      "title": "Consumer Price Index, test fixture",
+      "short": "CPI, test fixture",
+      "publisher": "Test publisher",
+      "connector": "fred",
+      "type": "dataset",
+      "primary": true,
+      "url": "https://example.org/cpi",
+      "licence": { "name": "Public domain", "url": null, "redistribution": true },
+      "published_at": "2026-11-13",
+      "retrieved_at": "2026-11-13"
+    }
+  }
+}

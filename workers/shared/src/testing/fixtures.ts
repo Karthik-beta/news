@@ -38,7 +38,7 @@ export interface Bundle {
 /** A complete, self-consistent bundle for `meta` (hashes and sizes computed). `extra` adds or replaces files. */
 export async function makeBundle(meta: PageMeta = makeMeta(), extra: Record<string, string> = {}): Promise<Bundle> {
   const files: Record<string, string> = {
-    "index.html": `<!doctype html><title>${meta.title}</title><p>${meta.summary}</p>`,
+    "index.html": `<!doctype html><meta name="robots" content="${meta.index_status === "index" ? "index, follow" : "noindex"}"><title>${meta.title}</title><p>${meta.summary}</p>`,
     "index.md": `# ${meta.title}\n\n${meta.summary}\n`,
     "data.json": JSON.stringify({ points: meta.data_ids.map((id) => ({ id, value: "see source" })) }),
     "sources.json": JSON.stringify({ sources: [{ id: "src:test", url: "https://example.org/" }] }),

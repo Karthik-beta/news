@@ -1,0 +1,21 @@
+# Banned words and phrases in page text: the one list. C11 (Proof) blocks them; the `news-brand` skill tells the
+# page writer the same list, and `news ai accept` uses it. Whole words or phrases, case-insensitive, matched in the
+# writer's own prose only (quotes come in through references and are not scanned). If you change this file, change
+# "Banned words" in skills/news-brand/SKILL.md to match.
+
+version = "banned-v1"
+
+hype = [
+  "soared", "surged", "plunged", "plummeted", "crashed", "skyrocketed", "tumbled", "stunning", "massive",
+  "huge", "dramatic", "historic", "game-changing", "breakthrough",
+]
+# "beat" and "missed" are banned outright: there is no free consensus feed, so they cannot be shown against forecasts.
+verdicts = [
+  "beat", "beats", "missed", "misses", "crushed", "disappointed", "strong", "weak", "impressive", "worrying",
+]
+# Forecasts in our voice. A published forecast is credited: "The IMF projects ...".
+forecasts = ["will", "set to", "poised to", "expected to", "likely", "should"]
+science = ["proves", "proof", "cure", "miracle"]
+advice = ["investors", "buy", "sell", "bullish", "bearish", "outperform"]
+# First person.
+voice = ["we think", "we believe", "in our view"]

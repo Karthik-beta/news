@@ -24,6 +24,8 @@ pub mod bea;
 pub mod bls;
 pub mod centralbank;
 pub mod crossref;
+pub mod docling;
+pub mod docparse;
 pub mod ecb;
 pub mod eurostat;
 pub mod feed;
@@ -35,6 +37,7 @@ pub mod openalex;
 pub mod sdmx;
 pub mod sec;
 pub mod stat;
+pub mod tesseract;
 mod util;
 pub mod worldbank;
 

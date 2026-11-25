@@ -2,9 +2,9 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://news.karthik.nz/contracts/cli/commands/scores.explain.schema.json",
   "title": "news scores explain",
-  "description": "A story's score card (the Pitch). Input is the command's arguments as an object; output is the envelope's data.",
+  "description": "A story's latest score card: S, the ten signals and the Pitch (one line per component). Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "R",
-  "x-news-status": "stub until #15",
+  "x-news-status": "built",
   "x-news-errors": ["not_found"],
   "$defs": {
     "input": {
@@ -23,6 +23,13 @@
         "story_id": {
           "type": "integer"
         },
+        "computed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "scorer_version": {
+          "type": "string"
+        },
         "total": {
           "type": "number"
         },
@@ -36,7 +43,7 @@
           "type": "string"
         }
       },
-      "required": ["story_id", "total", "components", "explain"],
+      "required": ["story_id", "computed_at", "scorer_version", "total", "components", "explain"],
       "additionalProperties": false
     }
   }

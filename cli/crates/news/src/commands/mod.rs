@@ -1,13 +1,22 @@
 //! Command routing. Built commands live in their own modules; every other command is a stub that
 //! returns `precondition` (exit 4) naming the issue that builds it.
 
+mod ai;
 mod calendar;
 mod components;
 mod db;
 mod entities;
+mod fixer;
+mod home;
 mod jobs;
+mod nose;
+mod press;
+mod proof;
+mod render;
 mod run;
 mod schema;
+mod sources;
+mod stories;
 
 use crate::cli::*;
 use news_core::shape::DEFAULT_LIMIT;
@@ -56,9 +65,10 @@ pub async fn run(cli: Cli, path: &str, shape: &Shape) -> NewsResult<Reply> {
         C::Ai(AiCmd::Schema { step }) => schema::ai(&step),
 
         // Not built yet: each names the issue that builds its subsystem.
-        C::Sources(_) => stub(path, news_contacts::ISSUE),
-        // `prune` deletes working files; Wire owns them and the `work.prune` job (#9).
-        C::Discover { .. } | C::Fetch { .. } | C::Prune => stub(path, news_wire::ISSUE),
+        C::Sources(cmd) => sources::run(cmd).await,
+        C::Discover { .. } | C::Fetch { .. } => stub(path, news_wire::ISSUE),
+        // Working files of published pages (Press); Wire's `work.prune` job keeps the raw snapshots.
+        C::Prune => press::prune().await,
         C::Parse { .. } => stub(path, news_clerk::ISSUE),
         C::Run(cmd) => run::run(cmd).await,
         C::Standing(cmd) => run::standing(cmd).await,
@@ -76,17 +86,20 @@ pub async fn run(cli: Cli, path: &str, shape: &Shape) -> NewsResult<Reply> {
         }
         C::Calendar(cmd) => calendar::run(cmd).await,
         C::Entities(cmd) => entities::run(cmd).await,
-        // Related pages come from stories, which Taster builds.
-        C::Related { .. } => stub(path, news_taster::ISSUE),
-        C::Stories(_) => stub(path, news_taster::ISSUE),
-        C::Plan { .. } | C::Scores(_) => stub(path, news_nose::ISSUE),
-        C::Stats => stub(path, news_telemetry::ISSUE),
-        C::Save { .. } | C::Render { .. } | C::Check { .. } => stub(path, news_proof::ISSUE),
-        C::Brief { .. } => stub(path, news_fixer::ISSUE),
-        C::Ai(_) => stub(path, news_ghost::ISSUE),
-        C::Eval(_) | C::Review(_) => stub(path, news_critic::ISSUE),
+        C::Related { story } => fixer::related(&story).await,
+        C::Stories(cmd) => stories::run(cmd).await,
+        C::Plan { run } => nose::plan(&run).await,
+        C::Scores(cmd) => nose::scores(cmd).await,
+        C::Stats => press::stats().await,
+        C::Save { story, file } => render::save(&story, &file),
+        C::Render { story } => render::render(&story).await,
+        C::Check { story } => proof::check(&story).await,
+        C::Brief { story } => fixer::brief(&story).await,
+        C::Ai(cmd) => ai::run(cmd).await,
+        C::Review(ReviewCmd::Weekly) => nose::review_weekly().await,
+        C::Eval(_) => stub(path, news_critic::ISSUE),
         C::Update { .. } => stub(path, news_rewrite::ISSUE),
-        C::Home(_) => stub(path, news_press::ISSUE),
+        C::Home(cmd) => home::run(cmd).await,
         C::Corrections(_) => stub(path, "#21"),
     }
 }
@@ -124,6 +137,11 @@ pub const BUILT: &[&str] = &[
     "board",
     "publish",
     "home.publish",
+    "home.candidates",
+    "home.save",
+    "home.check",
+    "home.preview",
+    "home.show",
     "eval.promote",
     "calendar.upcoming",
     "calendar.sync",
@@ -131,6 +149,31 @@ pub const BUILT: &[&str] = &[
     "entities.resolve",
     "entities.show",
     "entities.unresolved",
+    "sources.list",
+    "sources.show",
+    "sources.health",
+    "sources.probe",
+    "sources.sync",
+    "plan",
+    "prune",
+    "stats",
+    "scores.explain",
+    "scores.weights",
+    "scores.label",
+    "scores.propose",
+    "scores.adopt",
+    "review.weekly",
+    "stories.show",
+    "stories.members",
+    "stories.similar",
+    "save",
+    "render",
+    "ai.input",
+    "ai.accept",
+    "ai.fallback",
+    "check",
+    "brief",
+    "related",
 ];
 
 /// Dotted names of the commands that have a contract file.

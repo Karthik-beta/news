@@ -4,6 +4,7 @@
   "extends": ["html-validate:recommended", "html-validate:document"],
   "rules": {
     "attribute-boolean-style": "off",
+    "attr-case": ["error", { "style": ["lowercase", "camelcase"] }],
     "attribute-empty-style": "off",
     "doctype-style": "off",
     "void-style": "off",
@@ -17,7 +18,21 @@
     "no-inline-style": [
       "error",
       {
-        "allowedProperties": ["display", "left", "top"]
+        "allowedProperties": [
+          "display",
+          "left",
+          "top",
+          "right",
+          "bottom",
+          "width",
+          "height",
+          "--chart-axis-width",
+          "--bar-zero",
+          "--bar-room-negative",
+          "--bar-room-positive",
+          "--line-end-room-phone",
+          "--line-end-room-wide"
+        ]
       }
     ]
   }

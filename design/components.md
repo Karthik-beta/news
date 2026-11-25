@@ -92,6 +92,7 @@ For central-bank and government decisions.
   - The decision as a figure: "6.50%" (`type.figure`) with the label "Policy repo rate" and the change in words: "Unchanged", "Cut by 25 basis points".
   - Up to three supporting facts in a row of small key figures (vote split, stance, next meeting date).
   - The step-line rate path chart below, when there is history.
+- The change is written in the unit the data states it in ("Cut by 0.25 points" for a percentage-point change, "Cut by 25 basis points" for a basis-point one); it is never converted. One source line sits under the decision and its facts; the rate path keeps its own.
 
 ### Finding (`Finding`)
 For science pages.
@@ -101,6 +102,7 @@ For science pages.
 ### Timeline (`Timeline`)
 - A vertical list. Each event: the date in Fira 600, 13.5, ink (left column, 7em wide on desktop, above the text on phone); the event in Literata 16; an optional source link.
 - A 1px `color.rule` vertical line connects the events; event dots are 8px circles in `ink`, and the key event's dot is crimson.
+- So the key event is not told by colour alone, its dot also has a 1px crimson ring 2px out, and screen readers hear "Key event" before its date.
 - Horizontal timelines only inside charts.
 
 ### Map (`MapFigure`)
@@ -113,6 +115,7 @@ For science pages.
 ### Prose (`Prose`)
 - `type.body`, max 66ch, 14px between paragraphs. Section headings `type.headline-l`, 28px above, 10px below.
 - Lists: 20px indent, 6px between items. No decorative bullets: default discs in ink-2.
+- Each section heading gets an id from its words ("section-why-sales-fell") for links to the section. Ids are unique on the page: a second heading with the same words gets "-2", a third "-3", in document order, so the same page always gets the same ids.
 
 ### Glossary term (`GlossaryTerm`)
 - A dotted 1px `ink-3` underline. Click, tap, Enter or Space opens a popover (same style and placement as the citation popover) with the definition and a link to the glossary entry; hover and focus alone do not.
@@ -139,15 +142,17 @@ For commentary and context in Claude's own words.
 ### Image with credit (`ImageFigure`)
 - The image at full column width (or its natural width if smaller), no border, no radius, no shadow.
 - Caption below: one sentence in Fira 13.5, ink-2; then the credit and licence in Fira 12.5, ink-3 ("NASA/JPL-Caltech. Public domain.").
-- **Fallback when the image fails to load**: a `color.wash` box at the same aspect ratio showing the alt text and the credit, centred, in Fira 13.5, ink-2. The layout never shifts.
+- **Fallback when the image fails to load**: a `color.wash` box at the same aspect ratio showing the alt text and the credit, centred, in Fira 13.5, ink-2. The layout never shifts. No JavaScript: the text sits on a layer behind the image, so it shows through a blocked or broken image in every engine (Safari draws its small broken-image mark on top) and also while a slow image is still loading; Chromium and Firefox also draw the same text over the broken image itself. The gallery uses the same frame.
 - Images are only used when they carry information (a spacecraft, a chart from a paper, an official photo of a facility). Never decoration.
 
 ### Gallery (`ImageGallery`)
 - 2 columns on phone, 3 on desktop, 8px gaps, square crops only when the source allows. Each image opens full size in a simple overlay with its caption and credit. No carousels.
 
 ### Video (`VideoEmbed`)
-- Click-to-load. Before loading: a `color.wash` 16:9 box with the video title (Literata 600, 18px), the publisher and date (Fira 13.5, ink-2), a play button (a 56px ink circle with a paper triangle), and the line "Loads from YouTube. YouTube will receive your IP address." in Fira 12.5, ink-3.
-- After click: the `youtube-nocookie.com` embed at the same size.
+- Click-to-load. Before loading: a `color.wash` 16:9 box with a play button (a 56px ink circle with a paper triangle) in its centre.
+- Caption under the box, always shown: the video title (Literata 600, 18px), the publisher and date (Fira 13.5, ink-2), and the line "Loads from YouTube. YouTube will receive your IP address." in Fira 12.5, ink-3. The text is never inside the 16:9 box, so it is never clipped or covered by the play button at any width, zoom or text size, and it stays readable in forced colours.
+- After click: the `youtube-nocookie.com` embed at the same size; the caption stays.
+- In print: the caption's title, publisher and date only (no box, no button, no privacy line).
 - Video that can't be embedded becomes a link line: "Watch the webcast on the company's site".
 
 ---
@@ -177,6 +182,8 @@ For commentary and context in Claude's own words.
 ### Story item (`StoryItem`)
 - Used in home rows, hubs and search results: fly title, headline (`type.headline-s`), an optional key figure (`type.figure-s`) with an optional sparkline, a one-sentence summary (`type.body-s`, ink-2), the page type and region (Fira 13, ink-3).
 - In hub lists, a date column on the left (Fira 13.5, ink-3), and items separated by hairlines.
+- Search results use the hub layout without a figure (search hits carry no data). On phones the date sits above the item.
+- A slot's mini chart is one of the page's own charts shown small: its title, its latest value and period, and a sparkline of its series.
 
 ### Section head (`SectionHead`)
 - A 2px ink rule; the section name (`type.headline-l`) on the left; a link "All economy pages" on the right (Fira 14, ink-2, underlined).
@@ -211,34 +218,36 @@ For commentary and context in Claude's own words.
 - Focus: the standard 2px focus ring, 2px offset.
 
 ### Forms (`TextField`, `TextArea`, `Select`, `Checkbox`)
-- Label above the field: Fira 600, 14px, ink. Hint below the label in Fira 13, ink-2.
-- Field: paper fill, 1px `color.control-border`, 5px radius, 10px 12px padding, Fira 400 16px (16px prevents zoom on iOS).
+- Label above the field: Fira 600, 15px (`type.ui`; the scale has no 14px step), ink. Required fields end the label with "(required)", optional ones with "(optional)", both in regular weight, ink-2; a field that is neither (a search filter) has no marker. Hint below the label in Fira 13.5 (`type.label`), ink-2.
+- Field: paper fill, 1px `color.control-border`, 5px radius, 10px 12px padding, Fira 400 16px (`font.size.control`; 16px prevents zoom on iOS).
 - Focus: border becomes ink plus the focus ring.
-- Error: border in `color.error`, an error icon and message under the field in Fira 13.5, `color.error`; an error summary at the top of the form linking to each field.
-- The report-an-error form: "What is wrong?" (required, textarea), "Where on the page?" (optional), "Your email, if you'd like a reply" (optional), and a primary button "Send report". After sending: "Report sent. Thank you for checking." with a link back to the page.
+- Error: border in `color.error`, an error icon and message under the field in Fira 13.5, `color.error`; an error summary at the top of the form linking to each field: a 2px `color.error` rule over it (no box), a heading with the error icon, and each message as a link in `color.error`.
+- Checkbox: the native box at 24px, accent in ink, the label beside it at regular weight; in an error the box gets a 1px `color.error` outline.
+- The report-an-error form: "What is wrong?" (required, textarea), "Where on the page?" (optional), "Your email, if you'd like a reply" (optional), and a primary button "Send report". After sending: "Report sent. Thank you for checking." with a check icon and a link "Back to the page". The form is a plain POST, so it works with no JavaScript; the server renders it again with the reader's values and the errors (`ReportForm`).
 
 ### Search field (`SearchField`)
-- Full width under the masthead on the search page, 48px tall, Fira 18, with a magnifier icon inside on the left and a "Search" button on the right.
-- Filters as a single row of selects below it (Category, Region, Page type, Date).
+- Full width under the masthead on the search page, 48px tall, Fira 18 (`font.size.search`), with a magnifier icon inside on the left and a "Search" button on the right.
+- Filters as a single row of selects below it (Category, Region, Page type, Date); on phones they wrap two to a row. A plain GET form: the query is `q`, each filter sends its own name. The input's label is visually hidden: the magnifier and the "Search" button say what it is.
 
 ### Tooltip (`Tooltip`)
 - The same look as the citation popover: paper, 1px rule border, no shadow, 12px padding. Appears in ≤120ms, no slide.
+- Built as part of `Popover` (`site/src/components/Popover/`), not a control of its own: chart islands show `Tooltip` on hover, focus, arrow keys or tap; anything else that explains a word or a figure uses `Popover`, which opens on click, tap, Enter or Space only (decisions log, 16 Nov 2026).
 
 ---
 
 ## States
 
 ### Empty state
-- A sentence that says what's empty and what to do, in Literata 17, plus one action link. No illustration. Example: "No pages match these filters." / "Clear the region filter".
+- A sentence that says what's empty and what to do, in Literata 17 (17.5 on desktop, `type.body`), plus one action link (`StateMessage`). No illustration. Example: "No pages match these filters." / "Clear the region filter".
 
 ### Error state
-- What happened and what to do, in plain words, plus a link onwards. Example: "Search is unavailable until 00:00 UTC because today's limit was reached." / "Browse by category".
+- What happened and what to do, in plain words, plus a link onwards. Example: "Search is unavailable until 00:00 UTC because today's limit was reached." / "Browse by category". The same look as the empty state (`StateMessage`): no icon and no crimson, which are for form errors only.
 
 ### 404
-- The only centred layout: "This page doesn't exist." (Literata 700, 28px), "It may have moved, or the link may be wrong." and a search field plus links to the five categories.
+- The only centred layout: "This page doesn't exist." (Literata 700, 28px), "It may have moved, or the link may be wrong." and a search field plus links to the five categories (`NotFound`).
 
 ### Loading
-- Static pages don't load progressively. Dynamic lists (search results) keep the previous results at 50% opacity while new ones load; no skeletons, no spinners longer than 300ms.
+- Static pages don't load progressively. Dynamic lists (search results) keep the previous results at 50% opacity while new ones load; no skeletons, no spinners longer than 300ms. `LoadingRegion` uses no spinner at all: while busy the old results are inert (an inactive part of the interface) and a polite status line says "Loading results".
 
 ---
 

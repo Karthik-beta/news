@@ -1,0 +1,32 @@
+{
+  "brief_version": 1,
+  "item": {
+    "story_id": 81234,
+    "event_key": "macro:us.cpi:2026-10",
+    "page_type": "macro-release",
+    "tier": 2,
+    "action": "new",
+    "slug_hint": "us-cpi-october-2026",
+    "data_as_of": "2026-11-13"
+  },
+  "entities": [{ "id": "ent_us", "name": "United States", "kind": "country" }],
+  "facts": [
+    {
+      "ref": "dp_7kq2",
+      "label": "CPI-U, all items, 12-month change, NSA",
+      "value": "2.4",
+      "unit": "Percent",
+      "period": "October 2026"
+    },
+    { "ref": "dv_3ab8", "label": "Change in the 12-month rate", "value": "-0.3", "unit": "pp", "derived": "pp_change" }
+  ],
+  "series": [{ "ref": "sr_cpi_yoy", "label": "CPI-U 12-month change, monthly", "points": 3 }],
+  "periods": [{ "ref": "pd_2026_10", "label": "October 2026" }],
+  "context": [],
+  "quotes": [],
+  "source_text": { "untrusted": true, "points": [] },
+  "media": { "images": [], "video": null },
+  "related_pages": [],
+  "components": { "suggested": ["KeyFigures", "LineChart", "DataTable"] },
+  "rules": { "disclaimer": null, "fiscal_note": null }
+}

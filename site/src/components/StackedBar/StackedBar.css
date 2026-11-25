@@ -1,0 +1,136 @@
+/* Stacked and segmented bars (design/charts.md, "Marks"): square ends, a 2px paper gap between segments, colour
+   by part (categorical in order, or highlight and context). Stacked rows are 22px with 8px between them, the
+   label above the bar on phones and in a column on the left from 600px; a segmented bar is one taller bar. */
+.stacked-bar__plot {
+  position: relative;
+}
+.stacked-bar__rows {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--space-3) - var(--space-1));
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-label);
+  line-height: 1.35;
+  touch-action: pan-y;
+}
+.stacked-bar__rows:focus-visible {
+  outline: var(--border-focus) solid var(--color-focus);
+  outline-offset: var(--space-1);
+}
+.stacked-bar__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: var(--space-1);
+  padding-block: calc(var(--space-1) / 2);
+}
+@media (min-width: 600px) {
+  .stacked-bar--stacked .stacked-bar__row {
+    grid-template-columns: minmax(0, 32%) minmax(0, 1fr);
+    column-gap: var(--space-4);
+    align-items: center;
+  }
+}
+.stacked-bar__label {
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+.stacked-bar__track {
+  position: relative;
+  height: var(--chart-mark-bar-thickness-h);
+  margin-inline-end: var(--bar-room-positive, 0ch);
+}
+/* The tall segmented bar: 28px (dataviz, "Segmented bar"). */
+.stacked-bar--segmented .stacked-bar__track {
+  height: calc(var(--chart-mark-bar-thickness-h) + var(--space-2) + var(--space-1));
+}
+.stacked-bar__segment {
+  position: absolute;
+  inset-block: 0;
+  /* background-color, not the shorthand: this file loads after ChartFigure.css, and the shorthand would wipe the
+     hatch that a row with no parts takes from .chart-hatch. */
+  background-color: var(--chart-mark);
+  /* The 2px paper gap after each segment. */
+  border-inline-end: var(--chart-mark-bar-gap) solid var(--color-paper);
+  forced-color-adjust: none;
+  print-color-adjust: exact;
+}
+/* A segment's hit area is the full row height, at least 24px tall. */
+.stacked-bar--segmented .stacked-bar__segment::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block: min(0%, calc(50% - var(--space-7) / 2));
+}
+@media (prefers-reduced-motion: no-preference) {
+  .stacked-bar__segment {
+    transition: opacity var(--motion-fast);
+  }
+}
+.stacked-bar__row.is-active .stacked-bar__segment,
+.stacked-bar__segment.is-active {
+  opacity: 0.8;
+}
+.stacked-bar__segment.chart-hatch {
+  background-color: transparent;
+}
+.stacked-bar__segment--missing {
+  left: 0;
+  width: var(--space-9);
+  border-inline-end: 0;
+}
+.stacked-bar__total {
+  position: absolute;
+  top: 50%;
+  translate: 0 -50%;
+  padding-inline: var(--space-2);
+  color: var(--color-ink);
+  white-space: nowrap;
+}
+
+/* The segmented bar's key: each part in block order with its square key, name and value. */
+.segmented-bar__key {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--space-6);
+  row-gap: var(--space-2);
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-label);
+  line-height: 1.35;
+}
+.segmented-bar__item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  color: var(--color-ink);
+}
+.segmented-bar__item .chart-key {
+  align-self: center;
+}
+.segmented-bar__item.is-highlight .segmented-bar__name {
+  font-weight: var(--font-weight-bold);
+}
+.segmented-bar__value {
+  color: var(--color-ink-2);
+}
+.segmented-bar__value.is-highlight {
+  font-weight: var(--font-weight-bold);
+  color: var(--chart-highlight);
+}
+.segmented-bar__value.is-highlight-neutral {
+  font-weight: var(--font-weight-bold);
+  color: var(--chart-neutral-highlight);
+}
+
+@media (forced-colors: active) {
+  .stacked-bar__segment:not(.chart-hatch) {
+    background: CanvasText;
+    border-inline-end-color: Canvas;
+  }
+  .stacked-bar__segment.chart-colour--highlight,
+  .stacked-bar__segment.chart-colour--highlight-neutral {
+    background: Highlight;
+  }
+}

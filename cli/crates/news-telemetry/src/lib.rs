@@ -113,6 +113,36 @@ impl Event {
     }
 }
 
+/// One row of `news.scores` (`infra/clickhouse/003_ticker.sql`): every score Nose computes for a run,
+/// selected or not (Bureau §4.7).
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct ScoreRow {
+    #[serde(serialize_with = "ch_time")]
+    pub ts: DateTime<Utc>,
+    pub run_id: String,
+    pub story_id: u64,
+    pub scorer_version: String,
+    /// JSON text: `{"I":…, "E":…, …}`.
+    pub components: String,
+    pub total: f64,
+    pub selected: u8,
+    /// The planned tier, 0 when not selected.
+    pub tier: u8,
+}
+
+/// One row of `news.check_results` (`infra/clickhouse/003_ticker.sql`): one per check per page (Proof).
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct CheckResultRow {
+    #[serde(serialize_with = "ch_time")]
+    pub ts: DateTime<Utc>,
+    pub run_id: String,
+    pub page_id: String,
+    /// `C1` … `C14` (`A7` is the sample check).
+    pub check_id: String,
+    pub pass: u8,
+    pub message: String,
+}
+
 /// Where events go. Built from the environment; `None` when telemetry is off or not configured.
 #[derive(Clone)]
 pub struct ClickHouse {
@@ -158,7 +188,17 @@ impl ClickHouse {
 
     /// Insert events. Blocking, 2-second timeout; call it outside any async runtime.
     pub fn insert(&self, events: &[Event]) -> Result<(), String> {
-        let body: String = events.iter().map(|e| e.to_json_line() + "\n").collect();
+        self.insert_rows("news.events", events)
+    }
+
+    /// Insert rows into one of our tables as JSONEachRow. Blocking, 2-second timeout; call it outside
+    /// any async runtime (or in `spawn_blocking`).
+    pub fn insert_rows<T: Serialize>(&self, table: &'static str, rows: &[T]) -> Result<(), String> {
+        let body: String = rows
+            .iter()
+            .map(|r| serde_json::to_string(r).unwrap_or_default() + "\n")
+            .collect();
+        let query = format!("INSERT INTO {table} FORMAT JSONEachRow");
         let client = reqwest::blocking::Client::builder()
             .timeout(Duration::from_secs(2))
             .build()
@@ -166,7 +206,7 @@ impl ClickHouse {
         let res = client
             .post(&self.url)
             .query(&[
-                ("query", "INSERT INTO news.events FORMAT JSONEachRow"),
+                ("query", query.as_str()),
                 ("input_format_skip_unknown_fields", "1"),
                 ("date_time_input_format", "best_effort"),
             ])
@@ -350,6 +390,80 @@ mod tests {
         ]))
         .unwrap();
         assert!(!format!("{ch:?}").contains("hunter2"));
+    }
+
+    /// A one-shot HTTP server standing in for ClickHouse (as in the CLI's contract tests): answers 200
+    /// and returns the request it received.
+    fn fake_clickhouse() -> (String, std::thread::JoinHandle<String>) {
+        use std::io::{Read, Write};
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let url = format!("http://{}", listener.local_addr().unwrap());
+        let handle = std::thread::spawn(move || {
+            let (mut s, _) = listener.accept().unwrap();
+            s.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+            let mut buf = Vec::new();
+            let mut chunk = [0u8; 4096];
+            loop {
+                let n = s.read(&mut chunk).unwrap_or(0);
+                if n == 0 {
+                    break;
+                }
+                buf.extend_from_slice(&chunk[..n]);
+                let text = String::from_utf8_lossy(&buf).to_string();
+                if let Some(end) = text.find("\r\n\r\n") {
+                    let len = text[..end]
+                        .lines()
+                        .find_map(|l| {
+                            l.to_ascii_lowercase()
+                                .strip_prefix("content-length:")
+                                .map(|v| v.trim().parse::<usize>().unwrap())
+                        })
+                        .unwrap_or(0);
+                    if buf.len() >= end + 4 + len {
+                        break;
+                    }
+                }
+            }
+            let _ =
+                s.write_all(b"HTTP/1.1 200 OK\r\ncontent-length: 0\r\nconnection: close\r\n\r\n");
+            String::from_utf8_lossy(&buf).into_owned()
+        });
+        (url, handle)
+    }
+
+    #[test]
+    fn a_score_row_reaches_clickhouse_scores() {
+        let _ = rustls::crypto::ring::default_provider().install_default();
+        let (url, server) = fake_clickhouse();
+        let ch =
+            ClickHouse::from_lookup(move |n| (n == "NEWS_CH_HTTP").then(|| url.clone())).unwrap();
+        let row = ScoreRow {
+            ts: Utc::now(),
+            run_id: "00000000-0000-4000-8000-000000000046".into(),
+            story_id: 1,
+            scorer_version: "v1".into(),
+            components: r#"{"I":0.95,"M":0.528}"#.into(),
+            total: 75.17,
+            selected: 1,
+            tier: 1,
+        };
+        ch.insert_rows("news.scores", &[row]).unwrap();
+        let request = server.join().unwrap();
+        assert!(
+            request.starts_with("POST /?query=INSERT+INTO+news.scores+FORMAT+JSONEachRow"),
+            "{request}"
+        );
+        let body = request.split("\r\n\r\n").nth(1).unwrap();
+        let v: Value = serde_json::from_str(body.trim()).unwrap();
+        assert_eq!(v["story_id"], 1);
+        assert_eq!(v["scorer_version"], "v1");
+        assert_eq!(v["components"], r#"{"I":0.95,"M":0.528}"#);
+        assert_eq!(v["total"], 75.17);
+        assert_eq!(
+            (v["selected"].as_u64(), v["tier"].as_u64()),
+            (Some(1), Some(1))
+        );
+        assert_eq!(v["ts"].as_str().unwrap().len(), 23);
     }
 
     #[test]

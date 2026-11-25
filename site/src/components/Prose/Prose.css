@@ -1,0 +1,36 @@
+/* Prose (design/components.md, "Prose"; design/typography.md, "Line length and rhythm"): 66ch lines, 14px between
+   paragraphs, section headings 28px above and 10px below, lists indented 20px with plain discs in secondary ink.
+   14px and 10px are not on the spacing scale; they are written as the scale's steps they sit between
+   (12 + 2 = 14, 8 + 2 = 10), which design/components.md sets for prose. */
+.prose {
+  display: flow-root;
+  max-width: var(--layout-prose);
+  color: var(--color-ink);
+  /* Long words, URLs and file names break rather than push the page sideways. */
+  overflow-wrap: anywhere;
+}
+
+.prose > * + * {
+  margin-top: calc(var(--space-4) + var(--space-1));
+}
+
+.prose > .prose__heading {
+  margin-top: var(--space-8);
+}
+.prose > .prose__heading:first-child {
+  margin-top: 0;
+}
+.prose > .prose__heading + * {
+  margin-top: calc(var(--space-3) + var(--space-1));
+}
+
+.prose__list {
+  padding-inline-start: var(--space-6);
+  list-style: disc;
+}
+.prose__list > li + li {
+  margin-top: calc(var(--space-2) + var(--space-1));
+}
+.prose__list > li::marker {
+  color: var(--color-ink-2);
+}

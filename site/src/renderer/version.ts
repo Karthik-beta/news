@@ -5,6 +5,6 @@
  * (Technical Design, "Renderer versions"): major for contract changes (data.json, page.oui), minor for new output,
  * patch for fixes that change markup.
  */
-export const RENDERER_VERSION = "1.0.0";
+export const RENDERER_VERSION = "1.1.0";
 export const RENDERER_NAME = "news-renderer";
 export const rendererTag = () => `${RENDERER_NAME} ${RENDERER_VERSION}`;

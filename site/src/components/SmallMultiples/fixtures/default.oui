@@ -1,0 +1,3 @@
+root = Page([margins, columns])
+margins = SmallMultiples("Services earns about twice the gross margin of products", "Gross margin as a share of net sales, fiscal years, %", ["sr_aapl_gm_services", "sr_aapl_gm_products"], "line", "sr_aapl_gm_services")
+columns = SmallMultiples("Both margins rose between {pd_fy2020} and {pd_fy2024}", "Gross margin as a share of net sales, fiscal years, %", ["sr_aapl_gm_services", "sr_aapl_gm_products"], "column")

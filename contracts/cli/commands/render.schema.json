@@ -2,10 +2,10 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://news.karthik.nz/contracts/cli/commands/render.schema.json",
   "title": "news render",
-  "description": "Render a story's page bundle. Input is the command's arguments as an object; output is the envelope's data.",
+  "description": "Render a story's page bundle through Plate, the warm render server, into work/pages/<story>/bundle/ (manifest.json beside the files). The same Copy, data, brief, page facts and renderer version give the same bundle_sha256. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "W",
-  "x-news-status": "stub until #17",
-  "x-news-errors": ["validation_failed"],
+  "x-news-status": "built",
+  "x-news-errors": ["validation_failed", "not_found", "precondition"],
   "$defs": {
     "input": {
       "type": "object",
@@ -38,9 +38,29 @@
           },
           "required": ["html", "md", "json", "bundle"],
           "additionalProperties": false
+        },
+        "bundle_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "renderer_version": {
+          "type": "string"
+        },
+        "flags": {
+          "type": "array",
+          "items": {
+            "enum": ["templated"]
+          }
+        },
+        "problems": {
+          "description": "The renderer's data problems (unknown references, missing values); news check blocks a page that has any.",
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
         }
       },
-      "required": ["paths"],
+      "required": ["paths", "bundle_sha256", "renderer_version", "flags", "problems"],
       "additionalProperties": false
     }
   }

@@ -2,10 +2,10 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://news.karthik.nz/contracts/cli/commands/stories.similar.schema.json",
   "title": "news stories similar",
-  "description": "Stories similar to a text or a candidate. Input is the command's arguments as an object; output is the envelope's data.",
+  "description": "Stories similar to a text or a candidate: SimHash neighbours until embeddings exist (cos = 1 - Hamming / 64, up to 16 bits apart). Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "R",
-  "x-news-status": "stub until #15",
-  "x-news-errors": [],
+  "x-news-status": "built",
+  "x-news-errors": ["not_found"],
   "$defs": {
     "input": {
       "oneOf": [

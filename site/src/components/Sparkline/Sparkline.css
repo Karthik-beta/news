@@ -1,0 +1,29 @@
+/* Sparkline (design/charts.md, "Sparklines"): 120×36px, a 2.2px comparison-blue line, the latest point as a 4.5px
+   highlight dot with a paper ring. The sizes are the spec's own and have no token. */
+.sparkline {
+  display: inline-block;
+  flex: none;
+  overflow: visible;
+  vertical-align: middle;
+}
+.sparkline__line {
+  fill: none;
+  stroke: var(--chart-comparison);
+  stroke-width: 2.2px;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.sparkline__dot {
+  fill: var(--chart-highlight);
+  stroke: var(--color-paper);
+  stroke-width: 1.5px;
+  paint-order: stroke;
+}
+@media (forced-colors: active) {
+  .sparkline__line {
+    stroke: CanvasText;
+  }
+  .sparkline__dot {
+    fill: Highlight;
+  }
+}

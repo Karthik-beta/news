@@ -1,5 +1,9 @@
 # Cloudflare deploys: the three Workers (api, mcp, search) and, from Phase 6, the site's SSR Worker.
-# Manual only: run it from the Actions tab (Run workflow) on main. Nothing deploys on push or from a PR.
+# Runs from the Actions tab or Board (workflow_dispatch) on main, and from cd.yml after CI passed on a push to main
+# (workflow_call). cd.yml is a separate workflow, so main's CI run never waits for the `production` reviewer. Nothing deploys from a PR or from another branch: the plan stage refuses (a dry run
+# excepted, which deploys nothing) and the `production` environment only admits `main`.
+# After a deploy of the site (target all or site) a smoke test checks the live site (infra/cloud/smoke.ts); a deploy
+# of a single Worker has none.
 #
 # Needs, all set by Karthik and never by an agent or this file:
 #   - environment `production` (Settings > Environments) with a required reviewer, and deployment branches limited
@@ -33,10 +37,20 @@ on:
         description: Bundle and validate only; deploy nothing (needs no secrets)
         type: boolean
         default: false
-  # Deploy on every merge to main instead of by hand. Leave this off until the Worker configs are ready and CI is a
-  # required check on main, otherwise a push deploys before CI has finished. Empty `target` is treated as `all`.
-  # push:
-  #   branches: [main]
+  # Continuous deployment: cd.yml calls this workflow when CI has completed successfully for a push to main, so a
+  # deploy never starts before CI has passed. Same stages, same guards, same environment approval. `sha` is the
+  # commit CI tested; the plan stage deploys only if it is still the head of main.
+  workflow_call:
+    inputs:
+      target:
+        type: string
+        default: all
+      sha:
+        type: string
+        default: ""
+      dry_run:
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -55,15 +69,35 @@ jobs:
       workers: ${{ steps.plan.outputs.workers }}
       site: ${{ steps.plan.outputs.site }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.sha || github.sha }}
           persist-credentials: false
       - id: plan
         env:
           TARGET: ${{ inputs.target || 'all' }}
           DRY_RUN: ${{ inputs.dry_run }}
+          SHA: ${{ inputs.sha || github.sha }}
+          # Read-only (contents: read); used by the head-of-main check below only. This step installs nothing.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           failed=0
+          # The first wrangler config of a directory (jsonc, json or toml), or nothing.
+          config_of() {
+            for f in "$1/wrangler.jsonc" "$1/wrangler.json" "$1/wrangler.toml"; do
+              if [ -f "$f" ]; then echo "$f"; return; fi
+            done
+          }
+          # A deploy publishes the commit CI tested, and only while it is still the head of main: a newer push has its
+          # own CI run and its own deploy, and an older commit must never overwrite a newer one.
+          if [ "$DRY_RUN" != "true" ] && [ "$GITHUB_REF" = "refs/heads/main" ]; then
+            head=$(git ls-remote "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" refs/heads/main | cut -f1)
+            if [ "$head" != "$SHA" ]; then
+              echo "::notice title=Nothing deployed::$SHA is no longer the head of main (${head:-unknown}); the newer commit deploys after its own CI run."
+              { echo "workers=[]"; echo "bundle="; echo "site=false"; } >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
           # A target that cannot deploy: an error when it was picked by name (and this is not a dry run), else a notice.
           cannot() {
             if [ "$TARGET" != "all" ] && [ "$DRY_RUN" != "true" ]; then
@@ -83,8 +117,10 @@ jobs:
               echo "::notice title=Worker $worker not deployed::Dry run: the bundle is checked below, nothing is deployed."
             elif [ "$GITHUB_REF" != "refs/heads/main" ]; then
               cannot "Worker $worker" "Deploys run from main only (this run is on $GITHUB_REF)."
-            elif grep -q 'TODO(' "workers/$worker/wrangler.jsonc"; then
-              cannot "Worker $worker" "workers/$worker/wrangler.jsonc is not deploy-ready: it still has a TODO for its real bindings."
+            elif [ -z "$(config_of "workers/$worker")" ]; then
+              cannot "Worker $worker" "workers/$worker has no wrangler config."
+            elif grep -q 'TODO(' "$(config_of "workers/$worker")"; then
+              cannot "Worker $worker" "$(config_of "workers/$worker") is not deploy-ready: it still has a TODO for its real bindings."
             else
               workers+=("$worker")
             fi
@@ -94,8 +130,10 @@ jobs:
               echo "::notice title=Site not deployed::Dry run: nothing is deployed."
             elif [ "$GITHUB_REF" != "refs/heads/main" ]; then
               cannot "Site" "Deploys run from main only (this run is on $GITHUB_REF)."
-            elif [ ! -f site/wrangler.jsonc ] && [ ! -f site/wrangler.json ] && [ ! -f site/wrangler.toml ]; then
+            elif [ -z "$(config_of site)" ]; then
               cannot "Site" "The site has no wrangler config yet: it is static until the SSR Worker arrives in Phase 6 (Technical Design, Cloud services)."
+            elif grep -q 'TODO(' "$(config_of site)"; then
+              cannot "Site" "$(config_of site) is not deploy-ready: it still has a TODO for its real bindings."
             else
               site=true
             fi
@@ -124,7 +162,7 @@ jobs:
         if: steps.plan.outputs.site == 'true'
         run: bun run build
         working-directory: site
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: steps.plan.outputs.site == 'true'
         with:
           name: site-dist
@@ -143,8 +181,9 @@ jobs:
       matrix:
         worker: ${{ fromJSON(needs.plan.outputs.workers) }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.sha || github.sha }}
           persist-credentials: false
       - id: secrets
         name: Cloudflare secrets are set
@@ -166,7 +205,7 @@ jobs:
           echo "::notice title=Worker $WORKER not deployed::$message"
           echo "ready=false" >> "$GITHUB_OUTPUT"
       # Wrangler needs Node >= 22.12. No cache in this job: nothing restored from a cache runs next to the secrets.
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         if: steps.secrets.outputs.ready == 'true'
         with:
           node-version: "22"
@@ -193,9 +232,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: production
+    outputs:
+      deployed: ${{ steps.secrets.outputs.ready }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.sha || github.sha }}
           persist-credentials: false
       - id: secrets
         name: Cloudflare secrets are set
@@ -216,12 +258,12 @@ jobs:
           echo "::notice title=Site not deployed::$message"
           echo "ready=false" >> "$GITHUB_OUTPUT"
       # The site built by the plan job, which ran the install scripts; this job only uploads it.
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         if: steps.secrets.outputs.ready == 'true'
         with:
           name: site-dist
           path: site/dist/
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         if: steps.secrets.outputs.ready == 'true'
         with:
           node-version: "22"
@@ -239,3 +281,23 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           WRANGLER_SEND_METRICS: "false"
         run: bunx wrangler deploy
+
+  smoke:
+    name: Production smoke test
+    needs: [workers, site]
+    # Only after the site was actually deployed (target all or site, and its secrets were set: the site job succeeds
+    # without deploying when they are not): the checks need the whole site, so a deploy of a single Worker has no
+    # smoke test. Runs even when a Worker job failed, to show what is live. No secrets, no environment, nothing
+    # installed: the script only makes GET requests (and one MCP POST) to the public site.
+    if: ${{ !cancelled() && needs.site.result == 'success' && needs.site.outputs.deployed == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.3
+      # An article from R2 (the first in the feed), home, a hub, search, MCP tools/list, robots.txt, a sitemap, a feed.
+      - run: bun infra/cloud/smoke.ts

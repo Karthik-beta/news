@@ -12,6 +12,7 @@
 import { createParser, type ElementNode, type Library, Renderer, useRenderNode } from "@openuidev/react-lang";
 import { Fragment, type ReactNode } from "react";
 import type { AnyComponentSpec, ChartTable } from "../components/contract";
+import { type Glossary, GlossaryProvider } from "../components/GlossaryTerm/GlossaryTerm";
 import { type NewsLibrary, newsLibrary } from "../components/library";
 import { RefText } from "../components/SourceRef/RefText";
 import { formatDate } from "../format";
@@ -50,6 +51,17 @@ export interface RenderOptions {
   assets?: { stylesheets: string[]; script?: string; preloadFonts?: string[] };
   /** Language of the document. */
   lang?: string;
+  /**
+   * The site glossary, for glossary terms in page copy. Without it, terms render as plain text (a definition is
+   * never made up). Page templates (#14) pass the real one; fixture pages pass a fixture glossary.
+   */
+  glossary?: Glossary;
+  /**
+   * The page's index_status, written as its one robots meta tag. Default noindex, so a preview or fixture page is never
+   * indexed. The write API refuses a bundle without exactly one of the two tags and rewrites it when the status
+   * changes (ADR 0004, "Index status").
+   */
+  indexStatus?: "index" | "noindex";
 }
 
 export interface ChartExport {
@@ -110,6 +122,17 @@ export function parsePage(oui: string, library: Library): ElementNode {
   return result.root;
 }
 
+/** True when a prop path runs into a child element: the element's own props are checked when it is visited. */
+function insideElement(props: unknown, path: readonly PropertyKey[]): boolean {
+  let value: unknown = props;
+  for (const key of path.slice(0, -1)) {
+    if (!value || typeof value !== "object") return false;
+    value = (value as Record<PropertyKey, unknown>)[key];
+    if (value && typeof value === "object" && (value as ElementNode).type === "element") return true;
+  }
+  return false;
+}
+
 /**
  * Checks every element's props against its component's zod schema. OpenUI's parser checks types and required
  * arguments but not refinements, so a typed number where a reference belongs ("391.0" for a dp_… prop) is caught
@@ -135,7 +158,10 @@ export function checkProps(root: ElementNode, library: Library): void {
     const result = schema?.safeParse(node.props);
     if (result && !result.success) {
       for (const issue of result.error?.issues ?? []) {
-        if (issue.path[0] === "children") continue; // child elements are checked on their own
+        // Child elements are checked on their own; the number of children (KeyFigures' 2-4) is checked here.
+        if (issue.path[0] === "children" && issue.path.length > 1) continue;
+        // So is a single child element in another prop (PolicyDecision's StepLineChart `path`).
+        if (insideElement(node.props, issue.path)) continue;
         problems.push(`${node.statementId ?? node.typeName}.${issue.path.join(".")}: ${issue.message}`);
       }
     }
@@ -296,7 +322,9 @@ export function renderPage(input: PageBundleInput, options: RenderOptions = {}):
     );
   const article = staticMarkup(
     <PageDataProvider resolver={resolver}>
-      <Article head={input.head} body={body} sourceIds={() => sourceIdsInOrder(resolver)} resolver={resolver} />
+      <GlossaryProvider glossary={options.glossary ?? {}}>
+        <Article head={input.head} body={body} sourceIds={() => sourceIdsInOrder(resolver)} resolver={resolver} />
+      </GlossaryProvider>
     </PageDataProvider>,
   );
 
@@ -342,6 +370,7 @@ export function renderPage(input: PageBundleInput, options: RenderOptions = {}):
     lang: options.lang ?? "en-GB",
     assets: options.assets,
     hasIslands,
+    indexStatus: options.indexStatus ?? "noindex",
   });
 
   const files: Record<string, string> = { "index.html": html, "index.md": markdown };
@@ -378,6 +407,7 @@ export function renderDocument(opts: {
   lang: string;
   assets?: RenderOptions["assets"];
   hasIslands: boolean;
+  indexStatus: "index" | "noindex";
 }): string {
   const assets = opts.assets ?? { stylesheets: [] };
   return [
@@ -386,6 +416,8 @@ export function renderDocument(opts: {
     "<head>",
     '<meta charset="utf-8">',
     '<meta name="viewport" content="width=device-width, initial-scale=1">',
+    // Exactly one tag, in one of these two forms: the write API finds and rewrites it byte for byte (workers/api).
+    `<meta name="robots" content="${opts.indexStatus === "index" ? "index, follow" : "noindex"}">`,
     `<meta name="generator" content="${RENDERER_NAME} ${RENDERER_VERSION}">`,
     `<title>${escapeHtml(opts.title)}</title>`,
     `<meta name="description" content="${escapeHtml(opts.description)}">`,

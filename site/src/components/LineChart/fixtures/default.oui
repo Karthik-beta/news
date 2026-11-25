@@ -1,0 +1,5 @@
+root = Page([margins, cpi, sales, equal])
+margins = LineChart("Services earns about twice the gross margin of products", "Gross margin as a share of net sales, fiscal years, %", ["sr_aapl_gm_services", "sr_aapl_gm_products"], "sr_aapl_gm_services", "sr_aapl_gm_products")
+cpi = LineChart("Inflation in America ended the year below where it started", "Consumer prices, change on a year earlier, 2024, %", ["sr_us_cpi_2024"], null, null, false)
+sales = LineChart("Sales grew again in {pd_fy2024} after a dip", "Total net sales, fiscal years, US$ bn", ["sr_aapl_net_sales_5y"])
+equal = LineChart("Four measures moved together after the shock", "Synthetic measures, %", ["sr_fx_other", "sr_fx_third", "sr_fx_fourth", "sr_fx_zero"])

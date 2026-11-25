@@ -133,6 +133,8 @@ fn exit(code: i32) -> ExitCode {
 }
 
 fn main() -> ExitCode {
+    // Before any reqwest client is built (Ticker, OTLP exporter, Runner); see the function's doc.
+    news_wire::runner::install_tls_provider();
     // Board is a window: it needs the main thread and prints no envelope. It also needs `board` as
     // argv[1], which the Hotline checks (ADR 0007 decision 8), so it is not routed through clap.
     // `args_os`, not `args`: `args` panics on an argument that is not Unicode, before clap can turn it
@@ -420,7 +422,8 @@ mod tests {
             );
             stubs += 1;
         }
-        assert!(stubs > 30, "only {stubs} stubs");
+        // Floor drops as subsystems land; it guards against the loop silently skipping everything.
+        assert!(stubs >= 9, "only {stubs} stubs");
     }
 
     #[test]
@@ -432,11 +435,11 @@ mod tests {
     }
 
     #[test]
-    fn every_bureau_command_has_a_contract_except_home_and_publish() {
+    fn every_bureau_command_has_a_contract_except_publish() {
         let have = commands::schema_commands();
         for (path, _) in leaves() {
             // `board` opens a window and prints no envelope: it has no contract.
-            if path.starts_with("home.") || path == "publish" || path == "board" {
+            if path == "publish" || path == "board" {
                 continue;
             }
             assert!(

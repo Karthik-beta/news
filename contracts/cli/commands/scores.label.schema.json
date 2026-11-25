@@ -2,10 +2,10 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://news.karthik.nz/contracts/cli/commands/scores.label.schema.json",
   "title": "news scores label",
-  "description": "Record Huddle's pairwise labels. Input is the command's arguments as an object; output is the envelope's data.",
+  "description": "Record Huddle's pairwise labels from a JSON file (or - for stdin): {\"labels\": [{\"a\": 12, \"b\": 15, \"winner\": \"a\"}]}, one to 200 labels, each naming two scored stories and which deserved a page first. Board's form sends the same labels over the Hotline (`huddle.answer`). Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "W",
-  "x-news-status": "stub until #15",
-  "x-news-errors": ["validation_failed"],
+  "x-news-status": "built",
+  "x-news-errors": ["not_found", "validation_failed"],
   "$defs": {
     "input": {
       "type": "object",

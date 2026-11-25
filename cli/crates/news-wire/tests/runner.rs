@@ -358,6 +358,10 @@ async fn the_contact_email_goes_to_sec_only_and_keys_never_leak() {
         sec_ua.starts_with("News/") && sec_ua.ends_with(" desk@example.org"),
         "{sec_ua}"
     );
+    assert!(
+        sec_ua.contains(" (+https://news.karthik.nz/data) "),
+        "{sec_ua}"
+    );
     assert!(!ua(reqs.len() - 1).contains('@'));
 
     // A free key is appended at send time and never kept.

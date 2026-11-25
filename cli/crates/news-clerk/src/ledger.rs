@@ -175,8 +175,8 @@ pub async fn store(
             .collect();
         let inserted = sqlx::query(
             "insert into candidates (source_id, url, title, event_key, dp_count, entity_ids, page_type,
-               page_type_by, categories, region, published_at, status)
-             select $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'new'
+               page_type_by, categories, region, published_at, dp_ids, status)
+             select $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'new'
               where not exists (select 1 from candidates where source_id = $1 and url = $2
                                   and event_key is not distinct from $4)",
         )
@@ -191,6 +191,7 @@ pub async fn store(
         .bind(&c.categories)
         .bind(c.region.as_deref())
         .bind(c.draft.published_at)
+        .bind(&c.draft.dp_ids)
         .execute(&mut *tx)
         .await?;
         report.candidates_inserted += inserted.rows_affected() as usize;

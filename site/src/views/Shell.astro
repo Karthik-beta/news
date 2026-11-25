@@ -1,0 +1,41 @@
+---
+// The page shell of the SSR pages: head, skip link, masthead, main, footer. Static markup, no JavaScript.
+import "../styles/site.css";
+import "./views.css";
+import { Footer } from "../components/Footer/Footer";
+import { Masthead } from "../components/Masthead/Masthead";
+import { SkipLink } from "../components/SkipLink/SkipLink";
+import type { Chrome } from "../server/views";
+
+interface Props {
+  chrome: Chrome;
+  origin: string;
+}
+const { chrome, origin } = Astro.props;
+const title = chrome.title === "Home" ? "News" : `${chrome.title} | News`;
+---
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content={chrome.robots} />
+    {chrome.canonical ? <link rel="canonical" href={`${origin}${chrome.canonical}`} /> : null}
+    <link rel="alternate" type="application/rss+xml" title="News" href="/rss.xml" />
+    <link rel="alternate" type="application/atom+xml" title="News" href="/atom.xml" />
+    {chrome.feedCategory ? <link rel="alternate" type="application/rss+xml" title={chrome.title} href={`/${chrome.feedCategory}/rss.xml`} /> : null}
+    {chrome.feedCategory ? <link rel="alternate" type="application/atom+xml" title={chrome.title} href={`/${chrome.feedCategory}/atom.xml`} /> : null}
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preload" href="/fonts/literata-latin-opsz-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/fira-sans-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <title>{title}</title>
+  </head>
+  <body>
+    <SkipLink target="main" />
+    <Masthead sections={chrome.nav} current={chrome.current ?? null} searchHref="/search" />
+    <main id="main" class="site-main">
+      <slot />
+    </main>
+    <Footer />
+  </body>
+</html>

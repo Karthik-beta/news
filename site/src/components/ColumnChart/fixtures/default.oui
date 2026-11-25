@@ -1,0 +1,5 @@
+root = Page([services, sales, months, grouped])
+services = ColumnChart("Services sales have grown every year since {pd_fy2020}", "Services net sales, fiscal years, US$ bn", ["sr_aapl_services_5y"], "pd_fy2024")
+sales = ColumnChart("Total sales dipped in {pd_fy2023} and recovered", "Total net sales, fiscal years, US$ bn", ["sr_aapl_net_sales_5y"])
+months = ColumnChart("Inflation was lowest in September", "Consumer prices, change on a year earlier, 2024, %", ["sr_us_cpi_2024"], "pd_2024_09")
+grouped = ColumnChart("Both segments' margins rose over five years", "Gross margin as a share of net sales, fiscal years, %", ["sr_aapl_gm_products", "sr_aapl_gm_services"])

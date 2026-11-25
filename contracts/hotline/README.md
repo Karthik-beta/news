@@ -39,7 +39,7 @@ A frame is a little-endian `u32` length, then that many bytes of UTF-8 JSON, at 
 - `subscribe` turns a connection into an event stream; nothing else is read from it afterwards.
 - Error and exit codes are the CLI's (`gated` = 7). A command sent by a client that may not send it gets `gated` with `details.refusal` (`in_ai_job`, `not_our_image`, `not_board`). A client under another user, or below Medium integrity, is disconnected without a reply.
 - Before the service is `up`, every command except `service.ping` gets `upstream_unavailable` (exit 5, retryable).
-- Unknown commands, and args that fail `$defs/input`, are `usage`. Reserved names without a contract (`huddle.answer`, `content.*`) are unknown until their contracts land.
+- Unknown commands, and args that fail `$defs/input`, are `usage`. Reserved names without a contract (`content.*`) are unknown until their contracts land.
 
 ## Commands
 
@@ -61,6 +61,8 @@ A frame is a little-endian `u32` length, then that many bytes of UTF-8 JSON, at 
 | `run.pause`, `run.resume`, `run.cancel` | H | Board | #10 | — |
 | `lineup.cancel` | H | Board | #10 | — |
 | `standing.set` | H | Board | #10 | — |
+| `huddle.questions` | R | Board | #19 | — |
+| `huddle.answer` | H | Board | #19 | — (the file form is `news scores label`) |
 | `docker.status` | R | Board, terminal | #29 | — |
 | `docker.start`, `docker.stop` | H | Board | #29 | — |
 | `service.update` | H | Board | #29 | — |

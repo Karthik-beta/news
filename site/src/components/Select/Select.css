@@ -1,0 +1,4 @@
+/* Select: the shared field look (TextField.css) with the browser's own arrow; the icon set has no chevron. */
+.select {
+  cursor: pointer;
+}

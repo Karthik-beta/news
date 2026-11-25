@@ -1,6 +1,6 @@
 [package]
 name = "news-nose"
-description = "Nose and Desk: scoring, ranking and selection. Skeleton with handler stubs; built in #15."
+description = "Nose and Desk (Bureau §3.7, §4): story scores with the Pitch, and the run Budget."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,6 +8,13 @@ publish.workspace = true
 
 [dependencies]
 news-core = { workspace = true }
+news-store = { workspace = true }
+chrono = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sqlx = { workspace = true }
+toml = { workspace = true }
+uuid = { workspace = true }
 
 [lints]
 workspace = true

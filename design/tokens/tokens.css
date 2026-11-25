@@ -15,6 +15,7 @@
   --color-selection: #D9EAFC;
   --color-error: #C8213A;
   --chart-highlight: #C8213A;
+  --chart-neutral-highlight: #3D3D3A;
   --chart-comparison: #065DA0;
   --chart-context: #8DAECB;
   --chart-neutral: #B6B6AF;
@@ -56,8 +57,10 @@
   --font-size-chart-subtitle: 0.90625rem;
   --font-size-ui: 0.9375rem;
   --font-size-body-s: 0.96875rem;
+  --font-size-control: 1rem;
   --font-size-body: 1.09375rem;
   --font-size-chart-title: 1.125rem;
+  --font-size-search: 1.125rem;
   --font-size-headline-s: 1.15625rem;
   --font-size-standfirst: 1.25rem;
   --font-size-headline-m: 1.3125rem;
@@ -133,6 +136,7 @@
     --color-selection: #085491;
     --color-error: #F4687C;
     --chart-highlight: #F4687C;
+    --chart-neutral-highlight: #B0B0AB;
     --chart-comparison: #4E90D2;
     --chart-context: #45556A;
     --chart-neutral: #4C4E53;
@@ -165,6 +169,7 @@
   --color-selection: #085491;
   --color-error: #F4687C;
   --chart-highlight: #F4687C;
+  --chart-neutral-highlight: #B0B0AB;
   --chart-comparison: #4E90D2;
   --chart-context: #45556A;
   --chart-neutral: #4C4E53;

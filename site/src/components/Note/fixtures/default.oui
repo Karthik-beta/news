@@ -1,0 +1,2 @@
+root = Page([why])
+why = Note("Why sales rose after two flat years", ["Net sales reached {dp_aapl_net_sales_fy2024} in {pd_fy2024}, up {dv_aapl_net_sales_growth_fy2024} on {pd_fy2023}. That was {cx_aapl_first_rise_2y}.", "The annual report puts the rise down to services; it does not give a figure for each product line in the same table."])

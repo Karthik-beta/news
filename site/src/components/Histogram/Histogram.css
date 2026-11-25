@@ -1,0 +1,13 @@
+/* Histogram (design/charts.md, "Histograms"): the column chart's plot with each column filling its range, so
+   neighbouring ranges sit 2px apart (the paper gap between adjacent bars) rather than spaced like periods. The x
+   labels are the ranges' edges, under the gaps. */
+.histogram .column-chart__group {
+  inset-inline: calc(var(--chart-mark-bar-gap) / 2);
+}
+.histogram .column-chart__slot {
+  flex: 1 1 auto;
+}
+.histogram__missing {
+  margin: var(--space-3) 0 0;
+  color: var(--color-ink-2);
+}

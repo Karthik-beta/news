@@ -1,0 +1,78 @@
+/* Form fields (design/components.md, "Forms"), shared by TextField, TextArea, Select and Checkbox. Label above in
+   Fira 600 ink; hint under it in Fira 13.5 ink-2; the field on paper with a 1px control border, 5px radius,
+   10px 12px padding and Fira 400 16px (16px stops iOS zooming in). Focus: the border turns ink and the focus ring
+   shows. Error: the border in the error colour, and an icon and message under the field in the error colour.
+   The label is type.ui (15px): the type scale has no 14px step. */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.field__label {
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-ui);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--font-line-height-ui);
+  color: var(--color-ink);
+}
+.field__marker {
+  font-weight: var(--font-weight-regular);
+  color: var(--color-ink-2);
+}
+
+.field__hint {
+  margin-top: calc(-1 * var(--space-1));
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-label);
+  line-height: var(--font-line-height-ui);
+  color: var(--color-ink-2);
+}
+
+.field__control {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: calc(var(--space-3) + var(--space-1)) var(--space-4);
+  background: var(--color-paper);
+  color: var(--color-ink);
+  border: var(--border-hairline) solid var(--color-control-border);
+  border-radius: var(--radius-control);
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-control);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--font-line-height-ui);
+  /* An error summary link scrolls to the control: keep its label and hint (up to about five lines) in view. */
+  scroll-margin-top: 6lh;
+}
+.field__control:focus-visible {
+  border-color: var(--color-ink);
+}
+.field--error .field__control {
+  border-color: var(--color-error);
+}
+
+.field__error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-label);
+  line-height: var(--font-line-height-ui);
+  color: var(--color-error);
+}
+/* The icon sits on the first line of the message: centred in a line box of the text's height. */
+.field__error-icon {
+  flex: none;
+  height: calc(1em * var(--font-line-height-ui));
+}
+
+@media (forced-colors: active) {
+  .field__control {
+    border-color: FieldText;
+  }
+  .field--error .field__control {
+    border-width: var(--border-section);
+  }
+}

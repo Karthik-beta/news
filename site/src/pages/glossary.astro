@@ -1,0 +1,45 @@
+---
+// The glossary (design/layout.md, "Static pages"): the copy's introduction, an A-Z jump row, then the terms by
+// letter, term in Fira Sans 600 and definition in Literata. Each term's id is its slug, which is where a
+// GlossaryTerm's "Read the glossary entry" link lands (/glossary/#slug).
+import StaticPage from "../layouts/StaticPage.astro";
+import { glossaryItems, loadDoc } from "../static/content";
+import { inlineHtml } from "../static/markdown";
+import { renderCopy } from "../static/render";
+
+const doc = loadDoc("glossary");
+const items = glossaryItems(doc);
+const intro = doc.blocks.slice(
+  0,
+  doc.blocks.findIndex((b) => b.type === "h2" && /^[A-Z]$/.test(b.text)),
+);
+const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+const have = new Set(items.map((i) => i.letter));
+---
+<StaticPage title={doc.title} description={doc.description} updated={doc.updated} path="/glossary/">
+  <div class="static-page__body prose text-body" set:html={renderCopy(intro, undefined, "glossary")} />
+  <nav class="glossary__jump" aria-label="Jump to a letter">
+    <ul class="glossary__jump-list">
+      {letters.map((l) => (
+        <li>
+          {have.has(l) ? <a class="glossary__jump-link" href={`#letter-${l.toLowerCase()}`}>{l}</a> : <span class="glossary__jump-none">{l}</span>}
+        </li>
+      ))}
+    </ul>
+  </nav>
+  <div class="static-page__body">
+    {letters.filter((l) => have.has(l)).map((l) => (
+      <section class="glossary__section" aria-labelledby={`letter-${l.toLowerCase()}`}>
+        <h2 class="glossary__letter prose__heading text-headline-l" id={`letter-${l.toLowerCase()}`}>{l}</h2>
+        <dl class="glossary__list">
+          {items.filter((i) => i.letter === l).map((i) => (
+            <div class="glossary__entry" id={i.slug}>
+              <dt class="glossary__term">{i.term}</dt>
+              <dd class="glossary__definition text-body" set:html={inlineHtml(i.definition)} />
+            </div>
+          ))}
+        </dl>
+      </section>
+    ))}
+  </div>
+</StaticPage>

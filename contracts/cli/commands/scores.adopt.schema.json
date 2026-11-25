@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/scores.adopt.schema.json",
+  "title": "news scores adopt",
+  "description": "Make a proposed scorer version live. Input is the command's arguments as an object; output is the envelope's data. The CLI form always returns gated (exit 7): Chief runs the step in process, after Karthik approves the change in Board (ADR 0008 §6.3).",
+  "x-news-tier": "G",
+  "x-news-status": "built",
+  "x-news-errors": ["gated"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^v[0-9]+$"
+        }
+      },
+      "required": ["version"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string"
+        },
+        "parent": {
+          "type": "string"
+        },
+        "already": {
+          "type": "boolean",
+          "description": "The version was already live; nothing changed"
+        }
+      },
+      "required": ["version", "parent", "already"],
+      "additionalProperties": false
+    }
+  }
+}

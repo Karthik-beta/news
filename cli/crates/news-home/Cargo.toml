@@ -1,0 +1,27 @@
+[package]
+name = "news-home"
+description = "Home page curation (Bureau §4.5, §8.6; ADR 0005): candidates, drafts, checks, preview and publish."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+news-core = { workspace = true }
+news-store = { workspace = true }
+news-nose = { workspace = true }
+chrono = { workspace = true }
+jsonschema = { workspace = true }
+reqwest = { workspace = true }
+# Already in the tree (news-wire); the TLS provider for the clients built here.
+rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+sqlx = { workspace = true }
+tokio = { workspace = true }
+uuid = { workspace = true }
+
+[lints]
+workspace = true
+

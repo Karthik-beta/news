@@ -1,0 +1,32 @@
+---
+// Every page that lists pages: the home page, region views, "Latest", category and entity hubs, redirects and the 404.
+// Rendered on request from the data layer (ADR 0010); nothing here is built, so a new curation shows without a deploy.
+import { env } from "cloudflare:workers";
+import { siteContext } from "../server/context";
+import { matchRoute } from "../server/routes";
+import { loadView, notFoundView } from "../server/views";
+import Shell from "../views/Shell.astro";
+import { Views } from "../views/Views";
+
+export const prerender = false;
+
+const ctx = await siteContext(env);
+const m = matchRoute(Astro.url, ctx.origin, ctx.regions);
+if (m.type === "reject" && m.status === 400) {
+  return new Response(m.message, {
+    status: 400,
+    headers: { "cache-control": "no-store", "content-type": "text/plain; charset=utf-8" },
+  });
+}
+const view = m.type === "page" ? await loadView(ctx, m) : await notFoundView(ctx);
+if (view.type === "redirect") return Astro.redirect(view.location, view.status);
+if (view.body.type === "notfound") Astro.response.status = 404;
+// Search's daily limit: a 503 the reader can wait out, and the edge must not keep (serve.ts leaves it uncached).
+if (view.body.type === "search" && view.body.unavailable) {
+  Astro.response.status = 503;
+  Astro.response.headers.set("retry-after", String(view.body.unavailable.retryAfter));
+}
+---
+<Shell chrome={view.chrome} origin={ctx.origin}>
+  <Views body={view.body} />
+</Shell>

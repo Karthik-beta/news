@@ -6,8 +6,8 @@
 //! What is here: the Hotline pipe (`D:P(A;;GA;;;<sid>)`, first instance only, remote clients
 //! rejected), the facts about a connected client (pid, user, integrity, image path, command line,
 //! membership of the root marker job), the client's check of the server's image, and Job Objects (the
-//! root marker job with kill-on-close and no breakaway, nested per-run jobs, terminate, emptiness).
-//! The Low-integrity spawner Ghost needs lands with Ghost (#18).
+//! root marker job with kill-on-close and no breakaway, nested per-run jobs, terminate, emptiness, and
+//! adopting a suspended child: Ghost's spawn marker, #18). The Low-integrity token is still to come.
 
 #[cfg(not(windows))]
 use std::io;

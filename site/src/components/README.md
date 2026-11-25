@@ -42,6 +42,22 @@ A component's spec (`defineNewsComponent`, see `contract.ts`):
 
 A primitive's spec (`definePrimitive`) has `name`, `purpose` and a TSX `example`. Primitives are building blocks for components, not part of the page writer's library or index.
 
+**Page-template parts are primitives too.** The site chrome (`SkipLink`, `Masthead`, `DateLine`, `RegionFilter`, `Footer`), the article head (`FlyTitle`, `Headline`, `Standfirst`, `PageMeta`), the sources (`SourcesPanel`, `Badge`, `Disclaimer`) and the inline `GlossaryTerm` are rendered by page templates from the page record, `head.json` and `sources.json`, never placed by the page writer, so they stay out of the library and the index. Their purpose says "Page-template part". Where `index.md` needs them, they export a Markdown helper (`pageMetaMarkdown`, `sourcesPanelMarkdown`) for the template to call.
+
+**Controls and states are primitives too.** `Button`, the form fields (`TextField`, `TextArea`, `Select`, `Checkbox`, sharing `TextField/field.tsx`), `SearchField`, `StateMessage` (empty and error states), `NotFound`, `LoadingRegion` and the report-an-error `ReportForm` are used by page templates and islands, never by the page writer. Forms are plain HTML forms that work with no JavaScript: the server renders them again with the values and errors. The tooltip is `Popover`'s `Tooltip`.
+
+**Lists show other pages by ID.** The home, hub, search and rail parts (`LeadStory`, `StoryItem` and `StoryList`, `LatestList`, `RelatedPages`) take page IDs, and on the home page one figure or chart ID per slot (`StoryItem/slot.ts`, the curation's slot). They read every word from the page's record through `<ListingsProvider>` (`src/renderer/data/listings.tsx`), which the template fills from page records, hub entries or search hits, plus each slot page's own `data.json` and the figures and charts its `page.oui` places (`listingParts`). Record text is final and printed as stored (`FlyTitle`/`Headline` with `plain`). No list part has a prop for text, so a curator can never put words on a page. A page that is not in the listings is left out, never shown as an empty slot. `SectionHead`, `PageContents` and `Pagination` take the taxonomy name, the page's own headings and chart titles, and page numbers.
+
+## Page copy
+
+`Prose`, `Note` and `MethodSummary` take the writer's copy with a small markup (`Prose/copy.tsx`):
+
+- one string per block; `## ` starts a section heading (h2, with an id from its words); lines that all start with `- ` are a list; a blank line splits a string into more blocks;
+- `{ref}` tokens for every number, period, quote and context line (RefText);
+- `[words](glossary:slug)` for a glossary term. The definition comes from the site glossary the renderer is given (`renderPage(…, { glossary })`); a slug the glossary doesn't define renders as plain words.
+
+Nothing else is markup: other brackets, asterisks and `#` print as typed.
+
 ## Rules every component follows
 
 1. **Data references, not numbers.** Read data with `usePageData()` (`src/renderer/data/context.tsx`). Write values with `SourceRef` or `formatValue`, and text with `RefText`. The contract is in [`src/renderer/README.md`](../renderer/README.md).
@@ -63,9 +79,15 @@ A primitive's spec (`definePrimitive`) has `name`, `purpose` and a TSX `example`
 | `Rule` | Hairline, ink, section and brand rules, as an element or as `ruleTop(kind)` classes |
 | `VisuallyHidden` | Screen-reader-only text; `focusable` for skip links |
 | `Icon` | The eight icons, 1em, in `currentColor`, hidden from assistive technology unless labelled |
+| `ChartFigure` | The data-aware chart wrapper: `FigureFrame` filled from one table model (`ChartFigure/model.ts`), so the data table, CSV, JSON, Markdown and accessible summary agree; legend keys; "No data". Also holds the shared chart parts: `scale.ts` (axis, bare labels, x-label thinning), `interaction.tsx` (keys, taps, tooltip, live region, client-safe) and `plot.tsx` |
+| `SourcePopover` | The citation popover for one cited value; `SourceRef` renders every cited figure through it |
+| `DataLinks` | The downloads row: CSV, JSON and Markdown as text links |
+| `Sparkline` | A 120×36 static trend line from an `sr_` series, latest point as a crimson dot |
 
 The shared formatters (numbers, currencies, units, fiscal labels, minus signs, dates) are in `src/format/`.
 
 ## Fixture pages
 
-With `NEWS_FIXTURES=1` (test and CI builds), `/fixtures/primitives/<Name>/` shows every case in a primitive's `fixtures/cases.tsx`, and `/fixtures/renderer/<bundle>/` renders each fixture bundle in `src/renderer/fixtures/bundles/` through the real renderer. Production builds leave them out.
+With `NEWS_FIXTURES=1` (test and CI builds), `/fixtures/primitives/<Name>/` shows every case in a primitive's `fixtures/cases.tsx`, `/fixtures/components/<Name>/<fixture>/` renders each component's `fixtures/<fixture>.oui` through the real renderer (data from every fixture bundle merged, including `charts`, plus `src/renderer/fixtures/component-pages/`, the fixture glossary, and test images served at `/fixtures/images/`), with its `index.md` and chart CSV and JSON beside it, and `/fixtures/renderer/<bundle>/` renders each fixture bundle in `src/renderer/fixtures/bundles/`. Production builds leave them out. Each component fixture's `index.md` is snapshotted in `fixtures/__snapshots__/<fixture>.md`.
+
+Links in fixtures must resolve in the fixture build (the integration link check), so fixtures for parts that link to pages not built yet (hubs, methodology, the report form) pass links to the home page with a query string.

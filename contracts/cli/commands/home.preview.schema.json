@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/home.preview.schema.json",
+  "title": "news home preview",
+  "description": "Render the home page locally with a checked draft, by the site's own SSR in local mode (ADR 0010, section 6). Starts the preview server (`bun --bun astro dev` with NEWS_PREVIEW=1, in site/) when nothing listens on NEWS_PREVIEW_URL (default http://127.0.0.1:4321), sends the draft as curation.v1 to PUT /__preview/curation and checks that the page answers X-News-Preview equal to the SHA-256 of the bytes sent. The four views share one URL: the colour scheme and the width belong to the browser, so Board sets them when it takes the screenshots. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "W",
+  "x-news-status": "built",
+  "x-news-errors": ["usage", "not_found", "precondition", "validation_failed", "upstream_unavailable", "internal"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "draft": { "type": "string" }
+      },
+      "required": ["draft"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "draft_id": { "type": "integer" },
+        "url": { "type": "string" },
+        "sha256": {
+          "description": "Of the curation.v1 bytes the server holds.",
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "server_started": { "type": "boolean" },
+        "views": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "object",
+            "properties": {
+              "theme": { "enum": ["light", "dark"] },
+              "size": { "enum": ["phone", "desktop"] },
+              "width": { "type": "integer" },
+              "height": { "type": "integer" },
+              "url": { "type": "string" }
+            },
+            "required": ["theme", "size", "width", "height", "url"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["draft_id", "url", "sha256", "server_started", "views"],
+      "additionalProperties": false
+    }
+  }
+}

@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { scanFile } from "./ai-guard";
 
-const WORKERS = fileURLToPath(new URL("../../", import.meta.url));
+const WORKERS = fileURLToPath(new URL("../../", import.meta.url).href);
 // This guard and its test name the forbidden packages on purpose.
 const SELF = new Set(["shared/src/ai-guard.ts", "shared/src/ai-guard.test.ts"]);
 const SKIP_DIRS = new Set(["node_modules", ".wrangler", "dist", "generated"]);
@@ -13,9 +13,24 @@ const SKIP_DIRS = new Set(["node_modules", ".wrangler", "dist", "generated"]);
 function filesUnder(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
     if (e.isDirectory()) return SKIP_DIRS.has(e.name) ? [] : filesUnder(join(dir, e.name));
-    return /\.(?:[cm]?[jt]sx?|json|jsonc|toml)$/.test(e.name) ? [join(dir, e.name)] : [];
+    return /\.(?:[cm]?[jt]sx?|astro|json|jsonc|toml)$/.test(e.name) ? [join(dir, e.name)] : [];
   });
 }
+
+describe("no AI in the site Worker (ADR 0010)", () => {
+  it("site/ sources, package.json and wrangler.jsonc use no model SDK or AI binding", () => {
+    const site = fileURLToPath(new URL("../../../site/", import.meta.url).href);
+    const files = [
+      ...filesUnder(join(site, "src")),
+      ...filesUnder(join(site, "tests")),
+      join(site, "package.json"),
+      join(site, "wrangler.jsonc"),
+    ];
+    expect(files.length).toBeGreaterThan(100);
+    const findings = files.flatMap((f) => scanFile(relative(site, f), readFileSync(f, "utf8")));
+    expect(findings).toEqual([]);
+  });
+});
 
 describe("no AI in the Workers", () => {
   it("no Worker source, package.json or wrangler config uses a model SDK or an AI binding", () => {

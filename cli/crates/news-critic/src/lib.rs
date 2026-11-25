@@ -1,7 +1,10 @@
-//! Critic, the evaluation harness (Bureau Design §9.1).
+//! Critic, the evaluation harness (Bureau Design §9.1), and Huddle's Debrief (§8.12).
 //!
-//! Skeleton only: Critic is built in #19. Its job handlers are registered with Dispatch now, so the
-//! registry is complete; until then they fail with class `bug` ("not built yet").
+//! The harness is still a skeleton (#19, later PRs): its job handlers are registered with Dispatch, so the
+//! registry is complete, and until then they fail with class `bug` ("not built yet"). [`debrief`] is built:
+//! `news review weekly`.
+
+pub mod debrief;
 
 use news_core::job::{Handler, JobFailure, JobFuture, JobInput};
 

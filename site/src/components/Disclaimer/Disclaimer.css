@@ -1,0 +1,7 @@
+/* Disclaimer: Fira 13 (type.label, phone size), tertiary ink, no box. */
+.disclaimer {
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-label);
+  line-height: 1.35; /* typography.md: type.label */
+  color: var(--color-ink-3);
+}

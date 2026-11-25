@@ -75,6 +75,14 @@ pub trait Transport: Send + Sync {
     fn get(&self, req: HttpRequest) -> BoxFut<'_, Result<HttpResponse, TransportError>>;
 }
 
+/// Install ring as the process-wide rustls provider. reqwest 0.13 is built with `rustls-no-provider` here
+/// (its default provider, aws-lc, is not in the tree), and Cargo unifies features, so every reqwest
+/// client in the binary, including the blocking Ticker and OTLP ones, needs this to have run first.
+/// Idempotent: an already-installed provider is fine.
+pub fn install_tls_provider() {
+    let _ = rustls::crypto::ring::default_provider().install_default();
+}
+
 /// The live transport: reqwest with rustls, gzip and brotli, 10 s connect timeout.
 pub struct ReqwestTransport {
     client: reqwest::Client,
@@ -82,6 +90,7 @@ pub struct ReqwestTransport {
 
 impl ReqwestTransport {
     pub fn new() -> Result<Self, TransportError> {
+        install_tls_provider();
         let client = reqwest::Client::builder()
             .connect_timeout(CONNECT_TIMEOUT)
             .redirect(reqwest::redirect::Policy::limited(5))
@@ -281,11 +290,11 @@ impl Runner {
         self.clock.now()
     }
 
-    /// `News/<version> (+https://news.karthik.nz/data-access)`, plus the contact e-mail for sources
+    /// `News/<version> (+https://news.karthik.nz/data)`, plus the contact e-mail for sources
     /// that require one.
     pub fn user_agent(&self, policy: &SourcePolicy) -> Result<String, FetchError> {
         let base = format!(
-            "{PRODUCT}/{} (+https://news.karthik.nz/data-access)",
+            "{PRODUCT}/{} (+https://news.karthik.nz/data)",
             news_core::VERSION
         );
         if !policy.requires_contact_email {

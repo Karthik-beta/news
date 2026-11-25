@@ -1,0 +1,100 @@
+/* Choropleth map (design/charts.md, "Maps"). Fills are the heatmap's ramp steps (.heatmap__step--N in Heatmap.css,
+   validated in both themes), borders 0.75px in the paper colour, regions without data hatched in chart.neutral.
+   A legend bar above: one swatch per class (up to five, broken at round numbers near the quintiles), each break
+   under its join.
+
+   The map is always paired with its data ranked. Narrow (under 36em of the figure's own text: every phone, and a
+   tablet at large text sizes) the bar chart's ranked bars show under a small map; wider, the full map and the
+   ranked table. Both are rendered on the server and chosen by CSS, as the Sankey chooses its waterfall. */
+.choropleth {
+  container: choropleth / inline-size;
+}
+
+.choropleth__legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  column-gap: var(--space-6);
+  row-gap: var(--space-3);
+  margin-block-end: var(--space-4);
+  color: var(--color-ink-2);
+}
+.choropleth__scale {
+  display: flex;
+  gap: var(--chart-mark-bar-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  /* Shrinks with the classes when the figure is narrower than the scale (a phone at 200% text), so the legend never
+     pushes the page sideways. */
+  min-width: 0;
+}
+.choropleth__class {
+  position: relative;
+  /* Wide enough for a label such as "1,000" under each join; narrower only when the figure is. */
+  width: 3.5em;
+  min-width: 0;
+  /* Room for the edge labels under the swatches. */
+  padding-block-end: 1.4em;
+}
+.choropleth__swatch {
+  display: block;
+  height: var(--space-4);
+  background: var(--chart-mark);
+  forced-color-adjust: none;
+  print-color-adjust: exact;
+}
+.choropleth__edge {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline-start: 0;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+/* A break sits centred under the join it names. */
+.choropleth__edge--join {
+  inset-inline-start: auto;
+  inset-inline-end: 0;
+  translate: 50% 0;
+}
+
+.choropleth__map {
+  display: block;
+  width: 100%;
+  max-width: 20em;
+  height: auto;
+  margin-block-end: var(--space-5);
+  forced-color-adjust: none;
+  print-color-adjust: exact;
+}
+.choropleth__region {
+  stroke: var(--color-paper);
+  stroke-width: 0.75px;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.choropleth__region:not(.is-missing) {
+  fill: var(--chart-mark);
+}
+.choropleth__region.is-missing {
+  stroke: var(--chart-neutral);
+}
+.choropleth__hatch {
+  stroke: var(--chart-neutral);
+  stroke-width: 1.5;
+}
+
+.choropleth__table {
+  display: none;
+}
+@container choropleth (min-width: 36em) {
+  .choropleth__map {
+    max-width: none;
+  }
+  .choropleth__table {
+    display: block;
+  }
+  .choropleth__bars {
+    display: none;
+  }
+}

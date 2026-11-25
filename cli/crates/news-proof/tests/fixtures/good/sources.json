@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "sources": {
+    "src_bls_cpi": {
+      "title": "Consumer Price Index news release, October 2026",
+      "short": "CPI release, October 2026",
+      "publisher": "U.S. Bureau of Labor Statistics",
+      "connector": "bls",
+      "type": "press_release",
+      "primary": true,
+      "url": "https://www.bls.gov/news.release/cpi.nr0.htm",
+      "licence": { "name": "Public domain", "redistribution": true },
+      "published_at": "2026-11-13",
+      "retrieved_at": "2026-11-13T14:00:00Z"
+    }
+  }
+}

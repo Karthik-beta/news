@@ -43,6 +43,7 @@ WCAG 2 contrast ratios, measured.
 | `ink-2` | 6.80 | 6.15 | 8.54 | 7.47 |
 | `ink-3` | 5.31 | 4.81 | 6.44 | 5.64 |
 | `brand` | 5.10 | 4.62 | 6.02 | 5.27 |
+| `chart.neutral-highlight` | 9.89 | 8.95 | 8.16 | 7.14 |
 | `focus` (ring) | 6.19 | 5.60 | 9.22 | 8.07 |
 | `on-brand` on `brand` | 5.62 | | 6.02 | |
 | `control-border` (non-text) | 3.15 | | 3.54 | |
@@ -68,6 +69,7 @@ Most charts on this site exist to show one finding, so most charts use highlight
 | Role | Token | Light | Dark | Use |
 |---|---|---|---|---|
 | Highlight | `chart.highlight` | `#C8213A` | `#F4687C` | The series, bar or value the title is about. One per chart. |
+| Neutral highlight | `chart.neutral-highlight` | `#3D3D3A` | `#B0B0AB` | The highlighted subject when it fell, in place of crimson (see [charts.md](charts.md#when-the-subject-fell)). Its bold label too. |
 | Comparison | `chart.comparison` | `#065DA0` | `#4E90D2` | At most one named series to compare against |
 | Context | `chart.context` | `#8DAECB` | `#45556A` | All other series or bars |
 | Neutral | `chart.neutral` | `#B6B6AF` | `#4C4E53` | Deductions in waterfalls, "Other", missing data |
@@ -75,6 +77,8 @@ Most charts on this site exist to show one finding, so most charts use highlight
 | Baseline | `chart.baseline` | `#181818` | `#EDEDEA` | Zero line, x-axis |
 
 Validation: highlight, comparison and context are distinct for colour-blind readers (worst pair ΔE 16.3 light, 12.8 dark; target ≥ 8) and for everyone (worst ΔE 27.6 light, 21.1 dark; floor 15). Context and neutral sit below 3:1 against the paper on purpose so they recede; because of that, **context and neutral marks are always directly labelled or backed by the data table**, which every chart has.
+
+The neutral highlight is a charcoal (light) or pale grey (dark), achromatic on purpose so a fall is never coloured. With comparison and context it passes every pair for colour-blind readers (worst ΔE 16.7 light, 14.3 dark, both against comparison blue) and for everyone (worst ΔE 17.4 light, 17.2 dark); against `chart.neutral` (missing-data hatching) ΔE is 41.5 light and 33.2 dark. As text it clears AA: 9.89 on paper and 8.95 on wash (light), 8.16 and 7.14 (dark). Like `chart.context`, it sits outside the categorical lightness band and chroma floor, which apply to categorical slots only.
 
 ### Categorical palette
 

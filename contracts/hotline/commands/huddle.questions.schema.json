@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/hotline/commands/huddle.questions.schema.json",
+  "title": "Hotline huddle.questions",
+  "description": "Huddle's pairwise questions for the Board form, chosen by code: pairs of stories scored in the last 7 days, the closest calls first, none already labelled, each story at most twice. Input is the request's args; output is the reply envelope's data.",
+  "x-news-tier": "R",
+  "x-hotline-from": ["board"],
+  "x-news-status": "#19",
+  "x-news-cli": null,
+  "x-news-errors": ["usage", "upstream_unavailable"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 60,
+          "description": "Questions to return; default 30"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "side": {
+      "type": "object",
+      "properties": {
+        "story_id": {
+          "type": "integer"
+        },
+        "title": {
+          "type": "string"
+        },
+        "total": {
+          "type": "number",
+          "description": "The story's latest S"
+        }
+      },
+      "required": ["story_id", "title", "total"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "questions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "a": {
+                "$ref": "#/$defs/side"
+              },
+              "b": {
+                "$ref": "#/$defs/side"
+              }
+            },
+            "required": ["a", "b"],
+            "additionalProperties": false
+          }
+        },
+        "text": {
+          "$ref": "../common.schema.json#/$defs/text"
+        }
+      },
+      "required": ["questions", "text"],
+      "additionalProperties": false
+    }
+  }
+}

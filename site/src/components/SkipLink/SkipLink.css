@@ -1,0 +1,33 @@
+/* Skip link: off screen until focused, then at the top left, paper text on ink, above everything. */
+.skip-link {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  padding: var(--space-3) var(--space-5);
+  background: var(--color-ink);
+  color: var(--color-paper);
+  font-family: var(--font-family-sans);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-ui);
+  line-height: var(--font-line-height-ui);
+  text-decoration: underline;
+  transform: translateY(-120%);
+}
+.skip-link:focus,
+.skip-link:focus-visible {
+  transform: none;
+  outline-offset: 0;
+}
+
+@media (forced-colors: active) {
+  .skip-link {
+    border: var(--border-hairline) solid CanvasText;
+  }
+}
+
+@media print {
+  .skip-link {
+    display: none;
+  }
+}

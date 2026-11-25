@@ -1,0 +1,4 @@
+/* Text area: the shared field look (TextField.css), growing downwards only so it never pushes the page sideways. */
+.text-area {
+  resize: vertical;
+}

@@ -350,6 +350,8 @@ pub enum SourcesCmd {
     },
     /// One live discovery call, no writes
     Probe { source: String },
+    /// Load data/sources/*.toml into the sources table
+    Sync,
 }
 
 #[derive(Subcommand, Debug)]
@@ -399,6 +401,8 @@ pub enum ScoresCmd {
         run: String,
         file: String,
     },
+    /// Make a proposed scorer version live (G tier)
+    Adopt { version: String },
 }
 
 #[derive(Subcommand, Debug)]

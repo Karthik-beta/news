@@ -1,0 +1,76 @@
+# Proof word lists and limits, version 1 (Bureau Design §3.10, checks C4, C5, C9–C13). Compiled into the
+# binary, so a check result always names exactly the lists that made it. Starting values (speculative): the
+# golden set G6 (seeded faults) and the fixture pages tune them. Lower case, except `allow_literals`.
+
+version = "proof-v1"
+
+[c4]
+# Names that contain digits and are not figures. Matched case-sensitively and removed before the digit scan.
+# (An entity name that Roster resolved for the brief, and that carries digits, is allowed from meta.json.)
+allow_literals = ["G7", "G20", "G77", "COVID-19", "3G", "4G", "5G", "B2B", "B2C"]
+# Fixed expressions that contain a quantity word and are not amounts.
+allow_phrases = ["one of the", "one of its", "one of them", "one of these", "one of those", "one-off", "no one", "one another"]
+# Cardinals zero to ninety (compounds such as "twenty-one" are split on the hyphen) and the scales, singular and plural.
+number_words = [
+  "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
+  "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen",
+  "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety",
+  "hundred", "hundreds", "thousand", "thousands", "million", "millions", "billion", "billions",
+  "trillion", "trillions", "dozen", "dozens",
+]
+fraction_words = ["half", "halves", "third", "thirds", "quarter", "quarters", "tenth", "tenths", "fifth", "fifths"]
+multiplier_words = [
+  "twice", "double", "doubled", "doubles", "doubling", "triple", "tripled", "triples", "tripling",
+  "treble", "trebled", "quadruple", "quadrupled", "halved", "halving",
+]
+# Words that make a following unit phrase an amount even though no number is written.
+quantity_words = ["several", "few", "couple", "handful", "some"]
+unit_phrases = ["per cent", "percent", "percentage point", "percentage points", "basis point", "basis points", "bps"]
+
+[c5]
+# Direction words (~60). A sentence that pairs a change reference with one of these must agree with the sign.
+up = [
+  "rose", "rise", "rises", "rising", "risen", "grew", "grow", "grows", "growing", "increased", "increase",
+  "increases", "increasing", "climbed", "climb", "climbs", "gained", "gain", "gains", "advanced", "expanded",
+  "raised", "raise", "raises", "hiked", "lifted", "jumped", "surged", "accelerated", "up", "higher",
+]
+down = [
+  "fell", "fall", "falls", "falling", "fallen", "dropped", "drop", "drops", "declined", "decline", "declines",
+  "decreased", "decrease", "decreases", "decreasing", "slipped", "slid", "cut", "cuts", "reduced", "reduce",
+  "shrank", "shrink", "contracted", "eased", "dipped", "slowed", "decelerated", "lowered", "trimmed", "down", "lower",
+]
+flat = ["unchanged", "steady", "flat", "held", "stable", "maintained", "unaltered"]
+
+# Disclaimers by category (design/content-style.md): a page in any of these categories (or a sub-category)
+# must show the text.
+[[c9.disclaimer]]
+categories = ["finance", "economy"]
+text = "Not investment advice."
+
+[[c9.disclaimer]]
+categories = ["health", "science/health"]
+text = "Not medical advice."
+
+[c10]
+# Image hosts (besides this site's own paths). Images from anywhere else are blocked.
+image_hosts = ["news.karthik.nz", "images-assets.nasa.gov", "science.nasa.gov", "www.nasa.gov"]
+cache_hours = 24
+
+# C11's banned words are in data/seeds/banned-words.toml, shared with the news-brand skill.
+
+[c12]
+# The write API's body cap (ADR 0006). Over it is a warning here; Press refuses to send it.
+bundle_bytes_max = 1048576
+# Components (statements in page.oui, not counting root) by page type: minimum and maximum.
+[c12.components]
+earnings = [3, 16]
+macro = [2, 12]
+policy = [2, 12]
+report = [2, 14]
+news = [1, 10]
+science = [2, 12]
+explainer = [2, 14]
+
+[c13]
+# Tier 1 pages always get axe; one Tier 2 page in this many (chosen by a stable hash of the page id).
+tier2_one_in = 10

@@ -1,0 +1,114 @@
+/* Dot plot and dumbbell (design/charts.md, "Marks"): 8px dots with a 2px paper ring, a 2px context line joining a
+   dumbbell's two dots, a hairline guide along each row (horizontal, like a gridline), values in ink beside their
+   dots (the highlight's bold, in its colour). On phones each label sits above its track; from 600px up labels take
+   a column on the left. */
+.dot-plot__plot {
+  position: relative;
+}
+.dot-plot__rows {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--space-3) - var(--space-1));
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-label);
+  line-height: 1.35;
+  touch-action: pan-y;
+}
+.dot-plot__rows:focus-visible {
+  outline: var(--border-focus) solid var(--color-focus);
+  outline-offset: var(--space-1);
+}
+.dot-plot__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: var(--space-1);
+  padding-block: calc(var(--space-1) / 2);
+}
+@media (min-width: 600px) {
+  .dot-plot__row {
+    grid-template-columns: minmax(0, 32%) minmax(0, 1fr);
+    column-gap: var(--space-4);
+    align-items: center;
+  }
+}
+.dot-plot__label {
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+.dot-plot__row.is-highlight .dot-plot__label {
+  font-weight: var(--font-weight-bold);
+}
+.dot-plot__track {
+  position: relative;
+  height: var(--chart-mark-bar-thickness-h);
+  margin-inline-start: var(--bar-room-negative, 0ch);
+  margin-inline-end: var(--bar-room-positive, 0ch);
+}
+/* The row's guide: a horizontal hairline across the whole track, labels' room included. */
+.dot-plot__track::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: calc(-1 * var(--bar-room-negative, 0ch));
+  right: calc(-1 * var(--bar-room-positive, 0ch));
+  border-top: var(--border-hairline) solid var(--chart-grid);
+}
+.dot-plot__line {
+  position: absolute;
+  top: 50%;
+  height: var(--chart-mark-bar-gap);
+  translate: 0 -50%;
+  background: var(--chart-context);
+  forced-color-adjust: none;
+  print-color-adjust: exact;
+}
+.dot-plot__dot {
+  position: absolute;
+  top: 50%;
+  width: calc(var(--chart-mark-marker) + 2 * var(--chart-mark-bar-gap));
+  height: calc(var(--chart-mark-marker) + 2 * var(--chart-mark-bar-gap));
+  translate: -50% -50%;
+  border: var(--chart-mark-bar-gap) solid var(--color-paper);
+  border-radius: 50%;
+  background: var(--chart-mark);
+  z-index: 1;
+  forced-color-adjust: none;
+  print-color-adjust: exact;
+}
+.dot-plot__row.is-active .dot-plot__dot {
+  opacity: 0.8;
+}
+.dot-plot__value {
+  position: absolute;
+  top: 50%;
+  translate: 0 -50%;
+  padding-inline: var(--space-3);
+  color: var(--color-ink);
+  white-space: nowrap;
+}
+.dot-plot__value.is-highlight {
+  font-weight: var(--font-weight-bold);
+  color: var(--chart-highlight);
+}
+.dot-plot__value.is-highlight-neutral {
+  font-weight: var(--font-weight-bold);
+  color: var(--chart-neutral-highlight);
+}
+/* "No data" sits in the label room past the track's end, away from the row's other dot. */
+.dot-plot__value--missing {
+  color: var(--color-ink-2);
+}
+
+@media (forced-colors: active) {
+  .dot-plot__dot {
+    background: CanvasText;
+    border-color: Canvas;
+  }
+  .dot-plot__dot.chart-colour--highlight,
+  .dot-plot__dot.chart-colour--highlight-neutral {
+    background: Highlight;
+  }
+  .dot-plot__line {
+    background: GrayText;
+  }
+}

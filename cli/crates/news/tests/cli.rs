@@ -7,12 +7,16 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
+#[path = "cli/check.rs"]
+mod check;
 #[path = "cli/components.rs"]
 mod components;
 #[path = "cli/contract.rs"]
 mod contract;
 #[path = "cli/contracts.rs"]
 mod contracts;
+#[path = "cli/proof.rs"]
+mod proof;
 #[path = "cli/retired.rs"]
 mod retired;
 #[path = "cli/secrets.rs"]
@@ -425,4 +429,52 @@ fn errors_never_produce_a_panic_message() {
         assert!(!stderr.contains("panicked"), "{args:?} panicked: {stderr}");
         assert_eq!(assert.get_output().status.code(), Some(2), "{args:?}");
     }
+}
+
+// --- Nose ---------------------------------------------------------------------------------
+
+#[test]
+fn scores_weights_prints_scorer_config_v1_without_a_database() {
+    let (env, code, stderr) = call(&["scores", "weights"]);
+    assert_eq!(code, 0, "{env} {stderr}");
+    let d = &env["data"];
+    assert_eq!(
+        (d["live"].as_str(), d["version"].as_str()),
+        (Some("seed"), Some("v1"))
+    );
+    assert_eq!(d["weights"]["I"], 0.30);
+    assert_eq!(d["weights"]["G"], 0.10);
+    assert_eq!(d["half_life_hours"]["report"], 96.0);
+    assert_eq!(d["event_weights"]["policy_major"], 1.0);
+    assert_eq!(d["coverage_targets"]["region"]["india"], 0.15);
+}
+
+#[test]
+fn huddle_commands_refuse_bad_input_before_the_database() {
+    for (args, code, kind) in [
+        (vec!["scores", "adopt", "v-two"], 2, "usage"),
+        (vec!["scores", "propose"], 2, "usage"),
+        (
+            vec!["scores", "label", "--run", "r_1", "no-such-file.json"],
+            3,
+            "not_found",
+        ),
+    ] {
+        let (env, got, _) = call(&args);
+        assert_eq!(
+            (got, env["error"]["code"].as_str()),
+            (code, Some(kind)),
+            "{args:?}: {env}"
+        );
+    }
+}
+
+#[test]
+fn plan_refuses_a_run_that_is_not_a_uuid_before_the_database() {
+    let (env, code, _) = call(&["plan", "--run", "r_51d2"]);
+    assert_eq!(
+        (code, env["error"]["code"].as_str()),
+        (2, Some("usage")),
+        "{env}"
+    );
 }
