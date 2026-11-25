@@ -394,6 +394,10 @@ impl WriteApi for Fake {
         *self.1.lock().unwrap() += 1;
         self.0.lock().unwrap().pop().expect("an answer")
     }
+    async fn post_rollback(&self, _: &str, _: &str, _: Vec<u8>) -> Result<CurationReply, ApiError> {
+        *self.1.lock().unwrap() += 1;
+        self.0.lock().unwrap().pop().expect("an answer")
+    }
 }
 
 fn live(version: i32) -> CurationReply {
@@ -454,4 +458,41 @@ async fn a_retryable_answer_is_sent_again_and_a_rejection_is_not() {
         .await
         .unwrap_err();
     assert_eq!(err.code, ErrorCode::Precondition);
+}
+
+#[tokio::test]
+async fn a_rollback_uses_the_rollback_route_and_maps_a_missing_version_to_not_found() {
+    use crate::api::send_to;
+    use crate::rollback::{body, idempotency_key};
+    let api = Fake::new(vec![Ok(live(3))]);
+    assert_eq!(
+        send_to(&api, true, "k", "b", &body(3), FAST)
+            .await
+            .unwrap()
+            .live_version,
+        3
+    );
+    let missing = ApiError::Rejected {
+        status: 404,
+        code: "not_found".into(),
+        message: "no such version".into(),
+        details: Value::Null,
+    };
+    let err = send_to(
+        &Fake::new(vec![Err(missing)]),
+        true,
+        "k",
+        "b",
+        &body(9),
+        FAST,
+    )
+    .await
+    .unwrap_err();
+    assert_eq!(err.code, ErrorCode::NotFound);
+    // The key names the version and the live draft: a resend is the same request, a later rollback to
+    // the same version after another publish is not.
+    assert_eq!(idempotency_key(3, 7), idempotency_key(3, 7));
+    assert_ne!(idempotency_key(3, 7), idempotency_key(3, 8));
+    assert_ne!(idempotency_key(3, 7), idempotency_key(2, 7));
+    assert_eq!(body(3), br#"{"version":3}"#);
 }

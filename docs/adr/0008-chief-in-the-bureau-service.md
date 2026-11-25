@@ -336,6 +336,7 @@ The contracts in `contracts/hotline/` are the list. Owner is the issue that impl
 | `docker.start`, `docker.stop`, `service.update` | H | #29 |
 | `huddle.questions` | R | #19 |
 | `huddle.answer` | H | #19 (stores the labels; completing the form step is Chief's, with the Huddle step handlers) |
+| `home.rollback` | H | #20 (`POST /v1/home/curation/rollback`, then the local record; the key is read by Press's `write_key`) |
 | `content.*` | H | later issues (names reserved) |
 
 Topics: `run`, `gate`, `lineup`, `schedule`, `usage`, `standing`, `service` (#10); `source` (#9, #16) and `huddle` (#19) have contracts now and are emitted when their subsystems land. `lagged` is the bus's own.

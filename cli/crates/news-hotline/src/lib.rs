@@ -580,7 +580,7 @@ mod tests {
     fn every_contract_compiles_and_registers_its_tier() {
         let c = contracts();
         assert!(c.complete());
-        assert_eq!(c.commands().count(), 26);
+        assert_eq!(c.commands().count(), 27);
         for (name, tier) in [
             ("status", Tier::R),
             ("standing.get", Tier::R),
@@ -590,6 +590,7 @@ mod tests {
             ("docker.start", Tier::H),
             ("huddle.answer", Tier::H),
             ("huddle.questions", Tier::R),
+            ("home.rollback", Tier::H),
         ] {
             assert_eq!(c.command(name).unwrap().tier, tier, "{name}");
         }

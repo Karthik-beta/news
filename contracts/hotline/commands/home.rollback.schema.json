@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/hotline/commands/home.rollback.schema.json",
+  "title": "Hotline home.rollback",
+  "description": "Make an earlier home page curation live again (Bureau §6.4, ADR 0005): `POST /v1/home/curation/rollback` on the write API, then the local record. The version must be one this laptop published; naming the live version changes nothing. Board's published-content action; the command has no CLI form. Input is the request's args; output is the reply envelope's data.",
+  "x-news-tier": "H",
+  "x-hotline-from": ["board"],
+  "x-news-status": "#20",
+  "x-news-cli": null,
+  "x-news-errors": ["usage", "not_found", "conflict", "precondition", "upstream_unavailable"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 999999,
+          "description": "The curation version to make live"
+        }
+      },
+      "required": ["version"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "The newest curation version the API holds"
+        },
+        "live_version": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "The version that is live now"
+        },
+        "already_live": {
+          "type": "boolean"
+        },
+        "purged": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "text": {
+          "$ref": "../common.schema.json#/$defs/text"
+        }
+      },
+      "required": ["version", "live_version", "already_live", "purged", "text"],
+      "additionalProperties": false
+    }
+  }
+}

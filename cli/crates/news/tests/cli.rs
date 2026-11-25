@@ -470,6 +470,16 @@ fn huddle_commands_refuse_bad_input_before_the_database() {
 }
 
 #[test]
+fn update_refuses_a_page_that_is_not_an_id_before_the_database() {
+    let (env, code, _) = call(&["update", "Not A Page"]);
+    assert_eq!(
+        (code, env["error"]["code"].as_str()),
+        (2, Some("usage")),
+        "{env}"
+    );
+}
+
+#[test]
 fn plan_refuses_a_run_that_is_not_a_uuid_before_the_database() {
     let (env, code, _) = call(&["plan", "--run", "r_51d2"]);
     assert_eq!(

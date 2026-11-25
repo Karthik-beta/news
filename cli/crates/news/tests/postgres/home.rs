@@ -190,6 +190,19 @@ impl WriteApi for FakeApi {
             .push((key.into(), bearer.into(), body));
         self.answers.lock().unwrap().pop().expect("an answer")
     }
+
+    async fn post_rollback(
+        &self,
+        key: &str,
+        bearer: &str,
+        body: Vec<u8>,
+    ) -> Result<CurationReply, ApiError> {
+        self.calls
+            .lock()
+            .unwrap()
+            .push((key.into(), bearer.into(), body));
+        self.answers.lock().unwrap().pop().expect("an answer")
+    }
 }
 
 fn live(version: i32) -> Result<CurationReply, ApiError> {
@@ -346,4 +359,117 @@ async fn a_crash_after_approval_resends_the_same_bytes_and_a_withdrawn_page_stop
     .unwrap_err();
     assert_eq!(err.code, ErrorCode::ValidationFailed);
     assert!(none.calls.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn rollback_makes_an_earlier_curation_live_and_names_only_known_versions() {
+    use news_home::rollback::rollback;
+    let f = Fixture::migrated().await;
+    for (version, status) in [(1, "superseded"), (2, "published")] {
+        sqlx::query(
+            "insert into home_curations (status, version, slots, published_at)
+             values ($1, $2, '{\"lead\": {\"page_id\": \"home-p0\"}, \"side\": [], \"sections\": []}'::jsonb, $3)",
+        )
+        .bind(status)
+        .bind(version)
+        .bind(now())
+        .execute(&f.pool)
+        .await
+        .unwrap();
+    }
+
+    // An unknown version never reads the key or calls the API.
+    let api = FakeApi::new(vec![]);
+    let err = rollback(&f.pool, 9, &api, || panic!("the key was read"), FAST)
+        .await
+        .unwrap_err();
+    assert_eq!(err.code, ErrorCode::NotFound);
+    // The live version is already live: nothing to send.
+    let out = rollback(&f.pool, 2, &api, || panic!("the key was read"), FAST)
+        .await
+        .unwrap();
+    assert_eq!(out["already_live"], true);
+    assert!(api.calls.lock().unwrap().is_empty());
+
+    // Version 1 goes live: one POST with the version, the key named for it, and the rows swap.
+    let api = FakeApi::new(vec![Err(ApiError::Retry("502".into())), live(1)]);
+    let out = rollback(&f.pool, 1, &api, || Ok("the-key".into()), FAST)
+        .await
+        .unwrap();
+    assert_eq!(out["live_version"], 1);
+    let calls = api.calls.lock().unwrap().clone();
+    assert_eq!(calls.len(), 2);
+    assert_eq!(calls[0], calls[1], "a resend is the same request");
+    assert!(calls[0].0.starts_with("home-rollback:1:"));
+    assert_eq!(
+        serde_json::from_slice::<Value>(&calls[0].2).unwrap(),
+        json!({"version": 1})
+    );
+    let rows: Vec<(i32, String)> =
+        sqlx::query_as("select version, status from home_curations order by version")
+            .fetch_all(&f.pool)
+            .await
+            .unwrap();
+    assert_eq!(
+        rows,
+        [(1, "published".to_owned()), (2, "superseded".to_owned())]
+    );
+    let shown = ops::show(&f.pool, now()).await.unwrap();
+    assert_eq!(shown["version"], 1);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn home_rollback_is_accepted_only_from_board() {
+    use news_hotline::{Bus, Peer, Service};
+    use std::sync::Arc;
+    let f = Fixture::migrated().await;
+    let state = Arc::new(news_service::State::default());
+    state.set(news_chief::board::ServiceState::Up);
+    let bureau = Arc::new(news_service::handlers::Bureau::new(
+        state,
+        Arc::new(Bus::default()),
+        Arc::new(news_service::log::LogRing::default()),
+    ));
+    bureau.set_core(Some(Arc::new(news_service::handlers::Core {
+        db: f.pool.clone(),
+        chief: news_chief::Chief::builder(f.pool.clone(), Arc::new(news_core::clock::SystemClock))
+            .build(),
+        policy: Arc::new(news_chief::AllowAll),
+        stopper: Arc::new(news_chief::NoStopper),
+    })));
+    let call = |peer: Peer, args: Value| {
+        let svc: Arc<dyn Service> = bureau.clone();
+        async move {
+            let (mut client, server) = tokio::io::duplex(1 << 20);
+            let h = tokio::spawn(news_hotline::serve_conn(server, peer, svc));
+            let env = news_hotline::call(&mut client, "t-1", "home.rollback", args)
+                .await
+                .unwrap();
+            drop(client);
+            let _ = h.await;
+            env
+        }
+    };
+    let terminal = Peer {
+        argv1_is_board: false,
+        ..Peer::board()
+    };
+    // A terminal, a script or an AI job is refused as `gated`, and the refusal is logged.
+    let env = call(terminal, json!({"version": 1})).await;
+    assert_eq!(env["error"]["code"], "gated", "{env}");
+    assert_eq!(
+        f.scalar_i64(
+            "select count(*) from hotline_refusals where cmd = 'home.rollback' and refusal = 'not_board'"
+        )
+        .await,
+        1
+    );
+    // Args are checked against the contract before the handler runs.
+    let env = call(Peer::board(), json!({"version": 0})).await;
+    assert_eq!(env["error"]["code"], "usage", "{env}");
+    // Board's request reaches the handler: with no write-API origin set it stops there.
+    let env = call(Peer::board(), json!({"version": 1})).await;
+    assert_eq!(env["error"]["code"], "precondition", "{env}");
 }
