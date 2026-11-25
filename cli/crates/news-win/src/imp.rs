@@ -440,14 +440,12 @@ impl Job {
 
 // ---- Low-integrity processes (ADR 0008 §8.2) -------------------------------------------------------
 
-/// A process created suspended with a Low-integrity copy of this process's token, its stdout and
-/// stderr piped to us. It runs nothing until a job adopts it ([`Job::adopt_suspended`]).
+/// A process created suspended with a restricted, Low-integrity copy of this process's token. It runs
+/// nothing until a job adopts it ([`Job::adopt_suspended`]).
 #[derive(Debug)]
 pub struct LowChild {
     process: Handle,
     pub pid: u32,
-    pub stdout: Option<std::fs::File>,
-    pub stderr: Option<std::fs::File>,
 }
 
 impl LowChild {
@@ -481,6 +479,34 @@ impl LowChild {
         Ok(())
     }
 }
+
+/// A SID parsed from a constant string, freed on drop.
+struct LocalSid(PSID);
+
+impl LocalSid {
+    #[allow(unsafe_code)]
+    fn parse(text: &'static str) -> io::Result<Self> {
+        use windows_sys::Win32::Security::Authorization::ConvertStringSidToSidW;
+        let w = wide(text);
+        let mut sid: PSID = null_mut();
+        // SAFETY: `w` is NUL-terminated; `sid` receives a LocalAlloc'd SID freed on drop.
+        if unsafe { ConvertStringSidToSidW(w.as_ptr(), &mut sid) } == 0 {
+            return Err(last());
+        }
+        Ok(Self(sid))
+    }
+}
+
+impl Drop for LocalSid {
+    #[allow(unsafe_code)]
+    fn drop(&mut self) {
+        // SAFETY: frees the SID ConvertStringSidToSidW allocated, once.
+        unsafe { LocalFree(self.0) };
+    }
+}
+
+/// BUILTIN\Administrators.
+const ADMINISTRATORS: &str = "S-1-5-32-544";
 
 /// Quote one argument the way the MSVC runtime (and Rust's `std`) splits a command line.
 fn push_arg(line: &mut String, arg: &str) {
@@ -531,28 +557,29 @@ fn env_block(env: &[(String, String)]) -> Vec<u16> {
     b
 }
 
-/// Start `exe` suspended at Low integrity (ADR 0008 §8.2): `DuplicateTokenEx` of this process's token,
-/// the integrity SID `S-1-16-4096` set with `SetTokenInformation`, then `CreateProcessAsUserW`. The
-/// child gets exactly `env`, `cwd`, `stdin` and two new pipes, and inherits no other handle. The caller
-/// puts it in a job, which resumes it ([`Job::adopt_suspended`]), or kills it.
+/// Start `exe` suspended at Low integrity (ADR 0008 §8.2). The token is `CreateRestrictedToken` of this
+/// process's token with `DISABLE_MAX_PRIVILEGE` (only SeChangeNotifyPrivilege left) and Administrators
+/// deny-only (the SCM applies no UAC filtering), then the integrity SID `S-1-16-4096` set with
+/// `SetTokenInformation`, then `CreateProcessAsUserW`. The child gets exactly `env`, `cwd` and the
+/// three handles: inheritable copies passed only through `PROC_THREAD_ATTRIBUTE_HANDLE_LIST` and
+/// closed straight after, so the caller's own handles are never inheritable. The caller puts it in a
+/// job, which resumes it ([`Job::adopt_suspended`]), or kills it.
 #[allow(unsafe_code)]
 pub fn spawn_low_suspended(
     exe: &std::path::Path,
     args: &[String],
     env: &[(String, String)],
     cwd: &std::path::Path,
-    stdin: std::fs::File,
+    stdin: &std::fs::File,
+    stdout: &std::fs::File,
+    stderr: &std::fs::File,
 ) -> io::Result<LowChild> {
     use std::os::windows::ffi::OsStrExt;
-    use std::os::windows::io::FromRawHandle;
-    use windows_sys::Win32::Foundation::{HANDLE_FLAG_INHERIT, SetHandleInformation};
-    use windows_sys::Win32::Security::Authorization::ConvertStringSidToSidW;
+    use windows_sys::Win32::Foundation::{DUPLICATE_SAME_ACCESS, DuplicateHandle};
     use windows_sys::Win32::Security::{
-        DuplicateTokenEx, GetLengthSid, SID_AND_ATTRIBUTES, SecurityImpersonation,
+        CreateRestrictedToken, DISABLE_MAX_PRIVILEGE, GetLengthSid, SID_AND_ATTRIBUTES,
         SetTokenInformation, TOKEN_ADJUST_DEFAULT, TOKEN_ASSIGN_PRIMARY, TOKEN_DUPLICATE,
-        TokenPrimary,
     };
-    use windows_sys::Win32::System::Pipes::CreatePipe;
     use windows_sys::Win32::System::Threading::{
         CREATE_UNICODE_ENVIRONMENT, CreateProcessAsUserW, DeleteProcThreadAttributeList,
         EXTENDED_STARTUPINFO_PRESENT, InitializeProcThreadAttributeList,
@@ -574,16 +601,24 @@ pub fn spawn_low_suspended(
         return Err(last());
     }
     let own = Handle(own);
+    let admins = LocalSid::parse(ADMINISTRATORS)?;
+    let deny = [SID_AND_ATTRIBUTES {
+        Sid: admins.0,
+        Attributes: 0,
+    }];
     let mut low = null_mut();
-    // SAFETY: a valid token opened with TOKEN_DUPLICATE; `low` receives a primary token we own, with
-    // the same access as `own`.
+    // SAFETY: a valid token opened with TOKEN_DUPLICATE; `deny` outlives the call; `low` receives a
+    // primary token we own.
     if unsafe {
-        DuplicateTokenEx(
+        CreateRestrictedToken(
             own.0,
+            DISABLE_MAX_PRIVILEGE,
+            1,
+            deny.as_ptr(),
             0,
             null(),
-            SecurityImpersonation,
-            TokenPrimary,
+            0,
+            null(),
             &mut low,
         )
     } == 0
@@ -591,54 +626,47 @@ pub fn spawn_low_suspended(
         return Err(last());
     }
     let low = Handle(low);
-    let sid_text = wide("S-1-16-4096");
-    let mut sid: PSID = null_mut();
-    // SAFETY: `sid_text` is NUL-terminated; `sid` receives a LocalAlloc'd SID freed below.
-    if unsafe { ConvertStringSidToSidW(sid_text.as_ptr(), &mut sid) } == 0 {
-        return Err(last());
-    }
+    let low_sid = LocalSid::parse("S-1-16-4096")?;
     let label = TOKEN_MANDATORY_LABEL {
         Label: SID_AND_ATTRIBUTES {
-            Sid: sid,
+            Sid: low_sid.0,
             Attributes: SE_GROUP_INTEGRITY,
         },
     };
     // SAFETY: `label` and the SID it points to are alive for the call; the length covers both.
-    let ok = unsafe {
+    if unsafe {
         SetTokenInformation(
             low.0,
             TokenIntegrityLevel,
             (&label as *const TOKEN_MANDATORY_LABEL).cast(),
-            size_of::<TOKEN_MANDATORY_LABEL>() as u32 + GetLengthSid(sid),
+            size_of::<TOKEN_MANDATORY_LABEL>() as u32 + GetLengthSid(low_sid.0),
         )
-    };
-    let err = last();
-    // SAFETY: freeing the SID once; the kernel has copied it into the token.
-    unsafe { LocalFree(sid) };
-    if ok == 0 {
-        return Err(err);
+    } == 0
+    {
+        return Err(last());
     }
 
-    let pipe = || -> io::Result<(std::fs::File, Handle)> {
-        let (mut r, mut w) = (null_mut(), null_mut());
-        // SAFETY: plain outputs; both new handles are ours and not inheritable.
-        if unsafe { CreatePipe(&mut r, &mut w, null(), 0) } == 0 {
+    let mut copies = Vec::with_capacity(3);
+    for f in [stdin, stdout, stderr] {
+        let mut h = null_mut();
+        // SAFETY: duplicates a valid handle of this process into an inheritable copy we own.
+        if unsafe {
+            DuplicateHandle(
+                GetCurrentProcess(),
+                f.as_raw_handle() as HANDLE,
+                GetCurrentProcess(),
+                &mut h,
+                0,
+                1,
+                DUPLICATE_SAME_ACCESS,
+            )
+        } == 0
+        {
             return Err(last());
         }
-        // SAFETY: `r` is a fresh pipe handle owned by nothing else.
-        Ok((unsafe { std::fs::File::from_raw_handle(r) }, Handle(w)))
-    };
-    let (out_r, out_w) = pipe()?;
-    let (err_r, err_w) = pipe()?;
-    // The child's three handles must be inheritable; the handle list below keeps every other
-    // inheritable handle of this process away from it. The write ends close when this returns.
-    let inherit = [stdin.as_raw_handle() as HANDLE, out_w.0, err_w.0];
-    for h in inherit {
-        // SAFETY: a valid handle we own.
-        if unsafe { SetHandleInformation(h, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT) } == 0 {
-            return Err(last());
-        }
+        copies.push(Handle(h));
     }
+    let inherit = [copies[0].0, copies[1].0, copies[2].0];
 
     let mut size = 0usize;
     // SAFETY: a size query with a null list; it fails by design and sets `size`.
@@ -690,6 +718,8 @@ pub fn spawn_low_suspended(
             ) != 0
     };
     let err = last();
+    // Close the inheritable copies at once, so no other process started from here can inherit them.
+    drop(copies);
     // SAFETY: the list was initialised above and is deleted once, after its last use.
     unsafe { DeleteProcThreadAttributeList(list) };
     if !ok {
@@ -700,14 +730,45 @@ pub fn spawn_low_suspended(
     Ok(LowChild {
         process: Handle(pi.hProcess),
         pid: pi.dwProcessId,
-        stdout: Some(out_r),
-        stderr: Some(err_r),
     })
 }
 
-/// The integrity RID of process `pid` (0x1000 Low, 0x2000 Medium).
+/// What a process's token holds, for the Low-integrity check (ADR 0008 §8.2).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TokenFacts {
+    /// 0x1000 Low, 0x2000 Medium.
+    pub integrity_rid: u32,
+    /// BUILTIN\Administrators is in the token and enabled (not deny-only).
+    pub admins_enabled: bool,
+    /// The names of the enabled privileges.
+    pub privileges_enabled: Vec<String>,
+}
+
+/// A token information class's buffer, 8-byte aligned.
 #[allow(unsafe_code)]
-pub fn process_integrity(pid: u32) -> io::Result<u32> {
+fn token_info(
+    token: HANDLE,
+    class: windows_sys::Win32::Security::TOKEN_INFORMATION_CLASS,
+) -> io::Result<Vec<u64>> {
+    let mut len = 0u32;
+    // SAFETY: a size query with a null buffer.
+    unsafe { GetTokenInformation(token, class, null_mut(), 0, &mut len) };
+    let mut buf = vec![0u64; (len as usize).div_ceil(8)];
+    // SAFETY: `buf` has at least `len` bytes.
+    if unsafe { GetTokenInformation(token, class, buf.as_mut_ptr().cast(), len, &mut len) } == 0 {
+        return Err(last());
+    }
+    Ok(buf)
+}
+
+/// The token facts of process `pid`.
+#[allow(unsafe_code)]
+pub fn process_token(pid: u32) -> io::Result<TokenFacts> {
+    use windows_sys::Win32::Security::{
+        LUID_AND_ATTRIBUTES, LookupPrivilegeNameW, SE_PRIVILEGE_ENABLED, SID_AND_ATTRIBUTES,
+        TOKEN_GROUPS, TOKEN_PRIVILEGES, TokenGroups, TokenPrivileges,
+    };
+    const SE_GROUP_ENABLED: u32 = 0x4;
     let p = open_process(pid, PROCESS_QUERY_LIMITED_INFORMATION)?;
     let mut tok = null_mut();
     // SAFETY: a valid process handle; `tok` receives a token handle we own.
@@ -715,7 +776,46 @@ pub fn process_integrity(pid: u32) -> io::Result<u32> {
         return Err(last());
     }
     let tok = Handle(tok);
-    token_integrity(tok.0)
+    let groups = token_info(tok.0, TokenGroups)?;
+    // SAFETY: the buffer holds a TOKEN_GROUPS followed by its GroupCount entries, each SID pointing
+    // into the same buffer, which outlives the slice.
+    let groups: &[SID_AND_ATTRIBUTES] = unsafe {
+        let g = groups.as_ptr().cast::<TOKEN_GROUPS>();
+        std::slice::from_raw_parts(
+            std::ptr::addr_of!((*g).Groups).cast(),
+            (*g).GroupCount as usize,
+        )
+    };
+    let admins_enabled = groups.iter().any(|a| {
+        a.Attributes & SE_GROUP_ENABLED != 0 && sid_string(a.Sid).is_ok_and(|s| s == ADMINISTRATORS)
+    });
+    let privs = token_info(tok.0, TokenPrivileges)?;
+    // SAFETY: as above, a TOKEN_PRIVILEGES followed by its PrivilegeCount entries.
+    let privs: &[LUID_AND_ATTRIBUTES] = unsafe {
+        let t = privs.as_ptr().cast::<TOKEN_PRIVILEGES>();
+        std::slice::from_raw_parts(
+            std::ptr::addr_of!((*t).Privileges).cast(),
+            (*t).PrivilegeCount as usize,
+        )
+    };
+    let mut privileges_enabled = Vec::new();
+    for p in privs
+        .iter()
+        .filter(|p| p.Attributes & SE_PRIVILEGE_ENABLED != 0)
+    {
+        let mut name = [0u16; 128];
+        let mut n = name.len() as u32;
+        // SAFETY: `name` holds `n` u16s; `p.Luid` is a plain value.
+        if unsafe { LookupPrivilegeNameW(null(), &p.Luid, name.as_mut_ptr(), &mut n) } == 0 {
+            return Err(last());
+        }
+        privileges_enabled.push(String::from_utf16_lossy(&name[..n as usize]));
+    }
+    Ok(TokenFacts {
+        integrity_rid: token_integrity(tok.0)?,
+        admins_enabled,
+        privileges_enabled,
+    })
 }
 
 #[cfg(test)]

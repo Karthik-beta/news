@@ -532,16 +532,44 @@ async fn the_call_runs_at_low_integrity_and_writes_only_its_work_folder() {
         MemStore::default(),
         true,
     ));
+    // Plain std spawns all through the call, as the service's other jobs make: none may inherit the
+    // call's handles and so keep Ghost waiting after `claude` exits. They live until `sleepers/go`.
+    let sleepers = s.dir.join("sleepers");
+    std::fs::create_dir_all(&sleepers).unwrap();
+    let stop = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let spawner = {
+        let (stop, sleepers) = (stop.clone(), sleepers.clone());
+        std::thread::spawn(move || {
+            let mut kids = Vec::new();
+            while !stop.load(std::sync::atomic::Ordering::Relaxed) {
+                kids.push(
+                    std::process::Command::new(env!("CARGO_BIN_EXE_fake-claude"))
+                        .arg("--fake-sleep")
+                        .current_dir(&sleepers)
+                        .stdin(std::process::Stdio::null())
+                        .stdout(std::process::Stdio::null())
+                        .stderr(std::process::Stdio::null())
+                        .spawn()
+                        .unwrap(),
+                );
+                std::thread::sleep(std::time::Duration::from_millis(20));
+            }
+            kids
+        })
+    };
     let s2 = s.clone();
     let task = tokio::spawn(async move { s2.ghost.run(job("ai.write", 20, Uuid::new_v4())).await });
     let dir = s.ghost.work.join("20");
     let rec = first_record(&dir).await;
     for key in ["pid", "grandchild"] {
         let pid = u32::try_from(rec[key].as_u64().unwrap()).unwrap();
+        let t = news_win::process_token(pid).unwrap();
+        assert_eq!(t.integrity_rid, 0x1000, "{key} is not at Low integrity");
+        assert!(!t.admins_enabled, "{key} has Administrators enabled");
         assert_eq!(
-            news_win::process_integrity(pid).unwrap(),
-            0x1000,
-            "{key} is not at Low integrity"
+            t.privileges_enabled,
+            ["SeChangeNotifyPrivilege"],
+            "{key} keeps privileges"
         );
     }
     assert_eq!(
@@ -557,7 +585,20 @@ async fn the_call_runs_at_low_integrity_and_writes_only_its_work_folder() {
         .collect();
     assert_eq!(temp, [dir.to_string_lossy(), dir.to_string_lossy()]);
     std::fs::write(dir.join("go"), "").unwrap();
-    assert_eq!(task.await.unwrap().unwrap()["valid"], true);
+    // The call's output is read as soon as it exits, while the sleepers still live.
+    let out = tokio::time::timeout(std::time::Duration::from_secs(60), task)
+        .await
+        .expect("Ghost still waits after claude exited")
+        .unwrap()
+        .unwrap();
+    assert_eq!(out["valid"], true);
+    stop.store(true, std::sync::atomic::Ordering::Relaxed);
+    let kids = spawner.join().unwrap();
+    assert!(!kids.is_empty());
+    std::fs::write(sleepers.join("go"), "").unwrap();
+    for mut k in kids {
+        k.wait().unwrap();
+    }
     s.ghost.job.as_ref().unwrap().terminate().unwrap();
 }
 

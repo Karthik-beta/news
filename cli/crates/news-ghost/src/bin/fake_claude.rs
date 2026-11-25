@@ -13,7 +13,7 @@ use std::time::Duration;
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.first().map(String::as_str) == Some("--fake-sleep") {
-        // It inherits its parent's stdout pipe (Windows inherits handles), so it lives only until the
+        // It inherits its parent's stdout (Windows inherits handles), so it lives only until the
         // test's `go`, or Ghost would wait for it.
         wait_for_go();
         return;

@@ -487,7 +487,9 @@ impl Ghost {
         let env = claude::child_env(&self.parent_env, input.run_id, input.job_id, step);
         let started = Instant::now();
         #[cfg(windows)]
-        let waited = self.spawn_low(stdin, &args, env, cwd).await?;
+        let waited = self
+            .spawn_low(stdin, &args, env, cwd, &format!("{}.{step}", input.attempt))
+            .await?;
         #[cfg(not(windows))]
         let waited = {
             use std::process::Stdio;
@@ -535,7 +537,9 @@ impl Ghost {
 
     /// The Windows call (ADR 0008 §8.2): `claude -p` is created suspended with a Low-integrity token,
     /// put in the AI Job Object and only then resumed. Its work folder is labelled Low, so it is the
-    /// only place the call can write; its temp files go there too.
+    /// only place the call can write; its temp files go there too. Its stdout and stderr are files in
+    /// that folder (`<tag>.stdout`, `<tag>.stderr`), read once it exits: no pipe, so a process that
+    /// holds a copy of the handle (a grandchild, or anything started meanwhile) cannot stall the call.
     #[cfg(windows)]
     async fn spawn_low(
         &self,
@@ -543,6 +547,7 @@ impl Ghost {
         args: &[String],
         mut env: Vec<(String, String)>,
         cwd: &Path,
+        tag: &str,
     ) -> Result<Waited, JobFailure> {
         let Some(job) = &self.job else {
             return Err(bug(
@@ -554,16 +559,20 @@ impl Ghost {
         env.retain(|(k, _)| !["TEMP", "TMP"].contains(&k.to_ascii_uppercase().as_str()));
         let here = cwd.to_string_lossy().into_owned();
         env.extend(["TEMP", "TMP"].map(|k| (k.to_owned(), here.clone())));
-        let mut child = news_win::spawn_low_suspended(&self.claude, args, &env, cwd, stdin)
-            .map_err(|e| self.start_failed(e))?;
-        if let Err(e) = job.adopt_suspended(child.pid) {
-            // Still suspended: it never ran an instruction outside the job.
-            let _ = child.kill();
-            return Err(bug(format!("cannot put claude in the AI Job Object: {e}")));
-        }
-        let (out, err) = (child.stdout.take(), child.stderr.take());
+        let (out_path, err_path) = (
+            cwd.join(format!("{tag}.stdout")),
+            cwd.join(format!("{tag}.stderr")),
+        );
+        let (out, err) = std::fs::File::create(&out_path)
+            .and_then(|o| Ok((o, std::fs::File::create(&err_path)?)))
+            .map_err(|e| JobFailure::new(ErrorClass::Transient, format!("call output: {e}")))?;
+        let child =
+            news_win::spawn_low_suspended(&self.claude, args, &env, cwd, &stdin, &out, &err)
+                .map_err(|e| self.start_failed(e))?;
+        drop((stdin, out, err));
         let child = Arc::new(child);
-        /// Kills the child when the call ends or its future is dropped (a no-op once it has exited).
+        /// Kills the child when the call ends, fails or its future is dropped (a no-op once it has
+        /// exited), so the blocking wait below always returns.
         struct Kill(Arc<news_win::LowChild>);
         impl Drop for Kill {
             fn drop(&mut self) {
@@ -571,28 +580,20 @@ impl Ghost {
             }
         }
         let _kill = Kill(child.clone());
-        let done = tokio::task::spawn_blocking(move || {
-            let read = |f: Option<std::fs::File>| {
-                std::thread::spawn(move || {
-                    let mut b = Vec::new();
-                    if let Some(mut f) = f {
-                        let _ = std::io::Read::read_to_end(&mut f, &mut b);
-                    }
-                    b
-                })
-            };
-            let (o, e) = (read(out), read(err));
-            let code = child.wait()?;
-            Ok((
-                Some(code as i32),
-                o.join().unwrap_or_default(),
-                e.join().unwrap_or_default(),
-            ))
-        });
-        Ok(tokio::time::timeout(CALL_TIMEOUT, async {
-            done.await.unwrap_or_else(|e| Err(std::io::Error::other(e)))
-        })
-        .await)
+        // On an error it is still suspended: it never ran an instruction outside the job.
+        job.adopt_suspended(child.pid)
+            .map_err(|e| bug(format!("cannot put claude in the AI Job Object: {e}")))?;
+        let done = tokio::task::spawn_blocking(move || child.wait());
+        Ok(tokio::time::timeout(CALL_TIMEOUT, done)
+            .await
+            .map(|joined| {
+                let code = joined.map_err(std::io::Error::other)??;
+                Ok((
+                    Some(code as i32),
+                    std::fs::read(&out_path)?,
+                    std::fs::read(&err_path)?,
+                ))
+            }))
     }
 }
 
