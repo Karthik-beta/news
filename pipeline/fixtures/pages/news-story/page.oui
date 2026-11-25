@@ -1,0 +1,4 @@
+root = Page([facts, statement, vote])
+facts = Prose(["The Federal Open Market Committee lowered the target range for the federal funds rate, its statement said, citing the shift in the balance of risks. It described the economy in these words:"])
+statement = Quote("q_7001_1")
+vote = Prose(["Stephen I. Miran voted against the action, the statement said; he preferred a larger reduction. The other members present voted for it."])

@@ -1,0 +1,22 @@
+{
+  "headline": "The ECB's main refinancing rate has been {dp_ayvmv67k6qwi2tu5} since {pd_2026_09_16}",
+  "fly_title": "Euro-area interest rates",
+  "summary": "The rate replaced {dp_zqmtgkcrnjro6jq4}, which had applied since {pd_2026_06_17}. The figures come from the ECB Data Portal.",
+  "oui": "root = Page([decision, explain, timeline])\ndecision = PolicyDecision(\"Main refinancing operations, fixed rate\", \"dp_ayvmv67k6qwi2tu5\", null, [{label: \"In effect from\", value: \"pd_2026_09_16\"}, {label: \"Previous rate\", value: \"dp_zqmtgkcrnjro6jq4\"}, {label: \"Context\", value: \"cx_1\"}], path)\npath = StepLineChart(\"The rate in effect is above the rate it replaced\", \"Main refinancing operations, fixed rate, % per annum, {pd_2023_08_02} to {pd_2026_09_16}\", [\"sr_liw7sejpktdh\"], [\"pd_2026_06_17\", \"pd_2026_09_16\"], \"sr_liw7sejpktdh\")\nexplain = Prose([\"The ECB Data Portal publishes the rate as main refinancing operations, fixed rate, and records a new value on the date a change takes effect. Its series is the source of every figure on this page.\"])\ntimeline = Timeline([{date: \"pd_2026_06_17\", text: \"The rate became {dp_zqmtgkcrnjro6jq4}.\"}, {date: \"pd_2026_09_16\", text: \"The rate became {dp_ayvmv67k6qwi2tu5}.\"}], \"pd_2026_09_16\")\n",
+  "refs_used": [
+    "cx_1",
+    "dp_ayvmv67k6qwi2tu5",
+    "dp_zqmtgkcrnjro6jq4",
+    "pd_2023_08_02",
+    "pd_2026_06_17",
+    "pd_2026_09_16",
+    "sr_liw7sejpktdh"
+  ],
+  "components_used": [
+    "PolicyDecision",
+    "StepLineChart",
+    "Prose",
+    "Timeline"
+  ],
+  "angle": "decision"
+}

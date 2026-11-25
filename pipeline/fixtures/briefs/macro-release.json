@@ -1,0 +1,265 @@
+{
+  "brief_version": 1,
+  "item": {
+    "story_id": 91002,
+    "event_key": "macro:us.payrolls:2026-10",
+    "page_type": "macro-release",
+    "tier": 1,
+    "action": "new",
+    "slug_hint": "macro-us-payrolls-2026-10",
+    "data_as_of": "2026-11-16"
+  },
+  "entities": [
+    {
+      "id": "ent_us",
+      "name": "United States",
+      "kind": "country"
+    },
+    {
+      "id": "ent_bls",
+      "name": "U.S. Bureau of Labor Statistics",
+      "kind": "agency"
+    }
+  ],
+  "facts": [
+    {
+      "ref": "dp_gpi4efi6yvfglffl",
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "value": "159293",
+      "unit": "All employees, thousands",
+      "period": "October 2026"
+    },
+    {
+      "ref": "dp_d3dyoy567d4dmwxy",
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted",
+      "value": "4.1",
+      "unit": "Percent",
+      "period": "October 2026"
+    },
+    {
+      "ref": "dv_yyq6cr6uzdblv43a",
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted, change from September 2026",
+      "value": "0.1",
+      "unit": "Percent",
+      "period": "October 2026",
+      "derived": "pct_change"
+    },
+    {
+      "ref": "dv_hzhp6st6d7rlartc",
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted, change from October 2025",
+      "value": "0.6",
+      "unit": "Percent",
+      "period": "October 2026",
+      "derived": "pct_change"
+    },
+    {
+      "ref": "dv_fko7bfznuds36xaj",
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted, change from September 2026",
+      "value": "-0.1",
+      "unit": "Percentage points",
+      "period": "October 2026",
+      "derived": "pp_change"
+    },
+    {
+      "ref": "dp_uagycyae7rcarms2",
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "value": "159128",
+      "unit": "All employees, thousands",
+      "period": "September 2026"
+    },
+    {
+      "ref": "dp_gihbhes2orplnusi",
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "value": "158408",
+      "unit": "All employees, thousands",
+      "period": "October 2025"
+    },
+    {
+      "ref": "dp_owvaajuazcbf5n2u",
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted",
+      "value": "4.2",
+      "unit": "Percent",
+      "period": "September 2026"
+    }
+  ],
+  "series": [
+    {
+      "ref": "sr_3bj36ttsa3ar",
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted, January 2024 to October 2026",
+      "points": 34
+    },
+    {
+      "ref": "sr_yahxrdyv7qax",
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted, January 2024 to October 2026",
+      "points": 33
+    }
+  ],
+  "periods": [
+    {
+      "ref": "pd_2026_10",
+      "label": "October 2026"
+    },
+    {
+      "ref": "pd_2024_01",
+      "label": "January 2024"
+    },
+    {
+      "ref": "pd_2024_02",
+      "label": "February 2024"
+    },
+    {
+      "ref": "pd_2024_03",
+      "label": "March 2024"
+    },
+    {
+      "ref": "pd_2024_04",
+      "label": "April 2024"
+    },
+    {
+      "ref": "pd_2024_05",
+      "label": "May 2024"
+    },
+    {
+      "ref": "pd_2024_06",
+      "label": "June 2024"
+    },
+    {
+      "ref": "pd_2024_07",
+      "label": "July 2024"
+    },
+    {
+      "ref": "pd_2024_08",
+      "label": "August 2024"
+    },
+    {
+      "ref": "pd_2024_09",
+      "label": "September 2024"
+    },
+    {
+      "ref": "pd_2024_10",
+      "label": "October 2024"
+    },
+    {
+      "ref": "pd_2024_11",
+      "label": "November 2024"
+    },
+    {
+      "ref": "pd_2024_12",
+      "label": "December 2024"
+    },
+    {
+      "ref": "pd_2025_01",
+      "label": "January 2025"
+    },
+    {
+      "ref": "pd_2025_02",
+      "label": "February 2025"
+    },
+    {
+      "ref": "pd_2025_03",
+      "label": "March 2025"
+    },
+    {
+      "ref": "pd_2025_04",
+      "label": "April 2025"
+    },
+    {
+      "ref": "pd_2025_05",
+      "label": "May 2025"
+    },
+    {
+      "ref": "pd_2025_06",
+      "label": "June 2025"
+    },
+    {
+      "ref": "pd_2025_07",
+      "label": "July 2025"
+    },
+    {
+      "ref": "pd_2025_08",
+      "label": "August 2025"
+    },
+    {
+      "ref": "pd_2025_09",
+      "label": "September 2025"
+    },
+    {
+      "ref": "pd_2025_10",
+      "label": "October 2025"
+    },
+    {
+      "ref": "pd_2025_11",
+      "label": "November 2025"
+    },
+    {
+      "ref": "pd_2025_12",
+      "label": "December 2025"
+    },
+    {
+      "ref": "pd_2026_01",
+      "label": "January 2026"
+    },
+    {
+      "ref": "pd_2026_02",
+      "label": "February 2026"
+    },
+    {
+      "ref": "pd_2026_03",
+      "label": "March 2026"
+    },
+    {
+      "ref": "pd_2026_04",
+      "label": "April 2026"
+    },
+    {
+      "ref": "pd_2026_05",
+      "label": "May 2026"
+    },
+    {
+      "ref": "pd_2026_06",
+      "label": "June 2026"
+    },
+    {
+      "ref": "pd_2026_07",
+      "label": "July 2026"
+    },
+    {
+      "ref": "pd_2026_08",
+      "label": "August 2026"
+    },
+    {
+      "ref": "pd_2026_09",
+      "label": "September 2026"
+    }
+  ],
+  "context": [
+    {
+      "id": "cx_1",
+      "text": "All employees, thousands, total nonfarm, seasonally adjusted: highest of every observation held, which begin in January 2024",
+      "rule": "series_record_high"
+    }
+  ],
+  "quotes": [],
+  "source_text": {
+    "untrusted": true,
+    "points": []
+  },
+  "media": {
+    "images": [],
+    "video": null
+  },
+  "related_pages": [],
+  "components": {
+    "suggested": [
+      "KeyFigures",
+      "LineChart",
+      "BarChart",
+      "Prose",
+      "DataTable"
+    ]
+  },
+  "rules": {
+    "disclaimer": "not-investment-advice",
+    "fiscal_note": null
+  }
+}

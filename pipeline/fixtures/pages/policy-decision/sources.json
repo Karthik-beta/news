@@ -1,0 +1,21 @@
+{
+  "sources": {
+    "src_ecb_mrr": {
+      "connector": "ecb",
+      "licence": {
+        "name": "ECB terms of use",
+        "redistribution": false,
+        "url": "https://www.ecb.europa.eu/services/disclaimer/html/index.en.html"
+      },
+      "primary": true,
+      "published_at": null,
+      "publisher": "European Central Bank",
+      "retrieved_at": "2026-11-18",
+      "short": "ECB Data Portal",
+      "title": "ECB Data Portal: main refinancing operations, fixed rate",
+      "type": "dataset",
+      "url": "https://data.ecb.europa.eu/data/datasets/FM/FM.B.U2.EUR.4F.KR.MRR_FR.LEV"
+    }
+  },
+  "version": 1
+}

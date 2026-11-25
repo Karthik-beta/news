@@ -1,0 +1,19 @@
+{
+  "context": {},
+  "derived": {},
+  "periods": {},
+  "points": {},
+  "quotes": {
+    "q_7001_1": {
+      "locator": {
+        "block": 1,
+        "doc": 7001,
+        "kind": "text_block"
+      },
+      "source": "src_fed_statement",
+      "text": "Recent indicators suggest that growth of economic activity moderated in the first half of the year. Job gains have slowed, and the unemployment rate has edged up but remains low. Inflation has moved up and remains somewhat elevated."
+    }
+  },
+  "series": {},
+  "version": 1
+}

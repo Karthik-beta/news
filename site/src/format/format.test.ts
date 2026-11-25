@@ -188,6 +188,7 @@ describe("units", () => {
 
   it("classify the source's unit without changing it", () => {
     expect(unitKind("Percent")).toBe("percent");
+    expect(unitKind("Percent per annum")).toBe("percent");
     expect(unitKind("pp")).toBe("pp");
     expect(unitKind("Index 1982-84=100")).toBe("other");
     expect(formatQuantity("314.54", "Index 1982-84=100")).toBe("314.54");

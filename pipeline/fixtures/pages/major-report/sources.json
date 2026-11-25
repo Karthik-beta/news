@@ -1,0 +1,21 @@
+{
+  "sources": {
+    "src_wb_wdi": {
+      "connector": "worldbank",
+      "licence": {
+        "name": "CC BY 4.0",
+        "redistribution": true,
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      },
+      "primary": true,
+      "published_at": null,
+      "publisher": "The World Bank",
+      "retrieved_at": "2026-11-18",
+      "short": "World Bank, World Development Indicators",
+      "title": "World Development Indicators: GDP (current US$), United States",
+      "type": "dataset",
+      "url": "https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=US"
+    }
+  },
+  "version": 1
+}

@@ -1,0 +1,28 @@
+---
+// The seven fixture pages (Development Plan 3.5): the bundles Plate rendered into pipeline/fixtures/pages/, hosted in
+// the fixture layout with the site's styles for review side by side. Built only with NEWS_FIXTURES=1.
+import FixtureLayout from "../../../renderer/fixtures/FixtureLayout.astro";
+import { fixturesEnabled } from "../../../renderer/fixtures/routes";
+
+const files = import.meta.glob<string>("../../../../../pipeline/fixtures/pages/*/index.html", {
+  query: "?raw",
+  import: "default",
+  eager: true,
+});
+const pages = Object.fromEntries(
+  Object.entries(files).map(([path, html]) => [/pages\/([^/]+)\/index\.html$/.exec(path)?.[1] ?? path, html]),
+);
+
+export function getStaticPaths() {
+  const names = Object.keys(
+    import.meta.glob("../../../../../pipeline/fixtures/pages/*/index.html", { query: "?raw", import: "default" }),
+  ).map((path) => /pages\/([^/]+)\/index\.html$/.exec(path)?.[1] ?? path);
+  return fixturesEnabled() ? names.map((page) => ({ params: { page } })) : [];
+}
+
+const { page } = Astro.params as { page: string };
+const article = /<article[\s\S]*<\/article>/.exec(pages[page] ?? "")?.[0] ?? "";
+---
+<FixtureLayout title={`Fixture page: ${page}`} hasIslands={article.includes("data-island=")}>
+  <Fragment set:html={article} />
+</FixtureLayout>

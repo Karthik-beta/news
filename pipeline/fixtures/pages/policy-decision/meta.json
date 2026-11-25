@@ -1,0 +1,46 @@
+{
+  "categories": [
+    "economy/monetary-policy"
+  ],
+  "chart_ids": [],
+  "data_ids": [
+    "dp_2efohn72dtu3sl3j",
+    "dp_ayvmv67k6qwi2tu5",
+    "dp_c23vzs55tlfe6zm4",
+    "dp_d4jegwpgekxk5glw",
+    "dp_jiu4oi2xoaevncoi",
+    "dp_lrcdyjec4bca3k3y",
+    "dp_muuvkjavtyet24fx",
+    "dp_piuyjqgryeamaalp",
+    "dp_qyldnb7tydmc7tzg",
+    "dp_rlxbur3fguyrftvd",
+    "dp_yqg2royirj3j66pz",
+    "dp_zqmtgkcrnjro6jq4"
+  ],
+  "entities": [
+    {
+      "id": "ent_ecb",
+      "kind": "institution",
+      "name": "European Central Bank"
+    }
+  ],
+  "fly_title": "Euro-area interest rates",
+  "id": "macro-ea-policy-rate-2026-09-16",
+  "index_status": "noindex",
+  "lang": "en-GB",
+  "page_type": "policy",
+  "path": "/2026/11/macro-ea-policy-rate-2026-09-16",
+  "published_at": "2026-11-18T12:00:00Z",
+  "region": "europe",
+  "renderer_version": "1.1.0",
+  "schema": "meta.v1",
+  "summary": "The rate replaced {dp_zqmtgkcrnjro6jq4}, which had applied since {pd_2026_06_17}. The figures come from the ECB Data Portal.",
+  "tags": [
+    "ecb",
+    "interest-rates"
+  ],
+  "tier": 1,
+  "title": "The ECB's main refinancing rate has been {dp_ayvmv67k6qwi2tu5} since {pd_2026_09_16}",
+  "updated_at": "2026-11-18T12:00:00Z",
+  "version": 1
+}

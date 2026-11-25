@@ -1,0 +1,48 @@
+{
+  "bundle_sha256": "4d722b9734bca155971eea6b02618a61aa96aa1dbbea80fe724ce89bb7f9599c",
+  "files": [
+    {
+      "bytes": 127,
+      "path": "charts/costs.csv",
+      "sha256": "ef931fa24f56e63988b309c91d815f98300cc0fc86ffe1f5095c4fa27a62d3c1"
+    },
+    {
+      "bytes": 362,
+      "path": "charts/profit.csv",
+      "sha256": "c113b8583535ac3d217e88d6ef06e071d5142b9a8468be76b34ebdb9eaa3a2ad"
+    },
+    {
+      "bytes": 7383,
+      "path": "data.json",
+      "sha256": "ac2edd9ae8537c81707fa867094d7a23332b943a4231d6974ed9da37e9690b88"
+    },
+    {
+      "bytes": 36688,
+      "path": "index.html",
+      "sha256": "4c3e18cac98b1628b9b1bde2323d56bdf80820cc9ba9fec196fe390e1eb8211d"
+    },
+    {
+      "bytes": 2518,
+      "path": "index.md",
+      "sha256": "a4efb361b91ce415efaebd8a5550b5a0127d3b58b249b29f21017e6c59851ff3"
+    },
+    {
+      "bytes": 1249,
+      "path": "meta.json",
+      "sha256": "6a47d9b423ba6f37a6aa774866e61bd8bd3fb8870e1a924e85b6744ba1ed6e3a"
+    },
+    {
+      "bytes": 2408,
+      "path": "page.oui",
+      "sha256": "47e1121cf76d365403b45de3124998360b372e56a358d6fb4041a9590b3ddb2e"
+    },
+    {
+      "bytes": 601,
+      "path": "sources.json",
+      "sha256": "ce808d516f0948dbc51c174b0e5806791571a3f77ec52e221b12f02555b8d05e"
+    }
+  ],
+  "page_id": "earnings-0000320193-2024fy",
+  "schema": "manifest.v1",
+  "version": 1
+}

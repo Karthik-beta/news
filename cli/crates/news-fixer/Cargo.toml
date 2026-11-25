@@ -20,7 +20,10 @@ sqlx = { workspace = true }
 
 [dev-dependencies]
 news-connectors = { workspace = true }
+news-contacts = { workspace = true }
+news-proof = { workspace = true }
 jsonschema = { workspace = true }
+tokio = { workspace = true }
 
 [lints]
 workspace = true

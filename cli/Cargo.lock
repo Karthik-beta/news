@@ -3190,15 +3190,18 @@ dependencies = [
  "chrono",
  "jsonschema",
  "news-connectors",
+ "news-contacts",
  "news-core",
  "news-dispatch",
  "news-ledger",
+ "news-proof",
  "news-store",
  "news-taster",
  "serde",
  "serde_json",
  "sha2 0.11.1",
  "sqlx",
+ "tokio",
 ]
 
 [[package]]

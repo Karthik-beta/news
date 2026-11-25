@@ -181,6 +181,7 @@ fn groups(inputs: &Inputs) -> Vec<Group<'_>> {
             let mut per: BTreeMap<(Option<NaiveDate>, Option<NaiveDate>), &Point> = BTreeMap::new();
             for p in inputs.history.iter().chain(own.iter().copied()) {
                 if group_key(p) != k
+                    || !same_frequency(p, anchor)
                     || p.vintage > anchor.vintage
                     || p.period_end.is_none()
                     || p.period_end > anchor.period_end
@@ -202,6 +203,21 @@ fn groups(inputs: &Inputs) -> Vec<Group<'_>> {
             Group { anchor, history }
         })
         .collect()
+}
+
+/// Days a point's period spans (0 for an instant).
+fn span(p: &Point) -> i64 {
+    match (p.period_start, p.period_end) {
+        (Some(s), Some(e)) => (e - s).num_days(),
+        _ => 0,
+    }
+}
+
+/// Months with months, years with years: a series that also publishes annual averages (BLS) keeps them out of
+/// its monthly history. Spans within a tenth agree (a 28- and a 31-day month, a 52- and a 53-week year).
+fn same_frequency(a: &Point, b: &Point) -> bool {
+    let (x, y) = (span(a), span(b));
+    (x - y).abs() <= x.max(y) / 10 + 1
 }
 
 fn unit_text(p: &Point) -> String {
@@ -891,6 +907,21 @@ mod tests {
             fiscal_period: None,
             vintage: Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap(),
         }
+    }
+
+    #[test]
+    fn a_monthly_series_keeps_annual_averages_out() {
+        use PeriodType::*;
+        let feb = pt("dp_a", (2024, 2, 1), (2024, 2, 29), Duration);
+        let oct = pt("dp_b", (2026, 10, 1), (2026, 10, 31), Duration);
+        let year = pt("dp_c", (2025, 1, 1), (2025, 12, 31), Duration);
+        let fy52 = pt("dp_d", (2023, 10, 1), (2024, 9, 28), Duration);
+        let fy53 = pt("dp_e", (2022, 9, 25), (2023, 9, 30), Duration);
+        let day = pt("dp_f", (2026, 9, 16), (2026, 9, 16), Instant);
+        assert!(same_frequency(&feb, &oct));
+        assert!(same_frequency(&fy52, &fy53) && same_frequency(&year, &fy52));
+        assert!(!same_frequency(&oct, &year) && !same_frequency(&day, &oct));
+        assert!(same_frequency(&day, &day));
     }
 
     #[test]

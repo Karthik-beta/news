@@ -1,0 +1,38 @@
+{
+  "bundle_sha256": "d95337fe10b857c3f74a776184b934723c2f2786f1bfdb2b017bef8601b8edf2",
+  "files": [
+    {
+      "bytes": 9648,
+      "path": "data.json",
+      "sha256": "b7fce490be2a02cb9bb45997b923a4538a83b419bc0dbd745fb704288c13351d"
+    },
+    {
+      "bytes": 21555,
+      "path": "index.html",
+      "sha256": "5d3f7505e04bacd2f387070ecb1b64ff4f8a6d576f274266b85463a47ce22ee2"
+    },
+    {
+      "bytes": 1680,
+      "path": "index.md",
+      "sha256": "8770c580343156edd07fc7c50f3c7a4238a3b648b97c0b1cc0d7b2f0c632ffb0"
+    },
+    {
+      "bytes": 1231,
+      "path": "meta.json",
+      "sha256": "98046a597c40f457ef13798e7d0e9abbc5364a3afdeba1497ec32d86eff28053"
+    },
+    {
+      "bytes": 935,
+      "path": "page.oui",
+      "sha256": "613981c22af8d923494e1759d6de1e082489c5f0421eb7c2754cfc2f2635eb7e"
+    },
+    {
+      "bytes": 624,
+      "path": "sources.json",
+      "sha256": "48b13dca3aab5c508dabb58204c0d9e8694c343bedd5d4fd1ab3f6a33a54851b"
+    }
+  ],
+  "page_id": "macro-ea-policy-rate-2026-09-16",
+  "schema": "manifest.v1",
+  "version": 1
+}

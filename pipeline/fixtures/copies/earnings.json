@@ -1,0 +1,29 @@
+{
+  "headline": "Apple kept {dp_gcvvwz3rggki4m42} of its {dp_vc6if6wdvyfxcmt6} of net sales as net income",
+  "fly_title": "Apple's annual results",
+  "summary": "Operating income was {dp_ofcoxo3c6abfoo53} in the fiscal year {pd_20231001_20240928}, after the cost of sales and operating expenses, as Apple reported to the SEC.",
+  "oui": "root = Page([figures, sales, profit, spending, costs, taxes, source])\nfigures = KeyFigures([netSales, operating, netIncome])\nnetSales = KeyFigure(\"Net sales\", \"dp_vc6if6wdvyfxcmt6\")\noperating = KeyFigure(\"Operating income\", \"dp_ofcoxo3c6abfoo53\")\nnetIncome = KeyFigure(\"Net income\", \"dp_gcvvwz3rggki4m42\")\nsales = Prose([\"Apple reported net sales of {dp_vc6if6wdvyfxcmt6} for the fiscal year {pd_20231001_20240928}. The cost of sales was {dp_4a667tn3d233zata}, which left a gross margin of {dp_gyqvyvwdfoavb6ik}.\"])\nprofit = Waterfall(\"The cost of sales was the largest deduction from Apple's net sales\", \"Statement of operations, fiscal year {pd_20231001_20240928}, US$\", [{label: \"Net sales\", value: \"dp_vc6if6wdvyfxcmt6\", kind: \"total\"}, {label: \"Cost of sales\", value: \"dp_4a667tn3d233zata\", kind: \"deduct\"}, {label: \"Gross margin\", value: \"dp_gyqvyvwdfoavb6ik\", kind: \"total\"}, {label: \"Research and development\", value: \"dp_5bwm2cc5vbbxkjc4\", kind: \"deduct\"}, {label: \"Selling, general and administrative\", value: \"dp_qxwm57nvi5v5zmo5\", kind: \"deduct\"}, {label: \"Operating income\", value: \"dp_ofcoxo3c6abfoo53\", kind: \"total\"}, {label: \"Other income, net\", value: \"dp_rgaqlsm2ln2nuqn7\", kind: \"add\"}, {label: \"Income before taxes\", value: \"dp_rn3dqvladry7igs7\", kind: \"total\"}, {label: \"Provision for income taxes\", value: \"dp_vi5pgdc43ormcwdc\", kind: \"deduct\"}, {label: \"Net income\", value: \"dp_gcvvwz3rggki4m42\", kind: \"total\"}])\nspending = Prose([\"Operating expenses came to {dp_eeotdqskvtxdh2fb}: research and development cost {dp_5bwm2cc5vbbxkjc4}, and selling, general and administrative expenses {dp_qxwm57nvi5v5zmo5}. That left operating income of {dp_ofcoxo3c6abfoo53}.\"])\ncosts = BarChart(\"Research and development was the larger of Apple's operating expenses\", \"Operating expenses, fiscal year {pd_20231001_20240928}, US$\", [{label: \"Research and development\", value: \"dp_5bwm2cc5vbbxkjc4\", highlight: true}, {label: \"Selling, general and administrative\", value: \"dp_qxwm57nvi5v5zmo5\"}])\ntaxes = Prose([\"Other income of {dp_rgaqlsm2ln2nuqn7} brought income before taxes to {dp_rn3dqvladry7igs7}. After a provision for income taxes of {dp_vi5pgdc43ormcwdc}, net income was {dp_gcvvwz3rggki4m42}.\"])\nsource = Note(\"Where the figures come from\", [\"The figures are as Apple reported them to the Securities and Exchange Commission in its annual report, in US dollars, for its own fiscal year.\"])\n",
+  "refs_used": [
+    "dp_4a667tn3d233zata",
+    "dp_5bwm2cc5vbbxkjc4",
+    "dp_eeotdqskvtxdh2fb",
+    "dp_gcvvwz3rggki4m42",
+    "dp_gyqvyvwdfoavb6ik",
+    "dp_ofcoxo3c6abfoo53",
+    "dp_qxwm57nvi5v5zmo5",
+    "dp_rgaqlsm2ln2nuqn7",
+    "dp_rn3dqvladry7igs7",
+    "dp_vc6if6wdvyfxcmt6",
+    "dp_vi5pgdc43ormcwdc",
+    "pd_20231001_20240928"
+  ],
+  "components_used": [
+    "KeyFigures",
+    "KeyFigure",
+    "Prose",
+    "Waterfall",
+    "BarChart",
+    "Note"
+  ],
+  "angle": "composition"
+}

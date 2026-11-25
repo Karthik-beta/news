@@ -1,0 +1,31 @@
+{
+  "draft_id": "explainer-3387eadcdd29",
+  "story": "explainer",
+  "saved_at": "2026-11-16T12:00:00Z",
+  "source": "save",
+  "job": null,
+  "flags": [],
+  "copy": {
+    "angle": "trend",
+    "components_used": [
+      "KeyFigures",
+      "KeyFigure",
+      "Prose",
+      "LineChart",
+      "DataTable"
+    ],
+    "fly_title": "Consumer prices",
+    "headline": "How America's consumer price index measures the change in prices",
+    "oui": "root = Page([figures, what, chart, how, table])\nfigures = KeyFigures([level, previous])\nlevel = KeyFigure(\"Consumer price index, all items\", \"dp_aq2jyfyjggh77dlr\", \"dv_bszudzy4cykpigag\", \"pd_2026_09\", \"sr_2lqxjpnitr44\")\nprevious = KeyFigure(\"The month before\", \"dp_ihkzs3p7c7wtzydl\")\nwhat = Prose([\"## What the index is\", \"The consumer price index for all urban consumers, all items, U.S. city average, is a price level that the Bureau of Labor Statistics publishes every month. It is an index against a base period, not a price in dollars. The series on this page is not seasonally adjusted.\"])\nchart = LineChart(\"The index was higher in {pd_2026_10} than in {pd_2024_01}\", \"Consumer price index, all urban consumers, all items, not seasonally adjusted, monthly\", [\"sr_2lqxjpnitr44\"], \"sr_2lqxjpnitr44\", null, false)\nhow = Prose([\"## How inflation is read from it\", \"Inflation is the change in the index over a period, measured against where it started. From {pd_2026_09} to {pd_2026_10} the index rose by {dv_bszudzy4cykpigag}, from {dp_ihkzs3p7c7wtzydl} to {dp_aq2jyfyjggh77dlr}.\", \"A month with no published value is left out of the chart and the table.\"])\ntable = DataTable(\"The index month by month, as published\", \"Consumer price index, all urban consumers, all items, not seasonally adjusted\", [\"sr_2lqxjpnitr44\"], \"pd_2026_10\")\n",
+    "refs_used": [
+      "dp_aq2jyfyjggh77dlr",
+      "dp_ihkzs3p7c7wtzydl",
+      "dv_bszudzy4cykpigag",
+      "pd_2024_01",
+      "pd_2026_09",
+      "pd_2026_10",
+      "sr_2lqxjpnitr44"
+    ],
+    "summary": "The index for all urban consumers was {dp_aq2jyfyjggh77dlr} in {pd_2026_10}, up {dv_bszudzy4cykpigag} on {pd_2026_09}. Inflation is the rate at which that index changes."
+  }
+}

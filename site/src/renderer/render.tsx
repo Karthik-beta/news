@@ -12,6 +12,7 @@
 import { createParser, type ElementNode, type Library, Renderer, useRenderNode } from "@openuidev/react-lang";
 import { Fragment, type ReactNode } from "react";
 import type { AnyComponentSpec, ChartTable } from "../components/contract";
+import { Disclaimer, type DisclaimerKind } from "../components/Disclaimer/Disclaimer";
 import { type Glossary, GlossaryProvider } from "../components/GlossaryTerm/GlossaryTerm";
 import { type NewsLibrary, newsLibrary } from "../components/library";
 import { RefText } from "../components/SourceRef/RefText";
@@ -62,6 +63,8 @@ export interface RenderOptions {
    * changes (ADR 0004, "Index status").
    */
   indexStatus?: "index" | "noindex";
+  /** The disclaimer the page's categories need (the brief's rule), after the sources. Code adds it, never the writer. */
+  disclaimer?: DisclaimerKind | null;
 }
 
 export interface ChartExport {
@@ -228,11 +231,13 @@ function Article({
   body,
   sourceIds,
   resolver,
+  disclaimer,
 }: {
   head: PageHead;
   body: ReactNode;
   sourceIds: () => string[];
   resolver: PageDataResolver;
+  disclaimer?: DisclaimerKind | null;
 }) {
   return (
     <article className="article" data-renderer={rendererTag()}>
@@ -249,6 +254,7 @@ function Article({
       </header>
       {body}
       <LateSources ids={sourceIds} resolver={resolver} />
+      {disclaimer ? <Disclaimer kind={disclaimer} /> : null}
     </article>
   );
 }
@@ -323,7 +329,13 @@ export function renderPage(input: PageBundleInput, options: RenderOptions = {}):
   const article = staticMarkup(
     <PageDataProvider resolver={resolver}>
       <GlossaryProvider glossary={options.glossary ?? {}}>
-        <Article head={input.head} body={body} sourceIds={() => sourceIdsInOrder(resolver)} resolver={resolver} />
+        <Article
+          head={input.head}
+          body={body}
+          sourceIds={() => sourceIdsInOrder(resolver)}
+          resolver={resolver}
+          disclaimer={options.disclaimer}
+        />
       </GlossaryProvider>
     </PageDataProvider>,
   );

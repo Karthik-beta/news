@@ -1,0 +1,8 @@
+root = Page([figures, what, chart, how, table])
+figures = KeyFigures([level, previous])
+level = KeyFigure("Consumer price index, all items", "dp_aq2jyfyjggh77dlr", "dv_bszudzy4cykpigag", "pd_2026_09", "sr_2lqxjpnitr44")
+previous = KeyFigure("The month before", "dp_ihkzs3p7c7wtzydl")
+what = Prose(["## What the index is", "The consumer price index for all urban consumers, all items, U.S. city average, is a price level that the Bureau of Labor Statistics publishes every month. It is an index against a base period, not a price in dollars. The series on this page is not seasonally adjusted."])
+chart = LineChart("The index was higher in {pd_2026_10} than in {pd_2024_01}", "Consumer price index, all urban consumers, all items, not seasonally adjusted, monthly", ["sr_2lqxjpnitr44"], "sr_2lqxjpnitr44", null, false)
+how = Prose(["## How inflation is read from it", "Inflation is the change in the index over a period, measured against where it started. From {pd_2026_09} to {pd_2026_10} the index rose by {dv_bszudzy4cykpigag}, from {dp_ihkzs3p7c7wtzydl} to {dp_aq2jyfyjggh77dlr}.", "A month with no published value is left out of the chart and the table."])
+table = DataTable("The index month by month, as published", "Consumer price index, all urban consumers, all items, not seasonally adjusted", ["sr_2lqxjpnitr44"], "pd_2026_10")

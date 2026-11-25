@@ -1,0 +1,868 @@
+{
+  "context": {
+    "cx_1": {
+      "inputs": [
+        "dp_aq2jyfyjggh77dlr",
+        "dp_sctrdmooixqqghwf"
+      ],
+      "rule": "series_record_high",
+      "text": "All items in U.S. city average, all urban consumers, not seasonally adjusted: highest of every observation held, which begin in January 2024"
+    }
+  },
+  "derived": {
+    "dv_bszudzy4cykpigag": {
+      "currency": null,
+      "formula": "pct_change",
+      "inputs": [
+        "dp_aq2jyfyjggh77dlr",
+        "dp_ihkzs3p7c7wtzydl"
+      ],
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted, change from September 2026",
+      "rounding": 1,
+      "scale": null,
+      "unit": "Percent",
+      "value": "0.2"
+    }
+  },
+  "periods": {
+    "pd_2024_01": {
+      "end": "2024-01-31",
+      "label": "January 2024",
+      "start": "2024-01-01"
+    },
+    "pd_2024_02": {
+      "end": "2024-02-29",
+      "label": "February 2024",
+      "start": "2024-02-01"
+    },
+    "pd_2024_03": {
+      "end": "2024-03-31",
+      "label": "March 2024",
+      "start": "2024-03-01"
+    },
+    "pd_2024_04": {
+      "end": "2024-04-30",
+      "label": "April 2024",
+      "start": "2024-04-01"
+    },
+    "pd_2024_05": {
+      "end": "2024-05-31",
+      "label": "May 2024",
+      "start": "2024-05-01"
+    },
+    "pd_2024_06": {
+      "end": "2024-06-30",
+      "label": "June 2024",
+      "start": "2024-06-01"
+    },
+    "pd_2024_07": {
+      "end": "2024-07-31",
+      "label": "July 2024",
+      "start": "2024-07-01"
+    },
+    "pd_2024_08": {
+      "end": "2024-08-31",
+      "label": "August 2024",
+      "start": "2024-08-01"
+    },
+    "pd_2024_09": {
+      "end": "2024-09-30",
+      "label": "September 2024",
+      "start": "2024-09-01"
+    },
+    "pd_2024_10": {
+      "end": "2024-10-31",
+      "label": "October 2024",
+      "start": "2024-10-01"
+    },
+    "pd_2024_11": {
+      "end": "2024-11-30",
+      "label": "November 2024",
+      "start": "2024-11-01"
+    },
+    "pd_2024_12": {
+      "end": "2024-12-31",
+      "label": "December 2024",
+      "start": "2024-12-01"
+    },
+    "pd_2025_01": {
+      "end": "2025-01-31",
+      "label": "January 2025",
+      "start": "2025-01-01"
+    },
+    "pd_2025_02": {
+      "end": "2025-02-28",
+      "label": "February 2025",
+      "start": "2025-02-01"
+    },
+    "pd_2025_03": {
+      "end": "2025-03-31",
+      "label": "March 2025",
+      "start": "2025-03-01"
+    },
+    "pd_2025_04": {
+      "end": "2025-04-30",
+      "label": "April 2025",
+      "start": "2025-04-01"
+    },
+    "pd_2025_05": {
+      "end": "2025-05-31",
+      "label": "May 2025",
+      "start": "2025-05-01"
+    },
+    "pd_2025_06": {
+      "end": "2025-06-30",
+      "label": "June 2025",
+      "start": "2025-06-01"
+    },
+    "pd_2025_07": {
+      "end": "2025-07-31",
+      "label": "July 2025",
+      "start": "2025-07-01"
+    },
+    "pd_2025_08": {
+      "end": "2025-08-31",
+      "label": "August 2025",
+      "start": "2025-08-01"
+    },
+    "pd_2025_09": {
+      "end": "2025-09-30",
+      "label": "September 2025",
+      "start": "2025-09-01"
+    },
+    "pd_2025_11": {
+      "end": "2025-11-30",
+      "label": "November 2025",
+      "start": "2025-11-01"
+    },
+    "pd_2025_12": {
+      "end": "2025-12-31",
+      "label": "December 2025",
+      "start": "2025-12-01"
+    },
+    "pd_2026_01": {
+      "end": "2026-01-31",
+      "label": "January 2026",
+      "start": "2026-01-01"
+    },
+    "pd_2026_02": {
+      "end": "2026-02-28",
+      "label": "February 2026",
+      "start": "2026-02-01"
+    },
+    "pd_2026_03": {
+      "end": "2026-03-31",
+      "label": "March 2026",
+      "start": "2026-03-01"
+    },
+    "pd_2026_04": {
+      "end": "2026-04-30",
+      "label": "April 2026",
+      "start": "2026-04-01"
+    },
+    "pd_2026_05": {
+      "end": "2026-05-31",
+      "label": "May 2026",
+      "start": "2026-05-01"
+    },
+    "pd_2026_06": {
+      "end": "2026-06-30",
+      "label": "June 2026",
+      "start": "2026-06-01"
+    },
+    "pd_2026_07": {
+      "end": "2026-07-31",
+      "label": "July 2026",
+      "start": "2026-07-01"
+    },
+    "pd_2026_08": {
+      "end": "2026-08-31",
+      "label": "August 2026",
+      "start": "2026-08-01"
+    },
+    "pd_2026_09": {
+      "end": "2026-09-30",
+      "label": "September 2026",
+      "start": "2026-09-01"
+    },
+    "pd_2026_10": {
+      "end": "2026-10-31",
+      "label": "October 2026",
+      "start": "2026-10-01"
+    }
+  },
+  "points": {
+    "dp_2dyav47pupt4m2xu": {
+      "currency": null,
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[3].value",
+        "series": "CUUR0000SA0"
+      },
+      "period": "pd_2026_07",
+      "scale": null,
+      "seasonal_adjustment": "NSA",
+      "source": "src_bls_cpi",
+      "unit": "Index 1982-1984=100",
+      "value": "333.918",
+      "value_text": "333.918"
+    },
+    "dp_2ien4vysi3w5uzbi": {
+      "currency": null,
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[8].value",
+        "series": "CUUR0000SA0"
+      },
+      "period": "pd_2026_02",
+      "scale": null,
+      "seasonal_adjustment": "NSA",
+      "source": "src_bls_cpi",
+      "unit": "Index 1982-1984=100",
+      "value": "326.785",
+      "value_text": "326.785"
+    },
+    "dp_7k5udtvin2tq2s64": {
+      "currency": null,
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[17].value",
+        "series": "CUUR0000SA0"
+      },
+      "period": "pd_2025_06",
+      "scale": null,
+      "seasonal_adjustment": "NSA",
+      "source": "src_bls_cpi",
+      "unit": "Index 1982-1984=100",
+      "value": "322.561",
+      "value_text": "322.561"
+    },
+    "dp_7to7gkoiapo4uqeg": {
+      "currency": null,
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[34].value",
+        "series": "CUUR0000SA0"
+      },
+      "period": "pd_2024_02",
+      "scale": null,
+      "seasonal_adjustment": "NSA",
+      "source": "src_bls_cpi",
+      "unit": "Index 1982-1984=100",
+      "value": "310.326",
+      "value_text": "310.326"
+    },
+    "dp_a4n2fttave3b3jlb": {
+      "currency": null,
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[14].value",
+        "series": "CUUR0000SA0"
+      },
+      "period": "pd_2025_09",
+      "scale": null,
+      "seasonal_adjustment": "NSA",
+      "source": "src_bls_cpi",
+      "unit": "Index 1982-1984=100",
+      "value": "324.800",
+      "value_text": "324.800"
+    },
+    "dp_aq2jyfyjggh77dlr": {
+      "currency": null,
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[0].value",
+        "series": "CUUR0000SA0"
+      },
+      "period": "pd_2026_10",
+      "scale": null,
+      "seasonal_adjustment": "NSA",
+      "source": "src_bls_cpi",
+      "unit": "Index 1982-1984=100",
+      "value": "337.511",
+      "value_text": "337.511"
+    },
+    "dp_bdikbloqrlzof2wi": {
+      "currency": null,
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[27].value",
+        "series": "CUUR0000SA0"
+      },
+      "period": "pd_2024_09",
+      "scale": null,
+      "seasonal_adjustment": "NSA",
+      "source": "src_bls_cpi",
+      "unit": "Index 1982-1984=100",
+      "value": "315.301",
+      "value_text": "315.301"
+    },
+    "dp_bquyte6mkuq37nqt": {
+      "currency": null,
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[20].value",
+        "series": "CUUR0000SA0"
+      },
+      "period": "pd_2025_03",
+      "scale": null,
+      "seasonal_adjustment": "NSA",
+      "source": "src_bls_cpi",
+      "unit": "Index 1982-1984=100",
+      "value": "319.799",
+      "value_text": "319.799"
+    },
+    "dp_cr7fe5tb6a7uo5tj": {
+      "currency": null,
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[15].value",
+        "series": "CUUR0000SA0"
+      },
+      "period": "pd_2025_08",
+      "scale": null,
+      "seasonal_adjustment": "NSA",
+      "source": "src_bls_cpi",
+      "unit": "Index 1982-1984=100",
+      "value": "323.976",
+      "value_text": "323.976"
+    },
+    "dp_crywh4fctf3wmb2n": {
+      "currency": null,
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[5].value",
+        "series": "CUUR0000SA0"
+      },
+      "period": "pd_2026_05",
+      "scale": null,
+      "seasonal_adjustment": "NSA",
+      "source": "src_bls_cpi",
+      "unit": "Index 1982-1984=100",
+      "value": "335.123",
+      "value_text": "335.123"
+    },
+    "dp_fdtccpjjhpdzdbv3": {
+      "currency": null,
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[6].value",
+        "series": "CUUR0000SA0"
+      },
+      "period": "pd_2026_04",
+      "scale": null,
+      "seasonal_adjustment": "NSA",
+      "source": "src_bls_cpi",
+      "unit": "Index 1982-1984=100",
+      "value": "333.020",
+      "value_text": "333.020"
+    },
+    "dp_gbtd5m37jdwjywov": {
+      "currency": null,
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[30].value",
+        "series": "CUUR0000SA0"
+      },
+      "period": "pd_2024_06",
+      "scale": null,
+      "seasonal_adjustment": "NSA",
+      "source": "src_bls_cpi",
+      "unit": "Index 1982-1984=100",
+      "value": "314.175",
+      "value_text": "314.175"
+    },
+    "dp_hvye2ti25gk5bppy": {
+      "currency": null,
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[11].value",
+        "series": "CUUR0000SA0"
+      },
+      "period": "pd_2025_12",
+      "scale": null,
+      "seasonal_adjustment": "NSA",
+      "source": "src_bls_cpi",
+      "unit": "Index 1982-1984=100",
+      "value": "324.054",
+      "value_text": "324.054"
+    },
+    "dp_hwooxgtje5ukms6o": {
+      "currency": null,
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[31].value",
+        "series": "CUUR0000SA0"
+      },
+      "period": "pd_2024_05",
+      "scale": null,
+      "seasonal_adjustment": "NSA",
+      "source": "src_bls_cpi",
+      "unit": "Index 1982-1984=100",
+      "value": "314.069",
+      "value_text": "314.069"
+    },
+    "dp_ihkzs3p7c7wtzydl": {
+      "currency": null,
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[1].value",
+        "series": "CUUR0000SA0"
+      },
+      "period": "pd_2026_09",
+      "scale": null,
+      "seasonal_adjustment": "NSA",
+      "source": "src_bls_cpi",
+      "unit": "Index 1982-1984=100",
+      "value": "336.940",
+      "value_text": "336.940"
+    },
+    "dp_j74bvll3m4qxh5bm": {
+      "currency": null,
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[26].value",
+        "series": "CUUR0000SA0"
+      },
+      "period": "pd_2024_10",
+      "scale": null,
+      "seasonal_adjustment": "NSA",
+      "source": "src_bls_cpi",
+      "unit": "Index 1982-1984=100",
+      "value": "315.664",
+      "value_text": "315.664"
+    },
+    "dp_jv45o5ts4vw6q3ol": {
+      "currency": null,
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[32].value",
+        "series": "CUUR0000SA0"
+      },
+      "period": "pd_2024_04",
+      "scale": null,
+      "seasonal_adjustment": "NSA",
+      "source": "src_bls_cpi",
+      "unit": "Index 1982-1984=100",
+      "value": "313.548",
+      "value_text": "313.548"
+    },
+    "dp_lnppnzpgvd4n53ns": {
+      "currency": null,
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[21].value",
+        "series": "CUUR0000SA0"
+      },
+      "period": "pd_2025_02",
+      "scale": null,
+      "seasonal_adjustment": "NSA",
+      "source": "src_bls_cpi",
+      "unit": "Index 1982-1984=100",
+      "value": "319.082",
+      "value_text": "319.082"
+    },
+    "dp_mbndld6fadkewv27": {
+      "currency": null,
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[4].value",
+        "series": "CUUR0000SA0"
+      },
+      "period": "pd_2026_06",
+      "scale": null,
+      "seasonal_adjustment": "NSA",
+      "source": "src_bls_cpi",
+      "unit": "Index 1982-1984=100",
+      "value": "333.952",
+      "value_text": "333.952"
+    },
+    "dp_mwapoakkwr7hgyyg": {
+      "currency": null,
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[9].value",
+        "series": "CUUR0000SA0"
+      },
+      "period": "pd_2026_01",
+      "scale": null,
+      "seasonal_adjustment": "NSA",
+      "source": "src_bls_cpi",
+      "unit": "Index 1982-1984=100",
+      "value": "325.252",
+      "value_text": "325.252"
+    },
+    "dp_od5utmzki4mipsz7": {
+      "currency": null,
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[22].value",
+        "series": "CUUR0000SA0"
+      },
+      "period": "pd_2025_01",
+      "scale": null,
+      "seasonal_adjustment": "NSA",
+      "source": "src_bls_cpi",
+      "unit": "Index 1982-1984=100",
+      "value": "317.671",
+      "value_text": "317.671"
+    },
+    "dp_olbfyfr6zil6wzjn": {
+      "currency": null,
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[16].value",
+        "series": "CUUR0000SA0"
+      },
+      "period": "pd_2025_07",
+      "scale": null,
+      "seasonal_adjustment": "NSA",
+      "source": "src_bls_cpi",
+      "unit": "Index 1982-1984=100",
+      "value": "323.048",
+      "value_text": "323.048"
+    },
+    "dp_qpdp6moow5ihf6we": {
+      "currency": null,
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[24].value",
+        "series": "CUUR0000SA0"
+      },
+      "period": "pd_2024_12",
+      "scale": null,
+      "seasonal_adjustment": "NSA",
+      "source": "src_bls_cpi",
+      "unit": "Index 1982-1984=100",
+      "value": "315.605",
+      "value_text": "315.605"
+    },
+    "dp_rvwyygyug35vgdo6": {
+      "currency": null,
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[7].value",
+        "series": "CUUR0000SA0"
+      },
+      "period": "pd_2026_03",
+      "scale": null,
+      "seasonal_adjustment": "NSA",
+      "source": "src_bls_cpi",
+      "unit": "Index 1982-1984=100",
+      "value": "330.213",
+      "value_text": "330.213"
+    },
+    "dp_sctrdmooixqqghwf": {
+      "currency": null,
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[35].value",
+        "series": "CUUR0000SA0"
+      },
+      "period": "pd_2024_01",
+      "scale": null,
+      "seasonal_adjustment": "NSA",
+      "source": "src_bls_cpi",
+      "unit": "Index 1982-1984=100",
+      "value": "308.417",
+      "value_text": "308.417"
+    },
+    "dp_tbsaj6ffdqitoqpg": {
+      "currency": null,
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[19].value",
+        "series": "CUUR0000SA0"
+      },
+      "period": "pd_2025_04",
+      "scale": null,
+      "seasonal_adjustment": "NSA",
+      "source": "src_bls_cpi",
+      "unit": "Index 1982-1984=100",
+      "value": "320.795",
+      "value_text": "320.795"
+    },
+    "dp_uvo2l2y2qvrrqx2q": {
+      "currency": null,
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[12].value",
+        "series": "CUUR0000SA0"
+      },
+      "period": "pd_2025_11",
+      "scale": null,
+      "seasonal_adjustment": "NSA",
+      "source": "src_bls_cpi",
+      "unit": "Index 1982-1984=100",
+      "value": "324.122",
+      "value_text": "324.122"
+    },
+    "dp_vjgnlrgccxnexypp": {
+      "currency": null,
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[2].value",
+        "series": "CUUR0000SA0"
+      },
+      "period": "pd_2026_08",
+      "scale": null,
+      "seasonal_adjustment": "NSA",
+      "source": "src_bls_cpi",
+      "unit": "Index 1982-1984=100",
+      "value": "334.980",
+      "value_text": "334.980"
+    },
+    "dp_wecugv66gptoxul4": {
+      "currency": null,
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[33].value",
+        "series": "CUUR0000SA0"
+      },
+      "period": "pd_2024_03",
+      "scale": null,
+      "seasonal_adjustment": "NSA",
+      "source": "src_bls_cpi",
+      "unit": "Index 1982-1984=100",
+      "value": "312.332",
+      "value_text": "312.332"
+    },
+    "dp_xwuqp3t6raljefru": {
+      "currency": null,
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[25].value",
+        "series": "CUUR0000SA0"
+      },
+      "period": "pd_2024_11",
+      "scale": null,
+      "seasonal_adjustment": "NSA",
+      "source": "src_bls_cpi",
+      "unit": "Index 1982-1984=100",
+      "value": "315.493",
+      "value_text": "315.493"
+    },
+    "dp_ymar7ygyecswyxqj": {
+      "currency": null,
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[28].value",
+        "series": "CUUR0000SA0"
+      },
+      "period": "pd_2024_08",
+      "scale": null,
+      "seasonal_adjustment": "NSA",
+      "source": "src_bls_cpi",
+      "unit": "Index 1982-1984=100",
+      "value": "314.796",
+      "value_text": "314.796"
+    },
+    "dp_ztnwz4vbgwgjvd4r": {
+      "currency": null,
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[29].value",
+        "series": "CUUR0000SA0"
+      },
+      "period": "pd_2024_07",
+      "scale": null,
+      "seasonal_adjustment": "NSA",
+      "source": "src_bls_cpi",
+      "unit": "Index 1982-1984=100",
+      "value": "314.540",
+      "value_text": "314.540"
+    },
+    "dp_zxysextisaux3owt": {
+      "currency": null,
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[18].value",
+        "series": "CUUR0000SA0"
+      },
+      "period": "pd_2025_05",
+      "scale": null,
+      "seasonal_adjustment": "NSA",
+      "source": "src_bls_cpi",
+      "unit": "Index 1982-1984=100",
+      "value": "321.465",
+      "value_text": "321.465"
+    }
+  },
+  "quotes": {},
+  "series": {
+    "sr_2lqxjpnitr44": {
+      "currency": null,
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted, January 2024 to October 2026",
+      "points": [
+        {
+          "period": "pd_2024_01",
+          "point": "dp_sctrdmooixqqghwf"
+        },
+        {
+          "period": "pd_2024_02",
+          "point": "dp_7to7gkoiapo4uqeg"
+        },
+        {
+          "period": "pd_2024_03",
+          "point": "dp_wecugv66gptoxul4"
+        },
+        {
+          "period": "pd_2024_04",
+          "point": "dp_jv45o5ts4vw6q3ol"
+        },
+        {
+          "period": "pd_2024_05",
+          "point": "dp_hwooxgtje5ukms6o"
+        },
+        {
+          "period": "pd_2024_06",
+          "point": "dp_gbtd5m37jdwjywov"
+        },
+        {
+          "period": "pd_2024_07",
+          "point": "dp_ztnwz4vbgwgjvd4r"
+        },
+        {
+          "period": "pd_2024_08",
+          "point": "dp_ymar7ygyecswyxqj"
+        },
+        {
+          "period": "pd_2024_09",
+          "point": "dp_bdikbloqrlzof2wi"
+        },
+        {
+          "period": "pd_2024_10",
+          "point": "dp_j74bvll3m4qxh5bm"
+        },
+        {
+          "period": "pd_2024_11",
+          "point": "dp_xwuqp3t6raljefru"
+        },
+        {
+          "period": "pd_2024_12",
+          "point": "dp_qpdp6moow5ihf6we"
+        },
+        {
+          "period": "pd_2025_01",
+          "point": "dp_od5utmzki4mipsz7"
+        },
+        {
+          "period": "pd_2025_02",
+          "point": "dp_lnppnzpgvd4n53ns"
+        },
+        {
+          "period": "pd_2025_03",
+          "point": "dp_bquyte6mkuq37nqt"
+        },
+        {
+          "period": "pd_2025_04",
+          "point": "dp_tbsaj6ffdqitoqpg"
+        },
+        {
+          "period": "pd_2025_05",
+          "point": "dp_zxysextisaux3owt"
+        },
+        {
+          "period": "pd_2025_06",
+          "point": "dp_7k5udtvin2tq2s64"
+        },
+        {
+          "period": "pd_2025_07",
+          "point": "dp_olbfyfr6zil6wzjn"
+        },
+        {
+          "period": "pd_2025_08",
+          "point": "dp_cr7fe5tb6a7uo5tj"
+        },
+        {
+          "period": "pd_2025_09",
+          "point": "dp_a4n2fttave3b3jlb"
+        },
+        {
+          "period": "pd_2025_11",
+          "point": "dp_uvo2l2y2qvrrqx2q"
+        },
+        {
+          "period": "pd_2025_12",
+          "point": "dp_hvye2ti25gk5bppy"
+        },
+        {
+          "period": "pd_2026_01",
+          "point": "dp_mwapoakkwr7hgyyg"
+        },
+        {
+          "period": "pd_2026_02",
+          "point": "dp_2ien4vysi3w5uzbi"
+        },
+        {
+          "period": "pd_2026_03",
+          "point": "dp_rvwyygyug35vgdo6"
+        },
+        {
+          "period": "pd_2026_04",
+          "point": "dp_fdtccpjjhpdzdbv3"
+        },
+        {
+          "period": "pd_2026_05",
+          "point": "dp_crywh4fctf3wmb2n"
+        },
+        {
+          "period": "pd_2026_06",
+          "point": "dp_mbndld6fadkewv27"
+        },
+        {
+          "period": "pd_2026_07",
+          "point": "dp_2dyav47pupt4m2xu"
+        },
+        {
+          "period": "pd_2026_08",
+          "point": "dp_vjgnlrgccxnexypp"
+        },
+        {
+          "period": "pd_2026_09",
+          "point": "dp_ihkzs3p7c7wtzydl"
+        },
+        {
+          "period": "pd_2026_10",
+          "point": "dp_aq2jyfyjggh77dlr"
+        }
+      ],
+      "scale": null,
+      "unit": "Index 1982-1984=100"
+    }
+  },
+  "version": 1
+}

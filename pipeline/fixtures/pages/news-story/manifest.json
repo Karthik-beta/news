@@ -1,0 +1,38 @@
+{
+  "bundle_sha256": "7805381ad70450faef674bfb53111a93b6db9f7900bc8ce543d475e43d5a0319",
+  "files": [
+    {
+      "bytes": 529,
+      "path": "data.json",
+      "sha256": "fcaa5992de78baca65566f8edb237217a737f09d7608f4a0ad96f4e1e269dd8e"
+    },
+    {
+      "bytes": 2633,
+      "path": "index.html",
+      "sha256": "93e5ed1f725ab1eb9a2910d09992851ce92deedfab96e1a356469a6efa115e38"
+    },
+    {
+      "bytes": 1487,
+      "path": "index.md",
+      "sha256": "5c541d6bdffc8afe53bbf4f466b594c79bf353debb701fc8df9d086dba879ac6"
+    },
+    {
+      "bytes": 902,
+      "path": "meta.json",
+      "sha256": "91ca9921911d4b1984aeaee2a66aeea0c289989181642beb9e0d44b35ac2c0b6"
+    },
+    {
+      "bytes": 431,
+      "path": "page.oui",
+      "sha256": "8b122388a1323223fb8b8b33061ad610fefd0648edd89963060229bfdedf69ab"
+    },
+    {
+      "bytes": 669,
+      "path": "sources.json",
+      "sha256": "4aefa47f7e94e1345fac1290e2e32765a379868c2bc8e7e0b295f5490110bbc8"
+    }
+  ],
+  "page_id": "policy-cb-fed-2025-09-17",
+  "schema": "manifest.v1",
+  "version": 1
+}

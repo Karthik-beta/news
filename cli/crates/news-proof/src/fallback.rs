@@ -34,6 +34,20 @@ fn lit(s: &str) -> String {
     out
 }
 
+/// A source label as copy: the comma-separated parts the C4 lint would flag (Fixer adds periods such as
+/// "change from 2024" or "2021 to 2025", and units such as "thousands") are left out, so code never types a number.
+fn plain(label: &str, names: &[&str], otherwise: &str) -> String {
+    let kept: Vec<&str> = label
+        .split(", ")
+        .filter(|part| crate::lint::numeric_literals(part, names).is_empty())
+        .collect();
+    if kept.is_empty() {
+        otherwise.to_string()
+    } else {
+        kept.join(", ")
+    }
+}
+
 /// The `pd_…` reference of a fact's period, when the brief has a period with that label.
 fn period_of<'a>(brief: &'a Brief, fact: &Fact) -> Option<&'a str> {
     let label = fact.period.as_deref()?;
@@ -78,8 +92,14 @@ pub fn templated(brief: &Brief) -> NewsResult<Copy> {
     let mut children = Vec::new();
     let mut components = Vec::new();
     let mut refs: Vec<String> = Vec::new();
-    let figure =
-        |i: usize, f: &Fact| format!("f{i} = KeyFigure({}, {})", lit(&f.label), lit(&f.reference));
+    let names: Vec<&str> = brief.entities.iter().map(|e| e.name.as_str()).collect();
+    let figure = |i: usize, f: &Fact| {
+        format!(
+            "f{i} = KeyFigure({}, {})",
+            lit(&plain(&f.label, &names, "Figure")),
+            lit(&f.reference)
+        )
+    };
     match facts.as_slice() {
         [] => {}
         [one] => {
@@ -98,10 +118,9 @@ pub fn templated(brief: &Brief) -> NewsResult<Copy> {
     refs.extend(facts.iter().map(|f| f.reference.clone()));
     if let Some(main) = series.iter().find(|s| s.points >= 2) {
         children.push("chart".to_string());
+        let label = lit(&plain(&main.label, &names, "The series"));
         lines.push(format!(
-            "chart = LineChart({}, {}, [{}])",
-            lit(&main.label),
-            lit(&main.label),
+            "chart = LineChart({label}, {label}, [{}])",
             lit(&main.reference)
         ));
         components.push("LineChart");
@@ -109,10 +128,9 @@ pub fn templated(brief: &Brief) -> NewsResult<Copy> {
     if let Some(first) = series.first() {
         let list: Vec<String> = series.iter().map(|s| lit(&s.reference)).collect();
         children.push("table".to_string());
+        let label = lit(&plain(&first.label, &names, "The series"));
         lines.push(format!(
-            "table = DataTable({}, {}, [{}])",
-            lit(&first.label),
-            lit(&first.label),
+            "table = DataTable({label}, {label}, [{}])",
             list.join(", ")
         ));
         components.push("DataTable");
@@ -190,19 +208,24 @@ mod tests {
                 .starts_with("root = Page([figures, chart, table])\n")
         );
         assert!(copy.oui.contains("f1 = KeyFigure(\"CPI-U\", \"dp_7kq2\")"));
+        // The series label has a digit in its only part, so code names it plainly instead.
         assert!(
             copy.oui
-                .contains("chart = LineChart(\"CPI-U 12-month change\"")
+                .contains("chart = LineChart(\"The series\", \"The series\"")
         );
         let value = serde_json::to_value(&copy).unwrap();
-        // Schema, refs, banned words and lengths pass; only the source's own series label carries digits.
-        let errors = validate(&value, Some(&brief()), None);
-        assert!(
-            errors
-                .iter()
-                .all(|e| e.rule == "numeric_literal" && e.at.starts_with("oui:")),
-            "{errors:?}"
+        assert_eq!(validate(&value, Some(&brief()), None), []);
+    }
+
+    #[test]
+    fn labels_lose_the_parts_that_would_type_a_number() {
+        assert_eq!(plain("GDP (current US$), change from 2024", &[], "x"), "GDP (current US$)");
+        assert_eq!(
+            plain("All employees, thousands, total nonfarm, seasonally adjusted", &[], "x"),
+            "All employees, total nonfarm, seasonally adjusted"
         );
+        assert_eq!(plain("G7 output, 2025", &["G7"], "x"), "G7 output");
+        assert_eq!(plain("2021 to 2025", &[], "Figure"), "Figure");
     }
 
     #[test]

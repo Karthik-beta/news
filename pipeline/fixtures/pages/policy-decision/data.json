@@ -1,0 +1,353 @@
+{
+  "context": {
+    "cx_1": {
+      "inputs": [
+        "dp_ayvmv67k6qwi2tu5",
+        "dp_rlxbur3fguyrftvd"
+      ],
+      "rule": "series_max_since",
+      "text": "Financial market data: highest since 2025-03-12"
+    }
+  },
+  "derived": {},
+  "periods": {
+    "pd_2023_08_02": {
+      "end": "2023-08-02",
+      "label": "2023-08-02",
+      "start": "2023-08-02"
+    },
+    "pd_2023_09_20": {
+      "end": "2023-09-20",
+      "label": "2023-09-20",
+      "start": "2023-09-20"
+    },
+    "pd_2024_06_12": {
+      "end": "2024-06-12",
+      "label": "2024-06-12",
+      "start": "2024-06-12"
+    },
+    "pd_2024_09_18": {
+      "end": "2024-09-18",
+      "label": "2024-09-18",
+      "start": "2024-09-18"
+    },
+    "pd_2024_10_23": {
+      "end": "2024-10-23",
+      "label": "2024-10-23",
+      "start": "2024-10-23"
+    },
+    "pd_2024_12_18": {
+      "end": "2024-12-18",
+      "label": "2024-12-18",
+      "start": "2024-12-18"
+    },
+    "pd_2025_02_05": {
+      "end": "2025-02-05",
+      "label": "2025-02-05",
+      "start": "2025-02-05"
+    },
+    "pd_2025_03_12": {
+      "end": "2025-03-12",
+      "label": "2025-03-12",
+      "start": "2025-03-12"
+    },
+    "pd_2025_04_23": {
+      "end": "2025-04-23",
+      "label": "2025-04-23",
+      "start": "2025-04-23"
+    },
+    "pd_2025_06_11": {
+      "end": "2025-06-11",
+      "label": "2025-06-11",
+      "start": "2025-06-11"
+    },
+    "pd_2026_06_17": {
+      "end": "2026-06-17",
+      "label": "2026-06-17",
+      "start": "2026-06-17"
+    },
+    "pd_2026_09_16": {
+      "end": "2026-09-16",
+      "label": "2026-09-16",
+      "start": "2026-09-16"
+    }
+  },
+  "points": {
+    "dp_2efohn72dtu3sl3j": {
+      "currency": null,
+      "label": "Financial market data",
+      "locator": {
+        "dimensions": "0:0:0:0:0:0:0",
+        "kind": "json",
+        "obs_status": "A",
+        "path": "$.dataSets[0].series[0:0:0:0:0:0:0].observations[9][0]",
+        "period": "2025-06-11",
+        "series": "ecb:FM:B.U2.EUR.4F.KR.MRR_FR.LEV"
+      },
+      "period": "pd_2025_06_11",
+      "scale": null,
+      "source": "src_ecb_mrr",
+      "unit": "Percent per annum",
+      "value": "2.15",
+      "value_text": "2.15"
+    },
+    "dp_ayvmv67k6qwi2tu5": {
+      "currency": null,
+      "label": "Financial market data",
+      "locator": {
+        "dimensions": "0:0:0:0:0:0:0",
+        "kind": "json",
+        "obs_status": "A",
+        "path": "$.dataSets[0].series[0:0:0:0:0:0:0].observations[11][0]",
+        "period": "2026-09-16",
+        "series": "ecb:FM:B.U2.EUR.4F.KR.MRR_FR.LEV"
+      },
+      "period": "pd_2026_09_16",
+      "scale": null,
+      "source": "src_ecb_mrr",
+      "unit": "Percent per annum",
+      "value": "2.65",
+      "value_text": "2.65"
+    },
+    "dp_c23vzs55tlfe6zm4": {
+      "currency": null,
+      "label": "Financial market data",
+      "locator": {
+        "dimensions": "0:0:0:0:0:0:0",
+        "kind": "json",
+        "obs_status": "A",
+        "path": "$.dataSets[0].series[0:0:0:0:0:0:0].observations[8][0]",
+        "period": "2025-04-23",
+        "series": "ecb:FM:B.U2.EUR.4F.KR.MRR_FR.LEV"
+      },
+      "period": "pd_2025_04_23",
+      "scale": null,
+      "source": "src_ecb_mrr",
+      "unit": "Percent per annum",
+      "value": "2.4",
+      "value_text": "2.4"
+    },
+    "dp_d4jegwpgekxk5glw": {
+      "currency": null,
+      "label": "Financial market data",
+      "locator": {
+        "dimensions": "0:0:0:0:0:0:0",
+        "kind": "json",
+        "obs_status": "A",
+        "path": "$.dataSets[0].series[0:0:0:0:0:0:0].observations[2][0]",
+        "period": "2024-06-12",
+        "series": "ecb:FM:B.U2.EUR.4F.KR.MRR_FR.LEV"
+      },
+      "period": "pd_2024_06_12",
+      "scale": null,
+      "source": "src_ecb_mrr",
+      "unit": "Percent per annum",
+      "value": "4.25",
+      "value_text": "4.25"
+    },
+    "dp_jiu4oi2xoaevncoi": {
+      "currency": null,
+      "label": "Financial market data",
+      "locator": {
+        "dimensions": "0:0:0:0:0:0:0",
+        "kind": "json",
+        "obs_status": "A",
+        "path": "$.dataSets[0].series[0:0:0:0:0:0:0].observations[4][0]",
+        "period": "2024-10-23",
+        "series": "ecb:FM:B.U2.EUR.4F.KR.MRR_FR.LEV"
+      },
+      "period": "pd_2024_10_23",
+      "scale": null,
+      "source": "src_ecb_mrr",
+      "unit": "Percent per annum",
+      "value": "3.4",
+      "value_text": "3.4"
+    },
+    "dp_lrcdyjec4bca3k3y": {
+      "currency": null,
+      "label": "Financial market data",
+      "locator": {
+        "dimensions": "0:0:0:0:0:0:0",
+        "kind": "json",
+        "obs_status": "A",
+        "path": "$.dataSets[0].series[0:0:0:0:0:0:0].observations[6][0]",
+        "period": "2025-02-05",
+        "series": "ecb:FM:B.U2.EUR.4F.KR.MRR_FR.LEV"
+      },
+      "period": "pd_2025_02_05",
+      "scale": null,
+      "source": "src_ecb_mrr",
+      "unit": "Percent per annum",
+      "value": "2.9",
+      "value_text": "2.9"
+    },
+    "dp_muuvkjavtyet24fx": {
+      "currency": null,
+      "label": "Financial market data",
+      "locator": {
+        "dimensions": "0:0:0:0:0:0:0",
+        "kind": "json",
+        "obs_status": "A",
+        "path": "$.dataSets[0].series[0:0:0:0:0:0:0].observations[3][0]",
+        "period": "2024-09-18",
+        "series": "ecb:FM:B.U2.EUR.4F.KR.MRR_FR.LEV"
+      },
+      "period": "pd_2024_09_18",
+      "scale": null,
+      "source": "src_ecb_mrr",
+      "unit": "Percent per annum",
+      "value": "3.65",
+      "value_text": "3.65"
+    },
+    "dp_piuyjqgryeamaalp": {
+      "currency": null,
+      "label": "Financial market data",
+      "locator": {
+        "dimensions": "0:0:0:0:0:0:0",
+        "kind": "json",
+        "obs_status": "A",
+        "path": "$.dataSets[0].series[0:0:0:0:0:0:0].observations[0][0]",
+        "period": "2023-08-02",
+        "series": "ecb:FM:B.U2.EUR.4F.KR.MRR_FR.LEV"
+      },
+      "period": "pd_2023_08_02",
+      "scale": null,
+      "source": "src_ecb_mrr",
+      "unit": "Percent per annum",
+      "value": "4.25",
+      "value_text": "4.25"
+    },
+    "dp_qyldnb7tydmc7tzg": {
+      "currency": null,
+      "label": "Financial market data",
+      "locator": {
+        "dimensions": "0:0:0:0:0:0:0",
+        "kind": "json",
+        "obs_status": "A",
+        "path": "$.dataSets[0].series[0:0:0:0:0:0:0].observations[1][0]",
+        "period": "2023-09-20",
+        "series": "ecb:FM:B.U2.EUR.4F.KR.MRR_FR.LEV"
+      },
+      "period": "pd_2023_09_20",
+      "scale": null,
+      "source": "src_ecb_mrr",
+      "unit": "Percent per annum",
+      "value": "4.5",
+      "value_text": "4.5"
+    },
+    "dp_rlxbur3fguyrftvd": {
+      "currency": null,
+      "label": "Financial market data",
+      "locator": {
+        "dimensions": "0:0:0:0:0:0:0",
+        "kind": "json",
+        "obs_status": "A",
+        "path": "$.dataSets[0].series[0:0:0:0:0:0:0].observations[7][0]",
+        "period": "2025-03-12",
+        "series": "ecb:FM:B.U2.EUR.4F.KR.MRR_FR.LEV"
+      },
+      "period": "pd_2025_03_12",
+      "scale": null,
+      "source": "src_ecb_mrr",
+      "unit": "Percent per annum",
+      "value": "2.65",
+      "value_text": "2.65"
+    },
+    "dp_yqg2royirj3j66pz": {
+      "currency": null,
+      "label": "Financial market data",
+      "locator": {
+        "dimensions": "0:0:0:0:0:0:0",
+        "kind": "json",
+        "obs_status": "A",
+        "path": "$.dataSets[0].series[0:0:0:0:0:0:0].observations[5][0]",
+        "period": "2024-12-18",
+        "series": "ecb:FM:B.U2.EUR.4F.KR.MRR_FR.LEV"
+      },
+      "period": "pd_2024_12_18",
+      "scale": null,
+      "source": "src_ecb_mrr",
+      "unit": "Percent per annum",
+      "value": "3.15",
+      "value_text": "3.15"
+    },
+    "dp_zqmtgkcrnjro6jq4": {
+      "currency": null,
+      "label": "Financial market data",
+      "locator": {
+        "dimensions": "0:0:0:0:0:0:0",
+        "kind": "json",
+        "obs_status": "A",
+        "path": "$.dataSets[0].series[0:0:0:0:0:0:0].observations[10][0]",
+        "period": "2026-06-17",
+        "series": "ecb:FM:B.U2.EUR.4F.KR.MRR_FR.LEV"
+      },
+      "period": "pd_2026_06_17",
+      "scale": null,
+      "source": "src_ecb_mrr",
+      "unit": "Percent per annum",
+      "value": "2.4",
+      "value_text": "2.4"
+    }
+  },
+  "quotes": {},
+  "series": {
+    "sr_liw7sejpktdh": {
+      "currency": null,
+      "label": "Financial market data, 2023-08-02 to 2026-09-16",
+      "points": [
+        {
+          "period": "pd_2023_08_02",
+          "point": "dp_piuyjqgryeamaalp"
+        },
+        {
+          "period": "pd_2023_09_20",
+          "point": "dp_qyldnb7tydmc7tzg"
+        },
+        {
+          "period": "pd_2024_06_12",
+          "point": "dp_d4jegwpgekxk5glw"
+        },
+        {
+          "period": "pd_2024_09_18",
+          "point": "dp_muuvkjavtyet24fx"
+        },
+        {
+          "period": "pd_2024_10_23",
+          "point": "dp_jiu4oi2xoaevncoi"
+        },
+        {
+          "period": "pd_2024_12_18",
+          "point": "dp_yqg2royirj3j66pz"
+        },
+        {
+          "period": "pd_2025_02_05",
+          "point": "dp_lrcdyjec4bca3k3y"
+        },
+        {
+          "period": "pd_2025_03_12",
+          "point": "dp_rlxbur3fguyrftvd"
+        },
+        {
+          "period": "pd_2025_04_23",
+          "point": "dp_c23vzs55tlfe6zm4"
+        },
+        {
+          "period": "pd_2025_06_11",
+          "point": "dp_2efohn72dtu3sl3j"
+        },
+        {
+          "period": "pd_2026_06_17",
+          "point": "dp_zqmtgkcrnjro6jq4"
+        },
+        {
+          "period": "pd_2026_09_16",
+          "point": "dp_ayvmv67k6qwi2tu5"
+        }
+      ],
+      "scale": null,
+      "unit": "Percent per annum"
+    }
+  },
+  "version": 1
+}

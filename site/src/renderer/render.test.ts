@@ -115,6 +115,16 @@ describe("renderer: HTML", () => {
     ]);
   });
 
+  it("adds the disclaimer the brief's rule names after the sources, and none by default", () => {
+    const last = (html: string) => dom(html).querySelector("article")?.lastElementChild;
+    expect(dom(apple.html).querySelector(".disclaimer")).toBeNull();
+    const investment = renderPage(fixtureBundles["apple-fy2024"], { library, disclaimer: "investment" }).html;
+    expect(last(investment)?.textContent).toBe("Not investment advice.");
+    expect(last(investment)?.previousElementSibling?.className).toBe("article__sources");
+    const medical = renderPage(fixtureBundles["apple-fy2024"], { library, disclaimer: "medical" }).html;
+    expect(last(medical)?.textContent).toBe("Not medical advice.");
+  });
+
   it("produces the same HTML with the fallback walker (ADR 0001, option C)", () => {
     for (const name of Object.keys(fixtureBundles) as (keyof typeof fixtureBundles)[]) {
       const b = renderPage(fixtureBundles[name], { library }).html;

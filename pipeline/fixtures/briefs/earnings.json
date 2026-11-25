@@ -1,0 +1,133 @@
+{
+  "brief_version": 1,
+  "item": {
+    "story_id": 91001,
+    "event_key": "earnings:0000320193:2024FY",
+    "page_type": "earnings",
+    "tier": 1,
+    "action": "new",
+    "slug_hint": "earnings-0000320193-2024fy",
+    "data_as_of": "2024-11-01"
+  },
+  "entities": [
+    {
+      "id": "ent_apple",
+      "name": "Apple Inc.",
+      "kind": "company"
+    }
+  ],
+  "facts": [
+    {
+      "ref": "dp_4a667tn3d233zata",
+      "label": "CostOfGoodsAndServicesSold",
+      "value": "210352000000",
+      "unit": "USD",
+      "period": "2023-10-01/2024-09-28"
+    },
+    {
+      "ref": "dp_gyqvyvwdfoavb6ik",
+      "label": "GrossProfit",
+      "value": "180683000000",
+      "unit": "USD",
+      "period": "2023-10-01/2024-09-28"
+    },
+    {
+      "ref": "dp_rn3dqvladry7igs7",
+      "label": "IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest",
+      "value": "123485000000",
+      "unit": "USD",
+      "period": "2023-10-01/2024-09-28"
+    },
+    {
+      "ref": "dp_vi5pgdc43ormcwdc",
+      "label": "IncomeTaxExpenseBenefit",
+      "value": "29749000000",
+      "unit": "USD",
+      "period": "2023-10-01/2024-09-28"
+    },
+    {
+      "ref": "dp_gcvvwz3rggki4m42",
+      "label": "NetIncomeLoss",
+      "value": "93736000000",
+      "unit": "USD",
+      "period": "2023-10-01/2024-09-28"
+    },
+    {
+      "ref": "dp_rgaqlsm2ln2nuqn7",
+      "label": "NonoperatingIncomeExpense",
+      "value": "269000000",
+      "unit": "USD",
+      "period": "2023-10-01/2024-09-28"
+    },
+    {
+      "ref": "dp_eeotdqskvtxdh2fb",
+      "label": "OperatingExpenses",
+      "value": "57467000000",
+      "unit": "USD",
+      "period": "2023-10-01/2024-09-28"
+    },
+    {
+      "ref": "dp_ofcoxo3c6abfoo53",
+      "label": "OperatingIncomeLoss",
+      "value": "123216000000",
+      "unit": "USD",
+      "period": "2023-10-01/2024-09-28"
+    },
+    {
+      "ref": "dp_5bwm2cc5vbbxkjc4",
+      "label": "ResearchAndDevelopmentExpense",
+      "value": "31370000000",
+      "unit": "USD",
+      "period": "2023-10-01/2024-09-28"
+    },
+    {
+      "ref": "dp_vc6if6wdvyfxcmt6",
+      "label": "RevenueFromContractWithCustomerExcludingAssessedTax",
+      "value": "391035000000",
+      "unit": "USD",
+      "period": "2023-10-01/2024-09-28"
+    },
+    {
+      "ref": "dp_qxwm57nvi5v5zmo5",
+      "label": "SellingGeneralAndAdministrativeExpense",
+      "value": "26097000000",
+      "unit": "USD",
+      "period": "2023-10-01/2024-09-28"
+    }
+  ],
+  "series": [],
+  "periods": [
+    {
+      "ref": "pd_20231001_20240928",
+      "label": "2023-10-01/2024-09-28"
+    }
+  ],
+  "context": [],
+  "quotes": [],
+  "source_text": {
+    "untrusted": true,
+    "points": []
+  },
+  "media": {
+    "images": [],
+    "video": null
+  },
+  "related_pages": [],
+  "components": {
+    "suggested": [
+      "KeyFigures",
+      "Prose",
+      "Waterfall",
+      "Sankey",
+      "BarChart",
+      "LineChart",
+      "DataTable",
+      "Note",
+      "VideoEmbed"
+    ]
+  },
+  "rules": {
+    "disclaimer": "not-investment-advice",
+    "fiscal_note": "Periods are the company's fiscal periods, labelled as it labels them; its fiscal year ends on 2024-09-28"
+  }
+}

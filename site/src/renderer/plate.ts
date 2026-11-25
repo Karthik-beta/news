@@ -3,8 +3,8 @@
 // component library load once instead of once per page.
 //
 //   GET  /health                                               -> {renderer}
-//   POST /render {oui, data, sources, head, indexStatus}       -> {rendererVersion, files, charts, refsUsed,
-//                                                                  sourcesUsed, problems}
+//   POST /render {oui, data, sources, head, indexStatus,       -> {rendererVersion, files, charts, refsUsed,
+//                 disclaimer}                                      sourcesUsed, problems}
 //   POST /check  {oui}                                         -> {errors: [{rule, where, message}], components,
 //                                                                  literals: [{where, text, number}]}
 //
@@ -103,12 +103,13 @@ interface RenderRequest {
   sources: unknown;
   head: PageHead;
   indexStatus?: "index" | "noindex";
+  disclaimer?: "investment" | "medical" | null;
 }
 
 export function render(req: RenderRequest) {
   const result = renderPage(
     { oui: req.oui, data: req.data, sources: req.sources, head: req.head },
-    { indexStatus: req.indexStatus ?? "noindex" },
+    { indexStatus: req.indexStatus ?? "noindex", disclaimer: req.disclaimer ?? null },
   );
   return {
     rendererVersion: result.rendererVersion,

@@ -1,0 +1,21 @@
+{
+  "sources": {
+    "src_fed_statement": {
+      "connector": "cb-fed",
+      "licence": {
+        "name": "Federal Reserve website policies",
+        "redistribution": false,
+        "url": "https://www.federalreserve.gov/disclaimer.htm"
+      },
+      "primary": true,
+      "published_at": "2025-09-17",
+      "publisher": "Board of Governors of the Federal Reserve System",
+      "retrieved_at": "2026-11-18",
+      "short": "Federal Reserve, FOMC statement",
+      "title": "Federal Reserve issues FOMC statement",
+      "type": "statement",
+      "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20250917a.htm"
+    }
+  },
+  "version": 1
+}

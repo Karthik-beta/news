@@ -1,0 +1,21 @@
+{
+  "sources": {
+    "src_bls_cpi": {
+      "connector": "bls",
+      "licence": {
+        "name": "Public domain",
+        "redistribution": true,
+        "url": "https://www.bls.gov/opub/copyright-information.htm"
+      },
+      "primary": true,
+      "published_at": null,
+      "publisher": "U.S. Bureau of Labor Statistics",
+      "retrieved_at": "2026-11-16",
+      "short": "BLS, Consumer Price Index",
+      "title": "Consumer Price Index for All Urban Consumers: all items, U.S. city average",
+      "type": "dataset",
+      "url": "https://data.bls.gov/timeseries/CUUR0000SA0"
+    }
+  },
+  "version": 1
+}

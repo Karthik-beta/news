@@ -1,0 +1,7 @@
+root = Page([figures, years, method, table])
+figures = KeyFigures([gdp, before])
+gdp = KeyFigure("GDP, current US$", "dp_4stpfufc74tc24cy", "dv_kzlk4w44czg7dxrt", "pd_2024", "sr_am7mvf3ghynd")
+before = KeyFigure("The year before", "dp_2kkf6eorryn4eygg")
+years = ColumnChart("America's GDP in current dollars was higher in each year shown", "GDP, current US$, {pd_2021} to {pd_2025}", ["sr_am7mvf3ghynd"], "pd_2025")
+method = Prose(["The World Bank reports GDP in current US dollars, the measure its indicator names. The figures are as the World Development Indicators publish them."])
+table = DataTable("GDP by year, as the World Bank publishes it", "GDP, current US$, {pd_2021} to {pd_2025}", ["sr_am7mvf3ghynd"], "pd_2025")

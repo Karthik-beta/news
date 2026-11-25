@@ -1,0 +1,38 @@
+{
+  "bundle_sha256": "3239b87724ec7d8979f1ab4f1fca93a976dec334794c1d917733c3baac64d4da",
+  "files": [
+    {
+      "bytes": 560,
+      "path": "data.json",
+      "sha256": "308545922cd0c99cf139086ee8bcf5c79a8f26afe389fc3895693d1d80e8824c"
+    },
+    {
+      "bytes": 3461,
+      "path": "index.html",
+      "sha256": "26fa3f34f23518f879c3bbb570fb040aec213cfb3b43643a6ec57eecb49ff53f"
+    },
+    {
+      "bytes": 1731,
+      "path": "index.md",
+      "sha256": "46af016275e8ba787d19f3d6edd1beb0a7c8249f1bb1c440a80204cd11c2a866"
+    },
+    {
+      "bytes": 887,
+      "path": "meta.json",
+      "sha256": "aa7404ed8ae34bf83fcfd37e4a3d7efc630e665616a6dd0b3ccf0b372fb270f1"
+    },
+    {
+      "bytes": 712,
+      "path": "page.oui",
+      "sha256": "b80c82e0cb72c76b0d5e385bcfb58d935f4b10ea5ec46b9d051e0097201142b7"
+    },
+    {
+      "bytes": 650,
+      "path": "sources.json",
+      "sha256": "f11c60155ec596f80e233270db31cc8124945ad04c726372a4fc9e62ae9e7074"
+    }
+  ],
+  "page_id": "science-nasa-artemis-ii-launch",
+  "schema": "manifest.v1",
+  "version": 1
+}

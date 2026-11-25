@@ -1,0 +1,38 @@
+{
+  "draft_id": "macro-release-23a0e781e9d0",
+  "story": "macro-release",
+  "saved_at": "2026-11-16T12:00:00Z",
+  "source": "save",
+  "job": null,
+  "flags": [],
+  "copy": {
+    "angle": "latest-figure",
+    "components_used": [
+      "KeyFigures",
+      "KeyFigure",
+      "Prose",
+      "LineChart",
+      "DataTable"
+    ],
+    "fly_title": "America's jobs",
+    "headline": "America's unemployment rate fell to {dp_d3dyoy567d4dmwxy} in {pd_2026_10}",
+    "oui": "root = Page([figures, latest, payrolls, rate, table])\nfigures = KeyFigures([unemployment, jobs])\nunemployment = KeyFigure(\"Unemployment rate\", \"dp_d3dyoy567d4dmwxy\", \"dv_fko7bfznuds36xaj\", \"pd_2026_09\", \"sr_yahxrdyv7qax\")\njobs = KeyFigure(\"Nonfarm payrolls\", \"dp_gpi4efi6yvfglffl\", \"dv_yyq6cr6uzdblv43a\", \"pd_2026_09\", \"sr_3bj36ttsa3ar\")\nlatest = Prose([\"The unemployment rate was {dp_d3dyoy567d4dmwxy} in {pd_2026_10}, against {dp_owvaajuazcbf5n2u} in {pd_2026_09}. Nonfarm payrolls were {dp_gpi4efi6yvfglffl}, against {dp_uagycyae7rcarms2} a month earlier and {dp_gihbhes2orplnusi} in {pd_2025_10}.\", \"Both figures are seasonally adjusted, as the Bureau of Labor Statistics publishes them.\"])\npayrolls = LineChart(\"Payrolls in {pd_2026_10} were the highest of any month shown\", \"Total nonfarm employment, seasonally adjusted, monthly from {pd_2024_01}\", [\"sr_3bj36ttsa3ar\"], \"sr_3bj36ttsa3ar\", null, false)\nrate = LineChart(\"The unemployment rate edged down in {pd_2026_10}\", \"Unemployment rate, seasonally adjusted, %, monthly from {pd_2024_01}\", [\"sr_yahxrdyv7qax\"], \"sr_yahxrdyv7qax\", null, false)\ntable = DataTable(\"Payrolls and the unemployment rate as published\", \"Seasonally adjusted, monthly from {pd_2024_01}\", [\"sr_3bj36ttsa3ar\", \"sr_yahxrdyv7qax\"], \"pd_2026_10\")\n",
+    "refs_used": [
+      "dp_d3dyoy567d4dmwxy",
+      "dp_gihbhes2orplnusi",
+      "dp_gpi4efi6yvfglffl",
+      "dp_owvaajuazcbf5n2u",
+      "dp_uagycyae7rcarms2",
+      "dv_fko7bfznuds36xaj",
+      "dv_hzhp6st6d7rlartc",
+      "dv_yyq6cr6uzdblv43a",
+      "pd_2024_01",
+      "pd_2025_10",
+      "pd_2026_09",
+      "pd_2026_10",
+      "sr_3bj36ttsa3ar",
+      "sr_yahxrdyv7qax"
+    ],
+    "summary": "Nonfarm payrolls rose by {dv_yyq6cr6uzdblv43a} from {pd_2026_09} to {dp_gpi4efi6yvfglffl}. Over the year to {pd_2026_10} they rose by {dv_hzhp6st6d7rlartc}."
+  }
+}

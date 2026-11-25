@@ -1,0 +1,33 @@
+{
+  "categories": [
+    "economy/monetary-policy"
+  ],
+  "chart_ids": [],
+  "data_ids": [],
+  "entities": [
+    {
+      "id": "ent_fed",
+      "kind": "institution",
+      "name": "Federal Reserve"
+    }
+  ],
+  "fly_title": "America's central bank",
+  "id": "policy-cb-fed-2025-09-17",
+  "index_status": "noindex",
+  "lang": "en-GB",
+  "page_type": "news",
+  "path": "/2026/11/policy-cb-fed-2025-09-17",
+  "published_at": "2026-11-18T12:00:00Z",
+  "region": "north-america",
+  "renderer_version": "1.1.0",
+  "schema": "meta.v1",
+  "summary": "The Federal Open Market Committee said job gains had slowed and that downside risks to employment had risen. Its statement is quoted below.",
+  "tags": [
+    "federal-reserve",
+    "interest-rates"
+  ],
+  "tier": 2,
+  "title": "The Federal Reserve lowered its target range for the federal funds rate",
+  "updated_at": "2026-11-18T12:00:00Z",
+  "version": 1
+}

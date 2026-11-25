@@ -1,0 +1,178 @@
+{
+  "context": {
+    "cx_1": {
+      "inputs": [
+        "dp_4stpfufc74tc24cy",
+        "dp_u5lcrrglxtnd5hut"
+      ],
+      "rule": "series_record_high",
+      "text": "GDP (current US$): highest of every observation held, which begin in 2021"
+    }
+  },
+  "derived": {
+    "dv_kzlk4w44czg7dxrt": {
+      "currency": null,
+      "formula": "pct_change",
+      "inputs": [
+        "dp_4stpfufc74tc24cy",
+        "dp_2kkf6eorryn4eygg"
+      ],
+      "label": "GDP (current US$), change from 2024",
+      "rounding": 1,
+      "scale": null,
+      "unit": "Percent",
+      "value": "5.0"
+    }
+  },
+  "periods": {
+    "pd_2021": {
+      "end": "2021-12-31",
+      "label": "2021",
+      "start": "2021-01-01"
+    },
+    "pd_2022": {
+      "end": "2022-12-31",
+      "label": "2022",
+      "start": "2022-01-01"
+    },
+    "pd_2023": {
+      "end": "2023-12-31",
+      "label": "2023",
+      "start": "2023-01-01"
+    },
+    "pd_2024": {
+      "end": "2024-12-31",
+      "label": "2024",
+      "start": "2024-01-01"
+    },
+    "pd_2025": {
+      "end": "2025-12-31",
+      "label": "2025",
+      "start": "2025-01-01"
+    }
+  },
+  "points": {
+    "dp_2kkf6eorryn4eygg": {
+      "currency": null,
+      "label": "GDP (current US$)",
+      "locator": {
+        "country": "USA",
+        "date": "2024",
+        "indicator": "NY.GDP.MKTP.CD",
+        "kind": "json",
+        "obs_status": "",
+        "path": "$[1][1].value"
+      },
+      "period": "pd_2024",
+      "scale": null,
+      "source": "src_wb_wdi",
+      "unit": "current US$",
+      "value": "29298013000000",
+      "value_text": "29298013000000"
+    },
+    "dp_4stpfufc74tc24cy": {
+      "currency": null,
+      "label": "GDP (current US$)",
+      "locator": {
+        "country": "USA",
+        "date": "2025",
+        "indicator": "NY.GDP.MKTP.CD",
+        "kind": "json",
+        "obs_status": "",
+        "path": "$[1][0].value"
+      },
+      "period": "pd_2025",
+      "scale": null,
+      "source": "src_wb_wdi",
+      "unit": "current US$",
+      "value": "30769700000000",
+      "value_text": "30769700000000"
+    },
+    "dp_qz3sungkfd3u2b7a": {
+      "currency": null,
+      "label": "GDP (current US$)",
+      "locator": {
+        "country": "USA",
+        "date": "2022",
+        "indicator": "NY.GDP.MKTP.CD",
+        "kind": "json",
+        "obs_status": "",
+        "path": "$[1][3].value"
+      },
+      "period": "pd_2022",
+      "scale": null,
+      "source": "src_wb_wdi",
+      "unit": "current US$",
+      "value": "26054614000000",
+      "value_text": "26054614000000"
+    },
+    "dp_u5lcrrglxtnd5hut": {
+      "currency": null,
+      "label": "GDP (current US$)",
+      "locator": {
+        "country": "USA",
+        "date": "2021",
+        "indicator": "NY.GDP.MKTP.CD",
+        "kind": "json",
+        "obs_status": "",
+        "path": "$[1][4].value"
+      },
+      "period": "pd_2021",
+      "scale": null,
+      "source": "src_wb_wdi",
+      "unit": "current US$",
+      "value": "23725645000000",
+      "value_text": "23725645000000"
+    },
+    "dp_zt2xelifklqugfmy": {
+      "currency": null,
+      "label": "GDP (current US$)",
+      "locator": {
+        "country": "USA",
+        "date": "2023",
+        "indicator": "NY.GDP.MKTP.CD",
+        "kind": "json",
+        "obs_status": "",
+        "path": "$[1][2].value"
+      },
+      "period": "pd_2023",
+      "scale": null,
+      "source": "src_wb_wdi",
+      "unit": "current US$",
+      "value": "27811517000000",
+      "value_text": "27811517000000"
+    }
+  },
+  "quotes": {},
+  "series": {
+    "sr_am7mvf3ghynd": {
+      "currency": null,
+      "label": "GDP (current US$), 2021 to 2025",
+      "points": [
+        {
+          "period": "pd_2021",
+          "point": "dp_u5lcrrglxtnd5hut"
+        },
+        {
+          "period": "pd_2022",
+          "point": "dp_qz3sungkfd3u2b7a"
+        },
+        {
+          "period": "pd_2023",
+          "point": "dp_zt2xelifklqugfmy"
+        },
+        {
+          "period": "pd_2024",
+          "point": "dp_2kkf6eorryn4eygg"
+        },
+        {
+          "period": "pd_2025",
+          "point": "dp_4stpfufc74tc24cy"
+        }
+      ],
+      "scale": null,
+      "unit": "current US$"
+    }
+  },
+  "version": 1
+}

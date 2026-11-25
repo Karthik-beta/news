@@ -1,0 +1,21 @@
+{
+  "sources": {
+    "src_nasa_image": {
+      "connector": "nasa",
+      "licence": {
+        "name": "NASA media usage guidelines",
+        "redistribution": true,
+        "url": "https://www.nasa.gov/nasa-brand-center/images-and-media/"
+      },
+      "primary": true,
+      "published_at": null,
+      "publisher": "National Aeronautics and Space Administration",
+      "retrieved_at": "2026-11-18",
+      "short": "NASA Image and Video Library",
+      "title": "NASA Image and Video Library: Artemis II launch",
+      "type": "other",
+      "url": "https://images.nasa.gov/details/KSC-04012026-Artemis%20II_Launch-1"
+    }
+  },
+  "version": 1
+}
