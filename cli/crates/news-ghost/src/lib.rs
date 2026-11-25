@@ -5,8 +5,9 @@
 //! - the §3.9 flags ([`claude::argv`]) and `pipeline/claude/page-call.settings.json`;
 //! - an environment built from an allow-list ([`claude::child_env`]): no `ANTHROPIC_API_KEY`, no AWS,
 //!   Cloudflare, database or write-API secret; `OTEL_RESOURCE_ATTRIBUTES` names the run, job and step;
-//! - on Windows, created suspended, put in the service's AI Job Object and only then resumed (the spawn
-//!   marker), so the call and everything it starts can never send a control command;
+//! - on Windows, created suspended with a Low-integrity token, put in the service's AI Job Object and
+//!   only then resumed (the spawn marker), so the call and everything it starts can never send a
+//!   control command, and can write only its Low-labelled work folder;
 //! - its output goes to `news ai accept` through [`AcceptSink`]; an A1 Copy that fails validation gets
 //!   one A2 repair, and a second failure is `ai_invalid_output`;
 //! - a usage-limit reply is `ai_usage_limit` with the reset as `retry_after`: Dispatch pauses the `ai`
@@ -29,7 +30,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::process::Stdio;
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 use store::{AiCall, BoxFut, Store};
@@ -174,9 +174,11 @@ static GHOST: OnceLock<Arc<Ghost>> = OnceLock::new();
 
 /// Install Ghost for [`handle`]; `false` if one is already installed.
 ///
-/// Do not wire this into the Bureau service yet. A call must first spawn with a Low-integrity token in
-/// a Low-labelled working folder (ADR 0008 §8.2); until it does, `claude -p` runs with the service's
-/// full rights.
+/// Do not wire this into the Bureau service yet. Calls now run at Low integrity in a Low-labelled work
+/// folder (ADR 0008 §8.2), but two things remain: the service has no [`AcceptSink`] bound to
+/// `news ai accept`, and #18 must prove the subscription login survives a token refresh at Low
+/// integrity (the OAuth pre-refresh, ADR 0008 Consequences), since such a call cannot write
+/// `%USERPROFILE%\.claude`.
 pub fn install(g: Ghost) -> bool {
     GHOST.set(Arc::new(g)).is_ok()
 }
@@ -481,68 +483,122 @@ impl Ghost {
                 stdin.display()
             ))
         })?;
-        let mut cmd = tokio::process::Command::new(&self.claude);
-        cmd.args(claude::argv(spec))
-            .env_clear()
-            .envs(claude::child_env(
-                &self.parent_env,
-                input.run_id,
-                input.job_id,
-                step,
-            ))
-            .current_dir(cwd)
-            .stdin(Stdio::from(stdin))
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .kill_on_drop(true);
-        #[cfg(windows)]
-        let Some(job) = &self.job else {
-            return Err(bug(
-                "no AI Job Object: Ghost never starts claude outside the spawn marker",
-            ));
-        };
-        #[cfg(windows)]
-        cmd.creation_flags(news_win::SPAWN_SUSPENDED);
+        let args = claude::argv(spec);
+        let env = claude::child_env(&self.parent_env, input.run_id, input.job_id, step);
         let started = Instant::now();
-        #[cfg_attr(not(windows), allow(unused_mut))] // only Windows calls start_kill
-        let mut child = cmd.spawn().map_err(|e| {
-            let class = if e.kind() == std::io::ErrorKind::NotFound {
-                ErrorClass::Bug
-            } else {
-                ErrorClass::Transient
-            };
-            JobFailure::new(
-                class,
-                format!("cannot start {}: {e}", self.claude.display()),
-            )
-        })?;
         #[cfg(windows)]
-        {
-            let adopted = child
-                .id()
-                .ok_or_else(|| std::io::Error::other("no pid"))
-                .and_then(|pid| job.adopt_suspended(pid));
-            if let Err(e) = adopted {
-                // Still suspended: it never ran an instruction outside the job.
-                let _ = child.start_kill();
-                return Err(bug(format!("cannot put claude in the AI Job Object: {e}")));
-            }
-        }
-        match tokio::time::timeout(CALL_TIMEOUT, child.wait_with_output()).await {
+        let waited = self.spawn_low(stdin, &args, env, cwd).await?;
+        #[cfg(not(windows))]
+        let waited = {
+            use std::process::Stdio;
+            let child = tokio::process::Command::new(&self.claude)
+                .args(args)
+                .env_clear()
+                .envs(env)
+                .current_dir(cwd)
+                .stdin(Stdio::from(stdin))
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .kill_on_drop(true)
+                .spawn()
+                .map_err(|e| self.start_failed(e))?;
+            tokio::time::timeout(CALL_TIMEOUT, child.wait_with_output())
+                .await
+                .map(|r| r.map(|o| (o.status.code(), o.stdout, o.stderr)))
+        };
+        match waited {
             Err(_) => Ok(Err(())),
             Ok(Err(e)) => Err(JobFailure::new(
                 ErrorClass::Transient,
                 format!("waiting for claude: {e}"),
             )),
-            Ok(Ok(out)) => Ok(Ok(Finished {
-                code: out.status.code(),
-                stdout: String::from_utf8_lossy(&out.stdout).into_owned(),
-                stderr: String::from_utf8_lossy(&out.stderr).into_owned(),
+            Ok(Ok((code, stdout, stderr))) => Ok(Ok(Finished {
+                code,
+                stdout: String::from_utf8_lossy(&stdout).into_owned(),
+                stderr: String::from_utf8_lossy(&stderr).into_owned(),
                 ms: started.elapsed().as_millis() as u64,
             })),
         }
     }
+
+    fn start_failed(&self, e: std::io::Error) -> JobFailure {
+        let class = if e.kind() == std::io::ErrorKind::NotFound {
+            ErrorClass::Bug
+        } else {
+            ErrorClass::Transient
+        };
+        JobFailure::new(
+            class,
+            format!("cannot start {}: {e}", self.claude.display()),
+        )
+    }
+
+    /// The Windows call (ADR 0008 §8.2): `claude -p` is created suspended with a Low-integrity token,
+    /// put in the AI Job Object and only then resumed. Its work folder is labelled Low, so it is the
+    /// only place the call can write; its temp files go there too.
+    #[cfg(windows)]
+    async fn spawn_low(
+        &self,
+        stdin: std::fs::File,
+        args: &[String],
+        mut env: Vec<(String, String)>,
+        cwd: &Path,
+    ) -> Result<Waited, JobFailure> {
+        let Some(job) = &self.job else {
+            return Err(bug(
+                "no AI Job Object: Ghost never starts claude outside the spawn marker",
+            ));
+        };
+        news_win::label_low(cwd)
+            .map_err(|e| bug(format!("cannot label the work folder Low: {e}")))?;
+        env.retain(|(k, _)| !["TEMP", "TMP"].contains(&k.to_ascii_uppercase().as_str()));
+        let here = cwd.to_string_lossy().into_owned();
+        env.extend(["TEMP", "TMP"].map(|k| (k.to_owned(), here.clone())));
+        let mut child = news_win::spawn_low_suspended(&self.claude, args, &env, cwd, stdin)
+            .map_err(|e| self.start_failed(e))?;
+        if let Err(e) = job.adopt_suspended(child.pid) {
+            // Still suspended: it never ran an instruction outside the job.
+            let _ = child.kill();
+            return Err(bug(format!("cannot put claude in the AI Job Object: {e}")));
+        }
+        let (out, err) = (child.stdout.take(), child.stderr.take());
+        let child = Arc::new(child);
+        /// Kills the child when the call ends or its future is dropped (a no-op once it has exited).
+        struct Kill(Arc<news_win::LowChild>);
+        impl Drop for Kill {
+            fn drop(&mut self) {
+                let _ = self.0.kill();
+            }
+        }
+        let _kill = Kill(child.clone());
+        let done = tokio::task::spawn_blocking(move || {
+            let read = |f: Option<std::fs::File>| {
+                std::thread::spawn(move || {
+                    let mut b = Vec::new();
+                    if let Some(mut f) = f {
+                        let _ = std::io::Read::read_to_end(&mut f, &mut b);
+                    }
+                    b
+                })
+            };
+            let (o, e) = (read(out), read(err));
+            let code = child.wait()?;
+            Ok((
+                Some(code as i32),
+                o.join().unwrap_or_default(),
+                e.join().unwrap_or_default(),
+            ))
+        });
+        Ok(tokio::time::timeout(CALL_TIMEOUT, async {
+            done.await.unwrap_or_else(|e| Err(std::io::Error::other(e)))
+        })
+        .await)
+    }
 }
+
+/// A call's exit code, stdout and stderr, or the timeout.
+#[cfg(windows)]
+type Waited = Result<std::io::Result<(Option<i32>, Vec<u8>, Vec<u8>)>, tokio::time::error::Elapsed>;
 
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]

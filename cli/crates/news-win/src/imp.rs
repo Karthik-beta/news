@@ -438,10 +438,302 @@ impl Job {
     }
 }
 
+// ---- Low-integrity processes (ADR 0008 §8.2) -------------------------------------------------------
+
+/// A process created suspended with a Low-integrity copy of this process's token, its stdout and
+/// stderr piped to us. It runs nothing until a job adopts it ([`Job::adopt_suspended`]).
+#[derive(Debug)]
+pub struct LowChild {
+    process: Handle,
+    pub pid: u32,
+    pub stdout: Option<std::fs::File>,
+    pub stderr: Option<std::fs::File>,
+}
+
+impl LowChild {
+    /// Block until the process exits; its exit code.
+    #[allow(unsafe_code)]
+    pub fn wait(&self) -> io::Result<u32> {
+        use windows_sys::Win32::Foundation::WAIT_OBJECT_0;
+        use windows_sys::Win32::System::Threading::{
+            GetExitCodeProcess, INFINITE, WaitForSingleObject,
+        };
+        // SAFETY: a valid process handle we own.
+        if unsafe { WaitForSingleObject(self.process.0, INFINITE) } != WAIT_OBJECT_0 {
+            return Err(last());
+        }
+        let mut code = 0u32;
+        // SAFETY: as above; `code` is a plain local.
+        if unsafe { GetExitCodeProcess(self.process.0, &mut code) } == 0 {
+            return Err(last());
+        }
+        Ok(code)
+    }
+
+    /// Terminate the process (an error once it has exited).
+    #[allow(unsafe_code)]
+    pub fn kill(&self) -> io::Result<()> {
+        use windows_sys::Win32::System::Threading::TerminateProcess;
+        // SAFETY: a valid process handle we own, with the full access CreateProcessAsUserW gives.
+        if unsafe { TerminateProcess(self.process.0, 1) } == 0 {
+            return Err(last());
+        }
+        Ok(())
+    }
+}
+
+/// Quote one argument the way the MSVC runtime (and Rust's `std`) splits a command line.
+fn push_arg(line: &mut String, arg: &str) {
+    let quote = arg.is_empty() || arg.contains([' ', '\t']);
+    if quote {
+        line.push('"');
+    }
+    let mut backslashes = 0;
+    for c in arg.chars() {
+        if c == '\\' {
+            backslashes += 1;
+        } else {
+            if c == '"' {
+                line.extend(std::iter::repeat_n('\\', backslashes + 1));
+            }
+            backslashes = 0;
+        }
+        line.push(c);
+    }
+    if quote {
+        line.extend(std::iter::repeat_n('\\', backslashes));
+        line.push('"');
+    }
+}
+
+/// The command line for `exe` and `args`; the program is always quoted, as `std` does.
+fn command_line(exe: &str, args: &[String]) -> String {
+    let mut line = format!("\"{exe}\"");
+    for a in args {
+        line.push(' ');
+        push_arg(&mut line, a);
+    }
+    line
+}
+
+/// A `CREATE_UNICODE_ENVIRONMENT` block: `K=V\0` per variable, sorted by name as Windows expects.
+fn env_block(env: &[(String, String)]) -> Vec<u16> {
+    let mut sorted: Vec<&(String, String)> = env.iter().collect();
+    sorted.sort_by_cached_key(|(k, _)| k.to_uppercase());
+    let mut b: Vec<u16> = Vec::new();
+    for (k, v) in sorted {
+        b.extend(format!("{k}={v}\0").encode_utf16());
+    }
+    if b.is_empty() {
+        b.push(0);
+    }
+    b.push(0);
+    b
+}
+
+/// Start `exe` suspended at Low integrity (ADR 0008 §8.2): `DuplicateTokenEx` of this process's token,
+/// the integrity SID `S-1-16-4096` set with `SetTokenInformation`, then `CreateProcessAsUserW`. The
+/// child gets exactly `env`, `cwd`, `stdin` and two new pipes, and inherits no other handle. The caller
+/// puts it in a job, which resumes it ([`Job::adopt_suspended`]), or kills it.
+#[allow(unsafe_code)]
+pub fn spawn_low_suspended(
+    exe: &std::path::Path,
+    args: &[String],
+    env: &[(String, String)],
+    cwd: &std::path::Path,
+    stdin: std::fs::File,
+) -> io::Result<LowChild> {
+    use std::os::windows::ffi::OsStrExt;
+    use std::os::windows::io::FromRawHandle;
+    use windows_sys::Win32::Foundation::{HANDLE_FLAG_INHERIT, SetHandleInformation};
+    use windows_sys::Win32::Security::Authorization::ConvertStringSidToSidW;
+    use windows_sys::Win32::Security::{
+        DuplicateTokenEx, GetLengthSid, SID_AND_ATTRIBUTES, SecurityImpersonation,
+        SetTokenInformation, TOKEN_ADJUST_DEFAULT, TOKEN_ASSIGN_PRIMARY, TOKEN_DUPLICATE,
+        TokenPrimary,
+    };
+    use windows_sys::Win32::System::Pipes::CreatePipe;
+    use windows_sys::Win32::System::Threading::{
+        CREATE_UNICODE_ENVIRONMENT, CreateProcessAsUserW, DeleteProcThreadAttributeList,
+        EXTENDED_STARTUPINFO_PRESENT, InitializeProcThreadAttributeList,
+        LPPROC_THREAD_ATTRIBUTE_LIST, PROC_THREAD_ATTRIBUTE_HANDLE_LIST, PROCESS_INFORMATION,
+        STARTF_USESTDHANDLES, STARTUPINFOEXW, UpdateProcThreadAttribute,
+    };
+    const SE_GROUP_INTEGRITY: u32 = 0x20;
+
+    let mut own = null_mut();
+    // SAFETY: the current-process pseudo-handle; `own` receives a token handle we own.
+    if unsafe {
+        OpenProcessToken(
+            GetCurrentProcess(),
+            TOKEN_DUPLICATE | TOKEN_QUERY | TOKEN_ADJUST_DEFAULT | TOKEN_ASSIGN_PRIMARY,
+            &mut own,
+        )
+    } == 0
+    {
+        return Err(last());
+    }
+    let own = Handle(own);
+    let mut low = null_mut();
+    // SAFETY: a valid token opened with TOKEN_DUPLICATE; `low` receives a primary token we own, with
+    // the same access as `own`.
+    if unsafe {
+        DuplicateTokenEx(
+            own.0,
+            0,
+            null(),
+            SecurityImpersonation,
+            TokenPrimary,
+            &mut low,
+        )
+    } == 0
+    {
+        return Err(last());
+    }
+    let low = Handle(low);
+    let sid_text = wide("S-1-16-4096");
+    let mut sid: PSID = null_mut();
+    // SAFETY: `sid_text` is NUL-terminated; `sid` receives a LocalAlloc'd SID freed below.
+    if unsafe { ConvertStringSidToSidW(sid_text.as_ptr(), &mut sid) } == 0 {
+        return Err(last());
+    }
+    let label = TOKEN_MANDATORY_LABEL {
+        Label: SID_AND_ATTRIBUTES {
+            Sid: sid,
+            Attributes: SE_GROUP_INTEGRITY,
+        },
+    };
+    // SAFETY: `label` and the SID it points to are alive for the call; the length covers both.
+    let ok = unsafe {
+        SetTokenInformation(
+            low.0,
+            TokenIntegrityLevel,
+            (&label as *const TOKEN_MANDATORY_LABEL).cast(),
+            size_of::<TOKEN_MANDATORY_LABEL>() as u32 + GetLengthSid(sid),
+        )
+    };
+    let err = last();
+    // SAFETY: freeing the SID once; the kernel has copied it into the token.
+    unsafe { LocalFree(sid) };
+    if ok == 0 {
+        return Err(err);
+    }
+
+    let pipe = || -> io::Result<(std::fs::File, Handle)> {
+        let (mut r, mut w) = (null_mut(), null_mut());
+        // SAFETY: plain outputs; both new handles are ours and not inheritable.
+        if unsafe { CreatePipe(&mut r, &mut w, null(), 0) } == 0 {
+            return Err(last());
+        }
+        // SAFETY: `r` is a fresh pipe handle owned by nothing else.
+        Ok((unsafe { std::fs::File::from_raw_handle(r) }, Handle(w)))
+    };
+    let (out_r, out_w) = pipe()?;
+    let (err_r, err_w) = pipe()?;
+    // The child's three handles must be inheritable; the handle list below keeps every other
+    // inheritable handle of this process away from it. The write ends close when this returns.
+    let inherit = [stdin.as_raw_handle() as HANDLE, out_w.0, err_w.0];
+    for h in inherit {
+        // SAFETY: a valid handle we own.
+        if unsafe { SetHandleInformation(h, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT) } == 0 {
+            return Err(last());
+        }
+    }
+
+    let mut size = 0usize;
+    // SAFETY: a size query with a null list; it fails by design and sets `size`.
+    unsafe { InitializeProcThreadAttributeList(null_mut(), 1, 0, &mut size) };
+    let mut buf = vec![0usize; size.div_ceil(size_of::<usize>())];
+    let list: LPPROC_THREAD_ATTRIBUTE_LIST = buf.as_mut_ptr().cast();
+    // SAFETY: `buf` holds at least `size` pointer-aligned bytes.
+    if unsafe { InitializeProcThreadAttributeList(list, 1, 0, &mut size) } == 0 {
+        return Err(last());
+    }
+    // SAFETY: a zeroed STARTUPINFOEXW is valid; the fields the call reads are set below.
+    let mut si: STARTUPINFOEXW = unsafe { std::mem::zeroed() };
+    si.StartupInfo.cb = size_of::<STARTUPINFOEXW>() as u32;
+    si.StartupInfo.dwFlags = STARTF_USESTDHANDLES;
+    si.StartupInfo.hStdInput = inherit[0];
+    si.StartupInfo.hStdOutput = inherit[1];
+    si.StartupInfo.hStdError = inherit[2];
+    si.lpAttributeList = list;
+    let mut line = wide(&command_line(&exe.to_string_lossy(), args));
+    let app: Vec<u16> = exe.as_os_str().encode_wide().chain(Some(0)).collect();
+    let dir: Vec<u16> = cwd.as_os_str().encode_wide().chain(Some(0)).collect();
+    let block = env_block(env);
+    // SAFETY: a zeroed PROCESS_INFORMATION is valid output space.
+    let mut pi: PROCESS_INFORMATION = unsafe { std::mem::zeroed() };
+    // SAFETY: `inherit`, `line`, `app`, `dir`, `block` and `si` outlive both calls; `line` is mutable
+    // as CreateProcessAsUserW requires; `low` is a primary token with TOKEN_ASSIGN_PRIMARY.
+    let ok = unsafe {
+        UpdateProcThreadAttribute(
+            list,
+            0,
+            PROC_THREAD_ATTRIBUTE_HANDLE_LIST as usize,
+            inherit.as_ptr().cast(),
+            size_of_val(&inherit),
+            null_mut(),
+            null(),
+        ) != 0
+            && CreateProcessAsUserW(
+                low.0,
+                app.as_ptr(),
+                line.as_mut_ptr(),
+                null(),
+                null(),
+                1,
+                SPAWN_SUSPENDED | CREATE_UNICODE_ENVIRONMENT | EXTENDED_STARTUPINFO_PRESENT,
+                block.as_ptr().cast(),
+                dir.as_ptr(),
+                &si.StartupInfo,
+                &mut pi,
+            ) != 0
+    };
+    let err = last();
+    // SAFETY: the list was initialised above and is deleted once, after its last use.
+    unsafe { DeleteProcThreadAttributeList(list) };
+    if !ok {
+        return Err(err);
+    }
+    // Resumed through the process handle (NtResumeProcess), so the thread handle is closed now.
+    drop(Handle(pi.hThread));
+    Ok(LowChild {
+        process: Handle(pi.hProcess),
+        pid: pi.dwProcessId,
+        stdout: Some(out_r),
+        stderr: Some(err_r),
+    })
+}
+
+/// The integrity RID of process `pid` (0x1000 Low, 0x2000 Medium).
+#[allow(unsafe_code)]
+pub fn process_integrity(pid: u32) -> io::Result<u32> {
+    let p = open_process(pid, PROCESS_QUERY_LIMITED_INFORMATION)?;
+    let mut tok = null_mut();
+    // SAFETY: a valid process handle; `tok` receives a token handle we own.
+    if unsafe { OpenProcessToken(p.0, TOKEN_QUERY, &mut tok) } == 0 {
+        return Err(last());
+    }
+    let tok = Handle(tok);
+    token_integrity(tok.0)
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn arguments_are_quoted_as_the_msvc_runtime_splits_them() {
+        let a = ["", "a b", r#"{"x":1}"#, r"C:\dir\", r#"a\"b"#, "c d\\"].map(String::from);
+        assert_eq!(
+            command_line(r"C:\c.exe", &a),
+            r#""C:\c.exe" "" "a b" {\"x\":1} C:\dir\ a\\\"b "c d\\""#
+        );
+        let b = env_block(&[("b".into(), "2".into()), ("A".into(), "1".into())]);
+        assert_eq!(String::from_utf16_lossy(&b), "A=1\0b=2\0\0");
+        assert_eq!(env_block(&[]), [0, 0]);
+    }
 
     #[tokio::test]
     async fn the_pipe_admits_our_user_and_refuses_a_second_server() {
