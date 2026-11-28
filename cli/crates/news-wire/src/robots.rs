@@ -26,6 +26,8 @@ pub struct Rule {
 
 /// Parse a robots.txt body. Unknown lines (Crawl-delay, Sitemap, junk) are ignored, as §2.2 asks.
 pub fn parse(body: &str) -> Robots {
+    // A UTF-8 byte order mark is not part of the first line (RFC 9309 §2.2 asks for UTF-8).
+    let body = body.strip_prefix('\u{feff}').unwrap_or(body);
     let mut groups: Vec<Group> = Vec::new();
     let mut in_agents = false;
     for raw in body.lines() {
