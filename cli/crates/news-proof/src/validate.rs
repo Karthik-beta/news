@@ -228,8 +228,6 @@ fn rendered_estimate(text: &str, brief: Option<&Brief>) -> String {
     out
 }
 
-/// Run the validators on a Copy. `plate` is Plate's check of its OpenUI Lang; `None` skips parse and props.
-/// Without a brief, references are not checked against it.
 /// Every scalar field of the brief's image and video records, as text.
 fn media_values(brief: &Brief) -> Vec<String> {
     brief
@@ -247,6 +245,8 @@ fn media_values(brief: &Brief) -> Vec<String> {
         .collect()
 }
 
+/// Run the validators on a Copy. `plate` is Plate's check of its OpenUI Lang; `None` skips parse and props.
+/// Without a brief, references are not checked against it.
 pub fn validate(copy: &Value, brief: Option<&Brief>, plate: Option<&Checked>) -> Vec<RuleError> {
     let mut errors = schema_errors(copy);
     if !errors.is_empty() {
@@ -489,8 +489,10 @@ pub(crate) mod tests {
     #[test]
     fn accepts_an_image_record_copied_from_the_brief_and_nothing_else() {
         let mut b = brief();
-        b.media.images = vec![json!({"url": "https://images-assets.nasa.gov/image/KSC-04012026/a~large.jpg",
-                                     "width": 1920, "height": 1280, "licence": "custom", "rehost": true})];
+        b.media.images = vec![
+            json!({"url": "https://images-assets.nasa.gov/image/KSC-04012026/a~large.jpg",
+                                     "width": 1920, "height": 1280, "licence": "custom", "rehost": true}),
+        ];
         let img = |url: &str, w: u32| {
             with(
                 "oui",
@@ -503,7 +505,11 @@ pub(crate) mod tests {
         assert_eq!(validate(&img(url, 1920), Some(&b), None), []);
         let e = validate(&img(url, 1600), Some(&b), None);
         assert_eq!(rules(&e), ["numeric_literal"]);
-        let e = validate(&img("https://example.org/KSC-05012026.jpg", 1920), Some(&b), None);
+        let e = validate(
+            &img("https://example.org/KSC-05012026.jpg", 1920),
+            Some(&b),
+            None,
+        );
         assert_eq!(rules(&e), ["numeric_literal"]);
         // Without a brief nothing is copied from it.
         assert!(!validate(&img(url, 1920), None, None).is_empty());

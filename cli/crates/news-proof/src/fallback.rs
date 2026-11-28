@@ -219,9 +219,16 @@ mod tests {
 
     #[test]
     fn labels_lose_the_parts_that_would_type_a_number() {
-        assert_eq!(plain("GDP (current US$), change from 2024", &[], "x"), "GDP (current US$)");
         assert_eq!(
-            plain("All employees, thousands, total nonfarm, seasonally adjusted", &[], "x"),
+            plain("GDP (current US$), change from 2024", &[], "x"),
+            "GDP (current US$)"
+        );
+        assert_eq!(
+            plain(
+                "All employees, thousands, total nonfarm, seasonally adjusted",
+                &[],
+                "x"
+            ),
             "All employees, total nonfarm, seasonally adjusted"
         );
         assert_eq!(plain("G7 output, 2025", &["G7"], "x"), "G7 output");

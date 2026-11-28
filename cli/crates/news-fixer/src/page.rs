@@ -35,7 +35,12 @@ pub fn data(inputs: &Inputs, built: &Built, prov: &Provenance) -> NewsResult<Val
             .iter()
             .find(|f| f.reference == r)
             .map(|f| f.label.clone())
-            .or_else(|| b.series.iter().find(|s| s.reference == r).map(|s| s.label.clone()))
+            .or_else(|| {
+                b.series
+                    .iter()
+                    .find(|s| s.reference == r)
+                    .map(|s| s.label.clone())
+            })
             .unwrap_or_default()
     };
 

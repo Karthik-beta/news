@@ -50,7 +50,11 @@ fn read(path: impl AsRef<Path>) -> Vec<u8> {
 }
 
 fn recorded(path: &str) -> Vec<u8> {
-    read(repo().join("cli/crates/news-connectors/tests/fixtures").join(path))
+    read(
+        repo()
+            .join("cli/crates/news-connectors/tests/fixtures")
+            .join(path),
+    )
 }
 
 fn t(y: i32, m: u32, d: u32, h: u32) -> DateTime<Utc> {
@@ -106,14 +110,19 @@ fn from_parsed(story_id: i64, page_type: &str, tier: u8, parsed: &[&Parsed]) -> 
     for p in parsed {
         if let Some(c) = p.candidates.first() {
             for id in &c.dp_ids {
-                points.push(Point::from(p.points.iter().find(|d| &d.dp_id == id).unwrap()));
+                points.push(Point::from(
+                    p.points.iter().find(|d| &d.dp_id == id).unwrap(),
+                ));
             }
         }
         history.extend(p.points.iter().map(Point::from));
     }
     Inputs {
         story_id,
-        event_key: parsed[0].candidates.first().and_then(|c| c.event_key.clone()),
+        event_key: parsed[0]
+            .candidates
+            .first()
+            .and_then(|c| c.event_key.clone()),
         page_type: page_type.into(),
         tier,
         action: Action::New,
@@ -214,9 +223,10 @@ fn bls_doc(src: &'static str, title: &'static str, short: &'static str, series: 
 /// form, fiscal year and filing date, under the filing's accession number. The record has no labels, so the
 /// connector labels each fact with its XBRL tag.
 fn earnings() -> Fixture {
-    let rec: Value =
-        serde_json::from_slice(&read(repo().join("site/tests/support/sec/aapl-fy2024-companyfacts.json")))
-            .unwrap();
+    let rec: Value = serde_json::from_slice(&read(
+        repo().join("site/tests/support/sec/aapl-fy2024-companyfacts.json"),
+    ))
+    .unwrap();
     let accn = rec["accn"].as_str().unwrap();
     let mut gaap = serde_json::Map::new();
     for (tag, f) in rec["facts"].as_object().unwrap() {
@@ -244,7 +254,11 @@ fn earnings() -> Fixture {
     let p = conn
         .parse(
             &item,
-            &[snap(url, serde_json::to_vec(&body).unwrap(), t(2026, 11, 21, 0))],
+            &[snap(
+                url,
+                serde_json::to_vec(&body).unwrap(),
+                t(2026, 11, 21, 0),
+            )],
         )
         .unwrap();
     let mut inputs = from_parsed(91001, "earnings", 1, &[&p]);
@@ -425,7 +439,8 @@ fn news_story() -> Fixture {
             title: "Federal Reserve issues FOMC statement",
             short: "FOMC statement",
             kind: "statement",
-            url: "https://www.federalreserve.gov/newsevents/pressreleases/monetary20250917a.htm".into(),
+            url: "https://www.federalreserve.gov/newsevents/pressreleases/monetary20250917a.htm"
+                .into(),
             licence: "Federal Reserve website policies",
             licence_url: Some("https://www.federalreserve.gov/disclaimer.htm"),
             published: Some("2025-09-17"),
@@ -445,7 +460,11 @@ fn science() -> Fixture {
         .parse_discovery(
             &c,
             None,
-            &[snap(&req.url, recorded("nasa/search-artemis.json"), t(2026, 11, 18, 6))],
+            &[snap(
+                &req.url,
+                recorded("nasa/search-artemis.json"),
+                t(2026, 11, 18, 6),
+            )],
         )
         .unwrap();
     let item = d.refs.iter().find(|r| r.key.ends_with("Launch-1")).unwrap();
@@ -578,7 +597,8 @@ fn built_files(f: &Fixture) -> (Built, BTreeMap<String, String>) {
     });
     let n = f.name;
     // The stored Copy, through `news save`'s own code, in a scratch work directory.
-    let scratch = std::env::temp_dir().join(format!("news-fixture-{n}-{}", std::process::id()));
+    let scratch = Path::new(env!("CARGO_TARGET_TMPDIR"))
+        .join(format!("news-fixture-{n}-{}", std::process::id()));
     let stored = work::save(
         &Work::new(&scratch),
         n,
@@ -593,7 +613,10 @@ fn built_files(f: &Fixture) -> (Built, BTreeMap<String, String>) {
     let files = BTreeMap::from([
         (format!("briefs/{n}.json"), work::pretty(&built.brief)),
         (format!("pages/{n}/data.json"), work::pretty(&data)),
-        (format!("pages/{n}/sources.json"), work::pretty(&sources(&f.docs))),
+        (
+            format!("pages/{n}/sources.json"),
+            work::pretty(&sources(&f.docs)),
+        ),
         (format!("pages/{n}/page.json"), work::pretty(&page)),
         (format!("pages/{n}/copy.json"), work::pretty(&stored)),
     ]);
@@ -616,7 +639,10 @@ fn page_inputs_are_built_by_code_from_recorded_data() {
             if update() {
                 work::write_atomic(&root().join(rel), text).unwrap();
             } else {
-                assert!(&committed(rel) == text, "{rel} differs from what code builds; NEWS_UPDATE_GOLDEN=1 rewrites it");
+                assert!(
+                    &committed(rel) == text,
+                    "{rel} differs from what code builds; NEWS_UPDATE_GOLDEN=1 rewrites it"
+                );
             }
         }
     }
@@ -650,7 +676,13 @@ fn copies_are_references_only_and_pass_the_validators() {
             .media
             .images
             .iter()
-            .flat_map(|i| [i["url"].to_string(), i["width"].to_string(), i["height"].to_string()])
+            .flat_map(|i| {
+                [
+                    i["url"].to_string(),
+                    i["width"].to_string(),
+                    i["height"].to_string(),
+                ]
+            })
             .map(|s| s.trim_matches('"').to_owned())
             .collect();
         for text in copy_texts(&c) {
@@ -737,7 +769,11 @@ fn assert_passes(name: &str, m: &Markup) {
 fn the_committed_bundles_pass_c1_to_c14() {
     for f in all() {
         let dir = root().join("pages").join(f.name);
-        assert!(dir.join("index.html").is_file(), "{}: not rendered; run with Bun and NEWS_UPDATE_GOLDEN=1", f.name);
+        assert!(
+            dir.join("index.html").is_file(),
+            "{}: not rendered; run with Bun and NEWS_UPDATE_GOLDEN=1",
+            f.name
+        );
         assert_passes(f.name, &proof(&f, &dir));
     }
 }
@@ -761,17 +797,32 @@ async fn plate_renders_each_page_to_its_committed_bundle() {
     for f in all() {
         let inputs = render::load_inputs(&work, f.name).unwrap();
         let rendered = plate.render(&inputs.render_request()).await.unwrap();
-        assert!(rendered.problems.is_empty(), "{}: {:?}", f.name, rendered.problems);
+        assert!(
+            rendered.problems.is_empty(),
+            "{}: {:?}",
+            f.name,
+            rendered.problems
+        );
         let bundle = render::assemble(&inputs, &rendered).unwrap();
         let dir = work.page(f.name);
         if update() {
             render::write(&bundle, &dir).unwrap();
             continue;
         }
-        let manifest: Value = serde_json::from_str(&committed(&format!("pages/{}/manifest.json", f.name))).unwrap();
-        assert_eq!(manifest["bundle_sha256"], json!(bundle.sha256), "{}: render differs from the committed bundle", f.name);
+        let manifest: Value =
+            serde_json::from_str(&committed(&format!("pages/{}/manifest.json", f.name))).unwrap();
+        assert_eq!(
+            manifest["bundle_sha256"],
+            json!(bundle.sha256),
+            "{}: render differs from the committed bundle",
+            f.name
+        );
         for (path, text) in &bundle.files {
-            assert!(&committed(&format!("pages/{}/{path}", f.name)) == text, "{}: {path} differs", f.name);
+            assert!(
+                &committed(&format!("pages/{}/{path}", f.name)) == text,
+                "{}: {path} differs",
+                f.name
+            );
         }
     }
 }
@@ -786,10 +837,12 @@ async fn a_failing_tier_2_fixture_gets_a_templated_page() {
     let mut bad = copy(f.name);
     bad["summary"] = json!("The economy grew by five per cent in a year.");
     assert!(!validate(&bad, Some(&built.brief), None).is_empty());
-    let templated = serde_json::to_value(news_proof::fallback::templated(&built.brief).unwrap()).unwrap();
+    let templated =
+        serde_json::to_value(news_proof::fallback::templated(&built.brief).unwrap()).unwrap();
     assert_eq!(validate(&templated, Some(&built.brief), None), []);
 
-    let dir = std::env::temp_dir().join(format!("news-fixture-templated-{}", std::process::id()));
+    let dir = Path::new(env!("CARGO_TARGET_TMPDIR"))
+        .join(format!("news-fixture-templated-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     let work = Work::new(&dir);
     for (rel, text) in &files {
@@ -797,10 +850,20 @@ async fn a_failing_tier_2_fixture_gets_a_templated_page() {
     }
     std::fs::write(
         work.page(f.name).join("page.json"),
-        json!({"categories": ["economy/growth"], "region": f.region, "index_status": "index"}).to_string(),
+        json!({"categories": ["economy/growth"], "region": f.region, "index_status": "index"})
+            .to_string(),
     )
     .unwrap();
-    work::save(&work, f.name, templated, vec![TEMPLATED.into()], "fallback", None, saved_at(&built.brief)).unwrap();
+    work::save(
+        &work,
+        f.name,
+        templated,
+        vec![TEMPLATED.into()],
+        "fallback",
+        None,
+        saved_at(&built.brief),
+    )
+    .unwrap();
     let inputs = render::load_inputs(&work, f.name).unwrap();
     let rendered = plate.render(&inputs.render_request()).await.unwrap();
     assert!(rendered.problems.is_empty(), "{:?}", rendered.problems);
