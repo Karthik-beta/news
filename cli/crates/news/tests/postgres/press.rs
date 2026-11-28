@@ -674,3 +674,147 @@ async fn a_later_run_resends_a_failed_runs_rows_under_the_same_keys() {
     );
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+// ---- a cancelled run's unsent rows -------------------------------------------------------------------
+
+/// Edition's review as a gate that waits for Board.
+struct Gate;
+impl StepHandler for Gate {
+    fn run<'a>(&'a self, _: &'a mut StepCx) -> BoxFut<'a, Result<StepOutcome, StepError>> {
+        Box::pin(async {
+            Ok(StepOutcome::OpenGates(vec![gates::GateOpen {
+                gate: "plan".into(),
+                subject: json!({"items": ["p-new", "p-unk", "p-rev"]}),
+                summary: json!({"text": "Plan"}),
+                preview: None,
+                whole_subject: false,
+            }]))
+        })
+    }
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres"]
+async fn a_cancel_drops_the_runs_unsent_rows_and_reconciles_only_a_send_that_may_have_landed() {
+    let f = Fixture::migrated().await;
+    let dir = Path::new(env!("CARGO_TARGET_TMPDIR")).join(format!("press-cancel-{}", f.schema));
+    let _ = std::fs::remove_dir_all(&dir);
+    let handlers = [
+        "preflight",
+        "discover",
+        "stories",
+        "plan",
+        "brief",
+        "write",
+        "render",
+        "spotcheck",
+        "publish",
+        "promote",
+    ]
+    .into_iter()
+    .fold(Handlers::default(), |h, s| {
+        h.with(&format!("edition.{s}"), Arc::new(Done))
+    })
+    .with("edition.review", Arc::new(Gate));
+    let ch = Chief::builder(f.pool.clone(), Arc::new(ManualClock::new(t0())))
+        .handlers(handlers)
+        .build();
+    let run = ch
+        .start(StartReq::board("edition", Map::new(), IfBusy::Offer))
+        .await
+        .unwrap()
+        .run()
+        .clone();
+    ch.ensure_drivers().await.unwrap();
+    let status = || async {
+        f.scalar_str(&format!(
+            "select status from runs where run_id = '{}'",
+            run.run_id
+        ))
+        .await
+    };
+    for _ in 0..200 {
+        if status().await == "waiting_approval" {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    assert_eq!(status().await, "waiting_approval");
+
+    // What the run staged: a new page never sent, a new page whose send got no answer, and a revision
+    // never sent.
+    let unk = bundle::write(&dir, "p-unk", 1, &FILES);
+    page(&f, "p-new", "ready", "noindex", 2, &[], &[1u8; 32], None).await;
+    page(&f, "p-unk", "ready", "noindex", 2, &[], &unk, None).await;
+    page(
+        &f,
+        "p-rev",
+        "published",
+        "noindex",
+        2,
+        &[],
+        &[7u8; 32],
+        None,
+    )
+    .await;
+    sqlx::query(
+        "insert into page_drafts (page_id, version, bundle_sha, state, run_id) values ('p-rev', 2, $1, 'ready', $2)",
+    )
+    .bind(&[2u8; 32][..])
+    .bind(run.run_id)
+    .execute(&f.pool)
+    .await
+    .unwrap();
+    for (id, v, sha, attempts, unknown) in [
+        ("p-new", 1, [1u8; 32], 0, false),
+        ("p-unk", 1, unk, 2, true),
+        ("p-rev", 2, [2u8; 32], 0, false),
+    ] {
+        sqlx::query(
+            "insert into publish_outbox (page_id, version, bundle_sha, idempotency_key, op, run_id, attempts, unknown_since)
+             values ($1, $2, $3, $4, 'put_page', $5, $6, case when $7 then now() end)",
+        )
+        .bind(id)
+        .bind(v)
+        .bind(&sha[..])
+        .bind(page_key(id, v, &gates::hex(&sha), "put_page").unwrap())
+        .bind(run.run_id)
+        .bind(attempts)
+        .bind(unknown)
+        .execute(&f.pool)
+        .await
+        .unwrap();
+    }
+
+    ch.cancel(&run.short_id).await.unwrap();
+    assert_eq!(status().await, "cancelled");
+    assert_eq!(
+        f.scalar_str(
+            "select string_agg(page_id || ':' || coalesce(last_error, '-'), ',' order by page_id)
+               from publish_outbox where dead_at is not null"
+        )
+        .await,
+        "p-new:cancelled,p-rev:cancelled"
+    );
+    assert_eq!(
+        f.scalar_str(
+            "select string_agg(page_id || ':' || status, ',' order by page_id) from pages"
+        )
+        .await,
+        "p-new:draft,p-rev:published,p-unk:ready"
+    );
+    assert_eq!(f.scalar_i64("select count(*) from page_drafts").await, 0);
+
+    // The next run's drain reconciles the send that may have landed, and sends nothing else of it.
+    let api = Arc::new(FakeApi::new());
+    let (c, _) = client(&api);
+    let out = store::drain(&f.pool, &c, &dir, Some(Uuid::new_v4()))
+        .await
+        .unwrap();
+    assert_eq!((out.sent, out.dead), (1, 0));
+    assert_eq!(
+        api.applied(),
+        vec![page_key("p-unk", 1, &gates::hex(&unk), "put_page").unwrap()]
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}

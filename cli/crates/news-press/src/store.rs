@@ -369,8 +369,12 @@ async fn next_row(db: &PgPool, run: Option<Uuid>) -> NewsResult<Option<OutRow>> 
            from publish_outbox o
           where sent_at is null and dead_at is null and op <> 'home_curation'
             and ($1::uuid is null or run_id = $1
-                 or not exists (select 1 from runs r where r.run_id = o.run_id
-                                  and r.status not in ('succeeded', 'failed', 'cancelled', 'skipped')))
+                 or (not exists (select 1 from runs r where r.run_id = o.run_id
+                                   and r.status not in ('succeeded', 'failed', 'cancelled', 'skipped'))
+                     -- A cancelled run's rows are reconciled only when a send may have landed.
+                     and (unknown_since is not null or attempts > 0
+                          or not exists (select 1 from runs r where r.run_id = o.run_id
+                                           and r.status = 'cancelled'))))
           order by outbox_id limit 1",
     )
     .bind(run)
@@ -395,32 +399,43 @@ async fn mark_dead(
     why: &str,
     now: DateTime<Utc>,
 ) -> NewsResult<()> {
+    let mut tx = db.begin().await.map_err(map_err)?;
     let row = sqlx::query("update publish_outbox set dead_at = $2, last_error = $3, attempts = attempts + $4 where outbox_id = $1 returning page_id, version, op")
         .bind(id)
         .bind(now)
         .bind(why)
         .bind(i32::try_from(attempts).unwrap_or(i32::MAX))
-        .fetch_one(db)
+        .fetch_one(&mut *tx)
         .await
         .map_err(map_err)?;
-    // A dead put leaves the live page as it was: its pending next version goes.
+    // A dead put leaves the live page as it was: its pending next version goes, and a new page goes
+    // back to an unowned draft, so a later run renders, checks and stages it again.
     if row.get::<String, _>("op") == "put_page" {
         let page: String = row.get("page_id");
         let v: i32 = row.get("version");
         sqlx::query("delete from page_refs where page_id = $1 and version = $2 and exists (select 1 from page_drafts d where d.page_id = $1 and d.version = $2)")
             .bind(&page)
             .bind(v)
-            .execute(db)
+            .execute(&mut *tx)
             .await
             .map_err(map_err)?;
         sqlx::query("delete from page_drafts where page_id = $1 and version = $2")
             .bind(&page)
             .bind(v)
-            .execute(db)
+            .execute(&mut *tx)
             .await
             .map_err(map_err)?;
+        sqlx::query(
+            "update pages set status = 'draft', run_id = null
+              where page_id = $1 and version = $2 and status = 'ready'",
+        )
+        .bind(&page)
+        .bind(v)
+        .execute(&mut *tx)
+        .await
+        .map_err(map_err)?;
     }
-    Ok(())
+    tx.commit().await.map_err(map_err)
 }
 
 async fn mark_sent(
@@ -492,7 +507,8 @@ async fn mark_sent(
 }
 
 /// Send the outbox in order (optionally only one run's rows, plus the unsent rows of runs that have
-/// ended, which nobody else would send: a failed or cancelled run's row goes again under its key).
+/// ended, which nobody else would send: a failed run's row goes again under its key; of a cancelled
+/// run, only a row whose send may have landed is reconciled, the rest were dropped at the cancel).
 /// Per-row failures never stop the drain:
 /// a 4xx puts the row on the dead list and the next row goes, except 401 and 403 (the key, not the row,
 /// is wrong), which stop the drain and leave the row to send. A row with no answer after the retries

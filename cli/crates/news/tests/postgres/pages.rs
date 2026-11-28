@@ -1274,3 +1274,34 @@ async fn a_run_publishes_only_its_own_drafts_and_reprint_only_the_bytes_board_ap
     assert_eq!(w.api.applied().len(), 2, "v1 and its index promotion only");
     w.finish().await;
 }
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres"]
+async fn a_refused_new_page_goes_back_to_draft_and_a_later_run_publishes_it() {
+    let w = world().await;
+    // The write API refuses the first put (a 4xx): the row is dead and the page is a draft again.
+    w.api
+        .script([news_press::fake::Fault::Status(422, "invalid_bundle", None)]);
+    let first = w.start("flash", json!({"keys": [KEY]})).await;
+    wait_status(&w.f, first.run_id, "succeeded").await;
+    assert_eq!(
+        w.f.scalar_str("select status || ':' || coalesce(run_id::text, '-') from pages")
+            .await,
+        "draft:-"
+    );
+    assert_eq!(
+        w.n("select count(*) from publish_outbox where dead_at is not null")
+            .await,
+        1
+    );
+
+    // A later run renders and checks it again, and publishes it.
+    let again = w.start("flash", json!({"keys": [KEY]})).await;
+    wait_status(&w.f, again.run_id, "succeeded").await;
+    assert_eq!(
+        w.f.scalar_str("select status from pages").await,
+        "published"
+    );
+    assert_eq!(w.api.applied().len(), 1);
+    w.finish().await;
+}

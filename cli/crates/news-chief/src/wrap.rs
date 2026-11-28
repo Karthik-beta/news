@@ -32,6 +32,49 @@ pub(crate) async fn finish_new_skip(
     finish_inner(conn, run, Status::Skipped, Some(reason), now, true).await
 }
 
+/// Cancel (Bureau Design, "Cancel"): the run's outbox rows never sent are dropped (dead, `cancelled`), so
+/// no later drain publishes them; a row whose send may have landed (`unknown_since`, or attempted) stays
+/// to be reconciled. A dropped put takes its page back: a new page to an unowned draft, a revision's
+/// pending version deleted (as a dead put does in Press).
+async fn drop_unsent(
+    conn: &mut PgConnection,
+    run_id: uuid::Uuid,
+    now: DateTime<Utc>,
+) -> Result<(), NewsError> {
+    let puts: Vec<(String, i32)> = sqlx::query(
+        "update publish_outbox set dead_at = $2, last_error = 'cancelled'
+          where run_id = $1 and sent_at is null and dead_at is null and attempts = 0
+            and unknown_since is null and op <> 'home_curation'
+         returning page_id, version, op",
+    )
+    .bind(run_id)
+    .bind(now)
+    .fetch_all(&mut *conn)
+    .await
+    .map_err(map_err)?
+    .iter()
+    .filter(|r| r.get::<String, _>("op") == "put_page")
+    .map(|r| (r.get("page_id"), r.get("version")))
+    .collect();
+    for (page, v) in puts {
+        for sql in [
+            "delete from page_refs where page_id = $1 and version = $2
+                and exists (select 1 from page_drafts d where d.page_id = $1 and d.version = $2)",
+            "delete from page_drafts where page_id = $1 and version = $2",
+            "update pages set status = 'draft', run_id = null
+              where page_id = $1 and version = $2 and status = 'ready'",
+        ] {
+            sqlx::query(sql)
+                .bind(&page)
+                .bind(v)
+                .execute(&mut *conn)
+                .await
+                .map_err(map_err)?;
+        }
+    }
+    Ok(())
+}
+
 async fn finish_inner(
     conn: &mut PgConnection,
     run: &RunRow,
@@ -42,6 +85,9 @@ async fn finish_inner(
 ) -> Result<Value, NewsError> {
     if !status.is_terminal() {
         return Err(NewsError::internal("wrap::finish needs a terminal status"));
+    }
+    if status == Status::Cancelled {
+        drop_unsent(conn, run.run_id, now).await?;
     }
     let steps: Vec<Value> = sqlx::query(
         "select seq, step, status, output from run_steps where run_id = $1 order by seq",
