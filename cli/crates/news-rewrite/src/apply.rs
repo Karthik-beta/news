@@ -64,13 +64,43 @@ pub fn apply(
     published_at: DateTime<Utc>,
     now: DateTime<Utc>,
 ) -> NewsResult<Applied> {
-    check_story(story)?;
     if !plan.by_code() {
         return Err(NewsError::precondition(format!(
             "page {} needs the AI (a direction flip): queue an update job instead",
             plan.change.page_id
         )));
     }
+    apply_inner(work, story, plan, published_at, now, false)
+}
+
+/// A direction flip after the A1 update job stored the new Copy: patch `data.json` (the new points the
+/// Copy's refs resolve to) and `page.json` (version and first publication); the Copy is the writer's and
+/// stays as stored. Idempotent like [`apply`].
+pub fn apply_flip(
+    work: &Work,
+    story: &str,
+    plan: &PagePlan,
+    published_at: DateTime<Utc>,
+    now: DateTime<Utc>,
+) -> NewsResult<Applied> {
+    if plan.by_code() {
+        return Err(NewsError::precondition(format!(
+            "page {} is re-rendered by code, not updated by the AI",
+            plan.change.page_id
+        )));
+    }
+    apply_inner(work, story, plan, published_at, now, true)
+}
+
+fn apply_inner(
+    work: &Work,
+    story: &str,
+    plan: &PagePlan,
+    published_at: DateTime<Utc>,
+    now: DateTime<Utc>,
+    flip: bool,
+) -> NewsResult<Applied> {
+    check_story(story)?;
     let dir = work.page(story);
     let data_path = dir.join("data.json");
     let mut data = read_json(&data_path)?;
@@ -78,7 +108,9 @@ pub fn apply(
 
     let stored = work::load(work, story)?;
     let mut copy = stored.copy.clone();
-    rename_in(&mut copy, &plan.change.renames());
+    if !flip {
+        rename_in(&mut copy, &plan.change.renames());
+    }
     let (mut added, mut skipped) = (false, false);
     if plan.kind == crate::classify::Kind::Restatement {
         let oui = copy["oui"].as_str().unwrap_or_default().to_owned();
@@ -106,7 +138,9 @@ pub fn apply(
     page["published_at"] = json!(timestamp(published_at));
 
     write_atomic(&data_path, &pretty(&data))?;
-    work::save(work, story, copy, stored.flags, "save", None, now)?;
+    if !flip {
+        work::save(work, story, copy, stored.flags, "save", None, now)?;
+    }
     write_atomic(&page_path, &pretty(&page))?;
     Ok(Applied {
         page_id: plan.change.page_id.clone(),

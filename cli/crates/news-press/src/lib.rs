@@ -6,6 +6,7 @@
 //!   bursts of 10, 5xx retried with backoff, any other 4xx a `bug`.
 //! * [`budget`]: the index budget's ranking (Edition step 11).
 //! * [`sync`]: taxonomy and redirects. [`prune`]: `news prune`. [`bundle`]: the rendered bundle on disk.
+//! * [`register`]: the handoff from Proof's bundle (`work/pages/<story>/`) to Press's layout and `pages` rows.
 //! * [`fake`]: a scripted write API for tests.
 //!
 //! The G-tier commands (`news publish`, `news home publish`) have no CLI form: Chief calls these
@@ -21,6 +22,7 @@ pub mod budget;
 pub mod bundle;
 pub mod fake;
 pub mod prune;
+pub mod register;
 pub mod store;
 pub mod sync;
 

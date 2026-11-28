@@ -490,7 +490,7 @@ fn image(v: &Value) -> Value {
     }
 }
 
-fn slug(event_key: &str) -> Option<String> {
+pub fn slug(event_key: &str) -> Option<String> {
     let s: String = event_key
         .to_lowercase()
         .split(|c: char| !c.is_ascii_alphanumeric())
