@@ -3097,6 +3097,7 @@ dependencies = [
  "news-contacts",
  "news-core",
  "news-ledger",
+ "proptest",
  "serde",
  "sqlx",
 ]
@@ -3476,6 +3477,7 @@ dependencies = [
  "news-contacts",
  "news-core",
  "news-ledger",
+ "proptest",
  "reqwest 0.13.5",
  "rustls",
  "serde_json",
