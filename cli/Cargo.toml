@@ -42,10 +42,10 @@ news-board = { path = "crates/news-board" }
 # all on loopback.
 chrono = { version = "0.4", default-features = false, features = ["std", "clock", "serde"] }
 chrono-tz = { version = "0.10", default-features = false, features = ["std"] }
-jsonschema = { version = "0.61", default-features = false }
+jsonschema = { version = "0.63", default-features = false }
 tokio-util = { version = "0.7", default-features = false }
 clap = { version = "4", features = ["derive"] }
-croner = "4"
+croner = "5"
 fastrand = "2"
 httpdate = "1"
 proptest = "1"

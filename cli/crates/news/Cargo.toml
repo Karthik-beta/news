@@ -52,7 +52,7 @@ workspace = true
 [dev-dependencies]
 assert_cmd = "2.2.2"
 insta = "1.49.0"
-jsonschema = { version = "0.61", default-features = false }
+jsonschema = { version = "0.63", default-features = false }
 news-hotline = { workspace = true }
 news-rota = { workspace = true }
 postgres = "0.19.14"
