@@ -72,13 +72,7 @@ fn input(work: &Work, job: PageJob) -> NewsResult<Reply> {
     brief(work, &job.story)?;
     let path = if let Some(diff) = &job.update_diff {
         // A1 in update mode (skills/news-reporter): the stored Copy is the previous one.
-        let previous = work::load(work, &job.story)?;
-        let composed = json!({
-            "mode": "update",
-            "brief": work::read_json(&brief_path)?,
-            "previous_copy": previous.copy,
-            "diff": diff,
-        });
+        let composed = news_rewrite::update::input(work, &job.story, diff.clone())?;
         let path = work.ai_input(job.id);
         write_atomic(&path, &pretty(&composed))?;
         path
