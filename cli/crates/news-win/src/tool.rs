@@ -303,7 +303,7 @@ mod tests {
             ("Path", "C:\\bin"),
             ("SystemRoot", "C:\\Windows"),
             ("DATABASE_URL", "postgres://news:SECRET@localhost/news"),
-            ("NEWS_WRITE_API_KEY", "SECRET"),
+            ("NEWS_SOME_KEY", "SECRET"),
             ("AWS_SECRET_ACCESS_KEY", "SECRET"),
             ("DOCKER_HOST", "npipe:////./pipe/kiri"),
             ("NODE_ENV", "development"),
