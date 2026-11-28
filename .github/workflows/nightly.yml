@@ -90,8 +90,8 @@ jobs:
       # The same steps as site/scripts/visual.ts: Bun from npm at the pinned version, then a frozen install.
       - run: npm install --global --silent bun@1.4.3
       - run: bun install --frozen-lockfile
-      # Every @visual test is test.fixme until fonts are self-hosted (Phase 3.1), so this passes with all skipped.
-      # Each test still opens its browser before reaching the fixme, so a browser that cannot start fails the job.
+      # Compares the committed baselines (site/TESTING.md, "Screenshots"). The chart tests skip on screens without
+      # baselines; the primitive galleries have no baselines yet, so their @visual tests still fail here.
       - run: bunx playwright test --grep @visual
         working-directory: site
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

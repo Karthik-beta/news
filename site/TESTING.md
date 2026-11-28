@@ -26,7 +26,7 @@ E2E always runs against the built site served by `wrangler dev` (the built Worke
 
 - Every PR (fast): `bun run lint`, `bun run typecheck`, `bun run test`, `bun run test:integration`, then `bun run test:e2e` with `E2E_SKIP_BUILD=1` after `bunx playwright install --with-deps chromium`. Always pass a project filter: a bare `playwright test` runs the whole matrix.
 - `main` / nightly (full): `bunx playwright install --with-deps chromium firefox webkit`, then `bun run test:e2e:full`.
-- Screenshots: a job with `container: mcr.microsoft.com/playwright:v<@playwright/test version>-noble`, `NEWS_VISUAL=1`, running `bunx playwright test --grep @visual` (what `bun run test:visual` does locally). Upload `playwright-report/` and `test-results/` as artifacts on failure.
+- Screenshots: a job with `container: mcr.microsoft.com/playwright:v<@playwright/test version>-noble`, `NEWS_VISUAL=1`, running `bunx playwright test --grep @visual` (what `bun run test:visual` does locally): every PR with `--project='smoke-*'`, nightly on every project. Upload `playwright-report/` and `test-results/` as artifacts on failure.
 - Cache `~/.bun/install/cache` (key: `bun.lock`) and `~/.cache/ms-playwright` (key: the `@playwright/test` version).
 
 ## Screens and tags
@@ -103,7 +103,13 @@ Decision: baselines are made and compared only on Linux inside the official imag
 - New or changed baselines: `bun run test:visual:update`, then review every changed image in the diff. Accept a baseline only with the reason written in the component's `TESTING.md`.
 - Deterministic input: self-hosted fonts, fixed fixture data and dates, reduced motion, fixed viewport and scale, `en-GB` and Europe/London.
 
-Status: the mechanism is in place and fonts are self-hosted (`src/styles/fonts.css`, files copied by `scripts/sync-fonts.ts`). The only example (`shell.spec.ts`, "matches its screenshot baseline") is still disabled with `test.fixme` until the first baselines are made in the Docker image. No baselines are committed yet.
+Which screens have baselines (decided in #71, to keep the repo small): a chart baseline is the fixture page's `<main>` after every visible island has hydrated, stored at CSS scale (`scale: "css"`: the device scale still decides how lines are drawn; the PNG is just not stored at 2–3×). One fixture page is about 140 KB, so the whole matrix (3 engines × 22 screens × 20 pages) would be about 180 MB against a 4 MB repository. Baselines are kept for Chromium only, light and dark at 360 and 1440, and light at 768 and 980: one screen per layout breakpoint (phone, tablet, desktop, wide), dark on two of them because dark changes colours, not layout. The `smoke-*` projects are the same screens as `chromium-<theme>-<360|1440>` and share their folders (`snapshotPathTemplate` in `playwright.config.ts`). Every other screen and engine is still checked by the untagged tests (no sideways scroll, no clipped or small text, axe) without pixels; a `@visual` test skips, with that reason, on a project without baselines.
+
+The first baselines are Charts II, Charts III and ChoroplethMap (`tests/e2e/components/charts-visual.spec.ts`). Those tests are tagged `@smoke` too, so CI compares the `smoke-*` baselines on every PR in the Playwright image (`ci.yml`, "Site screenshots (smoke, Playwright image)"); the nightly job compares the rest.
+
+`bun run test:visual` copies the repo into the container's own disk (no `.git`, `node_modules` or local secrets files), builds there and copies the baselines and `test-results/` back: building over the Windows bind mount took about a second per file, past the web server's 180 s timeout.
+
+Status: fonts are self-hosted (`src/styles/fonts.css`, files copied by `scripts/sync-fonts.ts`). The shell example (`shell.spec.ts`) is still `test.fixme`, and the primitive galleries' `@visual` tests have no baselines yet.
 
 ## HTML validation rules
 

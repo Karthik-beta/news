@@ -92,6 +92,8 @@ const smoke: Project<NewsOptions>[] = THEMES.flatMap((theme) =>
     name: `smoke-${theme}-${width}`,
     grep: /@smoke/,
     grepInvert: SPECIAL,
+    // The same screen as chromium-<theme>-<width>, so both compare against one set of baselines.
+    snapshotPathTemplate: `{testDir}/__screenshots__/chromium-${theme}-${width}/{testFilePath}/{arg}{ext}`,
     use: {
       ...devices["Desktop Chrome"],
       theme,
