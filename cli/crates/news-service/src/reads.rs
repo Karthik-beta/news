@@ -44,6 +44,15 @@ pub async fn read(
         }
         "run.presets" => Ok(news_chief::presets::catalogue_json()),
         "huddle.questions" => huddle_questions(db, n("limit", 30), cx.now).await,
+        "eval.items" => {
+            news_critic::labels::items(
+                db,
+                s("kind").as_deref().unwrap_or_default(),
+                s("judge").as_deref(),
+                n("limit", 10),
+            )
+            .await
+        }
         "lineup.list" => board::lineup(db, cx.policy, cx.now).await,
         "standing.get" => news_standing::current(db)
             .await

@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/eval.export.schema.json",
+  "title": "news eval export",
+  "description": "Write Karthik's stored labels into the repository: the labelled G3 pairs as pipeline/eval/g3/ (a case per file and a set.json whose version rises when the cases change) and each A12 judge's label count and true-positive and true-negative rates into pipeline/eval/judges.md. Every number is computed from the database; none is typed. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "W",
+  "x-news-status": "built",
+  "x-news-errors": ["precondition", "validation_failed"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "g3_cases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "g3_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "judge_labels": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "written": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Repository paths that changed"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": ["g3_cases", "g3_version", "judge_labels", "written", "text"],
+      "additionalProperties": false
+    }
+  }
+}

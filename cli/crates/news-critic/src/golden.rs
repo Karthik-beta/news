@@ -22,11 +22,8 @@ pub fn sets_of(suite: &str) -> NewsResult<&'static [&'static str]> {
         "curator" => &["g5"],
         "spotcheck" => &["g6"],
         "all" => &SETS,
-        "storymatch" => {
-            return Err(NewsError::not_found(
-                "suite storymatch has no golden set yet (G3 is labelled in Phase 4)",
-            ));
-        }
+        // G3 is labels, not outputs: Karthik labels pairs in Board and `news eval export` writes them.
+        "storymatch" => &["g3"],
         other => {
             return Err(NewsError::usage(format!(
                 "unknown suite {other:?}: writer, classify, curator, spotcheck or all"
@@ -156,7 +153,7 @@ fn errors(v: &jsonschema::Validator, value: &Value) -> Option<String> {
 
 /// Load one set and check every case.
 pub fn load(root: &Path, set: &str) -> NewsResult<Set> {
-    if !SETS.contains(&set) {
+    if !SETS.contains(&set) && set != "g3" {
         return Err(NewsError::not_found(format!("no golden set {set:?}")));
     }
     let dir = root.join("pipeline/eval").join(set);
@@ -366,17 +363,18 @@ mod tests {
     /// The golden sets in the repository: every case passes its checks and ids are unique.
     #[test]
     fn every_golden_case_validates() {
-        for set in SETS {
+        for set in SETS.into_iter().chain(["g3"]) {
             let s = load(&repo(), set).unwrap_or_else(|e| panic!("{set}: {e}"));
             assert!(s.problems.is_empty(), "{set}: {:?}", s.problems);
-            assert!(!s.cases.is_empty(), "{set} has no cases");
+            // G3 holds only what Karthik has labelled, so it may be empty.
+            assert!(set == "g3" || !s.cases.is_empty(), "{set} has no cases");
             let mut ids: Vec<&str> = s.cases.iter().filter_map(|c| c["id"].as_str()).collect();
             ids.dedup();
             assert_eq!(ids.len(), s.cases.len(), "{set}: duplicate ids");
             // Every case names recorded files that exist (G5 lists several, joined by "; ").
             for c in &s.cases {
                 let from = c["provenance"]["from"].as_str().unwrap_or_default();
-                for f in from.split("; ") {
+                for f in from.split("; ").filter(|f| !f.is_empty()) {
                     assert!(repo().join(f).is_file(), "{}: {f} does not exist", c["id"]);
                 }
             }
@@ -418,7 +416,7 @@ mod tests {
     fn suites_map_to_sets() {
         assert_eq!(sets_of("writer").ok(), Some(&["g1"][..]));
         assert_eq!(sets_of("all").ok().map(<[_]>::len), Some(4));
-        assert!(sets_of("storymatch").is_err());
+        assert_eq!(sets_of("storymatch").ok(), Some(&["g3"][..]));
         assert!(sets_of("nope").is_err());
     }
 

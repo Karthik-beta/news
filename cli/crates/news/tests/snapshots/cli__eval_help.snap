@@ -9,6 +9,8 @@ Usage: news eval [OPTIONS] <COMMAND>
 Commands:
   run      Run an evaluation suite
   report   An evaluation run's report
+  draft    Draft what Karthik labels in Board: judge items and G3 story pairs
+  export   Write Karthik's labels into pipeline/eval: the G3 set and the judges' rates
   promote  Promote a prompt version (G tier)
   help     Print this message or the help of the given subcommand(s)
 

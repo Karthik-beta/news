@@ -30,6 +30,13 @@ pub fn gate_sha(summary: &serde_json::Value, preview: Option<&serde_json::Value>
     Sha256::digest(serde_json::to_vec(&shown).unwrap_or_default()).into()
 }
 
+/// A form step's `form_sha`: SHA-256 of the form's JSON bytes (keys sorted), what Board shows and
+/// recomputes before it sends `form.submit`, as it does for a gate.
+pub fn form_sha(form: &serde_json::Value) -> [u8; 32] {
+    use sha2::{Digest, Sha256};
+    Sha256::digest(serde_json::to_vec(form).unwrap_or_default()).into()
+}
+
 /// Lower-case hex.
 pub fn hex(b: &[u8]) -> String {
     b.iter().map(|x| format!("{x:02x}")).collect()

@@ -6,6 +6,7 @@ The golden sets Critic runs (Bureau Design §9.1, §8.11). `news eval run <suite
 | --- | --- | --- | --- | --- | --- |
 | `g1` | writer | A1 | 16 | 35 | The six recorded Fixer golden briefs (`cli/crates/news-fixer/tests/golden/`), plus injection and missing-data variants of them |
 | `g2` | classify | A3 | 106 | 200 | Every distinct recorded item in the connector and Taster fixtures, with labels drafted by Opus (`labelled_by: opus-draft`) for Karthik to confirm |
+| `g3` | storymatch | A4 | 0 | 200 | Pairs of a candidate and a story either side of Taster's join threshold (candidates without an event key, stories in detection's 72 h window, and the story a candidate was joined to against its centroid without it), drafted from the stored embeddings and labelled same or different by Karthik in Board (`label.by` is `karthik`; nothing is written by hand) |
 | `g5` | curator | A8 | 4 | 4 | Busy week, quiet week, one region dominating, withdrawn lead, assembled from recorded titles |
 | `g6` | spotcheck | A7 | 52 | 50 | Pages written in ref tokens over G1 briefs, each with one seeded fault, and 11 clean controls |
 
@@ -14,6 +15,7 @@ The golden sets Critic runs (Bureau Design §9.1, §8.11). `news eval run <suite
 - `schemas/`: JSON Schemas for `set.json`, each set's cases and the stored outputs. CI checks every case on load (`news-critic` tests); a G1 brief must also validate against `contracts/cli/ai/brief.v1.schema.json`.
 - `<set>/set.json`: the manifest, with the suite, the step, the target case count and the starting metric targets.
 - `<set>/cases/<id>.json`: one case per file, named by its id. Every case has `provenance`: the recorded file it comes from and the edit made, if any.
+- `g3/cases/<id>.json`: written only by `news eval export`, from Karthik's labels in the database. Its `set.json` `version` rises when exported cases change from ones already there. A case holds ids (candidate, source, story), the cosine, whether they share an entity and the label, and never the outlet's titles or text: the repository is public, so that text stays in PostgreSQL, where Board reads it.
 - `<set>/outputs/<prompt_version>.jsonl`: recorded AI outputs for a version, one case per line (`schemas/output.schema.json`). Only Audit writes them; they are never hand-written.
 
 ## Rules
@@ -31,6 +33,7 @@ All are computed by code (`cli/crates/news-critic/src/metrics.rs`). A case with 
 | writer | `valid_first_try`, `valid_after_repair`, `c4_c5_after_repair` (count), `tokens_per_page`, from the job's `ai_calls` rows |
 | classify | `page_type_accuracy`, `region_accuracy`, `category_f1` (micro) |
 | curator | `check_pass_rate` (the `news home check` rules), `excluded_violations`, `mean_categories`, `mean_regions` |
+| storymatch | `pairs_same`, `pairs_different` (counts), `join_threshold` (the lowest cosine whose join precision meets the target, from the labels), `join_precision` and `join_recall` at the live threshold (`data/seeds/taster-v1.toml`). A pair is joined when its cosine reaches the threshold and the two share an entity |
 | spotcheck | `a7_recall` (an issue whose quoted text overlaps the seeded fault), `a7_kind_match`, `false_flag_rate` (issues pointing at no seeded fault), `control_flag_rate` |
 
 ## Audit and promotion
@@ -41,4 +44,5 @@ The Audit preset (Bureau §8.11, `cli/crates/news-critic/src/audit.rs`) runs on 
 
 - G1 has 16 of 35 briefs: the recorded fixtures give one brief per page type and none for explainer. No restatement or negative-value case yet, because no recorded fact has one.
 - G2 has 106 of 200 items, which is every distinct recorded item. More need recorded sources (and earnings items, which it has none of).
-- G3 (story pairs) and G7 (entities) are Phase 4 labelling. Still to build: the A12 judges and their checks against Karthik's labels (`judges.md`), `eval label` (H tier, so a Board form) and fresh candidate calls for the classify, curator and spotcheck suites.
+- G3 has no cases until Karthik labels pairs: `news eval draft` drafts them, Board's Labelling screen takes his labels, `news eval export` writes `g3/`. G7 (entities) is still to label.
+- The A12 judges are not built: `judges.md` has Karthik's label counts (Board's Labelling screen, then `news eval export`), and gets rates once Audit's `judges` step writes `judge_verdicts`. Fresh candidate calls for the classify, curator and spotcheck suites are not built either.

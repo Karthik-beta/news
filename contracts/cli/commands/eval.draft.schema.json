@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/cli/commands/eval.draft.schema.json",
+  "title": "news eval draft",
+  "description": "Draft what Karthik labels in Board: the stored outputs the A12 judges are checked on (G6 pages and any G1 outputs a version stored) and G3 story pairs, a candidate and a story either side of Taster's join threshold, from the embeddings already stored. It drafts items only and never a label; running it again adds only what is new. Input is the command's arguments as an object; output is the envelope's data.",
+  "x-news-tier": "W",
+  "x-news-status": "built",
+  "x-news-errors": ["precondition"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "pairs": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "description": "How many story pairs to draft (default 200, G3's target)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "judge_items_added": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "judge_items": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pairs_added": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pairs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": ["judge_items_added", "judge_items", "pairs_added", "pairs", "text"],
+      "additionalProperties": false
+    }
+  }
+}

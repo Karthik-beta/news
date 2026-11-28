@@ -63,6 +63,8 @@ A frame is a little-endian `u32` length, then that many bytes of UTF-8 JSON, at 
 | `lineup.cancel` | H | Board | #10 | — |
 | `standing.set` | H | Board | #10 | — |
 | `huddle.questions` | R | Board | #19 | — |
+| `eval.items` | R | Board, terminal | #19 | — (the next unlabelled outputs or story pairs, with progress) |
+| `eval.label` | H | Board | #19 | — (one label for an A12 judge's failure mode, or a G3 pair; `news eval export` writes the labels into `pipeline/eval/`) |
 | `huddle.answer` | H | Board | #19 | — (the file form is `news scores label`) |
 | `form.submit` | H | Board | #19 | — (completes a form step, such as Huddle's calibration, and continues the run) |
 | `home.rollback` | H | Board | #20 | — |

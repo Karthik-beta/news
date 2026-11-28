@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/pipeline/eval/schemas/g3.case.schema.json",
+  "title": "G3 story-pair case",
+  "description": "A candidate and a story Taster drafted, with the cosine and shared-entity fact its join decision used, and Karthik's label. Written by `news eval export` from the database, never by hand; the cosine comes from the stored embeddings. It holds ids only: the outlet's titles and text stay in PostgreSQL, because the repository is public.",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^g3-c[0-9]+-s[0-9]+$"
+    },
+    "candidate": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "source_id": {
+          "type": ["string", "null"]
+        }
+      },
+      "required": ["id", "source_id"],
+      "additionalProperties": false
+    },
+    "story": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": ["id"],
+      "additionalProperties": false
+    },
+    "cos": {
+      "type": "number",
+      "minimum": -1,
+      "maximum": 1
+    },
+    "shared_entity": {
+      "type": "boolean"
+    },
+    "label": {
+      "type": "object",
+      "properties": {
+        "same": {
+          "type": "boolean"
+        },
+        "by": {
+          "enum": ["karthik"]
+        }
+      },
+      "required": ["same", "by"],
+      "additionalProperties": false
+    },
+    "provenance": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "drafted_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["source", "model", "drafted_at"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["id", "candidate", "story", "cos", "shared_entity", "label", "provenance"],
+  "additionalProperties": false
+}

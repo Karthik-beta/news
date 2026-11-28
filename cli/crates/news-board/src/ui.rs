@@ -2,9 +2,9 @@
 //! It draws `Board`'s state and calls its methods; all colours and sizes come from `theme`. Structure
 //! is rules and spacing, not boxes: a 2 px ink rule opens each section, hairlines separate rows.
 
-use crate::app::{Board, Conn};
+use crate::app::{Board, Conn, LabelMode};
 use crate::args::Screen;
-use crate::logic::{local_time, progress_text, short_sha};
+use crate::logic::{FormOpen, Pick, READING_ROWS, local_time, progress_text, short_sha};
 use crate::theme::{self, Preference, Tones, border, layout, size, space};
 use egui::{Align, Button, Layout, RichText, ScrollArea, TextEdit, Ui};
 use serde_json::Value;
@@ -37,6 +37,7 @@ pub fn show(b: &mut Board, ui: &mut Ui) {
                     Screen::Runs => runs(b, ui),
                     Screen::Settings => settings(b, ui),
                     Screen::Docker => docker(b, ui),
+                    Screen::Labels => labelling(b, ui),
                 }
             });
     });
@@ -52,6 +53,7 @@ fn nav(b: &mut Board, ui: &mut Ui) {
             (Screen::Runs, "Runs & approvals"),
             (Screen::Settings, "Settings & schedules"),
             (Screen::Docker, "Docker health"),
+            (Screen::Labels, "Labelling"),
         ] {
             let on = b.screen == screen;
             // The current page is underlined in crimson (design/components.md, "current nav").
@@ -68,6 +70,9 @@ fn nav(b: &mut Board, ui: &mut Ui) {
                 b.screen = screen;
                 if screen == Screen::Docker && b.online() {
                     b.refresh_docker();
+                }
+                if screen == Screen::Labels {
+                    b.refresh_labels();
                 }
             }
         }
@@ -527,6 +532,9 @@ fn detail(b: &mut Board, ui: &mut Ui) {
                     }
                 });
             }
+            if let Some(open) = b.open_form() {
+                huddle_form(b, ui, &open);
+            }
             if !d["wrap"].is_null() {
                 ui.add_space(space::S3);
                 ui.label(RichText::new("Wrap").strong());
@@ -537,6 +545,212 @@ fn detail(b: &mut Board, ui: &mut Ui) {
     if ui.button("Close").clicked() {
         b.close_detail();
     }
+}
+
+/// Huddle's calibration form: the pairwise questions, the Search Console status and the reading notes.
+/// `form.submit` carries the round and the hash of this form as displayed.
+fn huddle_form(b: &mut Board, ui: &mut Ui, open: &FormOpen) {
+    b.sync_form(open);
+    section(ui, "Your answers");
+    weak(
+        ui,
+        &format!(
+            "{} Round {}, shows hash {}.",
+            open.text,
+            open.round,
+            short_sha(&open.sha)
+        ),
+    );
+    ui.add_space(space::S3);
+    if !open.questions.is_empty() {
+        ui.label(RichText::new("Which story deserved a page first?").strong());
+    }
+    for (i, q) in open.questions.iter().enumerate() {
+        ui.add_space(space::S2);
+        ui.horizontal_wrapped(|ui| {
+            ui.label(format!("{}.", i + 1));
+            if let Some(pick) = b.forms.huddle.picks.get_mut(i) {
+                ui.selectable_value(pick, Pick::A, s(&q["a"], "title"));
+                ui.label("or");
+                ui.selectable_value(pick, Pick::B, s(&q["b"], "title"));
+                ui.selectable_value(pick, Pick::Skip, "Skip");
+            }
+        });
+    }
+    ui.add_space(space::S3);
+    ui.label(RichText::new("Search Console status").strong());
+    ui.add(
+        TextEdit::multiline(&mut b.forms.huddle.search_console)
+            .hint_text("What the Coverage and Performance reports say this week")
+            .desired_rows(3)
+            .desired_width(f32::INFINITY),
+    );
+    ui.add_space(space::S3);
+    ui.label(RichText::new("Pages you read").strong());
+    for (page, note) in &mut b.forms.huddle.reading {
+        ui.horizontal(|ui| {
+            ui.add(
+                TextEdit::singleline(page)
+                    .hint_text("Page id or slug")
+                    .desired_width(220.0),
+            );
+            ui.add(
+                TextEdit::singleline(note)
+                    .hint_text("What you found")
+                    .desired_width(f32::INFINITY),
+            );
+        });
+    }
+    if b.forms.huddle.reading.len() < READING_ROWS && ui.small_button("Add a page").clicked() {
+        b.forms.huddle.reading.push((String::new(), String::new()));
+    }
+    ui.add_space(space::S3);
+    let answered = b
+        .forms
+        .huddle
+        .picks
+        .iter()
+        .filter(|p| **p != Pick::Skip)
+        .count();
+    ui.horizontal(|ui| {
+        if ui
+            .add_enabled(b.can_act(), Button::new("Send answers"))
+            .clicked()
+        {
+            b.submit_form();
+        }
+        weak(
+            ui,
+            &format!(
+                "{answered} of {} questions answered; a skipped one sends no label.",
+                open.questions.len()
+            ),
+        );
+    });
+}
+
+// ---- Labelling -------------------------------------------------------------------------------------
+
+/// Karthik's labels for the A12 judges and for G3 (Bureau §9.1): one failure mode or the story pairs at a
+/// time, one item on screen, a click or a key per label. Items show no verdict, seeded fault or cosine.
+fn labelling(b: &mut Board, ui: &mut Ui) {
+    ui.add_space(space::S3);
+    weak(
+        ui,
+        "Label stored outputs for the A12 judges, one failure mode at a time, and story pairs for G3. \
+         Nothing here shows what a judge said, which fault was seeded or how close two stories are.",
+    );
+    if b.labelling.data.is_null() {
+        ui.add_space(space::S3);
+        weak(ui, "Loading… (items come from `news eval draft`)");
+        return;
+    }
+    let judges = arr(&b.labelling.data["judges"]).to_vec();
+    let pairs = b.labelling.data["pairs"].clone();
+    section(ui, "What to label");
+    ui.horizontal_wrapped(|ui| {
+        for j in &judges {
+            let mode = LabelMode::Judge(s(j, "id").to_owned());
+            let on = b.labelling.mode == mode;
+            let label = format!("{} {} of {}", s(j, "name"), j["labelled"], j["target"]);
+            if ui.selectable_label(on, label).clicked() {
+                b.choose_labels(mode);
+            }
+        }
+        let on = b.labelling.mode == LabelMode::Pairs;
+        let label = format!("Story pairs {} of {}", pairs["labelled"], pairs["target"]);
+        if ui.selectable_label(on, label).clicked() {
+            b.choose_labels(LabelMode::Pairs);
+        }
+    });
+    match b.labelling.mode.clone() {
+        LabelMode::Judge(id) => {
+            let Some(j) = judges.iter().find(|j| s(j, "id") == id) else {
+                return;
+            };
+            section(ui, s(j, "name"));
+            ui.label(s(j, "question"));
+            weak(
+                ui,
+                &format!(
+                    "{} waiting. Pass means the text has none of this failure.",
+                    j["waiting"]
+                ),
+            );
+            let Some(item) = b.front_label().cloned() else {
+                weak(
+                    ui,
+                    "Nothing waits for this judge. `news eval draft` stores more.",
+                );
+                return;
+            };
+            ui.add_space(space::S3);
+            ui.label(RichText::new(s(&item, "text")).size(size::BODY));
+            let facts = arr(&item["facts"]);
+            if !facts.is_empty() {
+                ui.collapsing("Recorded figures", |ui| {
+                    for f in facts {
+                        weak(ui, f.as_str().unwrap_or_default());
+                    }
+                });
+            }
+            label_buttons(b, ui, ("Pass", egui::Key::P), ("Fail", egui::Key::F));
+        }
+        LabelMode::Pairs => {
+            section(ui, "Same story or different?");
+            ui.label("Do these two describe the same story, so they belong on one page?");
+            weak(ui, &format!("{} waiting.", pairs["waiting"]));
+            let Some(item) = b.front_label().cloned() else {
+                weak(ui, "No pair waits. `news eval draft` stores more.");
+                return;
+            };
+            ui.add_space(space::S3);
+            ui.columns(2, |cols| {
+                let (a, st) = (&item["a"], &item["b"]);
+                cols[0].label(RichText::new(s(a, "title")).strong());
+                weak(&mut cols[0], &format!("An item from {}", s(a, "source")));
+                cols[0].label(s(a, "text"));
+                cols[1].label(RichText::new(s(st, "title")).strong());
+                weak(&mut cols[1], "A story, with some of its items:");
+                for m in arr(&st["members"]) {
+                    cols[1].label(m.as_str().unwrap_or_default());
+                }
+            });
+            label_buttons(
+                b,
+                ui,
+                ("Same story", egui::Key::S),
+                ("Different", egui::Key::D),
+            );
+        }
+    }
+}
+
+/// The two label buttons and Skip; the keys do the same while no text box has the keyboard. Neither
+/// answer is coloured: a label is not good or bad, up or down.
+fn label_buttons(b: &mut Board, ui: &mut Ui, yes: (&str, egui::Key), no: (&str, egui::Key)) {
+    ui.add_space(space::S3);
+    let keys = !ui.ctx().egui_wants_keyboard_input();
+    let pressed = |k: egui::Key| keys && ui.input(|i| i.key_pressed(k));
+    let (key_yes, key_no, key_skip) = (pressed(yes.1), pressed(no.1), pressed(egui::Key::K));
+    let can = b.can_act();
+    ui.horizontal(|ui| {
+        let (mut y, mut n) = (false, false);
+        y |= ui
+            .add_enabled(can, Button::new(format!("{} ({:?})", yes.0, yes.1)))
+            .clicked();
+        n |= ui
+            .add_enabled(can, Button::new(format!("{} ({:?})", no.0, no.1)))
+            .clicked();
+        if ui.button("Skip (K)").clicked() || key_skip {
+            b.skip_label();
+        }
+        if y || key_yes {
+            b.label_front(true);
+        } else if n || key_no {
+            b.label_front(false);
+        }
+    });
 }
 
 // ---- Settings & schedules --------------------------------------------------------------------------
@@ -955,13 +1169,45 @@ mod tests {
         b.docker = serde_json::json!({"engine": {"reachable": true, "reason": null}, "containers": [
             {"name": "news-postgres", "role": "postgres", "managed": true, "state": "running", "health": "healthy"},
             {"name": "ch", "role": "clickhouse", "managed": false, "state": "running", "health": "healthy"}]});
+        // A run waiting at Huddle's form, and the labelling screen on each of its modes.
+        b.selected_run = Some("r_hud1".to_owned());
+        b.detail = Some(
+            serde_json::json!({"run": {"short_id": "r_hud1", "preset": "huddle"},
+            "text": "Huddle r_hud1 waits.", "wrap": null,
+            "steps": [{"seq": 2, "id": "calibration", "title": "Ranking calibration", "kind": "form",
+                       "status": "running",
+                       "summary": {"text": "1 pairwise question", "round": 1, "form_sha": "x",
+                                   "form": {"text": "1 pairwise question", "questions": [
+                                       {"a": {"story_id": 4, "title": "Fed holds"},
+                                        "b": {"story_id": 9, "title": "Apple results"}}]}}}]}),
+        );
+        b.labelling.data = serde_json::json!({"kind": "judge", "judge": "wrong_direction",
+            "items": [{"item": "j1", "text": "Revenue rose.", "facts": ["Revenue: 7 USD (2026)"]}],
+            "judges": [{"id": "wrong_direction", "name": "Wrong direction", "question": "Q?",
+                        "labelled": 2, "waiting": 1, "target": 100}],
+            "pairs": {"labelled": 0, "waiting": 1, "target": 200}, "text": "x"});
+        let judge_data = b.labelling.data.clone();
         for theme_pref in [Preference::Light, Preference::Dark] {
             theme::install(&ctx, theme_pref);
-            for screen in [Screen::Runs, Screen::Settings, Screen::Docker] {
+            for screen in [
+                Screen::Runs,
+                Screen::Settings,
+                Screen::Docker,
+                Screen::Labels,
+            ] {
                 b.screen = screen;
                 let mut out = ctx.run_ui(egui::RawInput::default(), |ui| show(&mut b, ui));
                 out.textures_delta.clear();
             }
+            b.labelling.mode = crate::app::LabelMode::Pairs;
+            b.labelling.data = serde_json::json!({"kind": "pair", "judge": null,
+                "items": [{"item": "g3-c1-s2", "a": {"title": "Fed holds", "source": "wire-a", "text": "Rates."},
+                           "b": {"title": "Fed decision", "members": ["Fed holds rates"]}}],
+                "judges": [], "pairs": {"labelled": 0, "waiting": 1, "target": 200}, "text": "x"});
+            let mut out = ctx.run_ui(egui::RawInput::default(), |ui| show(&mut b, ui));
+            out.textures_delta.clear();
+            b.labelling.mode = crate::app::LabelMode::default();
+            b.labelling.data = judge_data.clone();
         }
     }
 }

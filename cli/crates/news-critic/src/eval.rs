@@ -29,7 +29,9 @@ pub fn score(
         .iter()
         .map(|set| {
             let loaded = golden::load(root, set)?;
+            // G3 is scored from its labels; a prompt version has no outputs for it.
             let outputs = prompt_version
+                .filter(|_| *set != "g3")
                 .map(|v| golden::outputs(root, set, v))
                 .transpose()?;
             let s = metrics::score(&loaded, outputs.as_deref());
@@ -159,6 +161,8 @@ pub async fn store(
 pub fn steps_of(suite: &str) -> NewsResult<Vec<&'static str>> {
     golden::sets_of(suite)?
         .iter()
+        // G3 checks Taster's thresholds against labels; no prompt of its own is promoted for it.
+        .filter(|set| **set != "g3")
         .map(|set| match *set {
             "g1" => Ok("A1"),
             "g2" => Ok("A3"),

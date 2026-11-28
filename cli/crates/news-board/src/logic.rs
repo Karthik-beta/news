@@ -208,6 +208,105 @@ pub fn gate_answer(gate: &Value, decision: &str, note: &str) -> Result<(String, 
     Ok((cmd.to_owned(), args))
 }
 
+/// A form step the run waits at (Huddle's calibration), as Board shows it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct FormOpen {
+    pub run: String,
+    /// The step's handler, what `form.submit` names: `huddle.calibration`.
+    pub form: String,
+    pub round: i64,
+    /// The hash of the form as displayed, recomputed here from the form Board holds, never the
+    /// service's `form_sha` echoed back: a form that changed since Board loaded it is then refused.
+    pub sha: String,
+    pub text: String,
+    pub questions: Vec<Value>,
+}
+
+/// The open form of a run (`run.show`'s data): a running `form` step that has shown its form.
+pub fn open_form(detail: &Value) -> Option<FormOpen> {
+    let step = detail["steps"].as_array()?.iter().find(|s| {
+        s["kind"] == "form" && s["status"] == "running" && s["summary"]["form"].is_object()
+    })?;
+    let form = &step["summary"]["form"];
+    Some(FormOpen {
+        run: s(&detail["run"], "short_id").to_owned(),
+        form: format!("{}.{}", s(&detail["run"], "preset"), s(step, "id")),
+        round: step["summary"]["round"].as_i64()?,
+        sha: news_core::tier::hex(&news_core::tier::form_sha(form)),
+        text: s(form, "text").to_owned(),
+        questions: form["questions"].as_array().cloned().unwrap_or_default(),
+    })
+}
+
+/// Karthik's answer to one pairwise question: the story shown first (A), the other (B), or neither.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Pick {
+    #[default]
+    Skip,
+    A,
+    B,
+}
+
+/// The pages Karthik reads each week (D15), and the most notes the form takes.
+pub const READING_ROWS: usize = 5;
+
+/// `form.submit`'s arguments from the form as shown and what Karthik filled in. A question left on
+/// Skip sends no label; a reading note needs its page; blank rows are dropped.
+pub fn form_submit(
+    open: &FormOpen,
+    picks: &[Pick],
+    search_console: &str,
+    reading: &[(String, String)],
+) -> Result<Value, String> {
+    let mut labels = Vec::new();
+    for (q, pick) in open.questions.iter().zip(picks) {
+        if *pick == Pick::Skip {
+            continue;
+        }
+        let (Some(a), Some(b)) = (q["a"]["story_id"].as_i64(), q["b"]["story_id"].as_i64()) else {
+            return Err("A question in the form has no story ids. Open the run again.".to_owned());
+        };
+        let winner = if *pick == Pick::A { "a" } else { "b" };
+        labels.push(json!({"a": a, "b": b, "winner": winner}));
+    }
+    let mut answer = json!({"labels": labels});
+    let status = search_console.trim();
+    if status.chars().count() > 2000 {
+        return Err("The Search Console status is over 2,000 characters.".to_owned());
+    }
+    if !status.is_empty() {
+        answer["search_console"] = json!(status);
+    }
+    let mut pages = Vec::new();
+    for (page, note) in reading {
+        let (page, note) = (page.trim(), note.trim());
+        if page.is_empty() && note.is_empty() {
+            continue;
+        }
+        if page.is_empty() {
+            return Err("Name the page for each reading note.".to_owned());
+        }
+        if page.chars().count() > 200 || note.chars().count() > 2000 {
+            return Err(format!("The reading note for {page} is too long."));
+        }
+        let mut p = json!({"page": page});
+        if !note.is_empty() {
+            p["note"] = json!(note);
+        }
+        pages.push(p);
+    }
+    if pages.len() > READING_ROWS {
+        return Err(format!("The form takes at most {READING_ROWS} pages."));
+    }
+    if !pages.is_empty() {
+        answer["reading"] = json!(pages);
+    }
+    Ok(
+        json!({"run": open.run, "form": open.form, "round": open.round,
+              "form_sha": open.sha, "answer": answer}),
+    )
+}
+
 /// The queue offer inside a `conflict` from `run.start`, if that is what the error is.
 pub fn queue_offer(details: &Value) -> Option<&Value> {
     (details["reason"] == "queue_offer").then_some(details)
@@ -373,6 +472,89 @@ mod tests {
             ("gate.changes", Some("shorter headline"))
         );
         assert_eq!(gate_answer(&gate, "reject", "").unwrap().0, "gate.reject");
+    }
+
+    fn form_detail() -> Value {
+        let form = json!({"text": "2 pairwise questions", "questions": [
+            {"a": {"story_id": 4, "title": "Fed holds", "total": 71.2},
+             "b": {"story_id": 9, "title": "Apple results", "total": 64.0}},
+            {"a": {"story_id": 12, "title": "RBI cuts", "total": 58.1},
+             "b": {"story_id": 3, "title": "US CPI", "total": 80.5}}]});
+        json!({"run": {"short_id": "r_hud1", "preset": "huddle"},
+               "steps": [
+                 {"seq": 1, "id": "debrief", "kind": "code", "status": "done", "summary": {"text": "ok"}},
+                 {"seq": 2, "id": "calibration", "kind": "form", "status": "running",
+                  "summary": {"text": "2 pairwise questions", "round": 1, "form_sha": "ignored", "form": form}}]})
+    }
+
+    #[test]
+    fn the_open_form_is_the_running_form_step_with_its_hash_recomputed() {
+        let d = form_detail();
+        let open = open_form(&d).unwrap();
+        assert_eq!(
+            (open.run.as_str(), open.form.as_str(), open.round),
+            ("r_hud1", "huddle.calibration", 1)
+        );
+        assert_eq!(open.questions.len(), 2);
+        let shown = news_core::tier::hex(&news_core::tier::form_sha(
+            &d["steps"][1]["summary"]["form"],
+        ));
+        assert_eq!(
+            open.sha, shown,
+            "the hash of what is displayed, not the service's field"
+        );
+        // A form with a different question hashes differently.
+        let mut other = form_detail();
+        other["steps"][1]["summary"]["form"]["questions"][0]["a"]["title"] = json!("Fed cuts");
+        assert_ne!(open_form(&other).unwrap().sha, open.sha);
+        // Not a form that is waiting: finished, or not a form at all.
+        let mut done = form_detail();
+        done["steps"][1]["status"] = json!("done");
+        assert!(open_form(&done).is_none());
+        assert!(open_form(&json!({"run": {}, "steps": []})).is_none());
+    }
+
+    #[test]
+    fn the_answer_has_a_label_per_picked_question_and_drops_blank_rows() {
+        let open = open_form(&form_detail()).unwrap();
+        let reading = vec![
+            ("2026/11/us-cpi".to_owned(), " Reads well ".to_owned()),
+            (String::new(), String::new()),
+            ("2026/11/fed".to_owned(), String::new()),
+        ];
+        let args = form_submit(
+            &open,
+            &[Pick::B, Pick::Skip],
+            " No coverage problems ",
+            &reading,
+        )
+        .unwrap();
+        assert_eq!(
+            args,
+            json!({"run": "r_hud1", "form": "huddle.calibration", "round": 1, "form_sha": open.sha,
+                   "answer": {"labels": [{"a": 4, "b": 9, "winner": "b"}],
+                              "search_console": "No coverage problems",
+                              "reading": [{"page": "2026/11/us-cpi", "note": "Reads well"},
+                                          {"page": "2026/11/fed"}]}})
+        );
+        // Skipping every question and filling nothing in is a valid answer: an empty label list.
+        let args = form_submit(&open, &[Pick::Skip, Pick::Skip], "", &[]).unwrap();
+        assert_eq!(args["answer"], json!({"labels": []}));
+        // A note without its page, too many pages and a too-long status are refused here.
+        assert!(form_submit(&open, &[], "", &[(String::new(), "note".into())]).is_err());
+        let many: Vec<(String, String)> =
+            (0..6).map(|i| (format!("p{i}"), String::new())).collect();
+        assert!(form_submit(&open, &[], "", &many).is_err());
+        assert!(form_submit(&open, &[], &"x".repeat(2001), &[]).is_err());
+    }
+
+    #[test]
+    fn a_question_without_story_ids_is_not_answered() {
+        let mut d = form_detail();
+        d["steps"][1]["summary"]["form"]["questions"][0]["a"] = json!({"title": "no id"});
+        let open = open_form(&d).unwrap();
+        assert!(form_submit(&open, &[Pick::A], "", &[]).is_err());
+        assert!(form_submit(&open, &[Pick::Skip], "", &[]).is_ok());
     }
 
     #[test]

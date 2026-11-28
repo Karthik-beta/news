@@ -60,8 +60,56 @@ pub struct Offer {
     pub text: String,
 }
 
+/// What Karthik has filled in on the open Huddle form, for the form it was filled in against.
+#[derive(Default)]
+pub struct HuddleForm {
+    /// `run.round.hash` of the form the answers belong to: another round, or a form whose questions
+    /// changed, starts empty.
+    pub key: String,
+    pub picks: Vec<logic::Pick>,
+    pub search_console: String,
+    pub reading: Vec<(String, String)>,
+}
+
+/// What the Labelling screen is labelling: one A12 judge's failure mode at a time, or G3 story pairs.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LabelMode {
+    Judge(String),
+    Pairs,
+}
+
+impl Default for LabelMode {
+    fn default() -> Self {
+        Self::Judge("wrong_direction".to_owned())
+    }
+}
+
+impl LabelMode {
+    /// The reply tag of this mode's `eval.items` and the request it sends.
+    fn request(&self) -> (String, Value) {
+        match self {
+            Self::Judge(j) => (
+                format!("labels:{j}"),
+                json!({"kind": "judge", "judge": j, "limit": 10}),
+            ),
+            Self::Pairs => (
+                "labels:pair".to_owned(),
+                json!({"kind": "pair", "limit": 10}),
+            ),
+        }
+    }
+}
+
+#[derive(Default)]
+pub struct Labelling {
+    pub mode: LabelMode,
+    /// The last `eval.items` reply for `mode`: the next items, every judge's progress and G3's.
+    pub data: Value,
+}
+
 #[derive(Default)]
 pub struct Forms {
+    pub huddle: HuddleForm,
     pub preset: String,
     pub args: HashMap<String, String>,
     /// A note per open gate, keyed `<run>.<gate>`.
@@ -91,6 +139,7 @@ pub struct Board {
     pub confirm: Option<Confirm>,
     pub offer: Option<Offer>,
     pub forms: Forms,
+    pub labelling: Labelling,
     /// Toasts raised since the shell last took them.
     pub toasts: Vec<Toast>,
     pub in_flight: usize,
@@ -125,6 +174,7 @@ impl Board {
             confirm: None,
             offer: None,
             forms: Forms::default(),
+            labelling: Labelling::default(),
             toasts: Vec::new(),
             in_flight: 0,
             last_start: None,
@@ -287,6 +337,9 @@ impl Board {
             "standing" => self.standing = d,
             "history" => self.history = d,
             "docker" => self.docker = d,
+            t if t.strip_prefix("labels:").is_some() && t == self.labelling.mode.request().0 => {
+                self.labelling.data = d;
+            }
             t if t
                 .strip_prefix("detail:")
                 .is_some_and(|run| self.selected_run.as_deref() == Some(run)) =>
@@ -314,10 +367,21 @@ impl Board {
                         self.refresh_standing();
                     }
                     c if c.starts_with("docker.") => self.refresh_docker(),
+                    "form.submit" => {
+                        self.forms.huddle = HuddleForm::default();
+                        self.refresh_detail();
+                    }
+                    "eval.label" => self.refresh_labels(),
                     _ => {}
                 }
             }
             Err(e) => {
+                // A form that changed, or a label that did not take: show what the service has now.
+                match cmd {
+                    "form.submit" => self.refresh_detail(),
+                    "eval.label" => self.refresh_labels(),
+                    _ => {}
+                }
                 if cmd == "run.start"
                     && let (Some(o), Some((preset, args))) =
                         (logic::queue_offer(&e.details), self.last_start.clone())
@@ -347,6 +411,9 @@ impl Board {
 
     pub fn open(&mut self, t: &OpenTarget) {
         self.screen = t.screen();
+        if self.screen == Screen::Labels {
+            self.refresh_labels();
+        }
         if let Some(run) = t.run() {
             self.select_run(run);
         }
@@ -364,6 +431,12 @@ impl Board {
         }
     }
 
+    fn refresh_detail(&mut self) {
+        if let Some(run) = self.selected_run.clone() {
+            self.ask(&format!("detail:{run}"), "run.show", json!({"run": run}));
+        }
+    }
+
     pub fn close_detail(&mut self) {
         self.selected_run = None;
         self.detail = None;
@@ -371,7 +444,8 @@ impl Board {
 
     // ---- Actions (H tier: each is one click) -----------------------------------------------------
 
-    fn send_h(&mut self, cmd: &str, args: Value) {
+    /// `false` when nothing was sent: Board is offline or is not the service's build.
+    fn send_h(&mut self, cmd: &str, args: Value) -> bool {
         if !self.can_act() {
             self.feedback = Some(Feedback {
                 ok: false,
@@ -382,9 +456,10 @@ impl Board {
                 }
                 .to_owned(),
             });
-            return;
+            return false;
         }
         self.ask(&format!("act:{cmd}"), cmd, args);
+        true
     }
 
     pub fn start_run(&mut self, preset: &str, if_busy: Option<&str>) {
@@ -439,6 +514,100 @@ impl Board {
                 self.send_h(&cmd, args);
             }
             Err(e) => self.feedback = Some(Feedback { ok: false, text: e }),
+        }
+    }
+
+    // ---- The Huddle form (form.submit) ------------------------------------------------------------
+
+    /// The form the run on screen waits at, if any.
+    pub fn open_form(&self) -> Option<logic::FormOpen> {
+        self.detail.as_ref().and_then(logic::open_form)
+    }
+
+    /// Keep Karthik's answers for the form on screen; a different form starts empty.
+    pub fn sync_form(&mut self, open: &logic::FormOpen) {
+        let key = format!("{}.{}.{}", open.run, open.round, open.sha);
+        if self.forms.huddle.key != key {
+            self.forms.huddle = HuddleForm {
+                key,
+                picks: vec![logic::Pick::Skip; open.questions.len()],
+                search_console: String::new(),
+                reading: vec![(String::new(), String::new())],
+            };
+        }
+    }
+
+    /// Send the answers as `form.submit`, bound to the round and the hash of the form as shown.
+    pub fn submit_form(&mut self) {
+        let Some(open) = self.open_form() else {
+            self.feedback = Some(Feedback {
+                ok: false,
+                text: "No form is waiting for you here.".to_owned(),
+            });
+            return;
+        };
+        self.sync_form(&open);
+        let h = &self.forms.huddle;
+        match logic::form_submit(&open, &h.picks, &h.search_console, &h.reading) {
+            Ok(args) => {
+                self.send_h("form.submit", args);
+            }
+            Err(e) => self.feedback = Some(Feedback { ok: false, text: e }),
+        }
+    }
+
+    // ---- Labelling (eval.items, eval.label) -------------------------------------------------------
+
+    /// Ask for the next items of what is being labelled.
+    pub fn refresh_labels(&mut self) {
+        if self.online() {
+            let (tag, args) = self.labelling.mode.request();
+            self.ask(&tag, "eval.items", args);
+        }
+    }
+
+    pub fn choose_labels(&mut self, mode: LabelMode) {
+        if self.labelling.mode != mode {
+            self.labelling.mode = mode;
+            self.labelling.data = Value::Null;
+        }
+        self.refresh_labels();
+    }
+
+    /// The item on screen: the first of the batch.
+    pub fn front_label(&self) -> Option<&Value> {
+        self.labelling.data["items"].as_array()?.first()
+    }
+
+    /// Label the item on screen: `verdict` is Pass for a judge's failure mode, Same for a pair. The item
+    /// leaves the screen at once; the reply brings the next batch.
+    pub fn label_front(&mut self, verdict: bool) {
+        let Some(item) = self
+            .front_label()
+            .and_then(|i| i["item"].as_str())
+            .map(str::to_owned)
+        else {
+            return;
+        };
+        let args = match &self.labelling.mode {
+            LabelMode::Judge(j) => {
+                json!({"kind": "judge", "judge": j, "item": item, "pass": verdict})
+            }
+            LabelMode::Pairs => json!({"kind": "pair", "item": item, "same": verdict}),
+        };
+        if self.send_h("eval.label", args)
+            && let Some(items) = self.labelling.data["items"].as_array_mut()
+        {
+            items.remove(0);
+        }
+    }
+
+    /// Put the item on screen at the back of the batch.
+    pub fn skip_label(&mut self) {
+        if let Some(items) = self.labelling.data["items"].as_array_mut()
+            && items.len() > 1
+        {
+            items.rotate_left(1);
         }
     }
 
@@ -987,5 +1156,222 @@ mod tests {
         for c in news_hotline::contracts().commands() {
             assert!(!c.name.contains("secret"), "{}", c.name);
         }
+    }
+
+    /// `run.show` for a Huddle run waiting at its calibration form. The service's own `form_sha` is
+    /// deliberately wrong: Board must send the hash of the form it shows.
+    fn huddle_detail() -> Value {
+        let form = json!({"text": "2 pairwise questions: which story deserved a page first?",
+            "questions": [
+              {"a": {"story_id": 4, "title": "Fed holds", "total": 71.2},
+               "b": {"story_id": 9, "title": "Apple results", "total": 64.0}},
+              {"a": {"story_id": 12, "title": "RBI cuts", "total": 58.1},
+               "b": {"story_id": 3, "title": "US CPI", "total": 80.5}}]});
+        json!({"run": {"short_id": "r_hud1", "preset": "huddle", "status": "waiting_approval"},
+               "steps": [{"seq": 2, "id": "calibration", "title": "Ranking calibration", "kind": "form",
+                          "status": "running",
+                          "summary": {"text": "2 pairwise questions", "round": 1,
+                                      "form_sha": SHA, "form": form}}],
+               "text": "Huddle r_hud1 waits for your answers."})
+    }
+
+    fn form_sha_of(detail: &Value) -> String {
+        news_core::tier::hex(&news_core::tier::form_sha(
+            &detail["steps"][0]["summary"]["form"],
+        ))
+    }
+
+    #[test]
+    fn the_huddle_form_is_answered_with_the_round_and_hash_it_showed() {
+        let svc = Fake::new();
+        let detail = huddle_detail();
+        svc.on("run.show", Ok(detail.clone()));
+        svc.on(
+            "form.submit",
+            Ok(json!({"text": "Form huddle.calibration of r_hud1 submitted; the run is running."})),
+        );
+        let mut b = board_on(&svc, Peer::board());
+        wait(&mut b, "online", |b| b.can_act());
+        b.open(&crate::args::OpenTarget::parse("huddle:r_hud1").unwrap());
+        wait(&mut b, "the run's form", |b| b.open_form().is_some());
+        let open = b.open_form().unwrap();
+        assert_eq!(open.questions.len(), 2);
+        b.sync_form(&open);
+        b.forms.huddle.picks[0] = logic::Pick::A;
+        b.forms.huddle.picks[1] = logic::Pick::B;
+        b.forms.huddle.search_console = "No coverage problems".into();
+        b.forms.huddle.reading[0] = ("2026/11/us-cpi".into(), "Reads well".into());
+        b.submit_form();
+        wait(&mut b, "the answer", |_| {
+            !svc.sent("form.submit").is_empty()
+        });
+        let shown = form_sha_of(&detail);
+        assert_ne!(shown, SHA, "the service's own hash is not what Board sends");
+        assert_eq!(
+            svc.sent("form.submit"),
+            vec![
+                json!({"run": "r_hud1", "form": "huddle.calibration", "round": 1, "form_sha": shown,
+                        "answer": {"labels": [{"a": 4, "b": 9, "winner": "a"}, {"a": 12, "b": 3, "winner": "b"}],
+                                   "search_console": "No coverage problems",
+                                   "reading": [{"page": "2026/11/us-cpi", "note": "Reads well"}]}})
+            ]
+        );
+        wait(&mut b, "the form to be cleared", |b| {
+            b.forms.huddle.key.is_empty()
+        });
+        assert!(b.feedback.as_ref().unwrap().ok);
+    }
+
+    #[test]
+    fn a_form_that_changed_is_refused_and_loaded_again() {
+        let svc = Fake::new();
+        svc.on("run.show", Ok(huddle_detail()));
+        svc.on(
+            "form.submit",
+            Err(
+                NewsError::gated("form huddle.calibration holds a different form")
+                    .with_text("The questions have changed since Board showed them."),
+            ),
+        );
+        let mut b = board_on(&svc, Peer::board());
+        wait(&mut b, "online", |b| b.can_act());
+        b.select_run("r_hud1");
+        wait(&mut b, "the form", |b| b.open_form().is_some());
+        b.submit_form();
+        wait(&mut b, "the refusal", |b| b.feedback.is_some());
+        assert!(!b.feedback.as_ref().unwrap().ok);
+        assert!(b.feedback.as_ref().unwrap().text.contains("have changed"));
+        let before = svc.sent("run.show").len();
+        wait(&mut b, "the run is read again", |_| {
+            svc.sent("run.show").len() > before
+        });
+    }
+
+    #[test]
+    fn the_form_from_a_terminal_is_refused_as_gated_and_nothing_is_stored() {
+        let svc = Fake::new();
+        svc.on("run.show", Ok(huddle_detail()));
+        let terminal = Peer {
+            argv1_is_board: false,
+            ..Peer::board()
+        };
+        let mut b = board_on(&svc, terminal);
+        wait(&mut b, "online", |b| b.online());
+        b.select_run("r_hud1");
+        wait(&mut b, "the form", |b| b.open_form().is_some());
+        b.submit_form();
+        wait(&mut b, "a refusal", |b| b.feedback.is_some());
+        assert!(
+            b.feedback
+                .as_ref()
+                .unwrap()
+                .text
+                .contains("only be taken in Board")
+        );
+        assert!(svc.sent("form.submit").is_empty());
+    }
+
+    fn judge_items() -> Value {
+        json!({"kind": "judge", "judge": "wrong_direction",
+               "items": [{"item": "jaaaa", "text": "Revenue rose to a record.", "facts": ["Revenue: 7 USD (2026)"]},
+                         {"item": "jbbbb", "text": "Profit fell.", "facts": []}],
+               "judges": [{"id": "wrong_direction", "name": "Wrong direction", "question": "Q?",
+                           "labelled": 0, "waiting": 2, "target": 100}],
+               "pairs": {"labelled": 0, "waiting": 1, "target": 200}, "text": "x"})
+    }
+
+    #[test]
+    fn a_judge_label_is_sent_for_the_item_on_screen_and_the_next_one_shows_at_once() {
+        let svc = Fake::new();
+        svc.on("eval.items", Ok(judge_items()));
+        svc.on(
+            "eval.label",
+            Ok(
+                json!({"kind": "judge", "item": "jaaaa", "labelled": 1, "target": 100,
+                      "text": "Wrong direction: 1 of 100 labelled."}),
+            ),
+        );
+        let mut b = board_on(&svc, Peer::board());
+        wait(&mut b, "online", |b| b.can_act());
+        b.open(&crate::args::OpenTarget::parse("labels").unwrap());
+        wait(&mut b, "the items", |b| b.front_label().is_some());
+        assert_eq!(b.front_label().unwrap()["item"], "jaaaa");
+        b.label_front(true);
+        assert_eq!(
+            b.front_label().unwrap()["item"],
+            "jbbbb",
+            "the next item shows before the reply"
+        );
+        wait(&mut b, "the label", |_| !svc.sent("eval.label").is_empty());
+        assert_eq!(
+            svc.sent("eval.label"),
+            vec![
+                json!({"kind": "judge", "judge": "wrong_direction", "item": "jaaaa", "pass": true})
+            ]
+        );
+        wait(&mut b, "its feedback", |b| b.feedback.is_some());
+        assert!(b.feedback.as_ref().unwrap().text.contains("1 of 100"));
+        // A fail on the next item, then skipping goes round the batch.
+        b.label_front(false);
+        wait(&mut b, "two labels", |_| svc.sent("eval.label").len() == 2);
+        assert_eq!(svc.sent("eval.label")[1]["pass"], false);
+        // Items are asked for again after each label, so the screen never runs dry on its own.
+        wait(&mut b, "a refresh", |_| svc.sent("eval.items").len() >= 3);
+    }
+
+    #[test]
+    fn a_pair_label_says_same_or_different_and_each_mode_asks_for_its_own_items() {
+        let svc = Fake::new();
+        svc.on("eval.items", Ok(judge_items()));
+        let mut b = board_on(&svc, Peer::board());
+        wait(&mut b, "online", |b| b.can_act());
+        b.choose_labels(LabelMode::Pairs);
+        wait(&mut b, "a pair request", |_| {
+            svc.sent("eval.items").iter().any(|a| a["kind"] == "pair")
+        });
+        svc.on(
+            "eval.items",
+            Ok(json!({"kind": "pair", "judge": null,
+                      "items": [{"item": "g3-c7-s12", "a": {"title": "Fed holds"}, "b": {"title": "Fed decision"}}],
+                      "judges": [], "pairs": {"labelled": 0, "waiting": 1, "target": 200}, "text": "x"})),
+        );
+        b.refresh_labels();
+        wait(&mut b, "the pair", |b| {
+            b.front_label().is_some_and(|i| i["item"] == "g3-c7-s12")
+        });
+        b.label_front(true);
+        wait(&mut b, "the label", |_| !svc.sent("eval.label").is_empty());
+        assert_eq!(
+            svc.sent("eval.label"),
+            vec![json!({"kind": "pair", "item": "g3-c7-s12", "same": true})]
+        );
+    }
+
+    #[test]
+    fn a_label_from_a_terminal_is_refused_as_gated_and_the_item_comes_back() {
+        let svc = Fake::new();
+        svc.on("eval.items", Ok(judge_items()));
+        let terminal = Peer {
+            argv1_is_board: false,
+            ..Peer::board()
+        };
+        let mut b = board_on(&svc, terminal);
+        wait(&mut b, "online", |b| b.online());
+        b.refresh_labels();
+        wait(&mut b, "the items", |b| b.front_label().is_some());
+        // Reading the items is allowed from a terminal; labelling is not.
+        b.label_front(true);
+        wait(&mut b, "a refusal", |b| b.feedback.is_some());
+        assert!(
+            b.feedback
+                .as_ref()
+                .unwrap()
+                .text
+                .contains("only be taken in Board")
+        );
+        assert!(svc.sent("eval.label").is_empty());
+        wait(&mut b, "the item back on screen", |b| {
+            b.front_label().is_some_and(|i| i["item"] == "jaaaa")
+        });
     }
 }
