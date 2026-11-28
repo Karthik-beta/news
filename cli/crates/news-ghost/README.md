@@ -23,6 +23,6 @@ The usage-limit reply's shape is not settled (ADR 0008 §1). `claude::classify` 
 
 ## Wiring left
 
-- The service installs Ghost (`news_ghost::install`) once `news ai accept` exists as a library call: an `AcceptSink` over it, a `PgStore` on the service's pool (with `ClickHouse::from_env()`), the root marker job from `host::run` as `job`, and the `claude.exe` path. Until then the handler refuses before any call (`bug`).
+- The service installs Ghost when it connects (`news::registry::install_ai`, from `host::Options::on_connect`): `NewsAccept` (`news/src/steps/accept.rs`) as the `AcceptSink`, a `PgStore` on the service's pool (with `ClickHouse::from_env()`), the root marker job from `host::run` as `job`. `claude.exe` is the first absolute PATH folder that has it until #99's recorded tool paths merge. Preset A1 and A2 jobs carry their page type's prefix (`steps/pipeline.rs` `prefix`). Without a root or `claude` the service logs why and the handler refuses before any call (`bug`).
 - Not here yet: per-run nested Job Objects (so a pause can terminate one run's calls), the OAuth pre-refresh. (Each call already runs at Low integrity in a Low-labelled folder, ADR 0008 §8.2, #89.)
 - The flag set follows Bureau §3.9 as written; the doc gives no value for `--setting-sources`, so calls pass the empty list (load no settings source); the lean-call spike must confirm that value (ADR 0014 lists what it measures).

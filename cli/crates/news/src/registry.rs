@@ -2,7 +2,9 @@
 
 use news_core::NewsResult;
 use news_core::job::Handler;
-use std::path::PathBuf;
+use news_store::PgPool;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 pub fn handler_for_owner(owner: &str) -> Option<Handler> {
     Some(match owner {
@@ -53,9 +55,7 @@ pub fn audit_root(
 /// root the steps that need one are bound too, and fail saying so.
 pub fn step_handlers() -> news_chief::driver::Handlers {
     let h = news_critic::huddle::register(news_chief::driver::Handlers::default());
-    let env = std::env::var_os("NEWS_ROOT");
-    let recorded = news_service::install::recorded_root();
-    match audit_root(env, recorded, news_critic::golden::find_root) {
+    match service_root() {
         Ok(root) => {
             let ctx = crate::steps::Ctx {
                 root: root.clone(),
@@ -77,6 +77,80 @@ pub fn step_handlers() -> news_chief::driver::Handlers {
             crate::steps::register_unset(h, message)
         }
     }
+}
+
+/// The repository root the service works in ([`audit_root`] from this process's setting).
+fn service_root() -> Result<PathBuf, String> {
+    let env = std::env::var_os("NEWS_ROOT");
+    let recorded = news_service::install::recorded_root();
+    audit_root(env, recorded, news_critic::golden::find_root)
+}
+
+/// The `claude` executable Ghost runs: the first absolute PATH folder that has it.
+// TODO(#99): when #99 merges, add "claude" to `news_win::tool::TOOLS` and return
+// `news_win::tool::tool_path("claude")` here, so the installed service runs the path
+// `news service install` recorded and refuses when none was.
+fn claude_exe() -> Option<PathBuf> {
+    let name = if cfg!(windows) {
+        "claude.exe"
+    } else {
+        "claude"
+    };
+    std::env::split_paths(&std::env::var_os("PATH")?)
+        .filter(|d| d.is_absolute())
+        .map(|d| d.join(name))
+        .find(|p| p.is_file())
+}
+
+/// Install the handlers that need the service's pool: Rewrite (`page.revise`) and, given `claude`,
+/// Ghost (`ai.*`, with [`NewsAccept`] as its accept sink and its calls in `job`, the root marker job).
+/// Returns which were installed now (`false`: none given, or one already was).
+///
+/// [`NewsAccept`]: crate::steps::accept::NewsAccept
+pub fn install_ai(
+    db: &PgPool,
+    root: &Path,
+    claude: Option<PathBuf>,
+    job: Option<Arc<news_win::Job>>,
+) -> (bool, bool) {
+    let rewrite = news_rewrite::install(news_rewrite::Context {
+        db: db.clone(),
+        work: news_proof::work::Work::new(root.join("work")),
+    });
+    // Plate (in NewsAccept) and ClickHouse (in PgStore) are reqwest clients, built with rustls and no
+    // provider of its own: without this, building one panics in a process that has not installed it.
+    news_wire::runner::install_tls_provider();
+    let ghost = claude.is_some_and(|claude| {
+        let accept = Arc::new(crate::steps::accept::NewsAccept {
+            db: db.clone(),
+            root: root.to_path_buf(),
+        });
+        let store = Arc::new(news_ghost::store::PgStore {
+            db: db.clone(),
+            clickhouse: news_telemetry::ClickHouse::from_env(),
+        });
+        let mut ghost = news_ghost::Ghost::new(claude, root.to_path_buf(), accept, store);
+        ghost.job = job;
+        news_ghost::install(ghost)
+    });
+    (ghost, rewrite)
+}
+
+/// [`install_ai`] for `news service run` (`host::Options::on_connect`). Without a repository root or
+/// `claude` it says so and leaves those handlers out; their jobs then fail as `bug`, naming the gap.
+pub fn install_service_ai(db: &PgPool, job: Option<Arc<news_win::Job>>) {
+    let root = match service_root() {
+        Ok(r) => r,
+        Err(m) => {
+            tracing::warn!("Ghost and Rewrite are not installed: {m}");
+            return;
+        }
+    };
+    let claude = claude_exe();
+    if claude.is_none() {
+        tracing::warn!("Ghost is not installed: claude is not on PATH");
+    }
+    install_ai(db, &root, claude, job);
 }
 
 /// The handler for a job kind, or `None` for an unknown kind.
@@ -151,6 +225,67 @@ mod tests {
         // Subsystems without job kinds still exist as crates.
         assert!(news_contacts::KINDS.is_empty() && news_roster::KINDS.is_empty());
         assert!(news_chief::KINDS.is_empty() && news_critic::KINDS.is_empty());
+    }
+
+    /// The job kinds the preset steps queue: every `NewJob::new("<kind>")` in their crates' sources.
+    #[allow(clippy::unwrap_used)]
+    fn queued_kinds() -> std::collections::BTreeSet<String> {
+        let crates = Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
+        let mut kinds = std::collections::BTreeSet::new();
+        for dir in ["news/src/steps", "news-rewrite/src", "news-critic/src"] {
+            for entry in std::fs::read_dir(crates.join(dir)).unwrap() {
+                let text = std::fs::read_to_string(entry.unwrap().path()).unwrap_or_default();
+                for rest in text.split("NewJob::new(\"").skip(1) {
+                    kinds.insert(rest.split('"').next().unwrap().to_owned());
+                }
+            }
+        }
+        kinds
+    }
+
+    #[tokio::test]
+    #[allow(clippy::unwrap_used)]
+    async fn the_service_installs_ghost_and_rewrite_for_every_ai_kind_the_presets_queue() {
+        let mut kinds = queued_kinds();
+        for k in ["ai.write", "ai.repair", "ai.spotcheck"] {
+            assert!(kinds.contains(k), "{k} not found in {kinds:?}");
+        }
+        // No preset queues `page.revise` today (Followup revises in its step), but the service runs it.
+        kinds.insert("page.revise".into());
+        // No connection is made: every handler below stops at its arguments.
+        let db = sqlx::postgres::PgPoolOptions::new()
+            .connect_lazy("postgres://localhost/unused")
+            .unwrap();
+        let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
+        let installed = install_ai(&db, &repo, Some(PathBuf::from("claude")), None);
+        assert_eq!(installed, (true, true), "(ghost, rewrite)");
+        for kind in &kinds {
+            let handler = resolve(kind).unwrap_or_else(|| panic!("no handler for {kind}"));
+            // Wire's, Diary's and Taster's kinds are still stubs (#9, #12): not the AI path.
+            let owner = news_dispatch::kinds::spec(kind).unwrap().owner;
+            if !matches!(owner, "ghost" | "rewrite") {
+                continue;
+            }
+            let input = news_core::job::JobInput {
+                job_id: 1,
+                kind: kind.clone(),
+                pool: news_dispatch::kinds::spec(kind).unwrap().pool.to_owned(),
+                attempt: 1,
+                run_id: None,
+                item_ref: None,
+                args: serde_json::json!({}),
+                lease: Default::default(),
+            };
+            // An installed handler gets as far as the job's (empty) arguments; one the service
+            // never installed fails saying it needs the Bureau service.
+            if let Err(f) = handler(input).await {
+                assert!(
+                    !f.message.contains("Bureau service"),
+                    "{kind}: {}",
+                    f.message
+                );
+            }
+        }
     }
 
     #[tokio::test]

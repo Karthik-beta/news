@@ -231,7 +231,7 @@ async fn chunks(ctx: &Ctx, cx: &StepCx) -> Result<StepOutcome, StepError> {
         .iter()
         .filter_map(|w| w.story.parse().ok())
         .collect();
-    let Ph::Done((written, dead_w)) = pipeline::write(cx, &briefed).await? else {
+    let Ph::Done((written, dead_w)) = pipeline::write(cx, ctx, &briefed).await? else {
         return Ok(StepOutcome::Wait);
     };
     dead.extend(dead_w);

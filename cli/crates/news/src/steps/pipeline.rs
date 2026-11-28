@@ -17,7 +17,8 @@ use news_press::register::{Registered, register};
 use news_proof::work::{self, Work};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
+use std::path::{Path, PathBuf};
 
 pub const PAGE_SCHEMA: &str = "contracts/cli/ai/page-draft.v1.schema.json";
 pub const SPOT_SCHEMA: &str = "contracts/cli/ai/a7.spotcheck.v1.schema.json";
@@ -128,9 +129,57 @@ pub async fn brief(
     Ok((ok, dead))
 }
 
-/// A1 jobs for the stories briefed. Waits while any is live; the result is the stories whose Copy
-/// was stored and those that have none.
-pub async fn write(cx: &StepCx, stories: &[i64]) -> Result<Ph<(Vec<i64>, Vec<Value>)>, StepError> {
+/// The cached prompt prefix for `page_type` (Bureau §3.9, ADR 0014), built from the component index
+/// (`NEWS_COMPONENT_INDEX`, else the site build under `root`) and written under `work/prefix/` by its
+/// hash: the same inputs give the same file, so every call of a page type shares it. Returns the path
+/// relative to `root`, as Ghost's `prefix` argument takes it.
+pub fn prefix(root: &Path, page_type: &str) -> Result<String, StepError> {
+    use news_fixer::components;
+    let index = std::env::var_os(components::INDEX_VAR)
+        .filter(|v| !v.is_empty())
+        .map_or_else(|| root.join(components::INDEX_REL), PathBuf::from);
+    let comps = components::load(&index).map_err(|e| {
+        fail(
+            ErrorClass::InvalidData,
+            format!(
+                "no prefix for the writer: {} (build the site or set {})",
+                e.message,
+                components::INDEX_VAR
+            ),
+        )
+    })?;
+    let built = news_fixer::prefix::build(page_type, &comps).map_err(step_err)?;
+    news_fixer::prefix::write(&root.join("work/prefix"), &built)
+        .map_err(|e| StepError::Retry(format!("cannot write the prefix: {e}")))?;
+    Ok(format!("work/prefix/{}", built.file_name()))
+}
+
+/// The prefix for a story's page type (from its brief), built once per page type per `seen`.
+fn story_prefix(
+    ctx: &Ctx,
+    w: &Work,
+    story: &str,
+    seen: &mut HashMap<String, String>,
+) -> Result<String, StepError> {
+    let brief = work::read_json(&w.brief(story)).map_err(step_err)?;
+    let page_type = brief["item"]["page_type"].as_str().unwrap_or_default();
+    if let Some(p) = seen.get(page_type) {
+        return Ok(p.clone());
+    }
+    let p = prefix(&ctx.root, page_type)?;
+    seen.insert(page_type.to_owned(), p.clone());
+    Ok(p)
+}
+
+/// A1 jobs for the stories briefed, each with its page type's prefix. Waits while any is live; the
+/// result is the stories whose Copy was stored and those that have none.
+pub async fn write(
+    cx: &StepCx,
+    ctx: &Ctx,
+    stories: &[i64],
+) -> Result<Ph<(Vec<i64>, Vec<Value>)>, StepError> {
+    let w = work(ctx);
+    let mut prefixes = HashMap::new();
     let mut live = false;
     let (mut ok, mut dead) = (Vec::new(), Vec::new());
     for &s in stories {
@@ -142,6 +191,7 @@ pub async fn write(cx: &StepCx, stories: &[i64]) -> Result<Ph<(Vec<i64>, Vec<Val
                 .args(json!({
                     "step": "A1", "story": story,
                     "input": format!("work/briefs/{story}.json"), "schema": PAGE_SCHEMA,
+                    "prefix": story_prefix(ctx, &w, &story, &mut prefixes)?,
                 }))
         };
         match queue_once(cx, new).await? {
@@ -286,10 +336,12 @@ pub async fn render(
                         let rel = format!("work/ai/repair-{story}.json");
                         work::write_atomic(&ctx.root.join(&rel), &input.to_string())
                             .map_err(step_err)?;
+                        let prefix = story_prefix(ctx, &w, &story, &mut HashMap::new())?;
                         let new = NewJob {
                         item_ref: Some(story.clone()),
                         ..NewJob::new("ai.repair").unique_key(&repair_key).args(json!({
                             "step": "A2", "story": story, "input": rel, "schema": PAGE_SCHEMA,
+                            "prefix": prefix,
                         }))
                     };
                         queue_once(cx, new).await?;
@@ -522,4 +574,47 @@ pub async fn stories_of(cx: &StepCx, page_ids: &[String]) -> Result<Vec<i64>, St
     .fetch_all(&cx.db)
     .await
     .map_err(db_err)
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_writer_prefix_is_written_once_under_work_prefix_by_its_hash() {
+        let root = std::env::temp_dir().join(format!("news-prefix-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let index = root.join(news_fixer::components::INDEX_REL);
+        std::fs::create_dir_all(index.parent().unwrap()).unwrap();
+        std::fs::copy(
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/component-index.json"),
+            &index,
+        )
+        .unwrap();
+        let rel = prefix(&root, "macro-release").unwrap();
+        // Ghost takes a prefix only from work/prefix/, named `<page-type>.<hash12>.md`.
+        let name = rel.strip_prefix("work/prefix/macro-release.").unwrap();
+        assert!(name.len() == 15 && name.ends_with(".md"), "{rel}");
+        let text = std::fs::read_to_string(root.join(&rel)).unwrap();
+        assert!(text.contains("# Component index"));
+        assert_eq!(
+            prefix(&root, "macro-release").unwrap(),
+            rel,
+            "same inputs, same file"
+        );
+        assert_ne!(prefix(&root, "earnings").unwrap(), rel);
+        // No site build: the step fails saying what to do.
+        let bare = root.join("bare");
+        match prefix(&bare, "macro-release") {
+            Err(StepError::Fail { message, .. }) => {
+                assert!(
+                    message.contains(news_fixer::components::INDEX_VAR),
+                    "{message}"
+                )
+            }
+            other => panic!("{other:?}"),
+        }
+        let _ = std::fs::remove_dir_all(&root);
+    }
 }

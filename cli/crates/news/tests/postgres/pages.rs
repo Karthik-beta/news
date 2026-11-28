@@ -43,6 +43,14 @@ fn root_for(f: &Fixture) -> PathBuf {
     let root = Path::new(env!("CARGO_TARGET_TMPDIR")).join(format!("pages-{}", f.schema));
     let _ = std::fs::remove_dir_all(&root);
     std::fs::create_dir_all(root.join("work/ai")).unwrap();
+    // The writer's prefix is built from the site's component index.
+    let index = root.join(news_fixer::components::INDEX_REL);
+    std::fs::create_dir_all(index.parent().unwrap()).unwrap();
+    std::fs::copy(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/component-index.json"),
+        index,
+    )
+    .unwrap();
     root
 }
 
@@ -435,6 +443,23 @@ async fn edition_runs_twelve_steps_to_a_wrap_and_prunes_but_keeps_the_inputs() {
         1,
         "one repair, no more"
     );
+    // A1 and A2 carry the page type's prefix, written under work/prefix/ by its hash.
+    let prefixes: Vec<Option<String>> = sqlx::query_scalar(
+        "select args->>'prefix' from jobs where kind in ('ai.write', 'ai.repair') order by job_id",
+    )
+    .fetch_all(&w.f.pool)
+    .await
+    .unwrap();
+    assert_eq!(prefixes.len(), 2);
+    for p in &prefixes {
+        let p = p.as_deref().expect("every page call names its prefix");
+        assert!(
+            p.starts_with("work/prefix/macro-release.") && p.ends_with(".md"),
+            "{p}"
+        );
+        assert!(w.root.join(p).is_file(), "{p}");
+    }
+    assert_eq!(prefixes[0], prefixes[1], "one prefix per page type");
     assert_eq!(
         w.f.scalar_str("select string_agg(op, ',' order by outbox_id) from publish_outbox where sent_at is not null").await,
         "put_page,index_promote"

@@ -172,13 +172,11 @@ impl Ghost {
 
 static GHOST: OnceLock<Arc<Ghost>> = OnceLock::new();
 
-/// Install Ghost for [`handle`]; `false` if one is already installed.
-///
-/// Do not wire this into the Bureau service yet. Calls now run at Low integrity in a Low-labelled work
-/// folder (ADR 0008 §8.2), but two things remain: the service has no [`AcceptSink`] bound to
-/// `news ai accept`, and #18 must prove the subscription login survives a token refresh at Low
-/// integrity (the OAuth pre-refresh, ADR 0008 Consequences), since such a call cannot write
-/// `%USERPROFILE%\.claude`.
+/// Install Ghost for [`handle`]; `false` if one is already installed. The Bureau service does this
+/// once it is connected (`news::registry::install_ai`), with `news ai accept`'s library form as the
+/// [`AcceptSink`] and the root marker job as `job`. Still unproven (#18): that the subscription login
+/// survives a token refresh at Low integrity (the OAuth pre-refresh, ADR 0008 Consequences), since such
+/// a call cannot write `%USERPROFILE%\.claude`.
 pub fn install(g: Ghost) -> bool {
     GHOST.set(Arc::new(g)).is_ok()
 }

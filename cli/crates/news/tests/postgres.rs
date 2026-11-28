@@ -68,6 +68,10 @@ mod taster;
 mod taster_embed;
 #[path = "postgres/wire.rs"]
 mod wire;
+// A shell-script fake `claude` (see the module).
+#[cfg(unix)]
+#[path = "postgres/wire_ai.rs"]
+mod wire_ai;
 
 use postgres::config::Host;
 use postgres::{Client, Config, NoTls};

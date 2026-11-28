@@ -192,7 +192,7 @@ async fn run(ctx: &Ctx, step: Step, cx: &StepCx) -> Result<StepOutcome, StepErro
                 "wrap": {"briefed": ok.len(), "failed": dead.len()},
             })))
         }
-        Step::Write => write(cx).await,
+        Step::Write => write(ctx, cx).await,
         Step::Render => {
             let written = stories(cx, "write");
             Ok(match pipeline::render(cx, ctx, &written).await? {
@@ -293,7 +293,7 @@ pub(super) async fn preflight(ctx: &Ctx, cx: &StepCx) -> Result<StepOutcome, Ste
 }
 
 /// Step 7: A1 for the briefed stories, and the A1 update for each direction flip planned at step 4.
-async fn write(cx: &StepCx) -> Result<StepOutcome, StepError> {
+async fn write(ctx: &Ctx, cx: &StepCx) -> Result<StepOutcome, StepError> {
     let briefed = stories(cx, "brief");
     let mut wait = false;
     let mut flip_dead = 0;
@@ -307,7 +307,7 @@ async fn write(cx: &StepCx) -> Result<StepOutcome, StepError> {
             pipeline::Job::Completed(_) => {}
         }
     }
-    match pipeline::write(cx, &briefed).await? {
+    match pipeline::write(cx, ctx, &briefed).await? {
         Ph::Wait => Ok(StepOutcome::Wait),
         Ph::Done(_) if wait => Ok(StepOutcome::Wait),
         Ph::Done((ok, dead)) => Ok(StepOutcome::Done(json!({

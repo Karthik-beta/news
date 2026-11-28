@@ -85,12 +85,14 @@ async fn run(ctx: &Ctx, step: Step, cx: &StepCx) -> Result<StepOutcome, StepErro
                 "dead": dead, "wrap": {"briefed": ok.len(), "failed": dead.len()},
             })))
         }
-        Step::Write => Ok(match pipeline::write(cx, &recorded(cx, "brief")).await? {
-            Ph::Wait => StepOutcome::Wait,
-            Ph::Done((ok, dead)) => StepOutcome::Done(json!({
-                "stories": ok, "dead": dead, "wrap": {"written": ok.len(), "failed": dead.len()},
-            })),
-        }),
+        Step::Write => Ok(
+            match pipeline::write(cx, ctx, &recorded(cx, "brief")).await? {
+                Ph::Wait => StepOutcome::Wait,
+                Ph::Done((ok, dead)) => StepOutcome::Done(json!({
+                    "stories": ok, "dead": dead, "wrap": {"written": ok.len(), "failed": dead.len()},
+                })),
+            },
+        ),
         Step::Render => Ok(
             match pipeline::render(cx, ctx, &recorded(cx, "write")).await? {
                 Ph::Wait => StepOutcome::Wait,
