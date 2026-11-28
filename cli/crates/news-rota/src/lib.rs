@@ -552,8 +552,16 @@ mod tests {
             night,
         );
         assert_eq!(p.ai_claim(night), AiClaim::Cap);
+        // The cap stops new starts too, light or heavy, scheduled or from Board.
+        for (preset, origin) in [(light, Origin::Board), (heavy, Origin::Schedule)] {
+            assert!(matches!(
+                p.check(preset, origin, night),
+                Policy::Refuse { reason, .. } if reason == "quota"
+            ));
+        }
         p.set_usage(Some(Usage::default()), night);
         assert_eq!(p.ai_claim(night), AiClaim::Allow);
+        assert_eq!(p.check(light, Origin::Board, night), Policy::Allow);
     }
 
     #[test]
