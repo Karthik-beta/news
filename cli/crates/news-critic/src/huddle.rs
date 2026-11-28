@@ -77,6 +77,8 @@ impl StepHandler for Huddle {
                     .map_err(|e| step_err(map_err(e)))?;
                     Ok(StepOutcome::OpenGates(vec![GateOpen {
                         gate: format!("change:{version}"),
+                        // One weight change, approved as a whole.
+                        whole_subject: true,
                         subject: json!({"change": "weights", "version": version,
                                         "parent": p["parent"], "diff": p["diff"], "weights": weights}),
                         summary: json!({"text": out["summary"]["text"], "labels": p["labels"],

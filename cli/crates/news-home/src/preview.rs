@@ -61,28 +61,30 @@ fn site_dir() -> Option<PathBuf> {
 
 fn start(site: &Path, host: &str, port: u16) -> NewsResult<()> {
     // The preview integration is compiled in only with NEWS_PREVIEW=1, and the Worker runs in local mode.
-    std::process::Command::new("bun")
-        .args([
-            "--bun",
-            "astro",
-            "dev",
-            "--host",
-            host,
-            "--strictPort",
-            "--port",
-            &port.to_string(),
-        ])
-        .current_dir(site)
-        .env("NEWS_PREVIEW", "1")
-        .env("CLOUDFLARE_ENV", "local")
-        .stdin(std::process::Stdio::null())
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .spawn()
-        .map(|_| ())
-        .map_err(|e| {
-            NewsError::precondition(format!("cannot start the site's preview server: {e}"))
-        })
+    let fail = |e: std::io::Error| {
+        NewsError::precondition(format!("cannot start the site's preview server: {e}"))
+    };
+    let bun = news_win::tool_path("bun").map_err(fail)?;
+    let port = port.to_string();
+    let args = [
+        "--bun",
+        "astro",
+        "dev",
+        "--host",
+        host,
+        "--strictPort",
+        "--port",
+        &port,
+    ]
+    .map(String::from);
+    let env = news_win::tool_env(
+        &["BUN_INSTALL"],
+        &[("NEWS_PREVIEW", "1"), ("CLOUDFLARE_ENV", "local")],
+    );
+    // Left running for the next preview, as before: the child is not killed when its handle drops.
+    news_win::spawn_tool(&bun, &args, Some(site), &env, false)
+        .map(drop)
+        .map_err(fail)
 }
 
 /// Make sure a preview server is listening at `base`; start one from `site/` if not. `true` if started.

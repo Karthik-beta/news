@@ -3136,6 +3136,7 @@ dependencies = [
  "chrono",
  "serde",
  "serde_json",
+ "sha2 0.11.1",
  "thiserror 2.0.21",
  "uuid",
 ]
@@ -3243,6 +3244,7 @@ dependencies = [
  "news-core",
  "news-nose",
  "news-store",
+ "news-win",
  "reqwest 0.13.5",
  "rustls",
  "serde",
@@ -3318,6 +3320,7 @@ dependencies = [
  "jsonschema",
  "news-core",
  "news-ledger",
+ "news-win",
  "reqwest 0.13.5",
  "rustls",
  "serde",

@@ -9,11 +9,9 @@ use crate::render::Rendered;
 use crate::validate::Checked;
 use news_core::{NewsError, NewsResult};
 use serde_json::{Value, json};
+use std::io::{BufRead, BufReader, Read};
 use std::path::PathBuf;
-use std::process::Stdio;
 use std::time::Duration;
-use tokio::io::{AsyncBufReadExt, AsyncReadExt, BufReader};
-use tokio::process::{Child, Command};
 
 pub const URL_VAR: &str = "NEWS_PLATE_URL";
 pub const SCRIPT_VAR: &str = "NEWS_PLATE_SCRIPT";
@@ -25,8 +23,16 @@ const CALL_TIMEOUT: Duration = Duration::from_secs(60);
 pub struct Plate {
     base: String,
     http: reqwest::Client,
-    /// The Plate this value started, if any; killed when dropped.
-    _child: Option<Child>,
+    /// The Plate this value started, if any; killed when dropped (its stdin, the lifeline, closes too).
+    _child: Option<KillOnDrop>,
+}
+
+struct KillOnDrop(news_win::ToolChild);
+
+impl Drop for KillOnDrop {
+    fn drop(&mut self) {
+        let _ = self.0.kill();
+    }
 }
 
 fn unavailable(message: impl Into<String>) -> NewsError {
@@ -88,41 +94,55 @@ impl Plate {
 
     async fn start(http: reqwest::Client) -> NewsResult<Plate> {
         let script = script()?;
-        let mut child = Command::new("bun")
-            .arg(&script)
-            .args(["--port", "0", "--lifeline"])
-            .env("NODE_ENV", "production")
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .kill_on_drop(true)
-            .spawn()
-            .map_err(|e| unavailable(format!("cannot start Plate with bun: {e}")))?;
+        let bun =
+            news_win::tool_path("bun").map_err(|e| unavailable(format!("cannot find bun: {e}")))?;
+        let args = [script.to_string_lossy().into_owned()]
+            .into_iter()
+            .chain(["--port", "0", "--lifeline"].map(String::from))
+            .collect::<Vec<_>>();
+        let env = news_win::tool_env(&["BUN_INSTALL"], &[("NODE_ENV", "production")]);
+        let mut child = KillOnDrop(
+            news_win::spawn_tool(&bun, &args, None, &env, true)
+                .map_err(|e| unavailable(format!("cannot start Plate with bun: {e}")))?,
+        );
         let stdout = child
+            .0
             .stdout
             .take()
             .ok_or_else(|| NewsError::internal("Plate has no stdout"))?;
-        let mut first = String::new();
-        let read =
-            tokio::time::timeout(START_TIMEOUT, BufReader::new(stdout).read_line(&mut first)).await;
+        let first = tokio::task::spawn_blocking(move || {
+            let mut line = String::new();
+            BufReader::new(stdout).read_line(&mut line).map(|_| line)
+        });
+        let first = match tokio::time::timeout(START_TIMEOUT, first).await {
+            Ok(Ok(Ok(line))) => line,
+            _ => String::new(),
+        };
         let port = serde_json::from_str::<Value>(&first)
             .ok()
             .and_then(|v| v["port"].as_u64());
-        let Some(port) = port.filter(|_| matches!(read, Ok(Ok(_)))) else {
-            let _ = child.start_kill();
-            let mut err = String::new();
-            if let Some(mut stderr) = child.stderr.take() {
-                let _ =
-                    tokio::time::timeout(Duration::from_secs(5), stderr.read_to_string(&mut err))
-                        .await;
-            }
+        let Some(port) = port else {
+            let _ = child.0.kill();
+            let stderr = child.0.stderr.take();
+            let err = tokio::task::spawn_blocking(move || {
+                let mut err = String::new();
+                if let Some(mut s) = stderr {
+                    let _ = s.read_to_string(&mut err);
+                }
+                err
+            });
+            let err = tokio::time::timeout(Duration::from_secs(5), err)
+                .await
+                .ok()
+                .and_then(Result::ok)
+                .unwrap_or_default();
             return Err(unavailable(format!(
                 "Plate did not start: {}",
                 err.lines().last().unwrap_or("no output")
             )));
         };
         // Nothing reads stderr after the start, so keep it from filling its pipe.
-        drop(child.stderr.take());
+        drop(child.0.stderr.take());
         Ok(Plate {
             base: format!("http://127.0.0.1:{port}"),
             http,

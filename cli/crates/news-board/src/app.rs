@@ -795,9 +795,13 @@ mod tests {
         wait(&mut b, "feedback", |b| {
             b.feedback.as_ref().is_some_and(|f| f.ok)
         });
+        // The hash of what Board showed, not the service's `subject_sha` echoed back.
+        let shown =
+            news_core::tier::hex(&news_core::tier::gate_sha(&json!({"text": "Plan"}), None));
+        assert_ne!(shown, SHA);
         assert_eq!(
             svc.sent("gate.approve"),
-            vec![json!({"run": "r_51d2", "gate": "plan", "round": 2, "subject_sha": SHA})]
+            vec![json!({"run": "r_51d2", "gate": "plan", "round": 2, "subject_sha": shown})]
         );
         b.answer_gate(&gate, "changes");
         assert!(!b.feedback.as_ref().unwrap().ok, "no note, nothing sent");

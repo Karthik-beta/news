@@ -5,7 +5,6 @@
 
 use serde::Deserialize;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct Violation {
@@ -56,11 +55,14 @@ impl AxeRunner for BunAxe {
         if !script.is_file() {
             return Err(format!("{} not found", script.display()));
         }
-        let out = Command::new("bun")
-            .arg("scripts/axe.ts")
-            .arg(std::path::absolute(bundle_dir).map_err(|e| e.to_string())?)
-            .current_dir(&self.site_dir)
-            .output()
+        let bun = news_win::tool_path("bun").map_err(|e| format!("cannot find bun: {e}"))?;
+        let bundle = std::path::absolute(bundle_dir).map_err(|e| e.to_string())?;
+        let args = [
+            "scripts/axe.ts".to_owned(),
+            bundle.to_string_lossy().into_owned(),
+        ];
+        let env = news_win::tool_env(&["BUN_INSTALL", "PLAYWRIGHT_BROWSERS_PATH"], &[]);
+        let out = news_win::run_tool(&bun, &args, Some(&self.site_dir), &env)
             .map_err(|e| format!("cannot run bun: {e}"))?;
         if !out.status.success() {
             let err: String = String::from_utf8_lossy(&out.stderr)

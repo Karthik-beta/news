@@ -106,10 +106,18 @@ pub async fn run(opts: Options, shutdown: impl Future<Output = ()>) -> Result<()
             std::process::id()
         ),
     );
+    // Without the marker job every peer would read as outside it, so the H-tier check would pass a
+    // spawned process: refuse to start instead (security review on #10, finding 6).
     #[cfg(windows)]
-    let marker = news_win::Job::root().ok().map(Arc::new);
+    let marker = Arc::new(
+        news_win::Job::root()
+            .map_err(|e| NewsError::internal(format!("cannot create the root marker job: {e}")))?,
+    );
+    // Ghost and Rewrite run their calls inside the marker job (handed to `on_connect`).
+    #[cfg(windows)]
+    let ai_job = Some(marker.clone());
     #[cfg(not(windows))]
-    let marker: Option<Arc<news_win::Job>> = None;
+    let ai_job: Option<Arc<news_win::Job>> = None;
     #[cfg(windows)]
     hotline::listen(&opts.pipe, bureau.clone(), marker.clone()).map_err(|e| {
         NewsError::precondition(format!("cannot open the Hotline {}: {e}", opts.pipe))
@@ -121,7 +129,7 @@ pub async fn run(opts: Options, shutdown: impl Future<Output = ()>) -> Result<()
         state.set(ServiceState::WaitingForDatabase);
         let mut up = tokio::select! {
             () = &mut shutdown => return Ok(()),
-            r = connect(&opts, &bureau, &active, marker.clone(), &say) => r?,
+            r = connect(&opts, &bureau, &active, ai_job.clone(), &say) => r?,
         };
         state.set(ServiceState::Up);
         say("info", "Bureau service up");
@@ -142,9 +150,7 @@ pub async fn run(opts: Options, shutdown: impl Future<Output = ()>) -> Result<()
             );
             fence(up, &active).await;
             #[cfg(windows)]
-            if let Some(m) = &marker {
-                let _ = m.terminate();
-            }
+            let _ = marker.terminate();
             continue;
         }
         state.set(ServiceState::Stopping);
@@ -331,11 +337,7 @@ mod hotline {
     }
 
     /// Open the pipe (first instance: a second service fails here) and serve it in the background.
-    pub fn listen(
-        pipe: &str,
-        svc: Arc<Bureau>,
-        marker: Option<Arc<news_win::Job>>,
-    ) -> std::io::Result<()> {
+    pub fn listen(pipe: &str, svc: Arc<Bureau>, marker: Arc<news_win::Job>) -> std::io::Result<()> {
         let sid = news_win::current_user_sid()?;
         let sddl = news_win::sddl_for(&sid);
         // A client must be the installed, admin-only binary (ADR 0007 decision 12), never a build
@@ -346,33 +348,31 @@ mod hotline {
             .into_owned();
         let first = news_win::create_pipe(pipe, &sddl, true)?;
         let pipe = pipe.to_owned();
-        tokio::spawn(async move {
-            let mut server = first;
-            loop {
+        let accept = |server: tokio::net::windows::named_pipe::NamedPipeServer| -> news_hotline::BoxFut<'static, _> {
+            Box::pin(async move {
                 if let Err(e) = server.connect().await {
                     tracing::warn!(error = %e, "Hotline connect failed");
                 }
-                let conn = server;
-                server = match news_win::create_pipe(&pipe, &sddl, false) {
-                    Ok(s) => s,
-                    Err(e) => {
-                        tracing::error!(error = %e, "cannot open another Hotline instance");
-                        return;
+                server
+            })
+        };
+        let serve = move |conn: tokio::net::windows::named_pipe::NamedPipeServer| {
+            let (svc, marker, sid, me) = (svc.clone(), marker.clone(), sid.clone(), me.clone());
+            tokio::spawn(async move {
+                match news_win::peer_facts(&conn, Some(marker.as_ref())) {
+                    Ok((facts, process)) => {
+                        let svc: Arc<dyn Service> = svc;
+                        news_hotline::serve_conn(conn, peer(&facts, &sid, &me), svc).await;
+                        drop(process);
                     }
-                };
-                let (svc, marker, sid, me) = (svc.clone(), marker.clone(), sid.clone(), me.clone());
-                tokio::spawn(async move {
-                    match news_win::peer_facts(&conn, marker.as_deref()) {
-                        Ok((facts, process)) => {
-                            let svc: Arc<dyn Service> = svc;
-                            news_hotline::serve_conn(conn, peer(&facts, &sid, &me), svc).await;
-                            drop(process);
-                        }
-                        Err(e) => tracing::warn!(error = %e, "cannot identify a Hotline client"),
-                    }
-                });
-            }
-        });
+                    Err(e) => tracing::warn!(error = %e, "cannot identify a Hotline client"),
+                }
+            });
+        };
+        // The client is served before the next instance is opened; while all instances are busy
+        // (ERROR_PIPE_BUSY) the loop backs off and retries.
+        let create = move || news_win::create_pipe(&pipe, &sddl, false);
+        tokio::spawn(news_hotline::accept_loop(first, accept, create, serve));
         Ok(())
     }
 }

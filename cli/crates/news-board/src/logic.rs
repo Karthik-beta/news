@@ -183,8 +183,9 @@ pub fn standing_changes(
     Ok(out)
 }
 
-/// A gate answer's command and arguments, bound to the `subject_sha` and round of the gate Board
-/// showed (`gate` is a `gateOpen`). `changes` needs a note.
+/// A gate answer's command and arguments, bound to the round of the gate Board showed (`gate` is a
+/// `gateOpen`) and to the hash of what it showed, recomputed here from the gate's summary and preview
+/// rather than echoed from the service. `changes` needs a note.
 pub fn gate_answer(gate: &Value, decision: &str, note: &str) -> Result<(String, Value), String> {
     let note = note.trim();
     let cmd = match decision {
@@ -196,9 +197,10 @@ pub fn gate_answer(gate: &Value, decision: &str, note: &str) -> Result<(String, 
     if cmd == "gate.changes" && note.is_empty() {
         return Err("Say what to change before sending it back.".to_owned());
     }
+    let shown = news_core::tier::gate_sha(&gate["summary"], gate.get("preview"));
     let mut args = json!({
         "run": gate["short_id"], "gate": gate["gate"], "round": gate["round"],
-        "subject_sha": gate["subject_sha"],
+        "subject_sha": news_core::tier::hex(&shown),
     });
     if !note.is_empty() {
         args["note"] = json!(note);
@@ -347,12 +349,22 @@ mod tests {
 
     #[test]
     fn a_gate_answer_is_bound_to_the_hash_and_round_shown() {
-        let gate = json!({"short_id": "r_51d2", "gate": "plan", "round": 2, "subject_sha": "9c1e"});
+        let summary = json!({"text": "Plan", "subject_items": ["a"]});
+        let preview = json!({"table": [1, 2]});
+        let shown = news_core::tier::hex(&news_core::tier::gate_sha(&summary, Some(&preview)));
+        // The service's own hash is not echoed: Board sends the hash of what it displays.
+        let mut gate = json!({"short_id": "r_51d2", "gate": "plan", "round": 2, "subject_sha": "9c1e",
+                              "summary": summary, "preview": preview});
         let (cmd, args) = gate_answer(&gate, "approve", "").unwrap();
         assert_eq!(cmd, "gate.approve");
         assert_eq!(
             args,
-            json!({"run": "r_51d2", "gate": "plan", "round": 2, "subject_sha": "9c1e"})
+            json!({"run": "r_51d2", "gate": "plan", "round": 2, "subject_sha": shown})
+        );
+        gate["preview"] = json!({"table": [1, 3]});
+        assert_ne!(
+            gate_answer(&gate, "approve", "").unwrap().1["subject_sha"],
+            shown
         );
         assert!(gate_answer(&gate, "changes", "  ").is_err());
         let (cmd, args) = gate_answer(&gate, "changes", "shorter headline").unwrap();

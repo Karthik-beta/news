@@ -164,6 +164,7 @@ async fn review(cx: &StepCx) -> Result<StepOutcome, StepError> {
     let est = avg.map(|a| (a * n as f64).round() as i64);
     Ok(StepOutcome::OpenGates(vec![GateOpen {
         gate: "plan".into(),
+        whole_subject: false,
         subject: json!({"items": sel["pages"], "stories": sel["stories"], "chunk": sel["chunk"]}),
         summary: json!({
             "text": format!("Catchup: {n} pages in {} chunks of {}", sel["chunks"], sel["chunk"]),
