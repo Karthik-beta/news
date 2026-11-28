@@ -65,6 +65,8 @@ pub enum Refusal {
     WrongUnitKind(&'static str, String),
     #[error("an input has no numeric value")]
     NoValue,
+    #[error("a percentage change needs positive figures (negative_base)")]
+    NegativeBase,
     #[error("arithmetic refused (division by zero or overflow)")]
     Arithmetic,
 }
@@ -124,6 +126,12 @@ pub fn derive(
         Formula::PctChange => {
             if class == UnitClass::Percent {
                 return Err(Refusal::WrongUnitKind("pct_change", a.unit.clone()));
+            }
+            // (a-b)/b over a negative figure reverses the sign of the story (a loss that narrows
+            // from -10 to -5 would read -50%), and across zero it means nothing. Pages state the two
+            // values instead.
+            if va.m < 0 || vb.m < 0 {
+                return Err(Refusal::NegativeBase);
             }
             let d = va.checked_sub(vb).ok_or(Refusal::Arithmetic)?;
             (d.ratio_pct(vb, rounding), "Percent".to_owned())

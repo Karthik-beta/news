@@ -25,6 +25,7 @@ zstd = { workspace = true }
 news-clerk = { workspace = true }
 news-contacts = { workspace = true }
 news-ledger = { workspace = true }
+proptest = { workspace = true }
 serde_json = { workspace = true }
 
 [lints]
