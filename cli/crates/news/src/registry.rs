@@ -117,6 +117,9 @@ pub fn install_ai(
         db: db.clone(),
         work: news_proof::work::Work::new(root.join("work")),
     });
+    // Plate (in NewsAccept) and ClickHouse (in PgStore) are reqwest clients, built with rustls and no
+    // provider of its own: without this, building one panics in a process that has not installed it.
+    news_wire::runner::install_tls_provider();
     let ghost = claude.is_some_and(|claude| {
         let accept = Arc::new(crate::steps::accept::NewsAccept {
             db: db.clone(),
