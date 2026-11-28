@@ -629,7 +629,7 @@ mod tests {
     fn every_contract_compiles_and_registers_its_tier() {
         let c = contracts();
         assert!(c.complete());
-        assert_eq!(c.commands().count(), 27);
+        assert_eq!(c.commands().count(), 28);
         for (name, tier) in [
             ("status", Tier::R),
             ("standing.get", Tier::R),
@@ -639,6 +639,7 @@ mod tests {
             ("docker.start", Tier::H),
             ("huddle.answer", Tier::H),
             ("huddle.questions", Tier::R),
+            ("form.submit", Tier::H),
             ("home.rollback", Tier::H),
         ] {
             assert_eq!(c.command(name).unwrap().tier, tier, "{name}");
@@ -889,6 +890,31 @@ mod tests {
         );
         assert!(tries.load(Ordering::SeqCst) < 10, "the pipe is still busy");
         lp.abort();
+    }
+
+    #[tokio::test]
+    async fn form_submit_is_board_only_and_its_answer_is_checked_against_the_form() {
+        let args = json!({"run": "r_abcd1234", "form": "huddle.calibration", "round": 1,
+                          "form_sha": "0".repeat(64),
+                          "answer": {"labels": [{"a": 1, "b": 2, "winner": "a"}], "search_console": "fine"}});
+        let terminal = Peer {
+            argv1_is_board: false,
+            ..Peer::board()
+        };
+        let env = round_trip(terminal, "form.submit", args.clone()).await;
+        assert_eq!(env["error"]["details"]["refusal"], "not_board", "{env}");
+        assert_eq!(error_code(&env).map(ErrorCode::exit_code), Some(7));
+        // From Board, an answer the form's schema refuses never reaches the handler.
+        let mut tie = args.clone();
+        tie["answer"]["labels"][0]["winner"] = json!("tie");
+        let mut extra = args.clone();
+        extra["answer"]["mood"] = json!("good");
+        for bad in [tie, extra] {
+            let env = round_trip(Peer::board(), "form.submit", bad).await;
+            assert_eq!(env["error"]["code"], "usage", "{env}");
+        }
+        let env = round_trip(Peer::board(), "form.submit", args).await;
+        assert_eq!(env["ok"], true, "{env}");
     }
 
     #[tokio::test]

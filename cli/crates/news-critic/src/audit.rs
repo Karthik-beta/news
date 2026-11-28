@@ -2,10 +2,11 @@
 //! candidate's stored outputs, compare it with the live version, ask for the promote approval, and
 //! promote in process under the G-tier rule.
 //!
-//! Fresh candidate calls (step 3) are not built: a version is audited from the outputs stored under
-//! `pipeline/eval/<set>/outputs/<version>.jsonl`, and the step fails when any are missing. No A12
-//! judge has been checked against Karthik's labels yet, so step 4 is skipped and the report rests on
-//! the deterministic metrics alone (the fallback in Bureau §9.1).
+//! A version is audited from the outputs stored under `pipeline/eval/<set>/outputs/<version>.jsonl`.
+//! When the writer suite's (G1) are missing, step 3 makes them: one Ghost `ai.write` job per case with
+//! the candidate's prefix, then the calls are written there for `report` to score. Other suites still
+//! need their outputs stored. No A12 judge has been checked against Karthik's labels yet, so step 4 is
+//! skipped and the report rests on the deterministic metrics alone (the fallback in Bureau §9.1).
 
 use crate::eval;
 use crate::golden;
@@ -15,11 +16,16 @@ use news_chief::gates::{self, GRequest, GateOpen};
 use news_chief::presets::GCommand;
 use news_core::job::ErrorClass;
 use news_core::{ErrorCode, NewsError};
+use news_dispatch::queue::NewJob;
 use news_store::map_err;
-use serde_json::json;
+use serde_json::{Value, json};
+use std::collections::{BTreeSet, HashMap};
 use std::fmt::Write as _;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
+
+/// The output schema of an A1 call, relative to the repository root.
+const WRITER_SCHEMA: &str = "contracts/cli/ai/page-draft.v1.schema.json";
 
 #[derive(Clone, Copy)]
 enum Step {
@@ -86,7 +92,7 @@ pub fn register_unset(h: Handlers, message: String) -> Handlers {
 
 /// A retryable error (a busy database) is re-entered; anything else (an unknown suite, a bad set, a
 /// missing output) fails the run, because re-entering would meet it again.
-fn step_err(e: NewsError) -> StepError {
+pub(crate) fn step_err(e: NewsError) -> StepError {
     match e.code {
         _ if e.retryable => StepError::Retry(e.message),
         ErrorCode::Internal => StepError::Fail {
@@ -107,12 +113,16 @@ fn arg<'a>(cx: &'a StepCx, name: &str) -> Result<&'a str, StepError> {
     })
 }
 
-/// The sets of `suite` that have no stored outputs for `version`.
-fn missing(root: &std::path::Path, suite: &str, version: &str) -> Result<Vec<String>, StepError> {
+/// The sets of `suite` that have no stored outputs for `version`. A version that could name a path is
+/// refused first; a stored file that is broken is not "missing" (the report fails on it instead).
+fn missing(root: &Path, suite: &str, version: &str) -> Result<Vec<String>, StepError> {
+    golden::outputs_path(root, "g1", version).map_err(step_err)?;
     Ok(golden::sets_of(suite)
         .map_err(step_err)?
         .iter()
-        .filter(|set| golden::outputs(root, set, version).is_err())
+        .filter(|set| {
+            matches!(golden::outputs(root, set, version), Err(e) if e.code == ErrorCode::NotFound)
+        })
         .map(|s| (*s).to_owned())
         .collect())
 }
@@ -146,13 +156,16 @@ impl StepHandler for Audit {
                             "the outputs of {version} are stored; no fresh calls"
                         )));
                     }
-                    Err(StepError::Fail {
-                        class: ErrorClass::Bug,
-                        message: format!(
-                            "fresh candidate calls are not built yet (#19); store {version}'s outputs for {} under pipeline/eval/<set>/outputs/",
-                            missing.join(", ")
-                        ),
-                    })
+                    if missing.iter().any(|s| s != "g1") {
+                        return Err(StepError::Fail {
+                            class: ErrorClass::Bug,
+                            message: format!(
+                                "fresh candidate calls are built for the writer suite (G1) only (#19); store {version}'s outputs for {} under pipeline/eval/<set>/outputs/",
+                                missing.join(", ")
+                            ),
+                        });
+                    }
+                    fresh_writer(cx, root, &version).await
                 }
                 Step::Judges => Ok(StepOutcome::Skip(
                     "no A12 judge has been checked against Karthik's labels yet; deterministic metrics only".into(),
@@ -177,11 +190,180 @@ impl StepHandler for Audit {
     }
 }
 
+/// Fresh A1 calls for the candidate on G1 (Bureau §8.11 step 3): one Ghost `ai.write` job per case, the
+/// case's brief as input and the candidate's prefix for its page type
+/// (`work/prefix/<version>/<page_type>.md`) as the system prompt. Jobs are keyed by run and case, so a
+/// re-entered step queues only what is missing. When none is live, each case's output and `ai_calls`
+/// rows become `pipeline/eval/g1/outputs/<version>.jsonl`, which `report` scores.
+async fn fresh_writer(cx: &StepCx, root: &Path, version: &str) -> Result<StepOutcome, StepError> {
+    let set = golden::load(root, "g1").map_err(step_err)?;
+    let key = |case: &str| format!("audit:{}:g1:{case}", cx.short_id);
+    let mut jobs = Vec::new();
+    let mut absent = BTreeSet::new();
+    for case in &set.cases {
+        let id = case["id"].as_str().unwrap_or_default();
+        let prefix = format!(
+            "work/prefix/{version}/{}.md",
+            case["page_type"].as_str().unwrap_or_default()
+        );
+        if !root.join(&prefix).is_file() {
+            absent.insert(prefix);
+            continue;
+        }
+        let input = format!("work/audit/{}/g1/{id}.json", cx.short_id);
+        jobs.push((id, prefix, input, &case["brief"]));
+    }
+    if !absent.is_empty() {
+        return Err(StepError::Fail {
+            class: ErrorClass::InvalidData,
+            message: format!(
+                "the candidate {version} has no prefix {}: write its prefixes under work/prefix/{version}/",
+                absent.into_iter().collect::<Vec<_>>().join(", ")
+            ),
+        });
+    }
+    // Calls that share a prefix run back to back, so the prompt cache stays warm.
+    jobs.sort_by(|a, b| a.1.cmp(&b.1));
+    let db_err = |e: sqlx::Error| step_err(map_err(e));
+    for (id, prefix, input, brief) in &jobs {
+        // A job of this run that already ran, even one that failed, is not queued again.
+        let known: bool = sqlx::query_scalar(
+            "select exists (select 1 from jobs where run_id = $1 and unique_key = $2)",
+        )
+        .bind(cx.run_id)
+        .bind(key(id))
+        .fetch_one(&cx.db)
+        .await
+        .map_err(db_err)?;
+        if known {
+            continue;
+        }
+        let file = root.join(input);
+        file.parent()
+            .map_or(Ok(()), std::fs::create_dir_all)
+            .and_then(|()| std::fs::write(&file, brief.to_string()))
+            .map_err(|e| StepError::Retry(format!("cannot write {input}: {e}")))?;
+        // `audit` tells the accept step to validate only: an Audit output is never a page.
+        cx.enqueue(NewJob::new("ai.write").unique_key(key(id)).args(
+            json!({"step": "A1", "input": input, "schema": WRITER_SCHEMA, "prefix": prefix, "audit": true}),
+        ))
+        .await
+        .map_err(step_err)?;
+    }
+    let live: i64 = sqlx::query_scalar(
+        "select count(*) from jobs where run_id = $1 and step_seq = $2
+            and state in ('available', 'scheduled', 'running', 'retryable', 'snoozed')",
+    )
+    .bind(cx.run_id)
+    .bind(cx.seq)
+    .fetch_one(&cx.db)
+    .await
+    .map_err(db_err)?;
+    if live > 0 {
+        return Ok(StepOutcome::Wait);
+    }
+    type Job = (i64, String, Option<Value>, Option<String>, Option<String>);
+    type Row = (
+        String,
+        i64,
+        String,
+        Option<Value>,
+        Option<String>,
+        Option<String>,
+    );
+    let done: Vec<Row> = sqlx::query_as(
+        "select unique_key, job_id, state, result, error_class, errors->0->>'message'
+           from jobs where run_id = $1 and step_seq = $2",
+    )
+    .bind(cx.run_id)
+    .bind(cx.seq)
+    .fetch_all(&cx.db)
+    .await
+    .map_err(db_err)?;
+    let done: HashMap<String, Job> = done
+        .into_iter()
+        .map(|(k, id, state, result, class, error)| (k, (id, state, result, class, error)))
+        .collect();
+    // Only calls that reached a verdict count; a usage-limit or timed-out call is not a try.
+    let rows: Vec<(i64, String, String, i16, i64)> = sqlx::query_as(
+        "select job_id, step, validation, repair_round, tokens from ai_calls
+          where run_id = $1 and validation <> '' order by call_id",
+    )
+    .bind(cx.run_id)
+    .fetch_all(&cx.db)
+    .await
+    .map_err(db_err)?;
+    let mut lines = String::new();
+    let mut failed = 0;
+    let mut unmeasured = Vec::new();
+    for (id, ..) in &jobs {
+        let (job, state, result, class, error) = done.get(&key(id)).cloned().unwrap_or_default();
+        let output = result
+            .as_ref()
+            .filter(|_| state == "completed")
+            .and_then(|r| r["output"].as_str())
+            .and_then(|f| std::fs::read_to_string(f).ok())
+            .and_then(|t| serde_json::from_str::<Value>(&t).ok())
+            .filter(Value::is_object);
+        let calls: Vec<Value> = rows
+            .iter()
+            .filter(|r| r.0 == job)
+            .map(|(_, step, validation, round, tokens)| {
+                json!({"step": step, "validation": validation, "repair_round": round, "tokens": tokens})
+            })
+            .collect();
+        // A Copy refused after its repair is a measurement of the candidate; any other failure (a
+        // crash, a timeout, a cancelled job) measured nothing, and the stored set must not count it.
+        let refused = class.as_deref() == Some("ai_invalid_output") && !calls.is_empty();
+        if output.is_none() && !refused {
+            unmeasured.push(format!(
+                "{id}: {}",
+                error.unwrap_or_else(|| format!("job {state} without an output"))
+            ));
+            continue;
+        }
+        failed += usize::from(output.is_none());
+        let _ = writeln!(
+            lines,
+            "{}",
+            json!({"case": id, "output": output, "calls": calls})
+        );
+    }
+    if !unmeasured.is_empty() {
+        return Err(StepError::Fail {
+            class: ErrorClass::Transient,
+            message: format!(
+                "{} of {} fresh A1 calls for {version} failed, so nothing was stored; start Audit again: {}",
+                unmeasured.len(),
+                jobs.len(),
+                unmeasured
+                    .iter()
+                    .take(5)
+                    .cloned()
+                    .collect::<Vec<_>>()
+                    .join("; ")
+            ),
+        });
+    }
+    let path = golden::outputs_path(root, "g1", version).map_err(step_err)?;
+    let tmp = path.with_extension("jsonl.tmp");
+    path.parent()
+        .map_or(Ok(()), std::fs::create_dir_all)
+        .and_then(|()| std::fs::write(&tmp, &lines))
+        .and_then(|()| std::fs::rename(&tmp, &path))
+        .map_err(|e| StepError::Retry(format!("cannot write {}: {e}", path.display())))?;
+    Ok(StepOutcome::Done(json!({
+        "calls": jobs.len(), "failed": failed,
+        "outputs": format!("pipeline/eval/g1/outputs/{version}.jsonl"),
+        "summary": {"text": format!("{} fresh A1 calls for {version}: {failed} refused after repair", jobs.len())},
+    })))
+}
+
 /// Score the stored outputs, keep the `eval_runs` row (once per run), and compare each set with the
 /// live version of its step.
 async fn report(
     cx: &StepCx,
-    root: &std::path::Path,
+    root: &Path,
     suite: &str,
     version: &str,
 ) -> Result<StepOutcome, StepError> {

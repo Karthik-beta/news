@@ -348,6 +348,27 @@ pub async fn propose(db: &PgPool) -> NewsResult<Proposal> {
     let n = live.n + 1;
     let version = format!("v{n}");
     let mut tx = db.begin().await.map_err(map_err)?;
+    // A proposal that a live Huddle shows for approval, or has approved, is not replaced under it: what
+    // Karthik approves is what `apply` adopts.
+    let waiting: Option<String> = sqlx::query_scalar(
+        "select sv.version from scorer_versions sv
+           join gates g on g.gate = 'change:' || sv.version
+           join runs r on r.run_id = g.run_id
+                      and r.status in ('queued', 'running', 'waiting_approval', 'waiting_ai', 'pausing', 'paused')
+           left join approvals a on a.run_id = g.run_id and a.gate = g.gate and a.round = g.round
+          where sv.status = 'proposed'
+            and (g.answered_at is null or (a.decision = 'approved' and a.consumed_at is null))
+          limit 1 for update of sv",
+    )
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(map_err)?;
+    if let Some(v) = waiting {
+        return Err(NewsError::conflict(format!(
+            "{v} waits for its approval in Huddle, or is approved and not yet adopted"
+        ))
+        .with_hint("answer or cancel that Huddle in Board first"));
+    }
     sqlx::query("delete from scorer_versions where status = 'proposed'")
         .execute(&mut *tx)
         .await
@@ -394,7 +415,7 @@ pub struct Adopted {
 /// still keeps the rules against its parent (≥ 0, sum 1, each weight within ±0.05).
 pub async fn adopt(db: &PgPool, version: &str) -> NewsResult<Adopted> {
     let mut tx = db.begin().await.map_err(map_err)?;
-    let out = adopt_in(&mut tx, version).await;
+    let out = adopt_in(&mut tx, version, None).await;
     // End the transaction here on every path. Dropping it only queues the rollback for a task that
     // runs when the connection goes back to the pool; on a current-thread runtime that task may not
     // run before the caller blocks, so the `for update` lock would outlive the call.
@@ -409,7 +430,14 @@ pub async fn adopt(db: &PgPool, version: &str) -> NewsResult<Adopted> {
     out
 }
 
-async fn adopt_in(tx: &mut sqlx::PgConnection, version: &str) -> NewsResult<Adopted> {
+/// [`adopt`] inside the caller's transaction: Huddle's `apply` step runs it in the transaction its G-tier
+/// authorisation was checked in, with the weights Karthik approved as `expected`. Weights that are not
+/// those (the row was replaced after the approval) are `gated`.
+pub async fn adopt_in(
+    tx: &mut sqlx::PgConnection,
+    version: &str,
+    expected: Option<&Weights>,
+) -> NewsResult<Adopted> {
     let row: Option<(String, i32, Json<Weights>, String)> = sqlx::query_as(
         "select parent, n, weights, status from scorer_versions where version = $1 for update",
     )
@@ -421,6 +449,11 @@ async fn adopt_in(tx: &mut sqlx::PgConnection, version: &str) -> NewsResult<Adop
         NewsError::not_found(format!("no proposed scorer version {version:?}"))
             .with_hint("`news scores propose --from-labels` makes one")
     })?;
+    if expected.is_some_and(|w| *w != weights) {
+        return Err(NewsError::gated(format!(
+            "{version}'s weights are not the ones approved: the proposal changed after its approval"
+        )));
+    }
     if status == "adopted" {
         return Ok(Adopted {
             version: version.to_owned(),

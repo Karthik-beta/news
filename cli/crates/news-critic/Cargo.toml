@@ -9,6 +9,7 @@ publish.workspace = true
 [dependencies]
 news-core = { workspace = true }
 news-chief = { workspace = true }
+news-dispatch = { workspace = true }
 news-home = { workspace = true }
 news-nose = { workspace = true }
 news-standing = { workspace = true }

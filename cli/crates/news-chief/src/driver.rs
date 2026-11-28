@@ -497,10 +497,27 @@ impl Chief {
                 return Ok(Next::Stop);
             }
             Ok(StepOutcome::OpenForm(f)) => {
+                // Like a gate: a round, and the hash of exactly what Board shows. `form.submit` must
+                // name both; a form opened again is the next round.
+                let earlier: Option<Value> = sqlx::query_scalar(
+                    "select output from run_steps where run_id = $1 and seq = $2",
+                )
+                .bind(run_id)
+                .bind(seq)
+                .fetch_one(&mut *tx)
+                .await
+                .map_err(map_err)?;
+                let round = earlier.map_or(0, |o| o["summary"]["round"].as_i64().unwrap_or(0)) + 1;
+                let sha = gates::hex(&gates::subject_sha(&f));
+                let text = f["text"]
+                    .as_str()
+                    .unwrap_or("A form waits for your answers")
+                    .to_owned();
+                let questions = f["questions"].as_array().map_or(0, Vec::len);
                 sqlx::query("update run_steps set output = $3 where run_id = $1 and seq = $2")
                     .bind(run_id)
                     .bind(seq)
-                    .bind(json!({"form": f}))
+                    .bind(json!({"summary": {"text": text, "round": round, "form_sha": sha, "form": f}}))
                     .execute(&mut *tx)
                     .await
                     .map_err(map_err)?;
@@ -514,7 +531,16 @@ impl Chief {
                     )
                     .await?;
                 }
-                Next::Stop
+                tx.commit().await.map_err(map_err)?;
+                if run.preset == "huddle" && questions > 0 {
+                    self.emit_raw(
+                        "huddle",
+                        json!({"run_id": run_id, "short_id": run.short_id, "questions": questions,
+                               "text": format!("Huddle {}: {questions} questions wait for you in Board", run.short_id)}),
+                    );
+                }
+                self.emit_run_pub(run_id, Some(run.status()), None).await;
+                return Ok(Next::Stop);
             }
             Err(StepError::Retry(m)) if attempt + 1 < RETRIES => {
                 sqlx::query("update run_steps set attempt = attempt + 1, error = $3 where run_id = $1 and seq = $2")

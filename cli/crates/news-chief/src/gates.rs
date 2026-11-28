@@ -280,6 +280,117 @@ impl Chief {
         }
         Ok((run, status))
     }
+
+    /// `form.submit`: the answer to the run's open form step (Huddle's calibration). The run must wait
+    /// at the form whose step handler is `form`, in `round`, not yet answered (`precondition`), and
+    /// `form_sha` must be the hash of the form Board showed (`gated`). The answer is kept in the step's
+    /// output and the run continues; the step's handler reads it when Chief enters the step again. The
+    /// Hotline has already checked `answer` against the form's contract.
+    pub async fn submit_form(&self, a: FormAnswer<'_>) -> Result<(RunRow, Status), NewsError> {
+        let now = self.now();
+        let mut tx = self.db().begin().await.map_err(map_err)?;
+        sqlx::query(LINEUP_LOCK)
+            .execute(&mut *tx)
+            .await
+            .map_err(map_err)?;
+        let id = row::resolve(&mut tx, a.run).await?;
+        let run = row::load(&mut tx, id, true).await?;
+        let open: Option<(i16, Option<Value>)> = sqlx::query_as(
+            "select seq, output from run_steps where run_id = $1 and kind = 'form' and status = 'running'
+              for update",
+        )
+        .bind(id)
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(map_err)?;
+        let (seq, output) = open
+            .filter(|_| run.status() == Status::WaitingApproval)
+            .ok_or_else(|| {
+                NewsError::precondition(format!(
+                    "{} is {}, not waiting at a form",
+                    run.short_id, run.status
+                ))
+            })?;
+        let handler = presets::preset(&run.preset)
+            .and_then(|p| p.step_at(seq))
+            .map_or("", |s| s.handler);
+        let mut output = output.unwrap_or_else(|| json!({}));
+        let summary = &output["summary"];
+        let round = summary["round"].as_i64().unwrap_or(0);
+        if handler != a.form || output.get("answer").is_some() || round != a.round {
+            return Err(NewsError::precondition(format!(
+                "{} waits at form {handler} round {round}{}, not {} round {}",
+                run.short_id,
+                if output.get("answer").is_some() {
+                    " (answered)"
+                } else {
+                    ""
+                },
+                a.form,
+                a.round
+            )));
+        }
+        let held = summary["form_sha"].as_str().unwrap_or_default().to_owned();
+        if held != a.form_sha {
+            return Err(NewsError::gated(format!(
+                "form {handler} holds a different form: what you saw has changed"
+            ))
+            .with_details(json!({"reason": "subject_changed", "form_sha": held}))
+            .with_text("The questions have changed since Board showed them. Open the run again to see the current form."));
+        }
+        // Pairwise labels answer only the pairs the form asked, so a bad answer is refused here, not
+        // when the step stores it.
+        if let (Some(asked), Some(labels)) = (
+            summary["form"]["questions"].as_array(),
+            a.answer["labels"].as_array(),
+        ) {
+            let pair = |x: &Value, y: &Value| Some((x.as_i64()?, y.as_i64()?));
+            let asked: std::collections::HashSet<(i64, i64)> = asked
+                .iter()
+                .filter_map(|q| pair(&q["a"]["story_id"], &q["b"]["story_id"]))
+                .map(|(x, y)| (x.min(y), x.max(y)))
+                .collect();
+            for l in labels {
+                match pair(&l["a"], &l["b"]) {
+                    Some((x, y)) if x != y && asked.contains(&(x.min(y), x.max(y))) => {}
+                    _ => {
+                        return Err(NewsError::validation(format!(
+                            "label {l} is not one of the form's questions"
+                        )));
+                    }
+                }
+            }
+        }
+        if let Some(o) = output.as_object_mut() {
+            o.insert("answer".into(), a.answer);
+            o.insert("answered_at".into(), json!(now));
+        }
+        sqlx::query("update run_steps set output = $3 where run_id = $1 and seq = $2")
+            .bind(id)
+            .bind(seq)
+            .bind(&output)
+            .execute(&mut *tx)
+            .await
+            .map_err(map_err)?;
+        let (status, _) = self
+            .continue_run(&mut tx, &run, Status::WaitingApproval, now)
+            .await?;
+        tx.commit().await.map_err(map_err)?;
+        self.emit_run_pub(id, Some(Status::WaitingApproval), None)
+            .await;
+        Ok((run, status))
+    }
+}
+
+/// A form answer from Board (`form.submit`).
+#[derive(Debug, Clone)]
+pub struct FormAnswer<'a> {
+    pub run: &'a str,
+    /// The form step's handler, e.g. `huddle.calibration`.
+    pub form: &'a str,
+    pub round: i64,
+    pub form_sha: &'a str,
+    pub answer: Value,
 }
 
 /// A G-tier request: the command, the run and step running it, and the item it acts on.

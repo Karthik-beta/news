@@ -1076,7 +1076,7 @@ Each preset is declared in Rust as an ordered list of steps, together with its a
 1. **Code steps** enqueue the step's jobs, which the service's workers drain within the pool limits; Chief records the step output and moves on.
 2. **AI batch steps** enqueue `ai` jobs. Ghost, in the same service, claims them, calls `claude -p`, stores outputs through `news ai accept` and heartbeats `runs.last_seen_at`. There is no time slice: the batch runs until it is done, paused or cancelled.
 3. **Draft steps** are an AI batch of one: Frontpage's curator (A8) and Rollcall's proposals (A11) run as `claude -p` through Ghost and write a draft, validated against the step's schema. Board shows the draft at the approval stop that follows.
-4. **Form steps** wait for Karthik to fill a form in Board, with no AI: Huddle's pairwise questions (§8.12). The answers arrive over the Hotline from Board (`huddle.answer`) and are stored with `news scores label`.
+4. **Form steps** wait for Karthik to fill a form in Board, with no AI: Huddle's pairwise questions (§8.12). The answers arrive over the Hotline from Board (`form.submit`, bound to the form's round and hash like a gate answer) and are stored with `news scores label`.
 5. **Approval steps** set the run to `waiting_approval`, store the summary and `subject_sha`, and send a `gate` event, so Board raises a toast. Only an approval received over the Hotline from Board (`origin` `board`) records the decision, bound to `subject_sha`. The step behind the gate runs only under the G-tier rule below, so the gate is enforced by code, and an approval cannot be reused for a changed draft or a later step.
 6. At the end Chief writes the Wrap.
 

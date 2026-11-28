@@ -48,11 +48,11 @@ pub fn audit_root(
     }
 }
 
-/// Chief's step handlers: Audit's (#19) and the preset steps built so far (`steps`, #20). Every other
-/// preset step is `NotBuilt`, so such a run ends `failed` at that step. With no repository root the
-/// steps that need one are bound too, and fail saying so.
+/// Chief's step handlers: Audit's and Huddle's (#19) and the preset steps built so far (`steps`, #20).
+/// Every other preset step is `NotBuilt`, so such a run ends `failed` at that step. With no repository
+/// root the steps that need one are bound too, and fail saying so.
 pub fn step_handlers() -> news_chief::driver::Handlers {
-    let h = news_chief::driver::Handlers::default();
+    let h = news_critic::huddle::register(news_chief::driver::Handlers::default());
     let env = std::env::var_os("NEWS_ROOT");
     let recorded = news_service::install::recorded_root();
     match audit_root(env, recorded, news_critic::golden::find_root) {

@@ -97,7 +97,7 @@ Transitions. Anything not in this table is refused (`precondition`, exit 4). One
 | `queued` | `cancelled` | Cancel queued | Board (`lineup.cancel`, `run.cancel`) |
 | `running` ⇄ `waiting_ai` | | The current step is `ai_batch` or `draft` (and back when it finishes) | Chief |
 | `running`, `waiting_ai` | `waiting_approval` | An approval or form step opened its gates or form | Chief |
-| `waiting_approval` | `running` | Every open gate of the step answered, or the form submitted; light, or slot free | Board (`gate.*`, `huddle.answer`) |
+| `waiting_approval` | `running` | Every open gate of the step answered, or the form submitted; light, or slot free | Board (`gate.*`, `form.submit`) |
 | `waiting_approval` | `queued` | Same, heavy, slot busy (no `start_by`) | Board |
 | `running`, `waiting_ai` | `pausing` (`drain`) | Pause; pause the holder for a new start; usage limit; quota reserve; service update | Board (`run.pause`, `run.start_after_pause`); Chief; #29's update |
 | `running`, `waiting_ai` | `pausing` (`now`) | Pause on a stalled run (`last_seen_at` older than `chief.stall_minutes`) | Board (`run.pause`) |
@@ -336,6 +336,7 @@ The contracts in `contracts/hotline/` are the list. Owner is the issue that impl
 | `docker.start`, `docker.stop`, `service.update` | H | #29 |
 | `huddle.questions` | R | #19 |
 | `huddle.answer` | H | #19 (stores the labels; completing the form step is Chief's, with the Huddle step handlers) |
+| `form.submit` | H | #19 (completes a form step: bound to the form's round and `form_sha` like a gate answer; the answer is checked against `contracts/hotline/forms/<form>.schema.json`) |
 | `home.rollback` | H | #20 (`POST /v1/home/curation/rollback`, then the local record; the key is read by Press's `write_key`) |
 | `content.*` | H | later issues (names reserved) |
 

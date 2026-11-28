@@ -3149,6 +3149,7 @@ dependencies = [
  "jsonschema",
  "news-chief",
  "news-core",
+ "news-dispatch",
  "news-home",
  "news-nose",
  "news-standing",
