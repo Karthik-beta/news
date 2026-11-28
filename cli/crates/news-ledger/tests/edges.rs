@@ -249,17 +249,6 @@ fn a_missing_or_zero_base_has_no_derived_point() {
 }
 
 #[test]
-#[ignore = "BUG: pct_change is computed over a negative base as (a-b)/b, so a loss that narrows from -10 to -5 comes out as -50.0, which reads as a deterioration"]
-fn a_percentage_change_over_a_negative_base_is_refused_or_sign_correct() {
-    let a = month("-5", "USD", 2026, 9);
-    let b = month("-10", "USD", 2026, 8);
-    match derive(Formula::PctChange, &a, &b, Comparison::Sequential, 1) {
-        Err(_) => {}
-        Ok(v) => assert_eq!(v.value, "50.0", "an improvement must not print as a fall"),
-    }
-}
-
-#[test]
 fn currency_pairs_with_the_same_unit_text_still_must_match() {
     // XBRL says `USD`; a point whose currency field was lost must not be compared with one that has it.
     let mut a = month("5", "USD", 2026, 9);
@@ -327,4 +316,18 @@ fn derived_ids_are_stable_and_depend_on_the_order_of_the_inputs() {
     let a2 = restated.build().unwrap();
     let z = derive(Formula::Diff, &a2, &b, Comparison::Sequential, 1).unwrap();
     assert_ne!(x.dp_id, z.dp_id);
+}
+
+#[test]
+fn a_percentage_change_over_a_negative_figure_is_refused() {
+    // A loss narrowing from -10 to -5 would print -50%, and a swing across zero has no percentage.
+    for (a, b) in [("-5", "-10"), ("5", "-3"), ("-3", "5"), ("-5", "10")] {
+        let (a, b) = (month(a, "USD", 2026, 9), month(b, "USD", 2026, 8));
+        assert_eq!(
+            derive(Formula::PctChange, &a, &b, Comparison::Sequential, 1),
+            Err(Refusal::NegativeBase)
+        );
+        // The plain difference is still available, so a page can state both values.
+        assert!(derive(Formula::Diff, &a, &b, Comparison::Sequential, 1).is_ok());
+    }
 }

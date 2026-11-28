@@ -131,7 +131,11 @@ fn read(snap: &Snapshot) -> Result<Vec<Series>, ParseError> {
             format!("{}: {}", r.status, r.message.join("; ")),
         ));
     }
-    Ok(r.results.map(|r| r.series).unwrap_or_default())
+    // A success with no `Results` at all is a changed shape, not an empty answer.
+    let results = r
+        .results
+        .ok_or_else(|| shape("$.Results", "REQUEST_SUCCEEDED without Results"))?;
+    Ok(results.series)
 }
 
 /// `(start, end, period_type)` for a BLS period code in a year.
@@ -272,6 +276,7 @@ impl Connector for Bls {
                 continue;
             };
             let mut item_points = Vec::new();
+            let mut seen = std::collections::BTreeMap::new();
             for (ri, row) in s.data.iter().enumerate() {
                 let path = format!("$.Results.series[{si}].data[{ri}].value");
                 let footnotes: Vec<Footnote> = row
@@ -285,6 +290,21 @@ impl Connector for Bls {
                     locator["footnotes"] = json!(footnotes);
                 }
                 let period_label = format!("{} {}", row.period_name, row.year);
+                // One period listed twice: identical rows collapse, differing values cannot both be
+                // right and share a dp_id, so the parse fails rather than keep one silently.
+                match seen.insert((row.year.as_str(), row.period.as_str()), row.value.as_str()) {
+                    Some(prev) if prev == row.value => continue,
+                    Some(prev) => {
+                        return Err(value_err(
+                            &path,
+                            format!(
+                                "conflicting observations for {} {}: {prev:?} and {:?}",
+                                row.period_name, row.year, row.value
+                            ),
+                        ));
+                    }
+                    None => {}
+                }
                 if is_missing_marker(&row.value) {
                     out.missing.push(Missing {
                         series_key: series_key.clone(),
@@ -335,7 +355,8 @@ impl Connector for Bls {
                 out.points.push(point);
             }
             let latest = s.data.iter().find(|r| r.latest.as_deref() == Some("true"));
-            if let Some(row) = latest {
+            // No candidate when the newest period has no published figure: nothing to write about.
+            if let Some(row) = latest.filter(|_| !item_points.is_empty()) {
                 out.candidates.push(CandidateDraft {
                     event_key: eventkey::macro_release(
                         "us",

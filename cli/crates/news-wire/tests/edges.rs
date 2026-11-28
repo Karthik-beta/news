@@ -97,6 +97,7 @@ fn retry_after_parser_edges() {
     for bad in [
         "",
         "-1",
+        "+5",
         "1.0",
         "0x10",
         "5 s",
@@ -106,6 +107,12 @@ fn retry_after_parser_edges() {
         assert_eq!(retry_after(bad, now), None, "{bad:?}");
     }
     assert_eq!(retry_after("007", now), Some(Duration::from_secs(7)));
+    // Anything longer than a day is a day, in either form, even with more digits than a u64.
+    let day = news_wire::pace::MAX_RETRY_AFTER;
+    assert_eq!(retry_after("99999999999999999999999999", now), Some(day));
+    assert_eq!(retry_after("Fri, 31 Dec 9999 23:59:59 GMT", now), Some(day));
+    assert_eq!(retry_after("86400", now), Some(day));
+    assert_eq!(retry_after("86399", now), Some(Duration::from_secs(86399)));
     // An HTTP-date exactly now is zero, one second ahead is one second.
     assert_eq!(
         retry_after("Mon, 16 Nov 2026 08:00:00 GMT", now),
@@ -118,7 +125,6 @@ fn retry_after_parser_edges() {
 }
 
 #[tokio::test]
-#[ignore = "BUG: Retry-After is passed on unbounded, and the queue binds it into make_interval(secs => ..), which PostgreSQL rejects when it overflows, leaving the job leased"]
 async fn an_absurd_retry_after_is_capped() {
     let (fake, clock) = setup();
     fake.route(
@@ -129,7 +135,7 @@ async fn an_absurd_retry_after_is_capped() {
         .await
         .unwrap_err();
     assert!(
-        e.retry_after.unwrap() <= Duration::from_secs(7 * 24 * 3600),
+        e.retry_after == Some(news_wire::pace::MAX_RETRY_AFTER),
         "{:?}",
         e.retry_after
     );
@@ -231,7 +237,6 @@ fn robots_parsing_edges() {
 }
 
 #[test]
-#[ignore = "BUG: a UTF-8 byte order mark in front of the first line hides `User-agent`, so a Disallow-all file reads as allow-all"]
 fn a_robots_txt_with_a_byte_order_mark_still_disallows() {
     let r = robots::parse("\u{feff}User-agent: *\nDisallow: /\n");
     assert!(!r.allowed("News", "/data.json"));
@@ -445,7 +450,7 @@ proptest::proptest! {
         let eff = if penalised { rate / 2.0 } else { rate };
         let mut grants = Vec::new();
         for _ in 0..n {
-            // Sleep whole microseconds, as the real clock cannot do less; see the ignored test below.
+            // Bounded, so a regression fails instead of hanging.
             for _ in 0..1000 {
                 let wait = b.reserve(now);
                 if wait.is_zero() {
@@ -547,7 +552,6 @@ fn retention_edges() {
 }
 
 #[test]
-#[ignore = "BUG: reserve() truncates elapsed time to whole microseconds, so on a virtual clock a wait that is not a whole number of microseconds (rate 3/s) never refills the bucket: the caller waits the same sub-microsecond remainder for ever"]
 fn the_bucket_refills_after_waiting_exactly_what_it_asked() {
     let mut now = t0();
     let mut b = TokenBucket::new(3.0, now);

@@ -90,7 +90,12 @@ impl TokenBucket {
     /// Take a token now (`Duration::ZERO`) or say how long to wait before trying again.
     pub fn reserve(&mut self, now: DateTime<Utc>) -> Duration {
         let rate = self.effective_rate(now);
-        let elapsed = (now - self.last).num_microseconds().unwrap_or(0).max(0) as f64 / 1e6;
+        // Nanoseconds, so a wait that is not a whole microsecond still refills the bucket exactly.
+        let elapsed = (now - self.last)
+            .num_nanoseconds()
+            .unwrap_or(i64::MAX)
+            .max(0) as f64
+            / 1e9;
         self.tokens = (self.tokens + elapsed * rate).min(1.0);
         self.last = now;
         if self.tokens >= 1.0 - 1e-9 {
@@ -107,15 +112,22 @@ impl TokenBucket {
     }
 }
 
-/// `Retry-After` as delay-seconds or an HTTP-date (RFC 9110 §10.2.3), relative to `now`. A date in
-/// the past means "now"; anything unparseable is `None`.
+/// The longest `Retry-After` we pass on. A hostile or broken header must not park a job for years or
+/// overflow the queue's interval arithmetic; after this the job simply asks again.
+pub const MAX_RETRY_AFTER: Duration = Duration::from_secs(24 * 3600);
+
+/// `Retry-After` as delay-seconds (digits only) or an HTTP-date (RFC 9110 §10.2.3), relative to `now`
+/// and capped at [`MAX_RETRY_AFTER`]. A date in the past means "now"; anything unparseable is `None`.
 pub fn retry_after(value: &str, now: DateTime<Utc>) -> Option<Duration> {
     let v = value.trim();
-    if let Ok(secs) = v.parse::<u64>() {
-        return Some(Duration::from_secs(secs));
-    }
-    let at: DateTime<Utc> = httpdate::parse_http_date(v).ok()?.into();
-    Some((at - now).to_std().unwrap_or(Duration::ZERO))
+    let wait = if !v.is_empty() && v.bytes().all(|b| b.is_ascii_digit()) {
+        // Digits too many for a u64 are still "a very long time".
+        Duration::from_secs(v.parse::<u64>().unwrap_or(u64::MAX))
+    } else {
+        let at: DateTime<Utc> = httpdate::parse_http_date(v).ok()?.into();
+        (at - now).to_std().unwrap_or(Duration::ZERO)
+    };
+    Some(wait.min(MAX_RETRY_AFTER))
 }
 
 #[cfg(test)]

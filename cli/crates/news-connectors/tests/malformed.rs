@@ -86,7 +86,6 @@ fn bls_garbage_bodies_are_typed_errors_never_panics() {
 }
 
 #[test]
-#[ignore = "BUG: a REQUEST_SUCCEEDED body with no Results parses as an empty success, so a changed shape never reaches the dead list"]
 fn bls_a_success_without_results_is_a_shape_error() {
     for body in [
         r#"{"status":"REQUEST_SUCCEEDED"}"#,
@@ -138,7 +137,6 @@ fn bls_with_no_rows_gives_no_points_and_no_candidate() {
 }
 
 #[test]
-#[ignore = "BUG: the candidate is still emitted, with an event key and no data points"]
 fn bls_a_missing_latest_period_makes_no_candidate_without_figures() {
     // If the newest period is the one BLS could not publish ("-"), there is no figure to write a
     // story about; a candidate with an empty `dp_ids` would carry an event key and no numbers.
@@ -152,30 +150,22 @@ fn bls_a_missing_latest_period_makes_no_candidate_without_figures() {
 }
 
 #[test]
-#[ignore = "BUG: two different values for one period share a dp_id; the store keeps the first and drops the second without a trace"]
-fn bls_a_repeated_period_never_gives_one_dp_id_two_values() {
-    let body = edit(
-        &bls_fixture(),
-        "{\"year\":\"2026\",\"period\":\"M09\",\"periodName\":\"September\",\"value\":\"336.940\"",
-        "{\"year\":\"2026\",\"period\":\"M10\",\"periodName\":\"October\",\"value\":\"999.999\"",
-    );
-    match bls(&body) {
-        Err(e) => assert!(
-            matches!(
-                e.class(),
-                ErrorClass::InvalidData | ErrorClass::UpstreamChanged
-            ),
-            "{e:?}"
-        ),
-        Ok(p) => {
-            let mut by_id = std::collections::BTreeMap::new();
-            for d in &p.points {
-                if let Some(prev) = by_id.insert(d.dp_id.clone(), d.value_text.clone()) {
-                    assert_eq!(prev, d.value_text, "dp_id {} carries two values", d.dp_id);
-                }
-            }
-        }
-    }
+fn bls_a_repeated_period_with_a_different_value_is_a_conflict_and_a_copy_collapses() {
+    let row = |period: &str, name: &str, value: &str| {
+        format!(
+            "{{\"year\":\"2026\",\"period\":\"{period}\",\"periodName\":\"{name}\",\"value\":\"{value}\""
+        )
+    };
+    let sept = row("M09", "September", "336.940");
+    let conflict = edit(&bls_fixture(), &sept, &row("M10", "October", "999.999"));
+    let e = bls(&conflict).unwrap_err();
+    assert_eq!(e.kind, ParseErrorKind::Value);
+    assert!(e.message.contains("conflicting observations"), "{e:?}");
+    // The same row twice is one point, not two with one dp_id.
+    let copy = edit(&bls_fixture(), &sept, &row("M10", "October", "337.511"));
+    let p = bls(&copy).unwrap();
+    let unique: std::collections::BTreeSet<_> = p.points.iter().map(|d| &d.dp_id).collect();
+    assert_eq!(unique.len(), p.points.len());
 }
 
 // --------------------------------------------------------------------------------------- FRED
