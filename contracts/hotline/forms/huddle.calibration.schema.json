@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/hotline/forms/huddle.calibration.schema.json",
+  "title": "Huddle form: ranking calibration",
+  "description": "Huddle's Board form (Bureau §8.12 step 2): Karthik's answers to the pairwise questions chosen by code, the Search Console status he reads, and notes on the pages of his reading sample (D15). `form.submit` validates `answer` against `$defs/answer`; the step stores the labels as `news scores label` does and keeps the rest in its output.",
+  "$defs": {
+    "answer": {
+      "type": "object",
+      "properties": {
+        "labels": {
+          "type": "array",
+          "description": "Which of two stories deserved a page first; may be empty when Karthik skips every question",
+          "items": {
+            "type": "object",
+            "properties": {
+              "a": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "A story id from the question"
+              },
+              "b": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "The other story id"
+              },
+              "winner": {
+                "enum": ["a", "b"]
+              }
+            },
+            "required": ["a", "b", "winner"],
+            "additionalProperties": false
+          },
+          "maxItems": 200
+        },
+        "search_console": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "The Search Console status as Karthik read it"
+        },
+        "reading": {
+          "type": "array",
+          "description": "The pages Karthik read this week and what he found",
+          "items": {
+            "type": "object",
+            "properties": {
+              "page": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "description": "A page id or slug"
+              },
+              "note": {
+                "type": "string",
+                "maxLength": 2000
+              }
+            },
+            "required": ["page"],
+            "additionalProperties": false
+          },
+          "maxItems": 5
+        }
+      },
+      "required": ["labels"],
+      "additionalProperties": false
+    }
+  }
+}

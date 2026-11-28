@@ -1,11 +1,16 @@
 //! Huddle against a real database (#19): labels, the fit and the clamp through the CLI, the G-tier gate on
 //! `adopt`, adoption in process (what Chief's `huddle.apply` step calls), the questions chosen by code,
-//! and the Debrief's golden text from a fixture database.
+//! the Debrief's golden text from a fixture database, and the preset end to end through Chief with a
+//! test Board client answering its form over the Hotline.
 
 use super::fixture::Fixture;
 use chrono::{DateTime, TimeDelta, Utc};
+use news_chief::Chief;
+use news_chief::driver::Handlers;
+use news_core::ErrorCode;
 use news_hotline::{Bus, Peer, Service};
 use news_nose::huddle;
+use news_service::handlers::Bureau;
 use serde_json::{Value, json};
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -19,6 +24,21 @@ fn components(i: i64) -> Value {
 
 /// `n` stories with a score each, an hour before `as_of`, and a running run `r_hud1`.
 async fn seed(f: &Fixture, n: i64, as_of: DateTime<Utc>) {
+    seed_stories(f, n, as_of).await;
+    sqlx::query(
+        "insert into runs (run_id, short_id, preset, args, heavy, origin, settings_version, status, config,
+                           budget, started_at, last_seen_at)
+         values ('00000000-0000-4000-8000-000000000019', 'r_hud1', 'huddle', '{}', false, 'board',
+                 (select max(version) from standing), 'running', '{}', '{}', $1, $1)",
+    )
+    .bind(as_of)
+    .execute(&f.pool)
+    .await
+    .unwrap();
+}
+
+/// `n` stories with a score each, an hour before `as_of`.
+async fn seed_stories(f: &Fixture, n: i64, as_of: DateTime<Utc>) {
     for i in 1..=n {
         let id: i64 = sqlx::query_scalar(
             "insert into stories (title, first_seen, last_seen) values ($1, $2, $2) returning story_id",
@@ -41,16 +61,6 @@ async fn seed(f: &Fixture, n: i64, as_of: DateTime<Utc>) {
         .await
         .unwrap();
     }
-    sqlx::query(
-        "insert into runs (run_id, short_id, preset, args, heavy, origin, settings_version, status, config,
-                           budget, started_at, last_seen_at)
-         values ('00000000-0000-4000-8000-000000000019', 'r_hud1', 'huddle', '{}', false, 'board',
-                 (select max(version) from standing), 'running', '{}', '{}', $1, $1)",
-    )
-    .bind(as_of)
-    .execute(&f.pool)
-    .await
-    .unwrap();
 }
 
 #[tokio::test]
@@ -376,4 +386,214 @@ async fn the_debrief_of_a_fixture_database_is_the_golden_text() {
     assert_eq!(out["pages"]["total"], 3);
     assert_eq!(out["failures"]["jobs_discarded"]["parse"], 2);
     assert_eq!(out["index_budget"]["indexed"], 1);
+}
+
+/// The Bureau service's Hotline side over `chief`, up and connected to the fixture database.
+fn bureau(f: &Fixture, chief: Chief) -> Arc<Bureau> {
+    let state = Arc::new(news_service::State::default());
+    state.set(news_chief::board::ServiceState::Up);
+    let bureau = Arc::new(Bureau::new(
+        state,
+        Arc::new(Bus::default()),
+        Arc::new(news_service::log::LogRing::default()),
+    ));
+    bureau.set_core(Some(Arc::new(news_service::handlers::Core {
+        db: f.pool.clone(),
+        chief,
+        policy: Arc::new(news_chief::AllowAll),
+        stopper: Arc::new(news_chief::NoStopper),
+    })));
+    bureau
+}
+
+/// One Hotline request from `peer`; a reply that succeeded is checked against its contract.
+async fn hotline(bureau: &Arc<Bureau>, peer: Peer, cmd: &str, args: Value) -> Value {
+    let svc: Arc<dyn Service> = bureau.clone();
+    let (mut client, server) = tokio::io::duplex(1 << 20);
+    let h = tokio::spawn(news_hotline::serve_conn(server, peer, svc));
+    let env = news_hotline::call(&mut client, "t-1", cmd, args)
+        .await
+        .unwrap();
+    drop(client);
+    let _ = h.await;
+    if env["ok"] == true {
+        news_hotline::contracts()
+            .check_output(cmd, &env["data"])
+            .unwrap_or_else(|e| panic!("{cmd} reply breaks its contract: {e}"));
+    }
+    env
+}
+
+/// Poll `f` every 50 ms for 30 s.
+async fn eventually<T, Fut: std::future::Future<Output = Option<T>>>(
+    what: &str,
+    mut f: impl FnMut() -> Fut,
+) -> T {
+    for _ in 0..600 {
+        if let Some(v) = f().await {
+            return v;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+    }
+    panic!("never happened: {what}");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn huddle_runs_end_to_end_with_board_answering_the_form_and_adopts_only_after_approval() {
+    let f = Fixture::migrated().await;
+    seed_stories(&f, 40, Utc::now()).await;
+    let ch = Chief::builder(f.pool.clone(), Arc::new(news_core::clock::SystemClock))
+        .handlers(news_critic::huddle::register(Handlers::default()))
+        .build();
+    let b = bureau(&f, ch.clone());
+    let terminal = Peer {
+        argv1_is_board: false,
+        ..Peer::board()
+    };
+
+    // Board starts Huddle; the Debrief runs and the form opens with the questions chosen by code.
+    let env = hotline(
+        &b,
+        Peer::board(),
+        "run.start",
+        json!({"preset": "huddle", "args": {}}),
+    )
+    .await;
+    assert_eq!(env["ok"], true, "{env}");
+    let short = env["data"]["short_id"].as_str().unwrap().to_owned();
+    ch.ensure_drivers().await.unwrap();
+    let form = eventually("the calibration form opens", || {
+        let (b, short) = (&b, &short);
+        async move {
+            let env = hotline(b, Peer::board(), "run.show", json!({"run": short})).await;
+            let step = env["data"]["steps"]
+                .as_array()?
+                .iter()
+                .find(|s| s["id"] == "calibration")?
+                .clone();
+            (env["data"]["run"]["status"] == "waiting_approval"
+                && step["summary"]["form_sha"].is_string())
+            .then(|| step["summary"].clone())
+        }
+    })
+    .await;
+    assert_eq!(form["round"], 1);
+    let questions = form["form"]["questions"].as_array().unwrap().clone();
+    assert!(questions.len() >= 10 && questions.len() <= 30, "{form}");
+    assert_eq!(
+        f.scalar_str(&format!(
+            "select status from run_steps s join runs r using (run_id) where r.short_id = '{short}' and s.step = 'debrief'"
+        ))
+        .await,
+        "done"
+    );
+
+    // Karthik prefers the story with the higher I every time, so the fit wants more I.
+    let labels: Vec<Value> = questions
+        .iter()
+        .map(|q| {
+            let (a, b) = (
+                q["a"]["story_id"].as_i64().unwrap(),
+                q["b"]["story_id"].as_i64().unwrap(),
+            );
+            let winner = if components(a)["I"].as_f64() > components(b)["I"].as_f64() {
+                "a"
+            } else {
+                "b"
+            };
+            json!({"a": a, "b": b, "winner": winner})
+        })
+        .collect();
+    let args = json!({"run": short, "form": "huddle.calibration", "round": 1, "form_sha": form["form_sha"],
+                      "answer": {"labels": labels, "search_console": "No coverage problems this week",
+                                 "reading": [{"page": "2026/11/us-cpi", "note": "Reads well"}]}});
+
+    // From a terminal the answer is refused (gated, exit 7): nothing stored, the run still waits.
+    let env = hotline(&b, terminal, "form.submit", args.clone()).await;
+    assert_eq!(env["error"]["details"]["refusal"], "not_board", "{env}");
+    assert_eq!(
+        news_hotline::error_code(&env).map(ErrorCode::exit_code),
+        Some(7)
+    );
+    // From Board, a form that is not the one shown is gated, and another round is a precondition.
+    let mut stale = args.clone();
+    stale["form_sha"] = json!("0".repeat(64));
+    let env = hotline(&b, Peer::board(), "form.submit", stale).await;
+    assert_eq!(env["error"]["code"], "gated", "{env}");
+    let mut later = args.clone();
+    later["round"] = json!(2);
+    let env = hotline(&b, Peer::board(), "form.submit", later).await;
+    assert_eq!(env["error"]["code"], "precondition", "{env}");
+    assert_eq!(f.scalar_i64("select count(*) from score_labels").await, 0);
+
+    // Board's answer is kept and the run goes on to the fit.
+    let env = hotline(&b, Peer::board(), "form.submit", args.clone()).await;
+    assert_eq!(env["data"]["run_status"], "running", "{env}");
+    let env = hotline(&b, Peer::board(), "form.submit", args).await;
+    assert_eq!(
+        env["error"]["code"], "precondition",
+        "an answered form is not answered twice: {env}"
+    );
+    ch.ensure_drivers().await.unwrap();
+
+    // The proposal waits for its approval: nothing is adopted before it.
+    let gate = eventually("the change gate opens", || {
+        let (b, short) = (&b, &short);
+        async move {
+            let env = hotline(b, Peer::board(), "run.show", json!({"run": short})).await;
+            env["data"]["gates"]
+                .as_array()?
+                .iter()
+                .find(|g| g["answered_at"].is_null())
+                .cloned()
+        }
+    })
+    .await;
+    assert_eq!(gate["gate"], "change:v2", "{gate}");
+    assert_eq!(
+        f.scalar_i64("select count(*) from score_labels").await,
+        labels.len() as i64
+    );
+    assert_eq!(
+        f.scalar_str(&format!(
+            "select s.output->'answer'->>'search_console' from run_steps s join runs r using (run_id)
+              where r.short_id = '{short}' and s.step = 'calibration'"
+        ))
+        .await,
+        "No coverage problems this week"
+    );
+    assert_eq!(huddle::live(&f.pool).await.unwrap().version, "v1");
+    assert_eq!(f.call(&["scores", "weights"]).0["data"]["version"], "v1");
+
+    // Board approves the change; the apply step adopts it.
+    let env = hotline(
+        &b,
+        Peer::board(),
+        "gate.approve",
+        json!({"run": short, "gate": "change:v2", "round": gate["round"], "subject_sha": gate["subject_sha"]}),
+    )
+    .await;
+    assert_eq!(env["ok"], true, "{env}");
+    ch.ensure_drivers().await.unwrap();
+    eventually("the run succeeds", || {
+        let f = &f;
+        let short = &short;
+        async move {
+            let st = f
+                .scalar_str(&format!(
+                    "select status from runs where short_id = '{short}'"
+                ))
+                .await;
+            assert!(
+                !matches!(st.as_str(), "failed" | "cancelled"),
+                "the run ended {st}"
+            );
+            (st == "succeeded").then_some(())
+        }
+    })
+    .await;
+    let live = huddle::live(&f.pool).await.unwrap();
+    assert_eq!(live.version, "v2");
+    assert!(live.weights.i > 0.30, "{:?}", live.weights);
 }

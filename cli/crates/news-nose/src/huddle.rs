@@ -409,7 +409,9 @@ pub async fn adopt(db: &PgPool, version: &str) -> NewsResult<Adopted> {
     out
 }
 
-async fn adopt_in(tx: &mut sqlx::PgConnection, version: &str) -> NewsResult<Adopted> {
+/// [`adopt`] inside the caller's transaction: Huddle's `apply` step runs it in the transaction its G-tier
+/// authorisation was checked in.
+pub async fn adopt_in(tx: &mut sqlx::PgConnection, version: &str) -> NewsResult<Adopted> {
     let row: Option<(String, i32, Json<Weights>, String)> = sqlx::query_as(
         "select parent, n, weights, status from scorer_versions where version = $1 for update",
     )

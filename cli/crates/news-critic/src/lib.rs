@@ -1,14 +1,15 @@
-//! Critic, the evaluation harness (Bureau Design §9.1), and Huddle's Debrief (§8.12).
+//! Critic, the evaluation harness (Bureau Design §9.1), and Huddle (§8.12).
 //!
 //! Built: the golden sets ([`golden`]), the deterministic metrics ([`metrics`]), `news eval
-//! run|report|promote` ([`eval`]), the Audit preset's steps ([`audit`]) and `news review weekly`
-//! ([`debrief`]). Fresh candidate calls and the A12 judges are not built yet (#19); Critic has no job
-//! kinds of its own.
+//! run|report|promote` ([`eval`]), the Audit preset's steps with fresh A1 calls for the writer suite
+//! ([`audit`]), `news review weekly` ([`debrief`]) and the Huddle preset's steps ([`huddle`]). The A12
+//! judges are not built yet (#19); Critic has no job kinds of its own.
 
 pub mod audit;
 pub mod debrief;
 pub mod eval;
 pub mod golden;
+pub mod huddle;
 pub mod metrics;
 
 use news_core::job::{Handler, JobFailure, JobFuture, JobInput};
