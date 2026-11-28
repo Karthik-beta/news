@@ -39,7 +39,7 @@ fn now() -> DateTime<Utc> {
 }
 
 /// A work folder under the target directory (on the Dev Drive), one per test.
-fn root_for(f: &Fixture) -> PathBuf {
+pub(super) fn root_for(f: &Fixture) -> PathBuf {
     let root = Path::new(env!("CARGO_TARGET_TMPDIR")).join(format!("pages-{}", f.schema));
     let _ = std::fs::remove_dir_all(&root);
     std::fs::create_dir_all(root.join("work/ai")).unwrap();
@@ -52,6 +52,18 @@ fn root_for(f: &Fixture) -> PathBuf {
     )
     .unwrap();
     root
+}
+
+/// What a published story leaves in the work folder for an update: its brief and its stored Copy.
+pub(super) fn published_story(root: &Path, story: &str) {
+    let work = Work::new(root.join("work"));
+    std::fs::create_dir_all(root.join("work/briefs")).unwrap();
+    std::fs::copy(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../news-proof/tests/fixtures/brief.json"),
+        work.brief(story),
+    )
+    .unwrap();
+    save(&work, story, copy("Written"), vec![], "ai", None, now()).unwrap();
 }
 
 // ---- the fakes ------------------------------------------------------------------------------------
@@ -79,6 +91,41 @@ fn fake_claude(input: JobInput) -> JobFuture {
         let story = input.args["story"].as_str().unwrap_or_default().to_owned();
         let work = Work::new(root.join("work"));
         match input.kind.as_str() {
+            // A direction flip's A1 update: Ghost's arguments must be there (an input under work/, the
+            // page schema and A1's prefix), with the input composed from the previous Copy and the diff.
+            "ai.write" if input.args["mode"] == "update" => {
+                let file = |k: &str| {
+                    input.args[k]
+                        .as_str()
+                        .filter(|p| p.starts_with("work/"))
+                        .map(|p| root.join(p))
+                        .filter(|p| p.is_file())
+                };
+                let composed = file("input").and_then(|p| news_proof::work::read_json(&p).ok());
+                let ok = input.args["schema"] == news::steps::pipeline::PAGE_SCHEMA
+                    && file("prefix").is_some()
+                    && composed.as_ref().is_some_and(|c| {
+                        c["mode"] == "update"
+                            && c["previous_copy"]["headline"] == "Written"
+                            && c["diff"].as_array().is_some_and(|d| !d.is_empty())
+                    });
+                if !ok {
+                    return Err(news_core::job::JobFailure::new(
+                        news_core::job::ErrorClass::Bug,
+                        format!("bad update job: args {} input {composed:?}", input.args),
+                    ));
+                }
+                save(
+                    &work,
+                    &story,
+                    copy("Updated"),
+                    vec![],
+                    "ai",
+                    Some(input.job_id),
+                    now(),
+                )
+                .unwrap();
+            }
             "ai.write" => {
                 save(
                     &work,
@@ -861,16 +908,18 @@ async fn page_revise_by_code_refuses_a_flip_and_a_page_with_no_story_folder() {
 
 // ---- the fix round: live pages stay live, rejections, re-entries -------------------------------------
 
-/// A new vintage of the story's latest point: 2.0 becomes 2.1 (a value-only revision).
-async fn revise_point(f: &Fixture) {
+/// A new vintage of the story's latest point: 2.0 becomes `to` (2.1 is a value-only revision, a
+/// negative value a direction flip).
+async fn revise_point(f: &Fixture, to: &str) {
     sqlx::query(
         "insert into data_points (dp_id, context_key, series_key, concept, label, value_text, value, unit,
            period_label, period_start, period_end, period_type, vintage, supersedes, snapshot_sha, locator,
            parser, retrieved_at)
-         select 'dp_t30', context_key, series_key, concept, label, '2.1', 2.1, unit, period_label, period_start,
+         select 'dp_t30', context_key, series_key, concept, label, $1, $1::numeric, unit, period_label, period_start,
                 period_end, period_type, '2026-11-22T00:00:00Z', 'dp_t29', snapshot_sha, locator, parser, now()
            from data_points where dp_id = 'dp_t29'",
     )
+    .bind(to)
     .execute(&f.pool)
     .await
     .unwrap();
@@ -883,9 +932,47 @@ async fn followup_re_renders_a_value_only_revision_and_ends_with_the_page_publis
     let w = world().await;
     let first = w.start("edition", json!({})).await;
     wait_status(&w.f, first.run_id, "succeeded").await;
-    revise_point(&w.f).await;
+    revise_point(&w.f, "2.1").await;
     let run = w.start("followup", json!({})).await;
     wait_status(&w.f, run.run_id, "succeeded").await;
+    assert_eq!(
+        w.f.scalar_str("select status || ':' || version::text from pages")
+            .await,
+        "published:2"
+    );
+    assert_eq!(w.n("select count(*) from page_drafts").await, 0);
+    assert_eq!(
+        w.n("select count(*) from publish_outbox where op = 'put_page' and sent_at is not null")
+            .await,
+        2
+    );
+    w.finish().await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres"]
+async fn followup_sends_a_direction_flip_to_a1_and_publishes_the_update_at_version_two() {
+    let w = world().await;
+    let first = w.start("edition", json!({})).await;
+    wait_status(&w.f, first.run_id, "succeeded").await;
+    // 2.0 becomes -0.3: the sign changes, so the prose may no longer hold and A1 rewrites it.
+    revise_point(&w.f, "-0.3").await;
+    let run = w.start("followup", json!({})).await;
+    wait_status(&w.f, run.run_id, "succeeded").await;
+    let (job, state, key, args): (i64, String, String, Value) = sqlx::query_as(
+        "select job_id, state, unique_key, args from jobs where run_id = $1 and kind = 'ai.write'",
+    )
+    .bind(run.run_id)
+    .fetch_one(&w.f.pool)
+    .await
+    .unwrap();
+    assert_eq!(state, "completed", "{args}");
+    assert!(key.starts_with("update:macro-us-t-2026-06:2:"), "{key}");
+    // The update's Copy is the story's stored Copy (as NewsAccept stores it), and the next version.
+    let stored =
+        news_proof::work::load(&Work::new(w.root.join("work")), &w.story.to_string()).unwrap();
+    assert_eq!(stored.copy["headline"], "Updated");
+    assert_eq!(stored.job, Some(job));
     assert_eq!(
         w.f.scalar_str("select status || ':' || version::text from pages")
             .await,
@@ -911,7 +998,7 @@ async fn edition_re_entered_after_a_lost_answer_still_publishes_its_planned_revi
         .execute(&w.f.pool)
         .await
         .unwrap();
-    revise_point(&w.f).await;
+    revise_point(&w.f, "2.1").await;
     w.api.script(std::iter::repeat_n(
         news_press::fake::Fault::Unreachable,
         news_press::api::MAX_ATTEMPTS as usize,

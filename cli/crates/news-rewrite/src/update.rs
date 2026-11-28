@@ -2,7 +2,9 @@
 //! `news update <page>` shows.
 
 use crate::plan::PagePlan;
+use news_core::NewsResult;
 use news_dispatch::queue::NewJob;
+use news_proof::work::Work;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 
@@ -22,10 +24,23 @@ pub fn diff(plan: &PagePlan) -> Vec<Value> {
     points.chain(derived).collect()
 }
 
-/// The `ai.write` job (A1, update mode) for a direction flip. Its key names the page, the version it
-/// would publish and the diff, so queuing the same flip twice is one job; a later revision of the same
-/// page is a different diff and a different job. The brief is the story's (`news brief`); `news ai input`
-/// composes `{"mode": "update", "brief", "previous_copy", "diff"}` from it and the stored Copy.
+/// A1's update-mode input (`skills/news-reporter`): `{"mode": "update", "brief", "previous_copy",
+/// "diff"}`, from the story's brief and its stored Copy. `news ai input` and the presets' update jobs
+/// both compose it here.
+pub fn input(work: &Work, story: &str, diff: Value) -> NewsResult<Value> {
+    let previous = news_proof::work::load(work, story)?;
+    Ok(json!({
+        "mode": "update",
+        "brief": news_proof::work::read_json(&work.brief(story))?,
+        "previous_copy": previous.copy,
+        "diff": diff,
+    }))
+}
+
+/// The `ai.write` job (A1, update mode) for a direction flip, without Ghost's arguments (`input`,
+/// `schema`, `prefix`): the caller adds them once it has written [`input`] (`steps::pipeline`). Its key
+/// names the page, the version it would publish and the diff, so queuing the same flip twice is one
+/// job; a later revision of the same page is a different diff and a different job.
 pub fn update_job(plan: &PagePlan, story: &str) -> NewJob {
     let diff = diff(plan);
     let sha: String = Sha256::digest(Value::Array(diff.clone()).to_string().as_bytes())

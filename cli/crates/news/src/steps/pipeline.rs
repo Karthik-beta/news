@@ -205,6 +205,56 @@ pub async fn write(
     Ok(if live { Ph::Wait } else { Ph::Done((ok, dead)) })
 }
 
+/// The A1 update job for a direction flip, ready for Ghost: Rewrite's job (key, diff, story) plus its
+/// input composed by code (`news_rewrite::update::input`) and written under `work/ai/`, the page schema
+/// and the page type's prefix, as [`write`] gives A1. `NewsAccept` stores its Copy as the story's next one.
+pub fn update_job(
+    root: &Path,
+    plan: &news_rewrite::plan::PagePlan,
+    story: &str,
+) -> Result<NewJob, StepError> {
+    let mut job = news_rewrite::update::update_job(plan, story);
+    let w = Work::new(root.join("work"));
+    let input =
+        news_rewrite::update::input(&w, story, job.args["diff"].clone()).map_err(step_err)?;
+    let page_type = input["brief"]["item"]["page_type"]
+        .as_str()
+        .unwrap_or_default()
+        .to_owned();
+    // Named by the key's diff hash, so another flip of the same page never overwrites a queued input.
+    let sha = job
+        .unique_key
+        .as_deref()
+        .and_then(|k| k.rsplit(':').next())
+        .unwrap_or_default();
+    let rel = format!("work/ai/update-{story}-{sha}.json");
+    work::write_atomic(&root.join(&rel), &work::pretty(&input)).map_err(step_err)?;
+    job.args["input"] = json!(rel);
+    job.args["schema"] = json!(PAGE_SCHEMA);
+    job.args["prefix"] = json!(prefix(root, &page_type)?);
+    Ok(job)
+}
+
+/// Queue the flip's [`update_job`] unless the run already has it (in any state, as [`queue_once`]);
+/// the input is composed only for a job not yet queued. Returns its state and whether it was queued now.
+pub async fn queue_update(
+    cx: &StepCx,
+    ctx: &Ctx,
+    plan: &news_rewrite::plan::PagePlan,
+    story: &str,
+) -> Result<(Job, bool), StepError> {
+    let key = news_rewrite::update::update_job(plan, story)
+        .unique_key
+        .unwrap_or_default();
+    if let Some(j) = job(cx, &key).await? {
+        return Ok((j, false));
+    }
+    cx.enqueue(update_job(&ctx.root, plan, story)?)
+        .await
+        .map_err(step_err)?;
+    Ok((Job::Live, true))
+}
+
 /// The page id and version a story's page folder will publish, from its `page.json`.
 fn expected(work: &Work, story: &str) -> Option<(String, i32)> {
     let p = work::read_json(&work.page(story).join("page.json")).ok()?;
@@ -615,6 +665,80 @@ mod tests {
             }
             other => panic!("{other:?}"),
         }
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn a_flips_update_job_carries_ghosts_arguments_and_the_composed_input() {
+        use news_rewrite::find::{PageChange, PointMove};
+        let root = std::env::temp_dir().join(format!("news-update-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let here = Path::new(env!("CARGO_MANIFEST_DIR"));
+        let index = root.join(news_fixer::components::INDEX_REL);
+        std::fs::create_dir_all(index.parent().unwrap()).unwrap();
+        std::fs::copy(here.join("tests/fixtures/component-index.json"), &index).unwrap();
+        let w = Work::new(root.join("work"));
+        std::fs::create_dir_all(root.join("work/briefs")).unwrap();
+        std::fs::copy(
+            here.join("../news-proof/tests/fixtures/brief.json"),
+            w.brief("81234"),
+        )
+        .unwrap();
+        let at = "2026-11-01T10:00:00Z".parse().unwrap();
+        work::save(
+            &w,
+            "81234",
+            json!({"headline": "Old"}),
+            vec![],
+            "save",
+            None,
+            at,
+        )
+        .unwrap();
+        let flip = news_rewrite::plan::plan(vec![PageChange {
+            page_id: "us-cpi".into(),
+            version: 3,
+            story_id: Some(81234),
+            points: vec![PointMove {
+                old_id: "dp_old".into(),
+                new_id: "dp_new".into(),
+                old_text: "-0.2".into(),
+                new_text: "0.1".into(),
+                new_numeric: Some("0.1".into()),
+                new_locator: json!({"kind": "json"}),
+                ..Default::default()
+            }],
+            derived: vec![],
+        }])
+        .remove(0);
+
+        let job = update_job(&root, &flip, "81234").unwrap();
+        // The key is Rewrite's, so `revise::flips` finds the job it queued.
+        let bare = news_rewrite::update::update_job(&flip, "81234");
+        assert_eq!(job.unique_key, bare.unique_key);
+        assert_eq!(job.item_ref.as_deref(), Some("81234"));
+        assert_eq!(
+            (&job.args["mode"], &job.args["story"]),
+            (&json!("update"), &json!("81234"))
+        );
+        // What Ghost needs: an input under work/, the page schema, and A1's prefix for the page type.
+        assert_eq!(job.args["schema"], PAGE_SCHEMA);
+        assert_eq!(job.args["prefix"], prefix(&root, "macro-release").unwrap());
+        let rel = job.args["input"].as_str().unwrap();
+        assert!(rel.starts_with("work/ai/update-81234-"), "{rel}");
+        let input = work::read_json(&root.join(rel)).unwrap();
+        assert_eq!(input["mode"], "update");
+        assert_eq!(input["brief"]["item"]["story_id"], 81234);
+        assert_eq!(input["previous_copy"]["headline"], "Old");
+        assert_eq!(
+            input["diff"],
+            json!([{"ref": "dp_new", "old": "-0.2", "new": "0.1"}])
+        );
+        // A story with no stored Copy has nothing to update: the item fails, not the service.
+        assert!(matches!(
+            update_job(&root, &flip, "99999"),
+            Err(StepError::Fail { .. })
+        ));
         let _ = std::fs::remove_dir_all(&root);
     }
 }

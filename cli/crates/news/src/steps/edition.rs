@@ -18,7 +18,7 @@ use news_chief::gates::{self, GRequest, GateOpen};
 use news_chief::presets::GCommand;
 use news_core::job::ErrorClass;
 use news_dispatch::queue::NewJob;
-use news_rewrite::{find, plan as rplan, update};
+use news_rewrite::{find, plan as rplan};
 use serde_json::{Value, json};
 use std::collections::BTreeSet;
 use std::sync::Arc;
@@ -301,10 +301,12 @@ async fn write(ctx: &Ctx, cx: &StepCx) -> Result<StepOutcome, StepError> {
         let Some(story) = p.change.story_id else {
             continue;
         };
-        match pipeline::queue_once(cx, update::update_job(&p, &story.to_string())).await? {
-            pipeline::Job::Live => wait = true,
-            pipeline::Job::Dead(_) => flip_dead += 1,
-            pipeline::Job::Completed(_) => {}
+        // A flip whose input cannot be composed (no stored Copy or brief) is dead, not the run.
+        match pipeline::queue_update(cx, ctx, &p, &story.to_string()).await {
+            Ok((pipeline::Job::Live, _)) => wait = true,
+            Ok((pipeline::Job::Dead(_), _)) | Err(StepError::Fail { .. }) => flip_dead += 1,
+            Ok((pipeline::Job::Completed(_), _)) => {}
+            Err(e) => return Err(e),
         }
     }
     match pipeline::write(cx, ctx, &briefed).await? {
