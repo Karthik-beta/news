@@ -48,18 +48,27 @@ pub fn audit_root(
     }
 }
 
-/// Chief's step handlers, bound to their subsystem crates as job kinds are. Only Audit's have landed
-/// (#19); every other preset step is `NotBuilt`, so such a run ends `failed` at its first step. With
-/// no repository root Audit's steps are bound too, and fail saying so.
+/// Chief's step handlers: Audit's (#19) and the preset steps built so far (`steps`, #20). Every other
+/// preset step is `NotBuilt`, so such a run ends `failed` at that step. With no repository root the
+/// steps that need one are bound too, and fail saying so.
 pub fn step_handlers() -> news_chief::driver::Handlers {
     let h = news_chief::driver::Handlers::default();
     let env = std::env::var_os("NEWS_ROOT");
     let recorded = news_service::install::recorded_root();
     match audit_root(env, recorded, news_critic::golden::find_root) {
-        Ok(root) => news_critic::audit::register(h, root),
+        Ok(root) => {
+            let ctx = crate::steps::Ctx {
+                root: root.clone(),
+                preview_base: std::env::var("NEWS_PREVIEW_URL")
+                    .unwrap_or_else(|_| news_home::preview::DEFAULT_URL.to_owned()),
+                home: std::sync::Arc::new(crate::steps::HttpHome),
+            };
+            crate::steps::register(news_critic::audit::register(h, root), ctx)
+        }
         Err(message) => {
-            tracing::warn!("Audit cannot run: {message}");
-            news_critic::audit::register_unset(h, message)
+            tracing::warn!("Audit and Frontpage cannot run: {message}");
+            let h = news_critic::audit::register_unset(h, message.clone());
+            crate::steps::register_unset(h, message)
         }
     }
 }

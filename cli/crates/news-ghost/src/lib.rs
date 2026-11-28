@@ -263,7 +263,8 @@ impl Ghost {
         let schema_path = confine(&root, &args.schema, "contracts")?;
         let brief_path = confine(&root, &args.input, "work")?;
         let prefix = match &args.prefix {
-            Some(p) => Some(confine(&root, p, "work")?),
+            // Only a built prefix may become the system prompt, never a brief with its untrusted text.
+            Some(p) => Some(confine(&root, p, "work/prefix")?),
             None => None,
         };
         let schema: Value = std::fs::read_to_string(&schema_path)
