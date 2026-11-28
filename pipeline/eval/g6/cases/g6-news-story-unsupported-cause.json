@@ -1,0 +1,14 @@
+{
+  "id": "g6-news-story-unsupported-cause",
+  "brief_case": "g1-news-story-recorded",
+  "page": "# Federal Reserve lowers the target range for the federal funds rate\n\nThe Federal Open Market Committee cut its policy rate, citing a shift in the balance of risks.\n\nThe Committee lowered the target range in response to a sharp fall in stock prices. It judged that downside risks to employment have risen. Stephen I. Miran voted against the action, preferring a larger cut.\n",
+  "fault": {
+    "kind": "unsupported_claim",
+    "where": "in response to a sharp fall in stock prices",
+    "note": "The statement cites the shift in the balance of risks, not stock prices."
+  },
+  "provenance": {
+    "from": "cli/crates/news-fixer/tests/golden/news-story.json",
+    "change": "hand-written page in ref tokens with one seeded fault"
+  }
+}

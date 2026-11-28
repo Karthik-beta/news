@@ -1,0 +1,18 @@
+{
+  "id": "g2-boc-feed-7",
+  "item": {
+    "title": "G7 2026 Cross-Border Coordination Exercise (CBCE)",
+    "source": "Bank of Canada, central bank press release feed",
+    "opening": "The G7 Cyber Expert Group (CEG) successfully concluded its 2026 Cross-border coordination exercise (CBCE) on May 18, 2026. This exercise demonstrates the Group’s ongoing commitment to strengthening cyber resilience across the G7 financial sector."
+  },
+  "label": {
+    "page_type": "news-story",
+    "categories": ["finance"],
+    "region": "global"
+  },
+  "labelled_by": "opus-draft",
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/centralbank/boc-feed.xml",
+    "change": null
+  }
+}

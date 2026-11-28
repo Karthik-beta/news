@@ -1,0 +1,18 @@
+{
+  "id": "g2-ecb-feed-6",
+  "item": {
+    "title": "Piero Cipollone: Cash and the digital euro: two sides of the same coin",
+    "source": "European Central Bank, central bank press feed",
+    "opening": ""
+  },
+  "label": {
+    "page_type": "news-story",
+    "categories": ["finance"],
+    "region": "eu"
+  },
+  "labelled_by": "opus-draft",
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/centralbank/ecb-feed.xml",
+    "change": null
+  }
+}

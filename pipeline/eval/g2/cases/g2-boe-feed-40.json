@@ -1,0 +1,18 @@
+{
+  "id": "g2-boe-feed-40",
+  "item": {
+    "title": "Delay to the November 2026 RTGS standards release",
+    "source": "Bank of England, central bank news feed",
+    "opening": "Bank of England statement"
+  },
+  "label": {
+    "page_type": "news-story",
+    "categories": ["finance"],
+    "region": "uk"
+  },
+  "labelled_by": "opus-draft",
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/centralbank/boe-feed.xml",
+    "change": null
+  }
+}

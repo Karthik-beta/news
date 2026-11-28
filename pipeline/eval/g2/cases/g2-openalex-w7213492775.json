@@ -1,0 +1,18 @@
+{
+  "id": "g2-openalex-w7213492775",
+  "item": {
+    "title": "Corporate Governance and Bank Behaviour: UK Bank Dataset, 2008–2021.",
+    "source": "OpenAlex, scholarly metadata (dataset)",
+    "opening": ""
+  },
+  "label": {
+    "page_type": "science",
+    "categories": ["science", "finance"],
+    "region": "uk"
+  },
+  "labelled_by": "opus-draft",
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/openalex/list-field20.json",
+    "change": null
+  }
+}

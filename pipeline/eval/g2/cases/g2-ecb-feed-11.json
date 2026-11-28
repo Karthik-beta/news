@@ -1,0 +1,18 @@
+{
+  "id": "g2-ecb-feed-11",
+  "item": {
+    "title": "ECB wage tracker suggests slightly higher wage growth in first three quarters of 2027 compared with the full year of 2026",
+    "source": "European Central Bank, central bank press feed",
+    "opening": ""
+  },
+  "label": {
+    "page_type": "macro-release",
+    "categories": ["economy", "jobs"],
+    "region": "eu"
+  },
+  "labelled_by": "opus-draft",
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/centralbank/ecb-feed.xml",
+    "change": null
+  }
+}

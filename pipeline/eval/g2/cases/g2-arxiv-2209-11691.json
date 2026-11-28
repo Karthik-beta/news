@@ -1,0 +1,18 @@
+{
+  "id": "g2-arxiv-2209-11691",
+  "item": {
+    "title": "Linear Multidimensional Regression with Interactive Fixed-Effects",
+    "source": "arXiv, preprint server",
+    "opening": "This paper studies a linear model for multidimensional panel data of three or more dimensions with unobserved interactive fixed-effects. The main estimator is a weighted-within transformation, which is Neyman orthogonal and requires one preliminary step. In that step, the model is embedded within a two-dimensional panel framework where factor model methods in Bai (2009) lead to consistent, but slowly converging, estimates that serve as proxies for the fixed-effects. The weighted-within transformation is robust to multidimensional interactive fixed-effects and achieves the parametric rate of consistency. The estimator is shown to be asymptotically normal. The methods are implemented to estimate the demand elasticity for beer."
+  },
+  "label": {
+    "page_type": "science",
+    "categories": ["science"],
+    "region": "global"
+  },
+  "labelled_by": "opus-draft",
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/arxiv/list-econ.xml",
+    "change": null
+  }
+}

@@ -1,6 +1,8 @@
 //! Binds each job kind's owner (from `news_dispatch::KINDS`) to its subsystem crate's handler.
 
+use news_core::NewsResult;
 use news_core::job::Handler;
+use std::path::PathBuf;
 
 pub fn handler_for_owner(owner: &str) -> Option<Handler> {
     Some(match owner {
@@ -19,10 +21,47 @@ pub fn handler_for_owner(owner: &str) -> Option<Handler> {
     })
 }
 
-/// Chief's step handlers, bound to their subsystem crates as job kinds are. None has landed yet
-/// (#15–#21), so every preset step is `NotBuilt` and a real run ends `failed` at its first step.
+/// What Audit says when no repository root can be found.
+const ROOT_UNSET: &str = "the repository root is not set: set NEWS_ROOT to the News repository, \
+    or run `news service install` from inside it (Audit reads pipeline/eval/)";
+
+/// The repository root Audit reads, in this order: `NEWS_ROOT`, the root `news service install`
+/// recorded, then `pipeline/eval/` at or above the working directory (`here`). A service starts in
+/// `C:\Windows\System32`, so only the first two can work there. A setting that names a folder
+/// without `pipeline/eval/` is an error, never skipped.
+pub fn audit_root(
+    env: Option<std::ffi::OsString>,
+    recorded: Option<PathBuf>,
+    here: impl FnOnce() -> NewsResult<PathBuf>,
+) -> Result<PathBuf, String> {
+    let set = env
+        .filter(|v| !v.is_empty())
+        .map(|v| ("NEWS_ROOT", PathBuf::from(v)))
+        .or_else(|| recorded.map(|p| ("the root `news service install` recorded", p)));
+    match set {
+        Some((_, p)) if p.join("pipeline/eval").is_dir() => Ok(p),
+        Some((what, p)) => Err(format!(
+            "{what} is {}, which has no pipeline/eval/",
+            p.display()
+        )),
+        None => here().map_err(|_| ROOT_UNSET.to_owned()),
+    }
+}
+
+/// Chief's step handlers, bound to their subsystem crates as job kinds are. Only Audit's have landed
+/// (#19); every other preset step is `NotBuilt`, so such a run ends `failed` at its first step. With
+/// no repository root Audit's steps are bound too, and fail saying so.
 pub fn step_handlers() -> news_chief::driver::Handlers {
-    news_chief::driver::Handlers::default()
+    let h = news_chief::driver::Handlers::default();
+    let env = std::env::var_os("NEWS_ROOT");
+    let recorded = news_service::install::recorded_root();
+    match audit_root(env, recorded, news_critic::golden::find_root) {
+        Ok(root) => news_critic::audit::register(h, root),
+        Err(message) => {
+            tracing::warn!("Audit cannot run: {message}");
+            news_critic::audit::register_unset(h, message)
+        }
+    }
 }
 
 /// The handler for a job kind, or `None` for an unknown kind.
@@ -33,6 +72,33 @@ pub fn resolve(kind: &str) -> Option<Handler> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use news_core::NewsError;
+
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn audit_root_prefers_the_setting_and_says_so_when_there_is_none() {
+        let repo = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
+        let elsewhere = || Ok(PathBuf::from("/elsewhere"));
+        // NEWS_ROOT beats the recorded root and the working directory.
+        let got = audit_root(
+            Some(repo.clone().into()),
+            Some("/recorded".into()),
+            elsewhere,
+        );
+        assert_eq!(got, Ok(repo.clone()));
+        // The recorded root beats the working directory.
+        assert_eq!(audit_root(None, Some(repo.clone()), elsewhere), Ok(repo));
+        // A setting that points at no repository is an error naming it, not a fall-through.
+        let bad = audit_root(Some("/no/such/repo".into()), None, elsewhere).unwrap_err();
+        assert!(
+            bad.contains("NEWS_ROOT") && bad.contains("pipeline/eval"),
+            "{bad}"
+        );
+        // Nothing set: the working directory's repository, or the clear error.
+        assert_eq!(audit_root(None, None, elsewhere), Ok("/elsewhere".into()));
+        let none = audit_root(None, None, || Err(NewsError::precondition("x"))).unwrap_err();
+        assert!(none.contains("repository root is not set") && none.contains("NEWS_ROOT"));
+    }
 
     #[test]
     fn every_kind_has_a_handler() {

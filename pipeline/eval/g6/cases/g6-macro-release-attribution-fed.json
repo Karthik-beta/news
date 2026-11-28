@@ -1,0 +1,14 @@
+{
+  "id": "g6-macro-release-attribution-fed",
+  "brief_case": "g1-macro-release-recorded",
+  "page": "# US consumer prices rise in {pd_2026_10}\n\nThe consumer price index for all urban consumers rose from the previous month.\n\nThe Consumer Price Index for All Urban Consumers stood at {dp_4yog6v5qhiqchdrb} in {pd_2026_10}, the Federal Reserve reported. That was up {dv_posldrq654yeigxx} from {dp_4gbuxf2ixs5amiee} in {pd_2026_09}.\n",
+  "fault": {
+    "kind": "attribution",
+    "where": "the Federal Reserve reported",
+    "note": "The index is published by the U.S. Bureau of Labor Statistics (the brief's entity), not the Federal Reserve."
+  },
+  "provenance": {
+    "from": "cli/crates/news-fixer/tests/golden/macro-release.json",
+    "change": "hand-written page in ref tokens with one seeded fault"
+  }
+}

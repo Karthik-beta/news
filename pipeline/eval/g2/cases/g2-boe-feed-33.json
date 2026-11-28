@@ -1,0 +1,18 @@
+{
+  "id": "g2-boe-feed-33",
+  "item": {
+    "title": "Exchange of letters between the Governor and the Chancellor regarding QT and the APF - September 2026",
+    "source": "Bank of England, central bank news feed",
+    "opening": "Exchange of letters between the Governor and the Chancellor"
+  },
+  "label": {
+    "page_type": "news-story",
+    "categories": ["economy", "monetary-policy"],
+    "region": "uk"
+  },
+  "labelled_by": "opus-draft",
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/centralbank/boe-feed.xml",
+    "change": null
+  }
+}

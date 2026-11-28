@@ -11,8 +11,6 @@ pub const STUBS: &[(&str, &str)] = &[
     ("discover --source fred", "#9"),
     ("fetch 81234", "#9"),
     ("parse 81234", "#9"),
-    ("eval run g1", "#19"),
-    ("eval report e1", "#19"),
     ("corrections pull", "#21"),
     ("corrections show c1", "#21"),
     ("corrections resolve c1 --action dismiss", "#21"),

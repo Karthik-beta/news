@@ -1,0 +1,14 @@
+{
+  "id": "g6-major-report-wrong-direction",
+  "brief_case": "g1-major-report-recorded",
+  "page": "# US GDP in {pd_2025}\n\nUS output in current dollars changed from {pd_2024}.\n\nUS GDP shrank {dv_kzlk4w44czg7dxrt} in current dollars, from {dp_2kkf6eorryn4eygg} in {pd_2024} to {dp_4stpfufc74tc24cy} in {pd_2025}.\n",
+  "fault": {
+    "kind": "wrong_direction",
+    "where": "GDP shrank {dv_kzlk4w44czg7dxrt}",
+    "note": "dv_kzlk4w44czg7dxrt is positive: GDP rose."
+  },
+  "provenance": {
+    "from": "cli/crates/news-fixer/tests/golden/major-report.json",
+    "change": "hand-written page in ref tokens with one seeded fault"
+  }
+}

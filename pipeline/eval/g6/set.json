@@ -1,0 +1,13 @@
+{
+  "set": "g6",
+  "name": "Seeded faults",
+  "suite": "spotcheck",
+  "version": 1,
+  "step": "A7",
+  "target_cases": 50,
+  "targets": {
+    "a7_recall": { "min": 0.7 },
+    "false_flag_rate": { "max": 0.1 }
+  },
+  "notes": "Pages with one injected fault each (wrong direction word, unsupported claim, misattributed quote, missing context), plus clean controls."
+}

@@ -1,0 +1,14 @@
+{
+  "id": "g6-science-unsupported-delay",
+  "brief_case": "g1-science-recorded",
+  "page": "# Artemis II lifts off from Kennedy Space Center\n\nNASA's Orion spacecraft launched atop the Space Launch System rocket on the first crewed mission of the agency's Artemis campaign.\n\nThe Artemis II test flight launched from NASA's Kennedy Space Center in Florida after a delay caused by a hydrogen leak. The mission will send NASA astronauts Reid Wiseman, Victor Glover and Christina Koch and Canadian Space Agency astronaut Jeremy Hansen on a journey around the Moon and back to Earth.\n",
+  "fault": {
+    "kind": "unsupported_claim",
+    "where": "after a delay caused by a hydrogen leak",
+    "note": "Nothing in the brief mentions a delay or its cause."
+  },
+  "provenance": {
+    "from": "cli/crates/news-fixer/tests/golden/science.json",
+    "change": "hand-written page in ref tokens with one seeded fault"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "id": "g2-boc-feed-6",
+  "item": {
+    "title": "Bank of Canada maintains the policy rate at 2¼%",
+    "source": "Bank of Canada, central bank press release feed",
+    "opening": "The Bank of Canada today held its target for the overnight rate at 2.25%, with the Bank Rate at 2.5% and the deposit rate at 2.20%."
+  },
+  "label": {
+    "page_type": "policy-decision",
+    "categories": ["economy", "monetary-policy"],
+    "region": "ca"
+  },
+  "labelled_by": "opus-draft",
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/centralbank/boc-feed.xml",
+    "change": null
+  }
+}

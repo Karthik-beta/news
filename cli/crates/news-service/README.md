@@ -23,6 +23,9 @@ news service uninstall           stop and remove the service, Board's log-on ent
 5. Creates `NewsBureau` (or updates it if it exists, which is how you change the stored password after changing your Windows password): runs `%ProgramFiles%\News\news.exe service run` as `.\<you>`, delayed automatic start, restart after 5 s, then 60 s, then 60 s, also after a deliberate non-zero exit (the update restart). The service keeps only `SeChangeNotifyPrivilege` (`SERVICE_CONFIG_REQUIRED_PRIVILEGES_INFO`); every other privilege is removed from its token and from the processes it starts.
 6. Lets your account query, start and stop the service without elevation (one access-list entry for your SID, added with `SetEntriesInAclW`), so Board's "Start service" works.
 7. Adds Board's log-on entry for the installed binary (`"%ProgramFiles%\News\news.exe" board --minimized`).
+8. Records the News repository root (`--root <path>`, default: the repository `install` is run from) in `%ProgramFiles%\News\repo-root`, in the same administrators-only folder. The service starts in `C:\Windows\System32`, so Audit finds `pipeline/eval/` through this file, not the working directory.
+
+Audit's repository root is, in order: `NEWS_ROOT` in the service's environment, the recorded `repo-root`, then `pipeline/eval/` at or above the working directory (console mode inside the repo). A setting that points at a folder without `pipeline/eval/` is an error. With none found the service logs a warning naming `NEWS_ROOT`, and every Audit step fails with "the repository root is not set". Run `install` again from the repository to change the recorded root.
 
 Board and `news run status` talk only to a Hotline served by the installed binary, and the service accepts H-tier commands only from Board running from it, so open Board from the installed path (the log-on entry does).
 

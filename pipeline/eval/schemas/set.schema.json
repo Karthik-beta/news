@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/pipeline/eval/schemas/set.schema.json",
+  "title": "Golden set manifest",
+  "description": "pipeline/eval/<set>/set.json: what the set is, which suite runs it and its starting targets (Bureau §9.1). Cases are pipeline/eval/<set>/cases/<id>.json.",
+  "type": "object",
+  "properties": {
+    "set": { "enum": ["g1", "g2", "g5", "g6"] },
+    "name": { "type": "string", "minLength": 1 },
+    "suite": { "enum": ["writer", "classify", "curator", "spotcheck"] },
+    "version": { "type": "integer", "minimum": 1 },
+    "step": { "type": "string", "pattern": "^A[0-9]{1,2}$" },
+    "target_cases": { "type": "integer", "minimum": 1 },
+    "targets": {
+      "type": "object",
+      "description": "Metric name to its bound; a metric meets its target when it is at least min and at most max.",
+      "additionalProperties": {
+        "type": "object",
+        "properties": { "min": { "type": "number" }, "max": { "type": "number" } },
+        "minProperties": 1,
+        "additionalProperties": false
+      }
+    },
+    "notes": { "type": "string" }
+  },
+  "required": ["set", "name", "suite", "version", "step", "target_cases", "targets"],
+  "additionalProperties": false
+}

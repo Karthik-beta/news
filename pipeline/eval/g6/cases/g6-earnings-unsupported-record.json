@@ -1,0 +1,14 @@
+{
+  "id": "g6-earnings-unsupported-record",
+  "brief_case": "g1-earnings-recorded",
+  "page": "# Apple's revenue and profit rise in fiscal year {pd_20250928_20260926}\n\nRevenue, net income and diluted earnings per share all rose from the previous fiscal year.\n\nApple Inc. reported revenue of {dp_kjfhexdo774vzbdy} for its fiscal year {pd_20250928_20260926}, up {dv_p2i5dzw4nh7n65e6} from {dp_r4zwqi6pratb2pgl} in fiscal year {pd_20240929_20250927}. That was the highest annual revenue in the company's history. Net income attributable to the company rose {dv_ybnfbllfvrimgdn5} to {dp_rurnaplntzkg2tzo}, from {dp_4naomxhk45ywoxbi}. The company's fiscal year ended on {pd_2026_09_26}.\n",
+  "fault": {
+    "kind": "unsupported_claim",
+    "where": "the highest annual revenue in the company's history",
+    "note": "No context line marks a record; the brief's revenue series covers only three fiscal years."
+  },
+  "provenance": {
+    "from": "cli/crates/news-fixer/tests/golden/earnings.json",
+    "change": "hand-written page in ref tokens with one seeded fault"
+  }
+}

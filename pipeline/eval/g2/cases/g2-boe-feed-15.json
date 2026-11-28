@@ -1,0 +1,18 @@
+{
+  "id": "g2-boe-feed-15",
+  "item": {
+    "title": "CMORG holds sector-wide cloud outage simulation exercise",
+    "source": "Bank of England, central bank news feed",
+    "opening": "The Cross-Market Operational Resilience Group (CMORG) yesterday (8 October 2026) completed its biennial simulation exercise, known as SIMEX26, focused this year on a global cloud services disruption."
+  },
+  "label": {
+    "page_type": "news-story",
+    "categories": ["finance"],
+    "region": "uk"
+  },
+  "labelled_by": "opus-draft",
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/centralbank/boe-feed.xml",
+    "change": null
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "id": "g2-oecd-cpi",
+  "item": {
+    "title": "Consumer price indices (CPIs, HICPs), COICOP 1999, United States",
+    "source": "OECD Data Explorer, statistical dataset",
+    "opening": "This dataset contains statistics on Consumer Price Indices by COICOP 1999 divisions, including national CPIs, Harmonised Indices of Consumer Prices (HICPs) and their associated weights and contributions to national year-on-year inflation. For countries for which data are already available according to the COICOP 2018 classification statistics on Consumer Price Indices can be found in dataset Consumer price indices (CPIs, HICPs), COICOP 2018. The data series presented have been chosen as the most relevant prices statistics for which comparable data across countries is available. Data are available monthly for all the countries except for Australia and New Zealand (quarterly data)."
+  },
+  "label": {
+    "page_type": "macro-release",
+    "categories": ["economy", "inflation"],
+    "region": "us"
+  },
+  "labelled_by": "opus-draft",
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/oecd/CPI.USA-history.json",
+    "change": "title is the dataset name followed by the reference-area name, both from the same file"
+  }
+}

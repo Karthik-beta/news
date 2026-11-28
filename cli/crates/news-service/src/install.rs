@@ -25,6 +25,9 @@ pub const SERVICE_NAME: &str = news_win::SERVICE_NAME;
 
 pub const DISPLAY_NAME: &str = "News Bureau";
 
+/// The file in the install folder that holds the repository root, for the service to read.
+const ROOT_FILE: &str = "repo-root";
+
 pub const DESCRIPTION: &str =
     "News Bureau: Chief, Rota and the Dispatch workers. Controlled from Board.";
 
@@ -52,6 +55,13 @@ pub fn install_paths() -> InstallPaths {
         .unwrap_or_else(|_| InstallPaths::under(Path::new(r"C:\Program Files")))
 }
 
+/// The repository root `install` recorded (the service starts in `C:\Windows\System32`, so it cannot
+/// find one from its working directory), if any.
+pub fn recorded_root() -> Option<PathBuf> {
+    let text = std::fs::read_to_string(install_paths().dir.join(ROOT_FILE)).ok()?;
+    Some(PathBuf::from(text.trim())).filter(|p| !p.as_os_str().is_empty())
+}
+
 /// `exe` is the installed binary, never the one `install` was run from.
 pub fn spec(exe: &Path, account: &str) -> ServiceSpec {
     ServiceSpec {
@@ -70,13 +80,14 @@ pub fn board_command(exe: &Path) -> String {
 }
 
 /// What `install` would do; never includes a password.
-pub fn plan(spec: &ServiceSpec, source: &Path) -> Value {
+pub fn plan(spec: &ServiceSpec, source: &Path, root: Option<&Path>) -> Value {
     json!({
         "dry_run": true,
         "service": spec.name,
         "display_name": spec.display_name,
         "copy_from": source,
         "binary": spec.exe,
+        "repo_root": root,
         "arguments": spec.args.join(" "),
         "account": spec.account,
         "start": "automatic (delayed)",
@@ -92,6 +103,7 @@ pub fn plan(spec: &ServiceSpec, source: &Path) -> Value {
             "create the service, or update it when it exists (this is how the password is changed)",
             "keep only SeChangeNotifyPrivilege in the service's token",
             "let the account query, start and stop the service without elevation",
+            "record the repository root (repo_root) in the install folder, for Audit to read",
             "add Board's log-on entry for the account: the installed binary, board --minimized",
         ],
         "text": format!(
@@ -112,6 +124,9 @@ pub struct InstallArgs {
     /// Set by the elevated re-launch: pause at the end so its window can be read.
     pub elevated: bool,
     pub account: Option<String>,
+    /// The News repository Audit reads, recorded in the install folder (the caller defaults it to the
+    /// repository `install` was run from). Absolute, with `pipeline/eval/`.
+    pub root: Option<PathBuf>,
     /// The invoking user's SID, passed to the elevated copy (which may run under another token).
     pub sid: Option<String>,
 }
@@ -155,10 +170,11 @@ pub fn install(a: &InstallArgs) -> Result<Value, NewsError> {
             "the account name is empty, too long, or has a quote or a control character",
         ));
     }
+    let root = check_root(a.root.as_deref())?;
     let paths = install_paths();
     let spec = spec(&paths.exe, &account);
     if a.dry_run {
-        return Ok(plan(&spec, &source));
+        return Ok(plan(&spec, &source, root));
     }
     if !cfg!(windows) {
         return Err(NewsError::precondition(
@@ -176,7 +192,11 @@ pub fn install(a: &InstallArgs) -> Result<Value, NewsError> {
             )));
         }
         println!("Windows will ask for permission to continue as administrator.");
-        let args = format!("service install --elevated --account \"{account}\" --sid \"{sid}\"");
+        let mut args =
+            format!("service install --elevated --account \"{account}\" --sid \"{sid}\"");
+        if let Some(r) = root {
+            args += &format!(" --root \"{}\"", r.display());
+        }
         let code = news_win::relaunch_elevated(&source, &args)
             .map_err(|e| io("could not start the elevated install", e))?;
         if code != 0 {
@@ -191,9 +211,30 @@ pub fn install(a: &InstallArgs) -> Result<Value, NewsError> {
                              Board, or with `news service start`.", paths.exe.display())}),
         );
     }
-    let result = install_elevated(&spec, &sid, &source, &paths);
+    let result = install_elevated(&spec, &sid, &source, &paths, root);
     pause_if(a.elevated, &result);
     result
+}
+
+/// `--root` must be an absolute folder holding `pipeline/eval/`, and fit in the elevated command line.
+fn check_root(root: Option<&Path>) -> Result<Option<&Path>, NewsError> {
+    let Some(r) = root else { return Ok(None) };
+    if !r.is_absolute() || !r.join("pipeline/eval").is_dir() || r.to_string_lossy().contains('"') {
+        return Err(NewsError::usage(format!(
+            "{} is not an absolute path to the News repository (no pipeline/eval/ in it)",
+            r.display()
+        )));
+    }
+    Ok(Some(r))
+}
+
+/// Write the root into the admin-only install folder, so only an administrator can change it.
+fn record_root(root: &Path, p: &InstallPaths) -> Result<(), NewsError> {
+    let f = p.dir.join(ROOT_FILE);
+    std::fs::write(&f, root.to_string_lossy().as_bytes())
+        .map_err(|e| io(&format!("cannot write {}", f.display()), e))?;
+    news_win::make_admin_only(&f, false)
+        .map_err(|e| io(&format!("cannot restrict {}", f.display()), e))
 }
 
 /// The elevated install's check of what the command line said: the SID is a user account's, and the
@@ -255,6 +296,7 @@ fn install_elevated(
     sid: &str,
     source: &Path,
     paths: &InstallPaths,
+    root: Option<&Path>,
 ) -> Result<Value, NewsError> {
     check_account(&spec.account, sid)?;
     // NUL-terminated UTF-16 in one buffer, zeroed when it is dropped (on every path out of here).
@@ -270,6 +312,9 @@ fn install_elevated(
         ));
     }
     install_binary(source, paths)?;
+    if let Some(r) = root {
+        record_root(r, paths)?;
+    }
     news_win::grant_service_logon(sid).map_err(|e| io("cannot grant 'Log on as a service'", e))?;
     news_win::scm::install(spec, Some(&password))
         .map_err(|e| io("cannot register the service", e))?;
@@ -446,8 +491,13 @@ mod tests {
     #[test]
     fn the_dry_run_names_the_plan_and_never_a_password() {
         let s = spec(Path::new(r"C:\news\news.exe"), r".\Admin");
-        let v = plan(&s, Path::new(r"C:\src\news\cli\target\release\news.exe"));
+        let v = plan(
+            &s,
+            Path::new(r"C:\src\news\cli\target\release\news.exe"),
+            None,
+        );
         assert_eq!(s.args, ["service", "run"]);
+        assert!(v["steps"].to_string().contains("repository root"));
         assert_eq!(v["account"], r".\Admin");
         assert_eq!(v["dry_run"], true);
         let text = v.to_string().to_lowercase();

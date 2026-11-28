@@ -1,0 +1,18 @@
+{
+  "id": "g2-boe-feed-22",
+  "item": {
+    "title": "Appointment of members of the Enforcement Decision Making Committee (EDMC)",
+    "source": "Bank of England, central bank news feed",
+    "opening": "Following an external recruitment process, the Bank of England has appointed Carlos Conceicao and Alexander Justham as members of its Enforcement Decision Making Committee, with effect from September 2026."
+  },
+  "label": {
+    "page_type": "news-story",
+    "categories": ["finance"],
+    "region": "uk"
+  },
+  "labelled_by": "opus-draft",
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/centralbank/boe-feed.xml",
+    "change": null
+  }
+}
