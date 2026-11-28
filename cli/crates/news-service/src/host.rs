@@ -53,7 +53,13 @@ pub struct Options {
     pub worker_id: String,
     /// `service.update`: the caller keeps a clone and reads `restart_requested()` after `run` returns.
     pub update: Arc<UpdateGate>,
+    /// Called once the database is migrated and before any job is claimed, with the pool and the root
+    /// marker job (Windows): it installs the handlers that need them (Ghost, Rewrite).
+    pub on_connect: Option<OnConnect>,
 }
+
+/// See [`Options::on_connect`].
+pub type OnConnect = Arc<dyn Fn(&sqlx::PgPool, Option<Arc<news_win::Job>>) + Send + Sync>;
 
 impl Options {
     pub fn new(db: DbConfig, resolve: Resolver) -> Self {
@@ -66,6 +72,7 @@ impl Options {
             clock: Arc::new(SystemClock),
             worker_id: format!("bureau-{}", std::process::id()),
             update: Arc::new(UpdateGate::default()),
+            on_connect: None,
         }
     }
 }
@@ -101,6 +108,8 @@ pub async fn run(opts: Options, shutdown: impl Future<Output = ()>) -> Result<()
     );
     #[cfg(windows)]
     let marker = news_win::Job::root().ok().map(Arc::new);
+    #[cfg(not(windows))]
+    let marker: Option<Arc<news_win::Job>> = None;
     #[cfg(windows)]
     hotline::listen(&opts.pipe, bureau.clone(), marker.clone()).map_err(|e| {
         NewsError::precondition(format!("cannot open the Hotline {}: {e}", opts.pipe))
@@ -112,7 +121,7 @@ pub async fn run(opts: Options, shutdown: impl Future<Output = ()>) -> Result<()
         state.set(ServiceState::WaitingForDatabase);
         let mut up = tokio::select! {
             () = &mut shutdown => return Ok(()),
-            r = connect(&opts, &bureau, &active, &say) => r?,
+            r = connect(&opts, &bureau, &active, marker.clone(), &say) => r?,
         };
         state.set(ServiceState::Up);
         say("info", "Bureau service up");
@@ -156,6 +165,7 @@ async fn connect(
     opts: &Options,
     bureau: &Arc<Bureau>,
     active: &ActiveJobs,
+    marker: Option<Arc<news_win::Job>>,
     say: &impl Fn(&str, &str),
 ) -> Result<Up, NewsError> {
     let pool = loop {
@@ -194,6 +204,9 @@ async fn connect(
         .handlers(opts.handlers.clone())
         .emit(emit.clone())
         .build();
+    if let Some(install) = &opts.on_connect {
+        install(&pool, marker);
+    }
     let recovered = chief.recover().await?;
     say("info", &format!("recovered: {recovered}"));
     let rota = Rota::new(

@@ -14,7 +14,7 @@ fn fixture(name: &str) -> PathBuf {
 
 /// An HTTP server whose /check says the .oui parses. Its literals are the one string the validators must see in
 /// copy-digits.json's .oui (an unknown ref); a real Plate lists every literal it parsed.
-fn fake_plate() -> String {
+pub(super) fn fake_plate() -> String {
     use std::io::{Read, Write};
     let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
     let url = format!("http://{}", listener.local_addr().unwrap());

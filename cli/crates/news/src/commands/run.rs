@@ -69,6 +69,7 @@ async fn host(shutdown: impl std::future::Future<Output = ()>) -> NewsResult<boo
     let cfg = news_store::DbConfig::from_env()?;
     let mut opts = news_service::host::Options::new(cfg, news::registry::resolve);
     opts.handlers = news::registry::step_handlers();
+    opts.on_connect = Some(std::sync::Arc::new(news::registry::install_service_ai));
     let update = opts.update.clone();
     news_service::host::run(opts, shutdown).await?;
     Ok(update.restart_requested())
