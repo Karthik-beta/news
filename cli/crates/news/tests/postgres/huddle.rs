@@ -389,7 +389,7 @@ async fn the_debrief_of_a_fixture_database_is_the_golden_text() {
 }
 
 /// The Bureau service's Hotline side over `chief`, up and connected to the fixture database.
-fn bureau(f: &Fixture, chief: Chief) -> Arc<Bureau> {
+pub(super) fn bureau(f: &Fixture, chief: Chief) -> Arc<Bureau> {
     let state = Arc::new(news_service::State::default());
     state.set(news_chief::board::ServiceState::Up);
     let bureau = Arc::new(Bureau::new(
@@ -407,7 +407,7 @@ fn bureau(f: &Fixture, chief: Chief) -> Arc<Bureau> {
 }
 
 /// One Hotline request from `peer`; a reply that succeeded is checked against its contract.
-async fn hotline(bureau: &Arc<Bureau>, peer: Peer, cmd: &str, args: Value) -> Value {
+pub(super) async fn hotline(bureau: &Arc<Bureau>, peer: Peer, cmd: &str, args: Value) -> Value {
     let svc: Arc<dyn Service> = bureau.clone();
     let (mut client, server) = tokio::io::duplex(1 << 20);
     let h = tokio::spawn(news_hotline::serve_conn(server, peer, svc));
@@ -479,6 +479,11 @@ async fn to_change_gate(f: &Fixture) -> (Arc<Bureau>, Chief, String, Value) {
     })
     .await;
     assert_eq!(form["round"], 1);
+    // Board recomputes the hash from the form it shows: it must equal the one the service stored.
+    assert_eq!(
+        news_core::tier::hex(&news_core::tier::form_sha(&form["form"])),
+        form["form_sha"].as_str().unwrap()
+    );
     let questions = form["form"]["questions"].as_array().unwrap().clone();
     assert!(questions.len() >= 10 && questions.len() <= 30, "{form}");
     assert_eq!(

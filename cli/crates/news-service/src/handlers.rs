@@ -380,6 +380,17 @@ pub async fn h_command(
                       "text": format!("Form {} of {} submitted; the run is {}.", a.form, r.short_id, status.as_str())}),
             )
         }
+        "eval.label" => {
+            let item = args["item"].as_str().unwrap_or_default();
+            match args["kind"].as_str() {
+                Some("judge") => {
+                    let judge = args["judge"].as_str().unwrap_or_default();
+                    news_critic::labels::label_judge(&core.db, judge, item, args["pass"] == true)
+                        .await
+                }
+                _ => news_critic::labels::label_pair(&core.db, item, args["same"] == true).await,
+            }
+        }
         "huddle.answer" => {
             let labels = news_nose::huddle::parse_labels(args)?;
             let stored = news_nose::huddle::store_labels(&core.db, run, &labels).await?;

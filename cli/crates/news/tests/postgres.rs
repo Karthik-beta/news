@@ -46,6 +46,8 @@ mod ghost;
 mod home;
 #[path = "postgres/huddle.rs"]
 mod huddle;
+#[path = "postgres/labels.rs"]
+mod labels;
 #[path = "postgres/migrations.rs"]
 mod migrations;
 #[path = "postgres/nose.rs"]

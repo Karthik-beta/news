@@ -1281,7 +1281,7 @@ The first design's `news run intent`, `next`, `submit`, `hook-prompt` and `ticke
 
 **Roster tools** (`news entities …`): `resolve <text> [--kind k]` (R), `show <entity>` (R), `unresolved` (R), `alias add|merge` (H).
 
-**Critic tools** (`news eval …`): `run <suite> [--prompt-version v]` (W, spends tokens only for AI suites, under the run budget), `report <eval_run>` (R), `label <set>` (interactive labelling helper; H), `promote <step> <prompt_version>` (G).
+**Critic tools** (`news eval …`): `run <suite> [--prompt-version v]` (W, spends tokens only for AI suites, under the run budget), `report <eval_run>` (R), `draft [--pairs n]` (W; stores the outputs the judges are checked on and G3 story pairs for Board to show, never a label), `export` (W; writes Karthik's labels into `pipeline/eval/g3/` and the judges' rates into `pipeline/eval/judges.md`, every figure computed from the database), `promote <step> <prompt_version>` (G). Labelling itself is H tier, so it has no CLI form: Board's Labelling screen sends `eval.label` over the Hotline (`eval.items` reads the next items).
 
 **Huddle tools** (`news review …`): `weekly` (the Debrief: coverage vs targets, top rejected stories, failures, tokens per page, index budget, curation age; R).
 
@@ -1384,6 +1384,7 @@ Control comes first; later screens land in Board as their features are built.
 | --- | --- | --- |
 | 1 | **Runs & approvals** | The status board (below): running, waiting, queued, due, problems, next. Start a preset (a form with its arguments), pause, resume, cancel; answer gates (Approve, Request changes with a note, Reject) with the plan, draft or preview in view; run detail and the Wrap; the Lineup |
 | 1 | **Settings & schedules** | Preset schedules; targets (`NEWS_TARGET_PAGES` and the other settings in TD "Configuration"); parallelism; budgets; the Bureau token cap and reserve (§7.4); quiet hours (§5.6); models per step; sources on and off. Every change is a new settings version with who, when, and old and new value. Secrets are entered here and stored in Windows Credential Manager |
+| 1 | **Labelling** | Karthik's labels, one item on screen: an A12 judge's failure mode (Pass or Fail on a stored output, about 100 per judge) or a G3 story pair (Same story or Different). Items hold no verdict, seeded fault or cosine, and their ids are opaque, so a label is blind (§9.1). Huddle's calibration form shows under its run in Runs & approvals and answers with `form.submit`, bound to the round and the hash of the form as displayed |
 | 1 | **Docker health** | Health of the News containers (PostgreSQL, the OTel collector) with Start and Stop; the shared ClickHouse is health-checked only, never stopped |
 | 2 | **Service log and AI calls** | A live service log, and one record per `claude -p` call: step, model, tokens, time, result, error, with its brief and output viewable (from `ai_calls`, §9.2) |
 | 3 | **Content & sources** | Stories and their scores (the Pitch), pages, source health, the Diary, dead jobs with retry |
@@ -1754,7 +1755,7 @@ Run by the Dispatch workers inside the Bureau service, which is always on (ADR 0
 | G6 Seeded faults | 50 pages with one injected fault each (wrong direction word, unsupported claim, misattributed quote, missing context) | A7 recall ≥ 0.7; false flags ≤ 10 % |
 | G7 Entities | 300 labelled mentions | Precision ≥ 0.99 |
 
-**Judges (A12).** One binary judge per failure mode, never a 1–10 score; order randomised and a reference given, because LLM judges show position, verbosity and self-preference biases [59]; a different model from the generator where possible [60]; each judge checked against ~100 of Karthik's labels for true-positive and true-negative rates before it is trusted [61].
+**Judges (A12).** One binary judge per failure mode, never a 1–10 score; order randomised and a reference given, because LLM judges show position, verbosity and self-preference biases [59]; a different model from the generator where possible [60]; each judge checked against ~100 of Karthik's labels for true-positive and true-negative rates before it is trusted [61]. Karthik labels in Board (`eval.label`); `news eval export` computes the rates from the labels and the judge's verdicts into `pipeline/eval/judges.md`. G3's labels are exported the same way as `pipeline/eval/g3/`, and its join threshold is computed from them.
 
 **Prompt and model changes** go through the Audit workflow and are promoted only by approval; each AI output stores `prompt_version` and model, so regressions are traceable.
 

@@ -13,6 +13,7 @@ news-dispatch = { workspace = true }
 news-home = { workspace = true }
 news-nose = { workspace = true }
 news-standing = { workspace = true }
+news-taster = { workspace = true }
 news-store = { workspace = true }
 chrono = { workspace = true }
 jsonschema = { workspace = true }

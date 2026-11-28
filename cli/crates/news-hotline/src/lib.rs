@@ -629,7 +629,7 @@ mod tests {
     fn every_contract_compiles_and_registers_its_tier() {
         let c = contracts();
         assert!(c.complete());
-        assert_eq!(c.commands().count(), 28);
+        assert_eq!(c.commands().count(), 30);
         for (name, tier) in [
             ("status", Tier::R),
             ("standing.get", Tier::R),
@@ -640,6 +640,8 @@ mod tests {
             ("huddle.answer", Tier::H),
             ("huddle.questions", Tier::R),
             ("form.submit", Tier::H),
+            ("eval.items", Tier::R),
+            ("eval.label", Tier::H),
             ("home.rollback", Tier::H),
         ] {
             assert_eq!(c.command(name).unwrap().tier, tier, "{name}");
@@ -914,6 +916,44 @@ mod tests {
             assert_eq!(env["error"]["code"], "usage", "{env}");
         }
         let env = round_trip(Peer::board(), "form.submit", args).await;
+        assert_eq!(env["ok"], true, "{env}");
+    }
+
+    #[tokio::test]
+    async fn eval_label_is_board_only_and_a_label_must_name_its_kind() {
+        let judge = json!({"kind": "judge", "judge": "tone", "item": "j0123456789", "pass": false});
+        let pair = json!({"kind": "pair", "item": "g3-c1-s2", "same": true});
+        let terminal = Peer {
+            argv1_is_board: false,
+            ..Peer::board()
+        };
+        for args in [judge.clone(), pair.clone()] {
+            let env = round_trip(terminal.clone(), "eval.label", args.clone()).await;
+            assert_eq!(env["error"]["details"]["refusal"], "not_board", "{env}");
+            assert_eq!(error_code(&env).map(ErrorCode::exit_code), Some(7));
+            let env = round_trip(Peer::board(), "eval.label", args).await;
+            assert_eq!(env["ok"], true, "{env}");
+        }
+        // A judge that does not exist, a pair label with a judge, and a label with no verdict are refused.
+        let mut other = judge.clone();
+        other["judge"] = json!("vibes");
+        let mut mixed = pair.clone();
+        mixed["judge"] = json!("tone");
+        for bad in [
+            other,
+            mixed,
+            json!({"kind": "judge", "judge": "tone", "item": "j1"}),
+        ] {
+            let env = round_trip(Peer::board(), "eval.label", bad).await;
+            assert_eq!(env["error"]["code"], "usage", "{env}");
+        }
+        // Reading the next items is not a label: a terminal may.
+        let env = round_trip(
+            terminal,
+            "eval.items",
+            json!({"kind": "judge", "judge": "tone"}),
+        )
+        .await;
         assert_eq!(env["ok"], true, "{env}");
     }
 

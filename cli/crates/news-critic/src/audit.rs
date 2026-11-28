@@ -120,6 +120,8 @@ fn missing(root: &Path, suite: &str, version: &str) -> Result<Vec<String>, StepE
     Ok(golden::sets_of(suite)
         .map_err(step_err)?
         .iter()
+        // G3 is scored from Karthik's labels, so it has no outputs to be missing.
+        .filter(|set| **set != "g3")
         .filter(|set| {
             matches!(golden::outputs(root, set, version), Err(e) if e.code == ErrorCode::NotFound)
         })
