@@ -54,7 +54,7 @@ async fn page(pool: &PgPool, id: &str, status: &str, refs: &[&str]) {
     }
 }
 
-async fn seed(f: &Fixture) {
+pub(super) async fn seed(f: &Fixture) {
     sqlx::raw_sql(
         "insert into sources (source_id, name, publisher, connector, base_url, source_tier, licence, attribution,
                               redistribution, image_policy, rate_per_sec, regions, categories)
