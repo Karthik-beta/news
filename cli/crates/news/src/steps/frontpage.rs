@@ -187,13 +187,20 @@ async fn draft(ctx: &Ctx, cx: &StepCx) -> Result<StepOutcome, StepError> {
         };
         match state.as_str() {
             "completed" => {}
-            "discarded" => {
+            // A cancelled call (Chief cancels `ai` jobs at the token cap) has no result either;
+            // waiting on it would re-enter this step forever.
+            "discarded" | "cancelled" => {
+                let fallback = if state == "cancelled" {
+                    ErrorClass::AiUsageLimit
+                } else {
+                    ErrorClass::Bug
+                };
                 return Err(StepError::Fail {
                     class: class
                         .as_deref()
                         .and_then(|c| c.parse().ok())
-                        .unwrap_or(ErrorClass::Bug),
-                    message: format!("the curator call failed ({key})"),
+                        .unwrap_or(fallback),
+                    message: format!("the curator call was {state} ({key})"),
                 });
             }
             _ => return Ok(StepOutcome::Wait),

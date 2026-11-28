@@ -559,4 +559,147 @@ async fn followup_finds_classifies_and_queues_the_a1_update_for_the_direction_fl
         .await,
         "skipped"
     );
+
+    // Chief cancels the `ai` jobs at the token cap: the update is dead, not waited on or queued again.
+    let mut conn = f.pool.acquire().await.unwrap();
+    news_dispatch::queue::cancel_run_jobs(&mut conn, run.run_id, None, Some("ai"))
+        .await
+        .unwrap();
+    drop(conn);
+    wait_status(&f, run.run_id, "succeeded").await;
+    let update: Value = sqlx::query_scalar::<_, Value>(sqlx::AssertSqlSafe(format!(
+        "select output from run_steps where run_id = '{}' and step = 'update'",
+        run.run_id
+    )))
+    .fetch_one(&f.pool)
+    .await
+    .unwrap();
+    assert_eq!(update["dead"], 1, "a cancelled update counts as dead");
+    assert_eq!(
+        f.scalar_i64(&format!(
+            "select count(*) from jobs where run_id = '{}' and kind = 'ai.write'",
+            run.run_id
+        ))
+        .await,
+        1,
+        "the cancelled update is not queued again"
+    );
+}
+
+/// Opens the `bulk` gate whatever the page count, so a test needs no 101 pages.
+struct BulkGate;
+impl StepHandler for BulkGate {
+    fn run<'a>(&'a self, cx: &'a mut StepCx) -> BoxFut<'a, Result<StepOutcome, StepError>> {
+        Box::pin(async move {
+            let c = cx.outputs.get("classify").cloned().unwrap_or_default();
+            Ok(StepOutcome::OpenGates(vec![
+                news::steps::followup::bulk_gate(&c["pages"], &c["counts"]),
+            ]))
+        })
+    }
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres"]
+async fn followup_rejected_at_the_bulk_gate_queues_no_a1_update() {
+    let f = Fixture::migrated().await;
+    super::rewrite::seed(&f).await;
+    let story: i64 = sqlx::query_scalar(
+        "insert into stories (event_key, first_seen, last_seen) values ('e-flip', now(), now()) returning story_id",
+    )
+    .fetch_one(&f.pool)
+    .await
+    .unwrap();
+    sqlx::query("update pages set story_id = $1 where page_id = 'p-flip'")
+        .bind(story)
+        .execute(&f.pool)
+        .await
+        .unwrap();
+    let handlers = news::steps::register_unset(Handlers::default(), "no root".into())
+        .with("followup.bulk_review", Arc::new(BulkGate))
+        .with("followup.rerender", Arc::new(Done))
+        .with("followup.publish", Arc::new(Done));
+    let ch = chief(&f, handlers);
+    let run = ch
+        .start(StartReq::board("followup", Map::new(), IfBusy::Offer))
+        .await
+        .unwrap()
+        .run()
+        .clone();
+    ch.ensure_drivers().await.unwrap();
+    wait_status(&f, run.run_id, "waiting_approval").await;
+    let g = open_gate(&f, run.run_id).await;
+    assert_eq!(g.0, "bulk");
+    answer(&ch, &run.short_id, &g, Decision::Rejected, None).await;
+    wait_status(&f, run.run_id, "succeeded").await;
+    assert_eq!(
+        f.scalar_i64(&format!(
+            "select count(*) from jobs where run_id = '{}' and kind = 'ai.write'",
+            run.run_id
+        ))
+        .await,
+        0,
+        "a rejected bulk change queues no A1 update"
+    );
+    assert_eq!(
+        f.scalar_str(&format!(
+            "select status from run_steps where run_id = '{}' and step = 'update'",
+            run.run_id
+        ))
+        .await,
+        "skipped"
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres"]
+async fn frontpage_fails_when_the_curator_call_is_cancelled_at_the_cap() {
+    let f = Fixture::migrated().await;
+    super::home::seed(&f).await;
+    let root = std::env::temp_dir().join(format!("news-presets-{}", f.schema));
+    std::fs::create_dir_all(root.join("work/home")).unwrap();
+    let ctx = Ctx {
+        root: root.clone(),
+        preview_base: "http://127.0.0.1:9".into(),
+        home: Arc::new(FakeHome::default()),
+    };
+    let ch = chief(&f, news::steps::register(Handlers::default(), ctx));
+    // No worker runs the `ai` pool: the curator call stays queued until Chief cancels it.
+    let run = ch
+        .start(StartReq::board("frontpage", Map::new(), IfBusy::Offer))
+        .await
+        .unwrap()
+        .run()
+        .clone();
+    ch.ensure_drivers().await.unwrap();
+    wait_status(&f, run.run_id, "waiting_ai").await;
+    let mut conn = f.pool.acquire().await.unwrap();
+    news_dispatch::queue::cancel_run_jobs(&mut conn, run.run_id, None, Some("ai"))
+        .await
+        .unwrap();
+    drop(conn);
+    wait_status(&f, run.run_id, "failed").await;
+    assert_eq!(
+        f.scalar_str(&format!(
+            "select status from run_steps where run_id = '{}' and step = 'draft'",
+            run.run_id
+        ))
+        .await,
+        "failed"
+    );
+    assert_eq!(
+        f.scalar_i64(&format!(
+            "select count(*) from jobs where run_id = '{}' and kind = 'ai.write'",
+            run.run_id
+        ))
+        .await,
+        1,
+        "the cancelled call is not queued again"
+    );
+    assert_eq!(
+        f.scalar_i64("select count(*) from home_curations").await,
+        0,
+        "no draft was saved"
+    );
+    let _ = std::fs::remove_dir_all(&root);
 }

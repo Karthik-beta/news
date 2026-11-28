@@ -149,9 +149,23 @@ impl StepHandler for Followup {
     }
 }
 
+/// Whether Board rejected the change at the `bulk` gate. Every step after it that changes a page
+/// (`update`, and `rerender` and `publish` once built) skips when it is.
+fn bulk_rejected(cx: &StepCx) -> bool {
+    cx.outputs
+        .get("bulk_review")
+        .and_then(|r| r["decisions"].as_array())
+        .is_some_and(|d| d.iter().any(|x| x["decision"] == "rejected"))
+}
+
 /// A1 update jobs (`ai.write`, mode `update`) for the direction flips, one per page, keyed by page,
 /// version and diff, so a re-entered step queues only what is missing. Waits for them to finish.
 async fn update_flips(cx: &StepCx) -> Result<StepOutcome, StepError> {
+    if bulk_rejected(cx) {
+        return Ok(StepOutcome::Skip(
+            "the bulk change was rejected in Board; no page is updated".into(),
+        ));
+    }
     let only = named(cx, "classify");
     let flips: Vec<PagePlan> = plans(cx, Some(&only))
         .await?
@@ -171,8 +185,8 @@ async fn update_flips(cx: &StepCx) -> Result<StepOutcome, StepError> {
             });
         };
         let job = update::update_job(p, &story.to_string());
-        // A job of this run that already ran, even one that failed, is not queued again: a failed
-        // update goes to the dead list for Salvage, it does not loop here.
+        // A job of this run that already ran, even one that failed or was cancelled, is not queued
+        // again: a failed update goes to the dead list for Salvage, it does not loop here.
         let known: bool = sqlx::query_scalar(
             "select exists (select 1 from jobs where run_id = $1 and unique_key = $2)",
         )
@@ -198,8 +212,10 @@ async fn update_flips(cx: &StepCx) -> Result<StepOutcome, StepError> {
     if live > 0 {
         return Ok(StepOutcome::Wait);
     }
+    // A cancelled update (Chief cancels `ai` jobs at the token cap) is as dead as a discarded one.
     let dead: i64 = sqlx::query_scalar(
-        "select count(*) from jobs where run_id = $1 and step_seq = $2 and state = 'discarded'",
+        "select count(*) from jobs where run_id = $1 and step_seq = $2
+            and state in ('discarded', 'cancelled')",
     )
     .bind(cx.run_id)
     .bind(cx.seq)
