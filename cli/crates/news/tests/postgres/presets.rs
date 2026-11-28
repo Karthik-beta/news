@@ -26,7 +26,7 @@ fn t0() -> DateTime<Utc> {
     super::home::now()
 }
 
-fn chief(f: &Fixture, handlers: Handlers) -> Chief {
+pub(super) fn chief(f: &Fixture, handlers: Handlers) -> Chief {
     Chief::builder(f.pool.clone(), Arc::new(ManualClock::new(t0())))
         .handlers(handlers)
         .build()
@@ -37,7 +37,7 @@ async fn status(f: &Fixture, id: Uuid) -> String {
         .await
 }
 
-async fn wait_status(f: &Fixture, id: Uuid, want: &str) {
+pub(super) async fn wait_status(f: &Fixture, id: Uuid, want: &str) {
     for _ in 0..400 {
         let st = status(f, id).await;
         if st == want {
@@ -60,7 +60,7 @@ async fn wait_status(f: &Fixture, id: Uuid, want: &str) {
 }
 
 /// The one open gate of a run: (name, round, subject hash).
-async fn open_gate(f: &Fixture, id: Uuid) -> (String, i16, String) {
+pub(super) async fn open_gate(f: &Fixture, id: Uuid) -> (String, i16, String) {
     sqlx::query_as(sqlx::AssertSqlSafe(format!(
         "select gate, round, encode(subject_sha, 'hex') from gates where run_id = '{id}' and answered_at is null"
     )))
@@ -69,7 +69,7 @@ async fn open_gate(f: &Fixture, id: Uuid) -> (String, i16, String) {
     .unwrap()
 }
 
-async fn answer(
+pub(super) async fn answer(
     ch: &Chief,
     short: &str,
     g: &(String, i16, String),
@@ -152,7 +152,7 @@ async fn a_scheduled_edition_runs_without_a_gate_and_stops_at_plan_with_review_p
     ]
     .into_iter()
     .fold(
-        news::steps::edition::register(Handlers::default()),
+        news::steps::register_unset(Handlers::default(), "no root".into()),
         |h, s| h.with(&format!("edition.{s}"), Arc::new(Done)),
     )
     .with("edition.publish", Arc::new(Authorised));
@@ -356,6 +356,7 @@ async fn frontpage_runs_end_to_end_with_a_fix_round_changes_approval_and_rejecti
         root: root.clone(),
         preview_base: preview_server(),
         home: home.clone(),
+        ..super::pages::ctx(&root, super::pages::tools(), super::pages::api())
     };
     let ch = chief(&f, news::steps::register(Handlers::default(), ctx));
     // The `ai` pool, run by a worker whose handler is the fake curator.
@@ -673,6 +674,7 @@ async fn frontpage_fails_when_the_curator_call_is_cancelled_at_the_cap() {
         root: root.clone(),
         preview_base: "http://127.0.0.1:9".into(),
         home: Arc::new(FakeHome::default()),
+        ..super::pages::ctx(&root, super::pages::tools(), super::pages::api())
     };
     let ch = chief(&f, news::steps::register(Handlers::default(), ctx));
     // No worker runs the `ai` pool: the curator call stays queued until Chief cancels it.
@@ -725,5 +727,43 @@ async fn frontpage_fails_when_the_curator_call_is_cancelled_at_the_cap() {
         0,
         "no draft was saved"
     );
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres"]
+async fn followup_rejected_at_the_bulk_gate_skips_rerender_update_and_publish() {
+    let f = Fixture::migrated().await;
+    super::rewrite::seed(&f).await;
+    let root = std::env::temp_dir().join(format!("news-presets-{}", f.schema));
+    std::fs::create_dir_all(root.join("work")).unwrap();
+    // The real steps, with the bulk gate forced open: a rejection must stop all three.
+    let ctx = super::pages::ctx(&root, super::pages::tools(), super::pages::api());
+    let handlers = news::steps::register(Handlers::default(), ctx)
+        .with("followup.bulk_review", Arc::new(BulkGate));
+    let ch = chief(&f, handlers);
+    let run = ch
+        .start(StartReq::board("followup", Map::new(), IfBusy::Offer))
+        .await
+        .unwrap()
+        .run()
+        .clone();
+    ch.ensure_drivers().await.unwrap();
+    wait_status(&f, run.run_id, "waiting_approval").await;
+    let g = open_gate(&f, run.run_id).await;
+    answer(&ch, &run.short_id, &g, Decision::Rejected, None).await;
+    wait_status(&f, run.run_id, "succeeded").await;
+    for step in ["rerender", "update", "publish"] {
+        assert_eq!(
+            f.scalar_str(&format!(
+                "select status from run_steps where run_id = '{}' and step = '{step}'",
+                run.run_id
+            ))
+            .await,
+            "skipped",
+            "{step}"
+        );
+    }
+    assert_eq!(f.scalar_i64("select count(*) from publish_outbox").await, 0);
     let _ = std::fs::remove_dir_all(&root);
 }

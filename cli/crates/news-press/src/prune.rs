@@ -1,9 +1,13 @@
 //! `news prune`: delete the working files of published items (Technical Design, "Local folders").
 //!
 //! For each published page whose current version was sent: that version's bundle in
-//! `work/pages/<page_id>/v<version>/`, and (once all the story's pages are published and sent) its story's brief and parsed data in `work/briefs/<story>.json` and
-//! `work/parsed/<story>/`. `work/raw/` is not touched: the Morgue keeps source snapshots by retention
-//! (400 days for structured data, 90 for documents) so every figure stays provable.
+//! `work/pages/<page_id>/v<version>/`, and (once all the story's pages are published and sent) the story
+//! folder's built bundle and screenshots, and its parsed data in `work/parsed/<story>/`.
+//!
+//! What a re-render needs stays: the story folder's `data.json`, `sources.json`, `page.json` and
+//! `copy.json`, and the brief in `work/briefs/<story>.json`, so Followup and Reprint rebuild the same
+//! bundle (the same SHA for the same inputs). `work/raw/` is not touched: the Morgue keeps source
+//! snapshots by retention (400 days for structured data, 90 for documents) so every figure stays provable.
 
 use std::path::Path;
 
@@ -40,14 +44,44 @@ fn remove(path: &Path) -> (u64, u64) {
     if gone.is_ok() { counted } else { (0, 0) }
 }
 
+/// What `news render` writes into a story folder besides the inputs: the built bundle and its manifest.
+const BUILT: [&str; 6] = [
+    "index.html",
+    "index.md",
+    "meta.json",
+    "page.oui",
+    "manifest.json",
+    "charts",
+];
+
+/// Remove the built bundle and screenshots from a story folder, and nothing else.
+fn remove_built(dir: &Path) -> (u64, u64) {
+    let mut gone = BUILT
+        .iter()
+        .map(|n| remove(&dir.join(n)))
+        .fold((0, 0), |a, b| (a.0 + b.0, a.1 + b.1));
+    let shots = remove(&dir.join("screenshots"));
+    gone = (gone.0 + shots.0, gone.1 + shots.1);
+    for e in std::fs::read_dir(dir).into_iter().flatten().flatten() {
+        if e.path().extension().is_some_and(|x| x == "png") {
+            let r = remove(&e.path());
+            gone = (gone.0 + r.0, gone.1 + r.1);
+        }
+    }
+    gone
+}
+
 /// Returns `(deleted files, bytes freed)`. Only the sent version's folder (`pages/<id>/v<n>`) goes; a
-/// story's brief and parsed data stay while any page of the story is unpublished or any of its rows unsent.
+/// story's built bundle and parsed data stay while any page of the story is unpublished or any of its
+/// rows unsent. Its inputs (see the module docs) always stay.
 pub async fn prune(db: &PgPool, work: &Path) -> NewsResult<(u64, u64)> {
     let rows = sqlx::query(
         "select p.page_id, p.version, p.story_id,
                 (p.story_id is not null
                  and not exists (select 1 from pages q where q.story_id = p.story_id
                                     and q.status not in ('published', 'withdrawn'))
+                 and not exists (select 1 from page_drafts d join pages q on q.page_id = d.page_id
+                                  where q.story_id = p.story_id)
                  and not exists (select 1 from publish_outbox o join pages q on q.page_id = o.page_id
                                   where q.story_id = p.story_id and o.sent_at is null)) as story_done
            from pages p
@@ -75,7 +109,7 @@ pub async fn prune(db: &PgPool, work: &Path) -> NewsResult<(u64, u64)> {
             r.get::<Option<i64>, _>("story_id"),
             r.get::<bool, _>("story_done"),
         ) {
-            add(remove(&work.join("briefs").join(format!("{story}.json"))));
+            add(remove_built(&work.join("pages").join(story.to_string())));
             add(remove(&work.join("parsed").join(story.to_string())));
         }
     }

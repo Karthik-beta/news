@@ -312,11 +312,15 @@ pub const CATALOGUE: [PresetDecl; 11] = [
                 &[G::Publish],
                 Cover::GateOrStart("plan"),
             ),
-            step(
+            // The index budget stages `index_promote` rows, a Publish-tier write: the start covers it
+            // (no page is published here, only already published ones promoted).
+            g(
                 "promote",
                 "Index promotion and prune",
                 Code,
                 "edition.promote",
+                &[G::Publish],
+                Cover::Start,
             ),
         ],
         reference: "Bureau §8.3",
