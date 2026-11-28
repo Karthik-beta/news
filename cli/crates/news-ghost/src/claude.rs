@@ -174,6 +174,8 @@ fn is_limit_text(lower: &str) -> bool {
 /// and, as the ADR's provisional rule, a non-zero exit with `is_error: true` and an unknown `subtype` is
 /// a limit with no known reset (Dispatch then pauses `ai` for its default hour and one call probes).
 /// The first real limit fixes the shape here, in this one function.
+// shortcut: the limit reply's shape and reset field are unconfirmed (no limit hit yet, ADR 0008 §1); replace
+// the text match and the `|<epoch>` parse with the recorded reply once Karthik's first real limit is captured.
 pub fn classify(exit_code: Option<i32>, stdout: &str) -> ClaudeOutcome {
     let Some(v) = last_json(stdout) else {
         return ClaudeOutcome::Failed;
