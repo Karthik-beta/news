@@ -1,0 +1,15 @@
+# gitleaks configuration (gitleaks-action reads it from the repository root). The default rules apply in full;
+# the allowlist below covers one known false positive and nothing else.
+title = "news"
+
+[extend]
+useDefault = true
+
+# Chart JSON downloads in the fixture bundles: a column's `key` is a series reference (`sr_` + base-36 id), which
+# generic-api-key reads as a key. Only that exact line shape, and only in those files.
+[[allowlists]]
+description = "Series-reference column keys in fixture chart JSON"
+condition = "AND"
+paths = ['''^pipeline/fixtures/pages/[a-z0-9-]+/charts/[a-z0-9-]+\.json$''']
+regexTarget = "line"
+regexes = ['''^\s*"key": "sr_[a-z0-9]+",?\s*$''']
