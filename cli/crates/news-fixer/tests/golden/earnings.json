@@ -97,13 +97,6 @@
     },
     {
       "label": "Revenue from Contract with Customer, Excluding Assessed Tax",
-      "period": "2026-03-29/2026-06-27",
-      "ref": "dp_7ge2itowxqphsn5r",
-      "unit": "USD",
-      "value": "99000000000"
-    },
-    {
-      "label": "Revenue from Contract with Customer, Excluding Assessed Tax",
       "period": "2024-09-29/2025-09-27",
       "ref": "dp_r4zwqi6pratb2pgl",
       "unit": "USD",
@@ -143,18 +136,6 @@
     {
       "label": "2023-10-01/2024-09-28",
       "ref": "pd_20231001_20240928"
-    },
-    {
-      "label": "2025-03-30/2025-06-28",
-      "ref": "pd_20250330_20250628"
-    },
-    {
-      "label": "2025-09-28/2026-06-27",
-      "ref": "pd_20250928_20260627"
-    },
-    {
-      "label": "2026-03-29/2026-06-27",
-      "ref": "pd_20260329_20260627"
     }
   ],
   "quotes": [],
@@ -166,7 +147,7 @@
   "series": [
     {
       "label": "Revenue from Contract with Customer, Excluding Assessed Tax, 2023-10-01/2024-09-28 to 2025-09-28/2026-09-26",
-      "points": 6,
+      "points": 3,
       "ref": "sr_5n6kwkwjqlfc"
     }
   ],

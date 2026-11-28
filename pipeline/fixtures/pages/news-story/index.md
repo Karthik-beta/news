@@ -15,7 +15,7 @@ The Federal Open Market Committee lowered the target range for the federal funds
 
 > “Recent indicators suggest that growth of economic activity moderated in the first half of the year. Job gains have slowed, and the unemployment rate has edged up but remains low. Inflation has moved up and remains somewhat elevated.”
 >
-> — [Federal Reserve, FOMC statement](https://www.federalreserve.gov/newsevents/pressreleases/monetary20250917a.htm)
+> — [FOMC statement](https://www.federalreserve.gov/newsevents/pressreleases/monetary20250917a.htm)
 
 Stephen I. Miran voted against the action, the statement said; he preferred a larger reduction. The other members present voted for it.
 

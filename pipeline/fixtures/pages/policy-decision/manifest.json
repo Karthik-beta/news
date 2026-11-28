@@ -1,5 +1,5 @@
 {
-  "bundle_sha256": "d95337fe10b857c3f74a776184b934723c2f2786f1bfdb2b017bef8601b8edf2",
+  "bundle_sha256": "a789c107924530c952f9aff31891453ce98329706d7a6193323df5da8431cb42",
   "files": [
     {
       "bytes": 9648,
@@ -7,14 +7,14 @@
       "sha256": "b7fce490be2a02cb9bb45997b923a4538a83b419bc0dbd745fb704288c13351d"
     },
     {
-      "bytes": 21555,
+      "bytes": 21508,
       "path": "index.html",
-      "sha256": "5d3f7505e04bacd2f387070ecb1b64ff4f8a6d576f274266b85463a47ce22ee2"
+      "sha256": "1cfa1dd01296951808084d96fa1e937015d38d490aca7d12906c59f02ba7dc26"
     },
     {
-      "bytes": 1680,
+      "bytes": 1672,
       "path": "index.md",
-      "sha256": "8770c580343156edd07fc7c50f3c7a4238a3b648b97c0b1cc0d7b2f0c632ffb0"
+      "sha256": "561cb961ead41960e8aef98e7d146a57e1d97779253ffe08d5ec823b120c44af"
     },
     {
       "bytes": 1231,

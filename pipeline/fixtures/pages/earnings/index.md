@@ -15,7 +15,7 @@ Operating income was $123.2bn in the fiscal year 2023-10-01/2024-09-28, after th
 - **Operating income:** $123.2bn
 - **Net income:** $93.7bn
 
-Source: U.S. Securities and Exchange Commission, Apple Inc., Form 10-K.
+Source: U.S. Securities and Exchange Commission, Apple Inc., annual report.
 
 Apple reported net sales of $391.0bn for the fiscal year 2023-10-01/2024-09-28. The cost of sales was $210.4bn, which left a gross margin of $180.7bn.
 

@@ -14,7 +14,7 @@ The index for all urban consumers was 337.511 in October 2026, up 0.2% on Septem
 - **Consumer price index, all items:** 337.511, up 0.2% on September 2026
 - **The month before:** 336.940
 
-Source: U.S. Bureau of Labor Statistics, BLS, Consumer Price Index.
+Source: U.S. Bureau of Labor Statistics, Consumer Price Index.
 
 ## What the index is
 

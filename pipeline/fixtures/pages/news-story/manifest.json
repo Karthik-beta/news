@@ -1,5 +1,5 @@
 {
-  "bundle_sha256": "7805381ad70450faef674bfb53111a93b6db9f7900bc8ce543d475e43d5a0319",
+  "bundle_sha256": "49d09bb596466a0ba8bf3055e7b46cc4b70a152a3a4d91c2a475c56d89469481",
   "files": [
     {
       "bytes": 529,
@@ -7,14 +7,14 @@
       "sha256": "fcaa5992de78baca65566f8edb237217a737f09d7608f4a0ad96f4e1e269dd8e"
     },
     {
-      "bytes": 2633,
+      "bytes": 2616,
       "path": "index.html",
-      "sha256": "93e5ed1f725ab1eb9a2910d09992851ce92deedfab96e1a356469a6efa115e38"
+      "sha256": "f0a7f534c2c6db3d230bc2a5fd51278c60dbb3516d8d87eb3526a527e045f435"
     },
     {
-      "bytes": 1487,
+      "bytes": 1470,
       "path": "index.md",
-      "sha256": "5c541d6bdffc8afe53bbf4f466b594c79bf353debb701fc8df9d086dba879ac6"
+      "sha256": "1f782cdcd7f262f1b08af957cc24740d022b30ab9ab6a3ce3e1e93de62b91d29"
     },
     {
       "bytes": 902,
@@ -27,9 +27,9 @@
       "sha256": "8b122388a1323223fb8b8b33061ad610fefd0648edd89963060229bfdedf69ab"
     },
     {
-      "bytes": 669,
+      "bytes": 652,
       "path": "sources.json",
-      "sha256": "4aefa47f7e94e1345fac1290e2e32765a379868c2bc8e7e0b295f5490110bbc8"
+      "sha256": "e1464cb77231185ec25159b7f9a560897bff835f0d79ccfc36aeaa73267ad97d"
     }
   ],
   "page_id": "policy-cb-fed-2025-09-17",

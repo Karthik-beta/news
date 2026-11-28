@@ -3,7 +3,6 @@
     "economy/jobs"
   ],
   "chart_ids": [
-    "payrolls",
     "rate",
     "table"
   ],
@@ -101,7 +100,7 @@
   "region": "north-america",
   "renderer_version": "1.1.0",
   "schema": "meta.v1",
-  "summary": "Nonfarm payrolls rose by {dv_yyq6cr6uzdblv43a} from {pd_2026_09} to {dp_gpi4efi6yvfglffl}. Over the year to {pd_2026_10} they rose by {dv_hzhp6st6d7rlartc}.",
+  "summary": "Nonfarm payrolls rose by {dv_yyq6cr6uzdblv43a} from {pd_2026_09} and by {dv_hzhp6st6d7rlartc} over the year to {pd_2026_10}, the Bureau of Labor Statistics reported.",
   "tags": [
     "jobs",
     "unemployment"

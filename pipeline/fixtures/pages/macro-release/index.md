@@ -1,7 +1,7 @@
 ---
 title: "America's unemployment rate fell to 4.1% in October 2026"
 fly_title: "America's jobs"
-summary: "Nonfarm payrolls rose by 0.1% from September 2026 to 159,293. Over the year to October 2026 they rose by 0.6%."
+summary: "Nonfarm payrolls rose by 0.1% from September 2026 and by 0.6% over the year to October 2026, the Bureau of Labor Statistics reported."
 generator: "news-renderer 1.1.0"
 ---
 
@@ -9,57 +9,17 @@ America's jobs
 
 # America's unemployment rate fell to 4.1% in October 2026
 
-Nonfarm payrolls rose by 0.1% from September 2026 to 159,293. Over the year to October 2026 they rose by 0.6%.
+Nonfarm payrolls rose by 0.1% from September 2026 and by 0.6% over the year to October 2026, the Bureau of Labor Statistics reported.
 
 - **Unemployment rate:** 4.1%, down 0.1 points on September 2026
-- **Nonfarm payrolls:** 159,293, up 0.1% on September 2026
+- **Nonfarm payrolls, change on the month:** 0.1%
+- **Nonfarm payrolls, change on a year earlier:** 0.6%
 
-Sources: U.S. Bureau of Labor Statistics, BLS, Current Population Survey; U.S. Bureau of Labor Statistics, BLS, Current Employment Statistics.
+Sources: U.S. Bureau of Labor Statistics, Current Population Survey; U.S. Bureau of Labor Statistics, Current Employment Statistics.
 
-The unemployment rate was 4.1% in October 2026, against 4.2% in September 2026. Nonfarm payrolls were 159,293, against 159,128 a month earlier and 158,408 in October 2025.
+The unemployment rate was 4.1% in October 2026, against 4.2% in September 2026. Nonfarm payrolls rose by 0.1% on the month.
 
-Both figures are seasonally adjusted, as the Bureau of Labor Statistics publishes them.
-
-### Payrolls in October 2026 were the highest of any month shown
-
-Total nonfarm employment, seasonally adjusted, monthly from January 2024
-
-| Period | All employees, thousands, total nonfarm, seasonally adjusted, January 2024 to October 2026 (All employees, thousands) |
-| --- | ---: |
-| January 2024 | 157032 |
-| February 2024 | 157238 |
-| March 2024 | 157466 |
-| April 2024 | 157530 |
-| May 2024 | 157608 |
-| June 2024 | 157695 |
-| July 2024 | 157748 |
-| August 2024 | 157757 |
-| September 2024 | 157912 |
-| October 2024 | 157945 |
-| November 2024 | 158079 |
-| December 2024 | 158316 |
-| January 2025 | 158268 |
-| February 2025 | 158310 |
-| March 2025 | 158377 |
-| April 2025 | 158485 |
-| May 2025 | 158498 |
-| June 2025 | 158478 |
-| July 2025 | 158542 |
-| August 2025 | 158472 |
-| September 2025 | 158548 |
-| October 2025 | 158408 |
-| November 2025 | 158449 |
-| December 2025 | 158432 |
-| January 2026 | 158592 |
-| February 2026 | 158436 |
-| March 2026 | 158650 |
-| April 2026 | 158798 |
-| May 2026 | 158861 |
-| June 2026 | 158892 |
-| July 2026 | 158882 |
-| August 2026 | 159068 |
-| September 2026 | 159128 |
-| October 2026 | 159293 |
+Both figures are seasonally adjusted, as the Bureau of Labor Statistics publishes them. The table gives every month's payrolls in the bureau's own unit.
 
 ### The unemployment rate edged down in October 2026
 

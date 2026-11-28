@@ -1,5 +1,5 @@
 {
-  "bundle_sha256": "4674d76235913730683bd2b675fd19316463fb0828f81fbe95cd79f202546cfb",
+  "bundle_sha256": "653cc64bce03eba31e569eb601b7f803a78cc3e34de10ebe1124b6725a43aadb",
   "files": [
     {
       "bytes": 161,
@@ -17,14 +17,14 @@
       "sha256": "faeb8811efddde80f5eeaf24cee443db3a8df97b0abf659ad3d54191c43af536"
     },
     {
-      "bytes": 19352,
+      "bytes": 19256,
       "path": "index.html",
-      "sha256": "e58b6b3f5aebab9c2de62c0ac372a4e421c6302e0282eb8d594e56c473d7673b"
+      "sha256": "9ea2141c2b87ab6e5f78f9f6ccfb9422c9111c896ddb9a21263c1c8976a120af"
     },
     {
-      "bytes": 1574,
+      "bytes": 1562,
       "path": "index.md",
-      "sha256": "c810bb61eebab7c221f1897ac161bc0d8e4980f46899d5e963393c962d942b37"
+      "sha256": "68f0c80bf13844724cc71127f2270a7abe2811581951c0ffe458781b1d2c184a"
     },
     {
       "bytes": 1155,
@@ -37,9 +37,9 @@
       "sha256": "e63467ed28e2d0aa81e413b0671230245743adea6c3f5c8030e4b522dba8069e"
     },
     {
-      "bytes": 617,
+      "bytes": 605,
       "path": "sources.json",
-      "sha256": "a6a84473c45d6c1108646cabe2918ebc36449f29ac0956f99c9a61e1f2649824"
+      "sha256": "a247937bc2e4e5b84efae569f5cc3804d4c29be9baaacd59c97189d29c8a7803"
     }
   ],
   "page_id": "macro-us-gdp-wb-2025",

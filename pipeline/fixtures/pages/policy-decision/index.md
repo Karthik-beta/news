@@ -1,19 +1,19 @@
 ---
-title: "The ECB's main refinancing rate has been 2.65 since 2026-09-16"
+title: "The ECB's main refinancing rate has been 2.65% since 2026-09-16"
 fly_title: "Euro-area interest rates"
-summary: "The rate replaced 2.4, which had applied since 2026-06-17. The figures come from the ECB Data Portal."
+summary: "The rate replaced 2.4%, which had applied since 2026-06-17. The figures come from the ECB Data Portal."
 generator: "news-renderer 1.1.0"
 ---
 
 Euro-area interest rates
 
-# The ECB's main refinancing rate has been 2.65 since 2026-09-16
+# The ECB's main refinancing rate has been 2.65% since 2026-09-16
 
-The rate replaced 2.4, which had applied since 2026-06-17. The figures come from the ECB Data Portal.
+The rate replaced 2.4%, which had applied since 2026-06-17. The figures come from the ECB Data Portal.
 
-- **Main refinancing operations, fixed rate:** 2.65
+- **Main refinancing operations, fixed rate:** 2.65%
 - **In effect from:** 2026-09-16
-- **Previous rate:** 2.4
+- **Previous rate:** 2.4%
 - **Context:** Financial market data: highest since 2025-03-12
 
 Source: European Central Bank, ECB Data Portal.
@@ -22,7 +22,7 @@ Source: European Central Bank, ECB Data Portal.
 
 Main refinancing operations, fixed rate, % per annum, 2023-08-02 to 2026-09-16
 
-| Period | Financial market data, 2023-08-02 to 2026-09-16 (Percent per annum) |
+| Period | Financial market data, 2023-08-02 to 2026-09-16 (%) |
 | --- | ---: |
 | 2023-08-02 | 4.25 |
 | 2023-09-20 | 4.5 |
@@ -39,8 +39,8 @@ Main refinancing operations, fixed rate, % per annum, 2023-08-02 to 2026-09-16
 
 The ECB Data Portal publishes the rate as main refinancing operations, fixed rate, and records a new value on the date a change takes effect. Its series is the source of every figure on this page.
 
-- **2026-06-17:** The rate became 2.4.
-- **2026-09-16 (key event):** The rate became 2.65.
+- **2026-06-17:** The rate became 2.4%.
+- **2026-09-16 (key event):** The rate became 2.65%.
 
 ## Sources
 

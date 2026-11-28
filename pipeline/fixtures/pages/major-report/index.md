@@ -14,7 +14,7 @@ GDP in current US dollars rose by 5.0% from 2024, when it was 29.3trn, according
 - **GDP, current US$:** 30.8trn, up 5.0% on 2024
 - **The year before:** 29.3trn
 
-Source: The World Bank, World Bank, World Development Indicators.
+Source: The World Bank, World Development Indicators.
 
 ### America's GDP in current dollars was higher in each year shown
 

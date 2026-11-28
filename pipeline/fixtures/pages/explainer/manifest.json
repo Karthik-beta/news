@@ -1,5 +1,5 @@
 {
-  "bundle_sha256": "7ab1b5f648e00e83d341728d22321ed18ffd8cf51e0669b009b48b5f2b176891",
+  "bundle_sha256": "d3189e2741e9a825edfff0b54f966f65da1cb9f4cf99214e3ffe8b6b735e10dd",
   "files": [
     {
       "bytes": 833,
@@ -17,14 +17,14 @@
       "sha256": "fdf398ceed68717b748de489901b3468e6e1d8c4055b5df146085b76cfd0604e"
     },
     {
-      "bytes": 45738,
+      "bytes": 45558,
       "path": "index.html",
-      "sha256": "0ad84babf31ed42f8f330cba75d154b65a2932cfdcd1183633c971a339481400"
+      "sha256": "559833b2fed32373830a0ef722dcde928e7585361251d6d9e338e10c36547861"
     },
     {
-      "bytes": 3794,
+      "bytes": 3789,
       "path": "index.md",
-      "sha256": "337a528d46ca0515b0fc93eb5046e3f4ccfb7241ed438f49fdafab9b026bf8b1"
+      "sha256": "db7d98eca117bb2804ca66c9d37fcdcc4e8ebdc6c4b96857faa393b38b78eb30"
     },
     {
       "bytes": 1946,
@@ -37,9 +37,9 @@
       "sha256": "38c03e63a74ac8b0257b05900c463feb2bd59fd521a328b38a54463b1e3a1c34"
     },
     {
-      "bytes": 615,
+      "bytes": 610,
       "path": "sources.json",
-      "sha256": "cec76782562a676f6ac0acf31abb67cf64581446ea45f4e18797c21462db0641"
+      "sha256": "ce8a1908748311b5ddf75584cd7036ba8f0febfb22ed0a9fb331baaa73768106"
     }
   ],
   "page_id": "macro-us-cpi-2026-10",

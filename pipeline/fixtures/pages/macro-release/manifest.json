@@ -1,11 +1,6 @@
 {
-  "bundle_sha256": "62ee1c0692bdc2571394bf54dad72e101f35b4d14136d8f42f0c21cc20134139",
+  "bundle_sha256": "172dfccc1478f6f8ec2cb3bd1e325d63d5f515ce033121b90f2bb92f98f70484",
   "files": [
-    {
-      "bytes": 810,
-      "path": "charts/payrolls.csv",
-      "sha256": "0c4b94971c8ecfdbbaf0e6489476699a1828b61cbe08de261dbf2987338e3538"
-    },
     {
       "bytes": 664,
       "path": "charts/rate.csv",
@@ -22,29 +17,29 @@
       "sha256": "fd9e10f41403cc0f7dde152b618ebac287efa5e960b3ef584fdd4769ae8ee085"
     },
     {
-      "bytes": 81863,
+      "bytes": 49545,
       "path": "index.html",
-      "sha256": "0f403ec05754b81fc5ba05914f9920d9dd6064885f223a8f9605d7dccc988d4d"
+      "sha256": "a6b3a898ea3563eceeb317ce8b2f1dcc3cadf1a9a5f1e045ee483a6466068fc7"
     },
     {
-      "bytes": 4864,
+      "bytes": 3824,
       "path": "index.md",
-      "sha256": "b939b951e4add5114fdb9381c4c73e240ad7f5a1624a94d42d548516eaae9613"
+      "sha256": "07145ebeb48a7e4f9c3a7acb31fd9b65ecf9e844c1b0b70f0907d7d44e3e6564"
     },
     {
-      "bytes": 2933,
+      "bytes": 2926,
       "path": "meta.json",
-      "sha256": "9ab4fb52fc9f45171403c4713eb836d1da3c1a50e5e40ba6a60d545231b2a959"
+      "sha256": "f3d0a1ae1363f8f18f34ba9c5cfbf770af638cf8fbc79bba3850d35df6f0f99b"
     },
     {
-      "bytes": 1276,
+      "bytes": 1111,
       "path": "page.oui",
-      "sha256": "f95c53705a83ab986c0a829781f111d6292fada2690a140251a5b5449dee011c"
+      "sha256": "415de3eaaa9c073e4f5b1572b5ad8798fcb531b4e5b21e5064ecedd859c90747"
     },
     {
-      "bytes": 1159,
+      "bytes": 1149,
       "path": "sources.json",
-      "sha256": "b3391dd8954b89e8e1fac2643eaaa8d4170b1721480b75af5d86c388114abef4"
+      "sha256": "4b00681da950450c7c8002845492c66fafc0f6c6989a543821f9fd92d6c5cb70"
     }
   ],
   "page_id": "macro-us-payrolls-2026-10",

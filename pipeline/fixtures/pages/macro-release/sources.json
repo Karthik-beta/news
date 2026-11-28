@@ -11,7 +11,7 @@
       "published_at": null,
       "publisher": "U.S. Bureau of Labor Statistics",
       "retrieved_at": "2026-11-16",
-      "short": "BLS, Current Employment Statistics",
+      "short": "Current Employment Statistics",
       "title": "Current Employment Statistics: total nonfarm employment",
       "type": "dataset",
       "url": "https://data.bls.gov/timeseries/CES0000000001"
@@ -27,7 +27,7 @@
       "published_at": null,
       "publisher": "U.S. Bureau of Labor Statistics",
       "retrieved_at": "2026-11-16",
-      "short": "BLS, Current Population Survey",
+      "short": "Current Population Survey",
       "title": "Current Population Survey: unemployment rate",
       "type": "dataset",
       "url": "https://data.bls.gov/timeseries/LNS14000000"
