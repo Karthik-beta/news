@@ -1,0 +1,34 @@
+{
+  "draft_id": "macro-release-d85d8bf7cdf2",
+  "story": "macro-release",
+  "saved_at": "2026-11-16T12:00:00Z",
+  "source": "save",
+  "job": null,
+  "flags": [],
+  "copy": {
+    "angle": "latest-figure",
+    "components_used": [
+      "KeyFigures",
+      "KeyFigure",
+      "Prose",
+      "LineChart",
+      "DataTable"
+    ],
+    "fly_title": "America's jobs",
+    "headline": "America's unemployment rate fell to {dp_d3dyoy567d4dmwxy} in {pd_2026_10}",
+    "oui": "root = Page([figures, latest, rate, table])\nfigures = KeyFigures([unemployment, monthly, yearly])\nunemployment = KeyFigure(\"Unemployment rate\", \"dp_d3dyoy567d4dmwxy\", \"dv_fko7bfznuds36xaj\", \"pd_2026_09\", \"sr_yahxrdyv7qax\")\nmonthly = KeyFigure(\"Nonfarm payrolls, change on the month\", \"dv_yyq6cr6uzdblv43a\")\nyearly = KeyFigure(\"Nonfarm payrolls, change on a year earlier\", \"dv_hzhp6st6d7rlartc\")\nlatest = Prose([\"The unemployment rate was {dp_d3dyoy567d4dmwxy} in {pd_2026_10}, against {dp_owvaajuazcbf5n2u} in {pd_2026_09}. Nonfarm payrolls rose by {dv_yyq6cr6uzdblv43a} on the month.\", \"Both figures are seasonally adjusted, as the Bureau of Labor Statistics publishes them. The table gives every month's payrolls in the bureau's own unit.\"])\nrate = LineChart(\"The unemployment rate edged down in {pd_2026_10}\", \"Unemployment rate, seasonally adjusted, %, monthly from {pd_2024_01}\", [\"sr_yahxrdyv7qax\"], \"sr_yahxrdyv7qax\", null, false)\ntable = DataTable(\"Payrolls and the unemployment rate as published\", \"Seasonally adjusted, monthly from {pd_2024_01}\", [\"sr_3bj36ttsa3ar\", \"sr_yahxrdyv7qax\"], \"pd_2026_10\")\n",
+    "refs_used": [
+      "dp_d3dyoy567d4dmwxy",
+      "dp_owvaajuazcbf5n2u",
+      "dv_fko7bfznuds36xaj",
+      "dv_hzhp6st6d7rlartc",
+      "dv_yyq6cr6uzdblv43a",
+      "pd_2024_01",
+      "pd_2026_09",
+      "pd_2026_10",
+      "sr_3bj36ttsa3ar",
+      "sr_yahxrdyv7qax"
+    ],
+    "summary": "Nonfarm payrolls rose by {dv_yyq6cr6uzdblv43a} from {pd_2026_09} and by {dv_hzhp6st6d7rlartc} over the year to {pd_2026_10}, the Bureau of Labor Statistics reported."
+  }
+}

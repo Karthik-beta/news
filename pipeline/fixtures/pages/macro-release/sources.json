@@ -1,0 +1,37 @@
+{
+  "sources": {
+    "src_bls_ces": {
+      "connector": "bls",
+      "licence": {
+        "name": "Public domain",
+        "redistribution": true,
+        "url": "https://www.bls.gov/opub/copyright-information.htm"
+      },
+      "primary": true,
+      "published_at": null,
+      "publisher": "U.S. Bureau of Labor Statistics",
+      "retrieved_at": "2026-11-16",
+      "short": "Current Employment Statistics",
+      "title": "Current Employment Statistics: total nonfarm employment",
+      "type": "dataset",
+      "url": "https://data.bls.gov/timeseries/CES0000000001"
+    },
+    "src_bls_cps": {
+      "connector": "bls",
+      "licence": {
+        "name": "Public domain",
+        "redistribution": true,
+        "url": "https://www.bls.gov/opub/copyright-information.htm"
+      },
+      "primary": true,
+      "published_at": null,
+      "publisher": "U.S. Bureau of Labor Statistics",
+      "retrieved_at": "2026-11-16",
+      "short": "Current Population Survey",
+      "title": "Current Population Survey: unemployment rate",
+      "type": "dataset",
+      "url": "https://data.bls.gov/timeseries/LNS14000000"
+    }
+  },
+  "version": 1
+}

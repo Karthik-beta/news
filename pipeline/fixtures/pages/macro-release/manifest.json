@@ -1,0 +1,48 @@
+{
+  "bundle_sha256": "172dfccc1478f6f8ec2cb3bd1e325d63d5f515ce033121b90f2bb92f98f70484",
+  "files": [
+    {
+      "bytes": 664,
+      "path": "charts/rate.csv",
+      "sha256": "363a3fd1f555fcfc63f7e6201e538a29267a663fb0a619402bbc33279ec40991"
+    },
+    {
+      "bytes": 1037,
+      "path": "charts/table.csv",
+      "sha256": "21474ee6bed376fa7912c4d5de0c1c909591b9521b01adc451515d920565cd91"
+    },
+    {
+      "bytes": 44774,
+      "path": "data.json",
+      "sha256": "fd9e10f41403cc0f7dde152b618ebac287efa5e960b3ef584fdd4769ae8ee085"
+    },
+    {
+      "bytes": 49545,
+      "path": "index.html",
+      "sha256": "a6b3a898ea3563eceeb317ce8b2f1dcc3cadf1a9a5f1e045ee483a6466068fc7"
+    },
+    {
+      "bytes": 3824,
+      "path": "index.md",
+      "sha256": "07145ebeb48a7e4f9c3a7acb31fd9b65ecf9e844c1b0b70f0907d7d44e3e6564"
+    },
+    {
+      "bytes": 2926,
+      "path": "meta.json",
+      "sha256": "f3d0a1ae1363f8f18f34ba9c5cfbf770af638cf8fbc79bba3850d35df6f0f99b"
+    },
+    {
+      "bytes": 1111,
+      "path": "page.oui",
+      "sha256": "415de3eaaa9c073e4f5b1572b5ad8798fcb531b4e5b21e5064ecedd859c90747"
+    },
+    {
+      "bytes": 1149,
+      "path": "sources.json",
+      "sha256": "4b00681da950450c7c8002845492c66fafc0f6c6989a543821f9fd92d6c5cb70"
+    }
+  ],
+  "page_id": "macro-us-payrolls-2026-10",
+  "schema": "manifest.v1",
+  "version": 1
+}

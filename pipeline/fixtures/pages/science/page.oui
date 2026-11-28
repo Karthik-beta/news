@@ -1,0 +1,5 @@
+root = Page([launch, photo, intro, description])
+launch = Finding("NASA's Artemis II test flight lifted off with astronauts aboard the Orion spacecraft", null, null, "Agency release with a photograph")
+photo = ImageFigure("https://images-assets.nasa.gov/image/KSC-04012026-Artemis%20II_Launch-1/KSC-04012026-Artemis%20II_Launch-1~large.jpg", "The Space Launch System rocket lifting off from its launch pad, carrying the Orion spacecraft.", 1920, 1280, null, null, "Artemis II lifts off from the Kennedy Space Center in Florida.")
+intro = Prose(["NASA's Image and Video Library describes the photograph and the mission in these words:"])
+description = Quote("q_7101_0")

@@ -37,3 +37,5 @@ A page with a blocking failure is a `validation_failed` error (exit 6) whose `de
 ## Tests
 
 `tests/checks.rs`: a passing bundle (`tests/fixtures/good`) and a failing one per check, made by changing the passing one. No network: link checks and axe are fakes. `cargo test -p news-proof -- --test-threads=2`.
+
+The seven fixture pages (`pipeline/fixtures/`, one per page type) are rendered and checked like production pages: `news-fixer/tests/fixture_pages.rs` rebuilds their inputs from recorded source data, runs C1–C14 on the committed bundles and, with Bun, re-renders them byte for byte. `NEWS_WORK_DIR=pipeline/fixtures news check earnings` runs the live checks (links, axe) on one. Decisions: [ADR 0013](../../../docs/adr/0013-proof-and-templated-fallback.md).

@@ -1,0 +1,48 @@
+{
+  "bundle_sha256": "653cc64bce03eba31e569eb601b7f803a78cc3e34de10ebe1124b6725a43aadb",
+  "files": [
+    {
+      "bytes": 161,
+      "path": "charts/table.csv",
+      "sha256": "79feac4dc5430946720da97f703c14ac59ce648eb60dd8357dbd06a7ef0a203b"
+    },
+    {
+      "bytes": 161,
+      "path": "charts/years.csv",
+      "sha256": "79feac4dc5430946720da97f703c14ac59ce648eb60dd8357dbd06a7ef0a203b"
+    },
+    {
+      "bytes": 4200,
+      "path": "data.json",
+      "sha256": "faeb8811efddde80f5eeaf24cee443db3a8df97b0abf659ad3d54191c43af536"
+    },
+    {
+      "bytes": 19256,
+      "path": "index.html",
+      "sha256": "9ea2141c2b87ab6e5f78f9f6ccfb9422c9111c896ddb9a21263c1c8976a120af"
+    },
+    {
+      "bytes": 1562,
+      "path": "index.md",
+      "sha256": "68f0c80bf13844724cc71127f2270a7abe2811581951c0ffe458781b1d2c184a"
+    },
+    {
+      "bytes": 1155,
+      "path": "meta.json",
+      "sha256": "ce34f6d1144dc9a37f33b7cb2de22e1ee2159d6ffa68523674bdceb21f8e2315"
+    },
+    {
+      "bytes": 726,
+      "path": "page.oui",
+      "sha256": "e63467ed28e2d0aa81e413b0671230245743adea6c3f5c8030e4b522dba8069e"
+    },
+    {
+      "bytes": 605,
+      "path": "sources.json",
+      "sha256": "a247937bc2e4e5b84efae569f5cc3804d4c29be9baaacd59c97189d29c8a7803"
+    }
+  ],
+  "page_id": "macro-us-gdp-wb-2025",
+  "schema": "manifest.v1",
+  "version": 1
+}

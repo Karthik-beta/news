@@ -115,6 +115,16 @@ describe("renderer: HTML", () => {
     ]);
   });
 
+  it("adds the disclaimer the brief's rule names after the sources, and none by default", () => {
+    const last = (html: string) => dom(html).querySelector("article")?.lastElementChild;
+    expect(dom(apple.html).querySelector(".disclaimer")).toBeNull();
+    const investment = renderPage(fixtureBundles["apple-fy2024"], { library, disclaimer: "investment" }).html;
+    expect(last(investment)?.textContent).toBe("Not investment advice.");
+    expect(last(investment)?.previousElementSibling?.className).toBe("article__sources");
+    const medical = renderPage(fixtureBundles["apple-fy2024"], { library, disclaimer: "medical" }).html;
+    expect(last(medical)?.textContent).toBe("Not medical advice.");
+  });
+
   it("produces the same HTML with the fallback walker (ADR 0001, option C)", () => {
     for (const name of Object.keys(fixtureBundles) as (keyof typeof fixtureBundles)[]) {
       const b = renderPage(fixtureBundles[name], { library }).html;
@@ -256,5 +266,32 @@ describe("renderer: invalid bundles", () => {
     (data.series.sr_aapl_net_sales_5y?.points[0] as { point: string }).point = "dp_gone";
     const r = render({ ...apple, data });
     expect(r.problems.map((p) => p.code)).toContain("broken-link");
+  });
+});
+
+describe("renderer: image credits", () => {
+  // Production components; the charts bundle's sources. The Copy leaves credit and licence null.
+  const bundle = fixtureBundles.charts;
+  const src = "https://images.example.org/a.jpg";
+  const oui = `root = Page([p])
+p = ImageFigure("${src}", "The lander on the surface.", 1600, 1200, null, null, "The lander.")`;
+  const withImages = (images: unknown) => ({ ...bundle, oui, data: { ...(bundle.data as object), images } });
+
+  it("adds each image's credit from its stored record and the licence from the record's source", () => {
+    const r = renderPage(withImages({ [src]: { credit: "NASA/JPL-Caltech", source: "src_fixture_synthetic" } }));
+    expect(dom(r.html).querySelector(".image-figure__credit")?.textContent).toBe("NASA/JPL-Caltech. CC BY 4.0.");
+    expect(r.markdown).toContain("The lander. NASA/JPL-Caltech. CC BY 4.0.");
+    expect(r.problems).toEqual([]);
+  });
+
+  it("prefers the record to a credit typed into the page, and flags an image with neither", () => {
+    const typed = oui.replace("null, null", '"Someone", "Public domain"');
+    const r = renderPage({
+      ...withImages({ [src]: { credit: null, source: "src_bls_cpi" } }),
+      oui: typed,
+    });
+    expect(dom(r.html).querySelector(".image-figure__credit")?.textContent).toBe("Public domain.");
+    const missing = renderPage(withImages({}));
+    expect(missing.problems.map((p) => p.code)).toEqual(["unknown-image"]);
   });
 });

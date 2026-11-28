@@ -22,6 +22,7 @@ pub mod abs;
 pub mod arxiv;
 pub mod bea;
 pub mod bls;
+pub mod boc_valet;
 pub mod centralbank;
 pub mod crossref;
 pub mod docling;
@@ -354,6 +355,7 @@ pub fn connector(id: &str) -> Option<&'static dyn Connector> {
     static OPENALEX: openalex::OpenAlex = openalex::OpenAlex;
     static CROSSREF: crossref::Crossref = crossref::Crossref;
     static ARXIV: arxiv::Arxiv = arxiv::Arxiv;
+    static BOC_VALET: boc_valet::BocValet = boc_valet::BocValet;
     match id {
         sec::ID => Some(&SEC),
         fred::ID => Some(&FRED),
@@ -369,6 +371,7 @@ pub fn connector(id: &str) -> Option<&'static dyn Connector> {
         openalex::ID => Some(&OPENALEX),
         crossref::ID => Some(&CROSSREF),
         arxiv::ID => Some(&ARXIV),
+        boc_valet::ID => Some(&BOC_VALET),
         other => centralbank::bank(other).map(|b| b as &dyn Connector),
     }
 }
@@ -389,6 +392,7 @@ pub const IDS: &[&str] = &[
     openalex::ID,
     crossref::ID,
     arxiv::ID,
+    boc_valet::ID,
     "cb-fed",
     "cb-ecb",
     "cb-boe",

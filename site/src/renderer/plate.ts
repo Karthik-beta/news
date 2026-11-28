@@ -3,8 +3,8 @@
 // component library load once instead of once per page.
 //
 //   GET  /health                                               -> {renderer}
-//   POST /render {oui, data, sources, head, indexStatus}       -> {rendererVersion, files, charts, refsUsed,
-//                                                                  sourcesUsed, problems}
+//   POST /render {oui, data, sources, head, indexStatus,       -> {rendererVersion, files, charts, refsUsed,
+//                 disclaimer}                                      sourcesUsed, problems}
 //   POST /check  {oui}                                         -> {errors: [{rule, where, message}], components,
 //                                                                  literals: [{where, text, number}]}
 //
@@ -17,7 +17,7 @@
 // closes, so a server started by a CLI call never outlives it.
 import type { ElementNode } from "@openuidev/react-lang";
 import { newsLibrary } from "../components/library";
-import { checkProps, type PageHead, parsePage, RenderError, renderPage } from "./render";
+import { checkProps, handSetImageCredits, type PageHead, parsePage, RenderError, renderPage } from "./render";
 import { RENDERER_VERSION } from "./version";
 
 export interface CheckError {
@@ -94,7 +94,12 @@ export function check(oui: string): { errors: CheckError[]; components: string[]
     if (e instanceof RenderError) return { errors: lines(e, "props"), components, literals };
     throw e;
   }
-  return { errors: [], components, literals };
+  const credits = handSetImageCredits(root).map((at) => ({
+    rule: "props" as const,
+    where: `oui:${at}`,
+    message: "credit and licence come from the image record: leave them null",
+  }));
+  return { errors: credits, components, literals };
 }
 
 interface RenderRequest {
@@ -103,12 +108,13 @@ interface RenderRequest {
   sources: unknown;
   head: PageHead;
   indexStatus?: "index" | "noindex";
+  disclaimer?: "investment" | "medical" | null;
 }
 
 export function render(req: RenderRequest) {
   const result = renderPage(
     { oui: req.oui, data: req.data, sources: req.sources, head: req.head },
-    { indexStatus: req.indexStatus ?? "noindex" },
+    { indexStatus: req.indexStatus ?? "noindex", disclaimer: req.disclaimer ?? null },
   );
   return {
     rendererVersion: result.rendererVersion,

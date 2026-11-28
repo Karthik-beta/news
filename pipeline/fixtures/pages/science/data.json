@@ -1,0 +1,25 @@
+{
+  "context": {},
+  "derived": {},
+  "images": {
+    "https://images-assets.nasa.gov/image/KSC-04012026-Artemis%20II_Launch-1/KSC-04012026-Artemis%20II_Launch-1~large.jpg": {
+      "credit": "NASA/Brandon Hancock",
+      "source": "src_nasa_image"
+    }
+  },
+  "periods": {},
+  "points": {},
+  "quotes": {
+    "q_7101_0": {
+      "locator": {
+        "block": 0,
+        "doc": 7101,
+        "kind": "text_block"
+      },
+      "source": "src_nasa_image",
+      "text": "Four astronauts aboard NASA’s Orion spacecraft atop the SLS (Space Launch System) rocket launch on the agency’s Artemis II test flight, Wednesday, April 1 from Launch Complex 39B at NASA’s Kennedy Space Center in Florida. Artemis II lifted off at 6:35 p.m. ET."
+    }
+  },
+  "series": {},
+  "version": 1
+}

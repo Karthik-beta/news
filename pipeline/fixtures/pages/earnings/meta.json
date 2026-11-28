@@ -1,0 +1,48 @@
+{
+  "categories": [
+    "finance/earnings"
+  ],
+  "chart_ids": [
+    "profit",
+    "costs"
+  ],
+  "data_ids": [
+    "dp_4a667tn3d233zata",
+    "dp_5bwm2cc5vbbxkjc4",
+    "dp_eeotdqskvtxdh2fb",
+    "dp_gcvvwz3rggki4m42",
+    "dp_gyqvyvwdfoavb6ik",
+    "dp_ofcoxo3c6abfoo53",
+    "dp_qxwm57nvi5v5zmo5",
+    "dp_rgaqlsm2ln2nuqn7",
+    "dp_rn3dqvladry7igs7",
+    "dp_vc6if6wdvyfxcmt6",
+    "dp_vi5pgdc43ormcwdc"
+  ],
+  "entities": [
+    {
+      "id": "ent_apple",
+      "kind": "company",
+      "name": "Apple Inc."
+    }
+  ],
+  "fly_title": "Apple's annual results",
+  "id": "earnings-0000320193-2024fy",
+  "index_status": "noindex",
+  "lang": "en-GB",
+  "page_type": "earnings",
+  "path": "/2024/11/earnings-0000320193-2024fy",
+  "published_at": "2024-11-01T12:00:00Z",
+  "region": "north-america",
+  "renderer_version": "1.1.0",
+  "schema": "meta.v1",
+  "summary": "Operating income was {dp_ofcoxo3c6abfoo53} in the fiscal year {pd_20231001_20240928}, after the cost of sales and operating expenses, as Apple reported to the SEC.",
+  "tags": [
+    "apple",
+    "earnings"
+  ],
+  "tier": 1,
+  "title": "Apple kept {dp_gcvvwz3rggki4m42} of its {dp_vc6if6wdvyfxcmt6} of net sales as net income",
+  "updated_at": "2024-11-01T12:00:00Z",
+  "version": 1
+}

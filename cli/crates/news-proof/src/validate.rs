@@ -228,6 +228,23 @@ fn rendered_estimate(text: &str, brief: Option<&Brief>) -> String {
     out
 }
 
+/// Every scalar field of the brief's image and video records, as text.
+fn media_values(brief: &Brief) -> Vec<String> {
+    brief
+        .media
+        .images
+        .iter()
+        .chain(brief.media.video.iter())
+        .filter_map(Value::as_object)
+        .flat_map(|o| o.values())
+        .filter_map(|v| match v {
+            Value::String(s) => Some(s.clone()),
+            Value::Number(n) => Some(n.to_string()),
+            _ => None,
+        })
+        .collect()
+}
+
 /// Run the validators on a Copy. `plate` is Plate's check of its OpenUI Lang; `None` skips parse and props.
 /// Without a brief, references are not checked against it.
 pub fn validate(copy: &Value, brief: Option<&Brief>, plate: Option<&Checked>) -> Vec<RuleError> {
@@ -280,7 +297,9 @@ pub fn validate(copy: &Value, brief: Option<&Brief>, plate: Option<&Checked>) ->
     let names: Vec<&str> = brief
         .map(|b| b.entities.iter().map(|e| e.name.as_str()).collect())
         .unwrap_or_default();
-    for (at, text) in &texts {
+    // An image or video record's fields (URL, width, height …) are copied verbatim from the brief's media.
+    let media = brief.map(media_values).unwrap_or_default();
+    for (at, text) in texts.iter().filter(|(_, t)| !media.contains(t)) {
         let found = lint::numeric_literals(text, &names);
         if !found.is_empty() {
             errors.push(RuleError::new(
@@ -293,7 +312,10 @@ pub fn validate(copy: &Value, brief: Option<&Brief>, plate: Option<&Checked>) ->
             ));
         }
     }
-    for l in literals.iter().filter(|l| l.number) {
+    for l in literals
+        .iter()
+        .filter(|l| l.number && !media.contains(&l.text))
+    {
         errors.push(RuleError::new(
             "numeric_literal",
             l.at.clone(),
@@ -462,6 +484,35 @@ pub(crate) mod tests {
             rules(&validate(&with("headline", h), Some(&brief()), None)),
             ["numeric_literal"]
         );
+    }
+
+    #[test]
+    fn accepts_an_image_record_copied_from_the_brief_and_nothing_else() {
+        let mut b = brief();
+        b.media.images = vec![
+            json!({"url": "https://images-assets.nasa.gov/image/KSC-04012026/a~large.jpg",
+                                     "width": 1920, "height": 1280, "licence": "custom", "rehost": true}),
+        ];
+        let img = |url: &str, w: u32| {
+            with(
+                "oui",
+                json!(format!(
+                    "root = Page([p])\np = ImageFigure(\"{url}\", \"The rocket at lift-off.\", {w}, 1280, \"NASA\", \"Public domain\")"
+                )),
+            )
+        };
+        let url = "https://images-assets.nasa.gov/image/KSC-04012026/a~large.jpg";
+        assert_eq!(validate(&img(url, 1920), Some(&b), None), []);
+        let e = validate(&img(url, 1600), Some(&b), None);
+        assert_eq!(rules(&e), ["numeric_literal"]);
+        let e = validate(
+            &img("https://example.org/KSC-05012026.jpg", 1920),
+            Some(&b),
+            None,
+        );
+        assert_eq!(rules(&e), ["numeric_literal"]);
+        // Without a brief nothing is copied from it.
+        assert!(!validate(&img(url, 1920), None, None).is_empty());
     }
 
     #[test]

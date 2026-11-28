@@ -20,7 +20,12 @@ sqlx = { workspace = true }
 
 [dev-dependencies]
 news-connectors = { workspace = true }
+news-contacts = { workspace = true }
+news-proof = { workspace = true }
+# Already in the tree (news-wire): Plate's client needs the provider the `news` binary installs in `main`.
+rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
 jsonschema = { workspace = true }
+tokio = { workspace = true }
 
 [lints]
 workspace = true

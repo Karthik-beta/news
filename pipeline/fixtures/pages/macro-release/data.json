@@ -1,0 +1,1605 @@
+{
+  "context": {
+    "cx_1": {
+      "inputs": [
+        "dp_gpi4efi6yvfglffl",
+        "dp_o6ctaq67zeflzw5a"
+      ],
+      "rule": "series_record_high",
+      "text": "All employees, thousands, total nonfarm, seasonally adjusted: highest of every observation held, which begin in January 2024"
+    }
+  },
+  "derived": {
+    "dv_fko7bfznuds36xaj": {
+      "currency": null,
+      "formula": "pp_change",
+      "inputs": [
+        "dp_d3dyoy567d4dmwxy",
+        "dp_owvaajuazcbf5n2u"
+      ],
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted, change from September 2026",
+      "rounding": 1,
+      "scale": null,
+      "unit": "Percentage points",
+      "value": "-0.1"
+    },
+    "dv_hzhp6st6d7rlartc": {
+      "currency": null,
+      "formula": "pct_change",
+      "inputs": [
+        "dp_gpi4efi6yvfglffl",
+        "dp_gihbhes2orplnusi"
+      ],
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted, change from October 2025",
+      "rounding": 1,
+      "scale": null,
+      "unit": "Percent",
+      "value": "0.6"
+    },
+    "dv_yyq6cr6uzdblv43a": {
+      "currency": null,
+      "formula": "pct_change",
+      "inputs": [
+        "dp_gpi4efi6yvfglffl",
+        "dp_uagycyae7rcarms2"
+      ],
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted, change from September 2026",
+      "rounding": 1,
+      "scale": null,
+      "unit": "Percent",
+      "value": "0.1"
+    }
+  },
+  "periods": {
+    "pd_2024_01": {
+      "end": "2024-01-31",
+      "label": "January 2024",
+      "start": "2024-01-01"
+    },
+    "pd_2024_02": {
+      "end": "2024-02-29",
+      "label": "February 2024",
+      "start": "2024-02-01"
+    },
+    "pd_2024_03": {
+      "end": "2024-03-31",
+      "label": "March 2024",
+      "start": "2024-03-01"
+    },
+    "pd_2024_04": {
+      "end": "2024-04-30",
+      "label": "April 2024",
+      "start": "2024-04-01"
+    },
+    "pd_2024_05": {
+      "end": "2024-05-31",
+      "label": "May 2024",
+      "start": "2024-05-01"
+    },
+    "pd_2024_06": {
+      "end": "2024-06-30",
+      "label": "June 2024",
+      "start": "2024-06-01"
+    },
+    "pd_2024_07": {
+      "end": "2024-07-31",
+      "label": "July 2024",
+      "start": "2024-07-01"
+    },
+    "pd_2024_08": {
+      "end": "2024-08-31",
+      "label": "August 2024",
+      "start": "2024-08-01"
+    },
+    "pd_2024_09": {
+      "end": "2024-09-30",
+      "label": "September 2024",
+      "start": "2024-09-01"
+    },
+    "pd_2024_10": {
+      "end": "2024-10-31",
+      "label": "October 2024",
+      "start": "2024-10-01"
+    },
+    "pd_2024_11": {
+      "end": "2024-11-30",
+      "label": "November 2024",
+      "start": "2024-11-01"
+    },
+    "pd_2024_12": {
+      "end": "2024-12-31",
+      "label": "December 2024",
+      "start": "2024-12-01"
+    },
+    "pd_2025_01": {
+      "end": "2025-01-31",
+      "label": "January 2025",
+      "start": "2025-01-01"
+    },
+    "pd_2025_02": {
+      "end": "2025-02-28",
+      "label": "February 2025",
+      "start": "2025-02-01"
+    },
+    "pd_2025_03": {
+      "end": "2025-03-31",
+      "label": "March 2025",
+      "start": "2025-03-01"
+    },
+    "pd_2025_04": {
+      "end": "2025-04-30",
+      "label": "April 2025",
+      "start": "2025-04-01"
+    },
+    "pd_2025_05": {
+      "end": "2025-05-31",
+      "label": "May 2025",
+      "start": "2025-05-01"
+    },
+    "pd_2025_06": {
+      "end": "2025-06-30",
+      "label": "June 2025",
+      "start": "2025-06-01"
+    },
+    "pd_2025_07": {
+      "end": "2025-07-31",
+      "label": "July 2025",
+      "start": "2025-07-01"
+    },
+    "pd_2025_08": {
+      "end": "2025-08-31",
+      "label": "August 2025",
+      "start": "2025-08-01"
+    },
+    "pd_2025_09": {
+      "end": "2025-09-30",
+      "label": "September 2025",
+      "start": "2025-09-01"
+    },
+    "pd_2025_10": {
+      "end": "2025-10-31",
+      "label": "October 2025",
+      "start": "2025-10-01"
+    },
+    "pd_2025_11": {
+      "end": "2025-11-30",
+      "label": "November 2025",
+      "start": "2025-11-01"
+    },
+    "pd_2025_12": {
+      "end": "2025-12-31",
+      "label": "December 2025",
+      "start": "2025-12-01"
+    },
+    "pd_2026_01": {
+      "end": "2026-01-31",
+      "label": "January 2026",
+      "start": "2026-01-01"
+    },
+    "pd_2026_02": {
+      "end": "2026-02-28",
+      "label": "February 2026",
+      "start": "2026-02-01"
+    },
+    "pd_2026_03": {
+      "end": "2026-03-31",
+      "label": "March 2026",
+      "start": "2026-03-01"
+    },
+    "pd_2026_04": {
+      "end": "2026-04-30",
+      "label": "April 2026",
+      "start": "2026-04-01"
+    },
+    "pd_2026_05": {
+      "end": "2026-05-31",
+      "label": "May 2026",
+      "start": "2026-05-01"
+    },
+    "pd_2026_06": {
+      "end": "2026-06-30",
+      "label": "June 2026",
+      "start": "2026-06-01"
+    },
+    "pd_2026_07": {
+      "end": "2026-07-31",
+      "label": "July 2026",
+      "start": "2026-07-01"
+    },
+    "pd_2026_08": {
+      "end": "2026-08-31",
+      "label": "August 2026",
+      "start": "2026-08-01"
+    },
+    "pd_2026_09": {
+      "end": "2026-09-30",
+      "label": "September 2026",
+      "start": "2026-09-01"
+    },
+    "pd_2026_10": {
+      "end": "2026-10-31",
+      "label": "October 2026",
+      "start": "2026-10-01"
+    }
+  },
+  "points": {
+    "dp_2fess4nbczlubf3i": {
+      "currency": null,
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[24].value",
+        "series": "LNS14000000"
+      },
+      "period": "pd_2024_10",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_cps",
+      "unit": "Percent",
+      "value": "4.1",
+      "value_text": "4.1"
+    },
+    "dp_3gnxzafwqidfzcaa": {
+      "currency": null,
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted",
+      "locator": {
+        "footnotes": [
+          {
+            "code": "12",
+            "text": "January 2026 estimates were revised to incorporate updated population controls. For more information, see www.bls.gov/cps/documentation.htm#pop."
+          }
+        ],
+        "kind": "json",
+        "path": "$.Results.series[0].data[9].value",
+        "series": "LNS14000000"
+      },
+      "period": "pd_2026_01",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_cps",
+      "unit": "Percent",
+      "value": "4.3",
+      "value_text": "4.3"
+    },
+    "dp_3zq6722xipe6uiwt": {
+      "currency": null,
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[5].value",
+        "series": "LNS14000000"
+      },
+      "period": "pd_2026_05",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_cps",
+      "unit": "Percent",
+      "value": "4.3",
+      "value_text": "4.3"
+    },
+    "dp_4hpdyft3gize4dqa": {
+      "currency": null,
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[7].value",
+        "series": "CES0000000001"
+      },
+      "period": "pd_2026_03",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_ces",
+      "unit": "All employees, thousands",
+      "value": "158650",
+      "value_text": "158650"
+    },
+    "dp_5bmd3lsgoripub2n": {
+      "currency": null,
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[19].value",
+        "series": "CES0000000001"
+      },
+      "period": "pd_2025_03",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_ces",
+      "unit": "All employees, thousands",
+      "value": "158377",
+      "value_text": "158377"
+    },
+    "dp_6akuwwxr4tgdhxr6": {
+      "currency": null,
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[2].value",
+        "series": "LNS14000000"
+      },
+      "period": "pd_2026_08",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_cps",
+      "unit": "Percent",
+      "value": "4.1",
+      "value_text": "4.1"
+    },
+    "dp_6gcc4sbnrlldlkg2": {
+      "currency": null,
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[23].value",
+        "series": "LNS14000000"
+      },
+      "period": "pd_2024_11",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_cps",
+      "unit": "Percent",
+      "value": "4.2",
+      "value_text": "4.2"
+    },
+    "dp_6pnrmyg3cgiettbs": {
+      "currency": null,
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[15].value",
+        "series": "CES0000000001"
+      },
+      "period": "pd_2025_07",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_ces",
+      "unit": "All employees, thousands",
+      "value": "158542",
+      "value_text": "158542"
+    },
+    "dp_6t6otebojeb75rpw": {
+      "currency": null,
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[26].value",
+        "series": "CES0000000001"
+      },
+      "period": "pd_2024_08",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_ces",
+      "unit": "All employees, thousands",
+      "value": "157757",
+      "value_text": "157757"
+    },
+    "dp_76a45jht33nn5a7y": {
+      "currency": null,
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[25].value",
+        "series": "CES0000000001"
+      },
+      "period": "pd_2024_09",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_ces",
+      "unit": "All employees, thousands",
+      "value": "157912",
+      "value_text": "157912"
+    },
+    "dp_7wyfvjmsd4iociqf": {
+      "currency": null,
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[17].value",
+        "series": "LNS14000000"
+      },
+      "period": "pd_2025_05",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_cps",
+      "unit": "Percent",
+      "value": "4.3",
+      "value_text": "4.3"
+    },
+    "dp_ah5jscr3sha5elnr": {
+      "currency": null,
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[16].value",
+        "series": "CES0000000001"
+      },
+      "period": "pd_2025_06",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_ces",
+      "unit": "All employees, thousands",
+      "value": "158478",
+      "value_text": "158478"
+    },
+    "dp_aotmgzf5ftygiobe": {
+      "currency": null,
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[29].value",
+        "series": "LNS14000000"
+      },
+      "period": "pd_2024_05",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_cps",
+      "unit": "Percent",
+      "value": "3.9",
+      "value_text": "3.9"
+    },
+    "dp_auiyx6nprqcnlzc3": {
+      "currency": null,
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[19].value",
+        "series": "LNS14000000"
+      },
+      "period": "pd_2025_03",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_cps",
+      "unit": "Percent",
+      "value": "4.2",
+      "value_text": "4.2"
+    },
+    "dp_bbjvgt5uqwbeuh4p": {
+      "currency": null,
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[11].value",
+        "series": "CES0000000001"
+      },
+      "period": "pd_2025_11",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_ces",
+      "unit": "All employees, thousands",
+      "value": "158449",
+      "value_text": "158449"
+    },
+    "dp_cbcd5t5mfvuh7aqg": {
+      "currency": null,
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[13].value",
+        "series": "LNS14000000"
+      },
+      "period": "pd_2025_09",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_cps",
+      "unit": "Percent",
+      "value": "4.4",
+      "value_text": "4.4"
+    },
+    "dp_cdq6ptm4uz56rryj": {
+      "currency": null,
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[14].value",
+        "series": "CES0000000001"
+      },
+      "period": "pd_2025_08",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_ces",
+      "unit": "All employees, thousands",
+      "value": "158472",
+      "value_text": "158472"
+    },
+    "dp_d3dyoy567d4dmwxy": {
+      "currency": null,
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[0].value",
+        "series": "LNS14000000"
+      },
+      "period": "pd_2026_10",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_cps",
+      "unit": "Percent",
+      "value": "4.1",
+      "value_text": "4.1"
+    },
+    "dp_dzukdy5yampasvp6": {
+      "currency": null,
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[31].value",
+        "series": "LNS14000000"
+      },
+      "period": "pd_2024_03",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_cps",
+      "unit": "Percent",
+      "value": "3.9",
+      "value_text": "3.9"
+    },
+    "dp_ejsxoyntzkrwfaiv": {
+      "currency": null,
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[2].value",
+        "series": "CES0000000001"
+      },
+      "period": "pd_2026_08",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_ces",
+      "unit": "All employees, thousands",
+      "value": "159068",
+      "value_text": "159068"
+    },
+    "dp_fflh6rmf4cwr3zan": {
+      "currency": null,
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[3].value",
+        "series": "LNS14000000"
+      },
+      "period": "pd_2026_07",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_cps",
+      "unit": "Percent",
+      "value": "4.1",
+      "value_text": "4.1"
+    },
+    "dp_fmnoj2mt6kakkyjy": {
+      "currency": null,
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[17].value",
+        "series": "CES0000000001"
+      },
+      "period": "pd_2025_05",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_ces",
+      "unit": "All employees, thousands",
+      "value": "158498",
+      "value_text": "158498"
+    },
+    "dp_foudxsyjp4vusyx3": {
+      "currency": null,
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[13].value",
+        "series": "CES0000000001"
+      },
+      "period": "pd_2025_09",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_ces",
+      "unit": "All employees, thousands",
+      "value": "158548",
+      "value_text": "158548"
+    },
+    "dp_fwgw6ucwthc5jnri": {
+      "currency": null,
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[32].value",
+        "series": "LNS14000000"
+      },
+      "period": "pd_2024_02",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_cps",
+      "unit": "Percent",
+      "value": "3.9",
+      "value_text": "3.9"
+    },
+    "dp_fwxulwkbnblrqam6": {
+      "currency": null,
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[15].value",
+        "series": "LNS14000000"
+      },
+      "period": "pd_2025_07",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_cps",
+      "unit": "Percent",
+      "value": "4.3",
+      "value_text": "4.3"
+    },
+    "dp_g2e52kruthin74bh": {
+      "currency": null,
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[3].value",
+        "series": "CES0000000001"
+      },
+      "period": "pd_2026_07",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_ces",
+      "unit": "All employees, thousands",
+      "value": "158882",
+      "value_text": "158882"
+    },
+    "dp_gihbhes2orplnusi": {
+      "currency": null,
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[12].value",
+        "series": "CES0000000001"
+      },
+      "period": "pd_2025_10",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_ces",
+      "unit": "All employees, thousands",
+      "value": "158408",
+      "value_text": "158408"
+    },
+    "dp_gpi4efi6yvfglffl": {
+      "currency": null,
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "locator": {
+        "footnotes": [
+          {
+            "code": "P",
+            "text": "preliminary"
+          }
+        ],
+        "kind": "json",
+        "path": "$.Results.series[0].data[0].value",
+        "series": "CES0000000001"
+      },
+      "period": "pd_2026_10",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_ces",
+      "unit": "All employees, thousands",
+      "value": "159293",
+      "value_text": "159293"
+    },
+    "dp_h43zvxb5f22mj4cf": {
+      "currency": null,
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[4].value",
+        "series": "CES0000000001"
+      },
+      "period": "pd_2026_06",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_ces",
+      "unit": "All employees, thousands",
+      "value": "158892",
+      "value_text": "158892"
+    },
+    "dp_hhcxfh2oloeyic27": {
+      "currency": null,
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[30].value",
+        "series": "CES0000000001"
+      },
+      "period": "pd_2024_04",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_ces",
+      "unit": "All employees, thousands",
+      "value": "157530",
+      "value_text": "157530"
+    },
+    "dp_htbe3fv7ghielw34": {
+      "currency": null,
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[30].value",
+        "series": "LNS14000000"
+      },
+      "period": "pd_2024_04",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_cps",
+      "unit": "Percent",
+      "value": "3.9",
+      "value_text": "3.9"
+    },
+    "dp_hyykiv3f2b2g5y7e": {
+      "currency": null,
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[24].value",
+        "series": "CES0000000001"
+      },
+      "period": "pd_2024_10",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_ces",
+      "unit": "All employees, thousands",
+      "value": "157945",
+      "value_text": "157945"
+    },
+    "dp_i2pwx4unfnaheupy": {
+      "currency": null,
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[27].value",
+        "series": "CES0000000001"
+      },
+      "period": "pd_2024_07",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_ces",
+      "unit": "All employees, thousands",
+      "value": "157748",
+      "value_text": "157748"
+    },
+    "dp_idsbci25cfvuq74g": {
+      "currency": null,
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[21].value",
+        "series": "LNS14000000"
+      },
+      "period": "pd_2025_01",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_cps",
+      "unit": "Percent",
+      "value": "4.0",
+      "value_text": "4.0"
+    },
+    "dp_jlc6w4sl5a5l4zve": {
+      "currency": null,
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[25].value",
+        "series": "LNS14000000"
+      },
+      "period": "pd_2024_09",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_cps",
+      "unit": "Percent",
+      "value": "4.1",
+      "value_text": "4.1"
+    },
+    "dp_jx6nghlgajvqot3g": {
+      "currency": null,
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[11].value",
+        "series": "LNS14000000"
+      },
+      "period": "pd_2025_11",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_cps",
+      "unit": "Percent",
+      "value": "4.5",
+      "value_text": "4.5"
+    },
+    "dp_jyn27nmipza2o34g": {
+      "currency": null,
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[23].value",
+        "series": "CES0000000001"
+      },
+      "period": "pd_2024_11",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_ces",
+      "unit": "All employees, thousands",
+      "value": "158079",
+      "value_text": "158079"
+    },
+    "dp_jzc6esqca4gzaml4": {
+      "currency": null,
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[10].value",
+        "series": "LNS14000000"
+      },
+      "period": "pd_2025_12",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_cps",
+      "unit": "Percent",
+      "value": "4.4",
+      "value_text": "4.4"
+    },
+    "dp_kxk4d6c3hjje67cr": {
+      "currency": null,
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[27].value",
+        "series": "LNS14000000"
+      },
+      "period": "pd_2024_07",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_cps",
+      "unit": "Percent",
+      "value": "4.2",
+      "value_text": "4.2"
+    },
+    "dp_le7umtslvh3pla56": {
+      "currency": null,
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[28].value",
+        "series": "LNS14000000"
+      },
+      "period": "pd_2024_06",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_cps",
+      "unit": "Percent",
+      "value": "4.1",
+      "value_text": "4.1"
+    },
+    "dp_m2e4km35ip56yrnx": {
+      "currency": null,
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[20].value",
+        "series": "LNS14000000"
+      },
+      "period": "pd_2025_02",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_cps",
+      "unit": "Percent",
+      "value": "4.2",
+      "value_text": "4.2"
+    },
+    "dp_moybc2syo6uilrli": {
+      "currency": null,
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[10].value",
+        "series": "CES0000000001"
+      },
+      "period": "pd_2025_12",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_ces",
+      "unit": "All employees, thousands",
+      "value": "158432",
+      "value_text": "158432"
+    },
+    "dp_o26azq2unxf74nl5": {
+      "currency": null,
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[14].value",
+        "series": "LNS14000000"
+      },
+      "period": "pd_2025_08",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_cps",
+      "unit": "Percent",
+      "value": "4.3",
+      "value_text": "4.3"
+    },
+    "dp_o6ctaq67zeflzw5a": {
+      "currency": null,
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[33].value",
+        "series": "CES0000000001"
+      },
+      "period": "pd_2024_01",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_ces",
+      "unit": "All employees, thousands",
+      "value": "157032",
+      "value_text": "157032"
+    },
+    "dp_oawazhyqqaz5iqqy": {
+      "currency": null,
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[32].value",
+        "series": "CES0000000001"
+      },
+      "period": "pd_2024_02",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_ces",
+      "unit": "All employees, thousands",
+      "value": "157238",
+      "value_text": "157238"
+    },
+    "dp_obmjhkdckqxwwznq": {
+      "currency": null,
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[6].value",
+        "series": "LNS14000000"
+      },
+      "period": "pd_2026_04",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_cps",
+      "unit": "Percent",
+      "value": "4.3",
+      "value_text": "4.3"
+    },
+    "dp_ott3l4gkogx5aezp": {
+      "currency": null,
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[21].value",
+        "series": "CES0000000001"
+      },
+      "period": "pd_2025_01",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_ces",
+      "unit": "All employees, thousands",
+      "value": "158268",
+      "value_text": "158268"
+    },
+    "dp_owvaajuazcbf5n2u": {
+      "currency": null,
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[1].value",
+        "series": "LNS14000000"
+      },
+      "period": "pd_2026_09",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_cps",
+      "unit": "Percent",
+      "value": "4.2",
+      "value_text": "4.2"
+    },
+    "dp_pzk5dzazw2haj2mv": {
+      "currency": null,
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[18].value",
+        "series": "LNS14000000"
+      },
+      "period": "pd_2025_04",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_cps",
+      "unit": "Percent",
+      "value": "4.2",
+      "value_text": "4.2"
+    },
+    "dp_qdsgzkgnim2rvmtz": {
+      "currency": null,
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[28].value",
+        "series": "CES0000000001"
+      },
+      "period": "pd_2024_06",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_ces",
+      "unit": "All employees, thousands",
+      "value": "157695",
+      "value_text": "157695"
+    },
+    "dp_qlfztcgnaytggmm2": {
+      "currency": null,
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[4].value",
+        "series": "LNS14000000"
+      },
+      "period": "pd_2026_06",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_cps",
+      "unit": "Percent",
+      "value": "4.2",
+      "value_text": "4.2"
+    },
+    "dp_qvimk74j7ftcm64a": {
+      "currency": null,
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[31].value",
+        "series": "CES0000000001"
+      },
+      "period": "pd_2024_03",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_ces",
+      "unit": "All employees, thousands",
+      "value": "157466",
+      "value_text": "157466"
+    },
+    "dp_sfdq2g226etn3wz3": {
+      "currency": null,
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[8].value",
+        "series": "LNS14000000"
+      },
+      "period": "pd_2026_02",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_cps",
+      "unit": "Percent",
+      "value": "4.4",
+      "value_text": "4.4"
+    },
+    "dp_sja2m4m6d6fv5qqr": {
+      "currency": null,
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[7].value",
+        "series": "LNS14000000"
+      },
+      "period": "pd_2026_03",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_cps",
+      "unit": "Percent",
+      "value": "4.3",
+      "value_text": "4.3"
+    },
+    "dp_sxa3vac5hdwwuydd": {
+      "currency": null,
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[18].value",
+        "series": "CES0000000001"
+      },
+      "period": "pd_2025_04",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_ces",
+      "unit": "All employees, thousands",
+      "value": "158485",
+      "value_text": "158485"
+    },
+    "dp_tnqabypxzgch6ifd": {
+      "currency": null,
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[26].value",
+        "series": "LNS14000000"
+      },
+      "period": "pd_2024_08",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_cps",
+      "unit": "Percent",
+      "value": "4.2",
+      "value_text": "4.2"
+    },
+    "dp_tyq6d575f2dhhgm6": {
+      "currency": null,
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[9].value",
+        "series": "CES0000000001"
+      },
+      "period": "pd_2026_01",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_ces",
+      "unit": "All employees, thousands",
+      "value": "158592",
+      "value_text": "158592"
+    },
+    "dp_uagycyae7rcarms2": {
+      "currency": null,
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "locator": {
+        "footnotes": [
+          {
+            "code": "P",
+            "text": "preliminary"
+          }
+        ],
+        "kind": "json",
+        "path": "$.Results.series[0].data[1].value",
+        "series": "CES0000000001"
+      },
+      "period": "pd_2026_09",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_ces",
+      "unit": "All employees, thousands",
+      "value": "159128",
+      "value_text": "159128"
+    },
+    "dp_us6bt6xef34tz54t": {
+      "currency": null,
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[33].value",
+        "series": "LNS14000000"
+      },
+      "period": "pd_2024_01",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_cps",
+      "unit": "Percent",
+      "value": "3.7",
+      "value_text": "3.7"
+    },
+    "dp_vd67lkifoxxmj5mh": {
+      "currency": null,
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[22].value",
+        "series": "LNS14000000"
+      },
+      "period": "pd_2024_12",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_cps",
+      "unit": "Percent",
+      "value": "4.1",
+      "value_text": "4.1"
+    },
+    "dp_wbqb76cymf4qvmw5": {
+      "currency": null,
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[16].value",
+        "series": "LNS14000000"
+      },
+      "period": "pd_2025_06",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_cps",
+      "unit": "Percent",
+      "value": "4.1",
+      "value_text": "4.1"
+    },
+    "dp_xknvc32heoavugsb": {
+      "currency": null,
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[5].value",
+        "series": "CES0000000001"
+      },
+      "period": "pd_2026_05",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_ces",
+      "unit": "All employees, thousands",
+      "value": "158861",
+      "value_text": "158861"
+    },
+    "dp_xsxcqh7zahqei5i4": {
+      "currency": null,
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[6].value",
+        "series": "CES0000000001"
+      },
+      "period": "pd_2026_04",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_ces",
+      "unit": "All employees, thousands",
+      "value": "158798",
+      "value_text": "158798"
+    },
+    "dp_yed3kidpz7hrjwzg": {
+      "currency": null,
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[8].value",
+        "series": "CES0000000001"
+      },
+      "period": "pd_2026_02",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_ces",
+      "unit": "All employees, thousands",
+      "value": "158436",
+      "value_text": "158436"
+    },
+    "dp_ymsinclsyfph3ymx": {
+      "currency": null,
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[20].value",
+        "series": "CES0000000001"
+      },
+      "period": "pd_2025_02",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_ces",
+      "unit": "All employees, thousands",
+      "value": "158310",
+      "value_text": "158310"
+    },
+    "dp_zjnrf6gaeckhpse2": {
+      "currency": null,
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[22].value",
+        "series": "CES0000000001"
+      },
+      "period": "pd_2024_12",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_ces",
+      "unit": "All employees, thousands",
+      "value": "158316",
+      "value_text": "158316"
+    },
+    "dp_zwruoigzjtakxrph": {
+      "currency": null,
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted",
+      "locator": {
+        "kind": "json",
+        "path": "$.Results.series[0].data[29].value",
+        "series": "CES0000000001"
+      },
+      "period": "pd_2024_05",
+      "scale": null,
+      "seasonal_adjustment": "SA",
+      "source": "src_bls_ces",
+      "unit": "All employees, thousands",
+      "value": "157608",
+      "value_text": "157608"
+    }
+  },
+  "quotes": {},
+  "series": {
+    "sr_3bj36ttsa3ar": {
+      "currency": null,
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted, January 2024 to October 2026",
+      "points": [
+        {
+          "period": "pd_2024_01",
+          "point": "dp_o6ctaq67zeflzw5a"
+        },
+        {
+          "period": "pd_2024_02",
+          "point": "dp_oawazhyqqaz5iqqy"
+        },
+        {
+          "period": "pd_2024_03",
+          "point": "dp_qvimk74j7ftcm64a"
+        },
+        {
+          "period": "pd_2024_04",
+          "point": "dp_hhcxfh2oloeyic27"
+        },
+        {
+          "period": "pd_2024_05",
+          "point": "dp_zwruoigzjtakxrph"
+        },
+        {
+          "period": "pd_2024_06",
+          "point": "dp_qdsgzkgnim2rvmtz"
+        },
+        {
+          "period": "pd_2024_07",
+          "point": "dp_i2pwx4unfnaheupy"
+        },
+        {
+          "period": "pd_2024_08",
+          "point": "dp_6t6otebojeb75rpw"
+        },
+        {
+          "period": "pd_2024_09",
+          "point": "dp_76a45jht33nn5a7y"
+        },
+        {
+          "period": "pd_2024_10",
+          "point": "dp_hyykiv3f2b2g5y7e"
+        },
+        {
+          "period": "pd_2024_11",
+          "point": "dp_jyn27nmipza2o34g"
+        },
+        {
+          "period": "pd_2024_12",
+          "point": "dp_zjnrf6gaeckhpse2"
+        },
+        {
+          "period": "pd_2025_01",
+          "point": "dp_ott3l4gkogx5aezp"
+        },
+        {
+          "period": "pd_2025_02",
+          "point": "dp_ymsinclsyfph3ymx"
+        },
+        {
+          "period": "pd_2025_03",
+          "point": "dp_5bmd3lsgoripub2n"
+        },
+        {
+          "period": "pd_2025_04",
+          "point": "dp_sxa3vac5hdwwuydd"
+        },
+        {
+          "period": "pd_2025_05",
+          "point": "dp_fmnoj2mt6kakkyjy"
+        },
+        {
+          "period": "pd_2025_06",
+          "point": "dp_ah5jscr3sha5elnr"
+        },
+        {
+          "period": "pd_2025_07",
+          "point": "dp_6pnrmyg3cgiettbs"
+        },
+        {
+          "period": "pd_2025_08",
+          "point": "dp_cdq6ptm4uz56rryj"
+        },
+        {
+          "period": "pd_2025_09",
+          "point": "dp_foudxsyjp4vusyx3"
+        },
+        {
+          "period": "pd_2025_10",
+          "point": "dp_gihbhes2orplnusi"
+        },
+        {
+          "period": "pd_2025_11",
+          "point": "dp_bbjvgt5uqwbeuh4p"
+        },
+        {
+          "period": "pd_2025_12",
+          "point": "dp_moybc2syo6uilrli"
+        },
+        {
+          "period": "pd_2026_01",
+          "point": "dp_tyq6d575f2dhhgm6"
+        },
+        {
+          "period": "pd_2026_02",
+          "point": "dp_yed3kidpz7hrjwzg"
+        },
+        {
+          "period": "pd_2026_03",
+          "point": "dp_4hpdyft3gize4dqa"
+        },
+        {
+          "period": "pd_2026_04",
+          "point": "dp_xsxcqh7zahqei5i4"
+        },
+        {
+          "period": "pd_2026_05",
+          "point": "dp_xknvc32heoavugsb"
+        },
+        {
+          "period": "pd_2026_06",
+          "point": "dp_h43zvxb5f22mj4cf"
+        },
+        {
+          "period": "pd_2026_07",
+          "point": "dp_g2e52kruthin74bh"
+        },
+        {
+          "period": "pd_2026_08",
+          "point": "dp_ejsxoyntzkrwfaiv"
+        },
+        {
+          "period": "pd_2026_09",
+          "point": "dp_uagycyae7rcarms2"
+        },
+        {
+          "period": "pd_2026_10",
+          "point": "dp_gpi4efi6yvfglffl"
+        }
+      ],
+      "scale": null,
+      "unit": "All employees, thousands"
+    },
+    "sr_yahxrdyv7qax": {
+      "currency": null,
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted, January 2024 to October 2026",
+      "points": [
+        {
+          "period": "pd_2024_01",
+          "point": "dp_us6bt6xef34tz54t"
+        },
+        {
+          "period": "pd_2024_02",
+          "point": "dp_fwgw6ucwthc5jnri"
+        },
+        {
+          "period": "pd_2024_03",
+          "point": "dp_dzukdy5yampasvp6"
+        },
+        {
+          "period": "pd_2024_04",
+          "point": "dp_htbe3fv7ghielw34"
+        },
+        {
+          "period": "pd_2024_05",
+          "point": "dp_aotmgzf5ftygiobe"
+        },
+        {
+          "period": "pd_2024_06",
+          "point": "dp_le7umtslvh3pla56"
+        },
+        {
+          "period": "pd_2024_07",
+          "point": "dp_kxk4d6c3hjje67cr"
+        },
+        {
+          "period": "pd_2024_08",
+          "point": "dp_tnqabypxzgch6ifd"
+        },
+        {
+          "period": "pd_2024_09",
+          "point": "dp_jlc6w4sl5a5l4zve"
+        },
+        {
+          "period": "pd_2024_10",
+          "point": "dp_2fess4nbczlubf3i"
+        },
+        {
+          "period": "pd_2024_11",
+          "point": "dp_6gcc4sbnrlldlkg2"
+        },
+        {
+          "period": "pd_2024_12",
+          "point": "dp_vd67lkifoxxmj5mh"
+        },
+        {
+          "period": "pd_2025_01",
+          "point": "dp_idsbci25cfvuq74g"
+        },
+        {
+          "period": "pd_2025_02",
+          "point": "dp_m2e4km35ip56yrnx"
+        },
+        {
+          "period": "pd_2025_03",
+          "point": "dp_auiyx6nprqcnlzc3"
+        },
+        {
+          "period": "pd_2025_04",
+          "point": "dp_pzk5dzazw2haj2mv"
+        },
+        {
+          "period": "pd_2025_05",
+          "point": "dp_7wyfvjmsd4iociqf"
+        },
+        {
+          "period": "pd_2025_06",
+          "point": "dp_wbqb76cymf4qvmw5"
+        },
+        {
+          "period": "pd_2025_07",
+          "point": "dp_fwxulwkbnblrqam6"
+        },
+        {
+          "period": "pd_2025_08",
+          "point": "dp_o26azq2unxf74nl5"
+        },
+        {
+          "period": "pd_2025_09",
+          "point": "dp_cbcd5t5mfvuh7aqg"
+        },
+        {
+          "period": "pd_2025_11",
+          "point": "dp_jx6nghlgajvqot3g"
+        },
+        {
+          "period": "pd_2025_12",
+          "point": "dp_jzc6esqca4gzaml4"
+        },
+        {
+          "period": "pd_2026_01",
+          "point": "dp_3gnxzafwqidfzcaa"
+        },
+        {
+          "period": "pd_2026_02",
+          "point": "dp_sfdq2g226etn3wz3"
+        },
+        {
+          "period": "pd_2026_03",
+          "point": "dp_sja2m4m6d6fv5qqr"
+        },
+        {
+          "period": "pd_2026_04",
+          "point": "dp_obmjhkdckqxwwznq"
+        },
+        {
+          "period": "pd_2026_05",
+          "point": "dp_3zq6722xipe6uiwt"
+        },
+        {
+          "period": "pd_2026_06",
+          "point": "dp_qlfztcgnaytggmm2"
+        },
+        {
+          "period": "pd_2026_07",
+          "point": "dp_fflh6rmf4cwr3zan"
+        },
+        {
+          "period": "pd_2026_08",
+          "point": "dp_6akuwwxr4tgdhxr6"
+        },
+        {
+          "period": "pd_2026_09",
+          "point": "dp_owvaajuazcbf5n2u"
+        },
+        {
+          "period": "pd_2026_10",
+          "point": "dp_d3dyoy567d4dmwxy"
+        }
+      ],
+      "scale": null,
+      "unit": "Percent"
+    }
+  },
+  "version": 1
+}

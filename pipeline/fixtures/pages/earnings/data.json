@@ -1,0 +1,248 @@
+{
+  "context": {},
+  "derived": {},
+  "periods": {
+    "pd_20231001_20240928": {
+      "end": "2024-09-28",
+      "fiscal": true,
+      "label": "2023-10-01/2024-09-28",
+      "start": "2023-10-01"
+    }
+  },
+  "points": {
+    "dp_4a667tn3d233zata": {
+      "currency": "USD",
+      "label": "CostOfGoodsAndServicesSold",
+      "locator": {
+        "accn": "0000320193-24-000123",
+        "filed": "2024-11-01",
+        "form": "10-K",
+        "fp": "FY",
+        "fy": 2024,
+        "kind": "xbrl",
+        "path": "$.facts['us-gaap']['CostOfGoodsAndServicesSold'].units['USD'][0]",
+        "tag": "us-gaap:CostOfGoodsAndServicesSold",
+        "unit": "USD"
+      },
+      "period": "pd_20231001_20240928",
+      "scale": null,
+      "source": "src_aapl_10k",
+      "unit": "USD",
+      "value": "210352000000",
+      "value_text": "210352000000"
+    },
+    "dp_5bwm2cc5vbbxkjc4": {
+      "currency": "USD",
+      "label": "ResearchAndDevelopmentExpense",
+      "locator": {
+        "accn": "0000320193-24-000123",
+        "filed": "2024-11-01",
+        "form": "10-K",
+        "fp": "FY",
+        "fy": 2024,
+        "kind": "xbrl",
+        "path": "$.facts['us-gaap']['ResearchAndDevelopmentExpense'].units['USD'][0]",
+        "tag": "us-gaap:ResearchAndDevelopmentExpense",
+        "unit": "USD"
+      },
+      "period": "pd_20231001_20240928",
+      "scale": null,
+      "source": "src_aapl_10k",
+      "unit": "USD",
+      "value": "31370000000",
+      "value_text": "31370000000"
+    },
+    "dp_eeotdqskvtxdh2fb": {
+      "currency": "USD",
+      "label": "OperatingExpenses",
+      "locator": {
+        "accn": "0000320193-24-000123",
+        "filed": "2024-11-01",
+        "form": "10-K",
+        "fp": "FY",
+        "fy": 2024,
+        "kind": "xbrl",
+        "path": "$.facts['us-gaap']['OperatingExpenses'].units['USD'][0]",
+        "tag": "us-gaap:OperatingExpenses",
+        "unit": "USD"
+      },
+      "period": "pd_20231001_20240928",
+      "scale": null,
+      "source": "src_aapl_10k",
+      "unit": "USD",
+      "value": "57467000000",
+      "value_text": "57467000000"
+    },
+    "dp_gcvvwz3rggki4m42": {
+      "currency": "USD",
+      "label": "NetIncomeLoss",
+      "locator": {
+        "accn": "0000320193-24-000123",
+        "filed": "2024-11-01",
+        "form": "10-K",
+        "fp": "FY",
+        "fy": 2024,
+        "kind": "xbrl",
+        "path": "$.facts['us-gaap']['NetIncomeLoss'].units['USD'][0]",
+        "tag": "us-gaap:NetIncomeLoss",
+        "unit": "USD"
+      },
+      "period": "pd_20231001_20240928",
+      "scale": null,
+      "source": "src_aapl_10k",
+      "unit": "USD",
+      "value": "93736000000",
+      "value_text": "93736000000"
+    },
+    "dp_gyqvyvwdfoavb6ik": {
+      "currency": "USD",
+      "label": "GrossProfit",
+      "locator": {
+        "accn": "0000320193-24-000123",
+        "filed": "2024-11-01",
+        "form": "10-K",
+        "fp": "FY",
+        "fy": 2024,
+        "kind": "xbrl",
+        "path": "$.facts['us-gaap']['GrossProfit'].units['USD'][0]",
+        "tag": "us-gaap:GrossProfit",
+        "unit": "USD"
+      },
+      "period": "pd_20231001_20240928",
+      "scale": null,
+      "source": "src_aapl_10k",
+      "unit": "USD",
+      "value": "180683000000",
+      "value_text": "180683000000"
+    },
+    "dp_ofcoxo3c6abfoo53": {
+      "currency": "USD",
+      "label": "OperatingIncomeLoss",
+      "locator": {
+        "accn": "0000320193-24-000123",
+        "filed": "2024-11-01",
+        "form": "10-K",
+        "fp": "FY",
+        "fy": 2024,
+        "kind": "xbrl",
+        "path": "$.facts['us-gaap']['OperatingIncomeLoss'].units['USD'][0]",
+        "tag": "us-gaap:OperatingIncomeLoss",
+        "unit": "USD"
+      },
+      "period": "pd_20231001_20240928",
+      "scale": null,
+      "source": "src_aapl_10k",
+      "unit": "USD",
+      "value": "123216000000",
+      "value_text": "123216000000"
+    },
+    "dp_qxwm57nvi5v5zmo5": {
+      "currency": "USD",
+      "label": "SellingGeneralAndAdministrativeExpense",
+      "locator": {
+        "accn": "0000320193-24-000123",
+        "filed": "2024-11-01",
+        "form": "10-K",
+        "fp": "FY",
+        "fy": 2024,
+        "kind": "xbrl",
+        "path": "$.facts['us-gaap']['SellingGeneralAndAdministrativeExpense'].units['USD'][0]",
+        "tag": "us-gaap:SellingGeneralAndAdministrativeExpense",
+        "unit": "USD"
+      },
+      "period": "pd_20231001_20240928",
+      "scale": null,
+      "source": "src_aapl_10k",
+      "unit": "USD",
+      "value": "26097000000",
+      "value_text": "26097000000"
+    },
+    "dp_rgaqlsm2ln2nuqn7": {
+      "currency": "USD",
+      "label": "NonoperatingIncomeExpense",
+      "locator": {
+        "accn": "0000320193-24-000123",
+        "filed": "2024-11-01",
+        "form": "10-K",
+        "fp": "FY",
+        "fy": 2024,
+        "kind": "xbrl",
+        "path": "$.facts['us-gaap']['NonoperatingIncomeExpense'].units['USD'][0]",
+        "tag": "us-gaap:NonoperatingIncomeExpense",
+        "unit": "USD"
+      },
+      "period": "pd_20231001_20240928",
+      "scale": null,
+      "source": "src_aapl_10k",
+      "unit": "USD",
+      "value": "269000000",
+      "value_text": "269000000"
+    },
+    "dp_rn3dqvladry7igs7": {
+      "currency": "USD",
+      "label": "IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest",
+      "locator": {
+        "accn": "0000320193-24-000123",
+        "filed": "2024-11-01",
+        "form": "10-K",
+        "fp": "FY",
+        "fy": 2024,
+        "kind": "xbrl",
+        "path": "$.facts['us-gaap']['IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest'].units['USD'][0]",
+        "tag": "us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest",
+        "unit": "USD"
+      },
+      "period": "pd_20231001_20240928",
+      "scale": null,
+      "source": "src_aapl_10k",
+      "unit": "USD",
+      "value": "123485000000",
+      "value_text": "123485000000"
+    },
+    "dp_vc6if6wdvyfxcmt6": {
+      "currency": "USD",
+      "label": "RevenueFromContractWithCustomerExcludingAssessedTax",
+      "locator": {
+        "accn": "0000320193-24-000123",
+        "filed": "2024-11-01",
+        "form": "10-K",
+        "fp": "FY",
+        "fy": 2024,
+        "kind": "xbrl",
+        "path": "$.facts['us-gaap']['RevenueFromContractWithCustomerExcludingAssessedTax'].units['USD'][0]",
+        "tag": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+        "unit": "USD"
+      },
+      "period": "pd_20231001_20240928",
+      "scale": null,
+      "source": "src_aapl_10k",
+      "unit": "USD",
+      "value": "391035000000",
+      "value_text": "391035000000"
+    },
+    "dp_vi5pgdc43ormcwdc": {
+      "currency": "USD",
+      "label": "IncomeTaxExpenseBenefit",
+      "locator": {
+        "accn": "0000320193-24-000123",
+        "filed": "2024-11-01",
+        "form": "10-K",
+        "fp": "FY",
+        "fy": 2024,
+        "kind": "xbrl",
+        "path": "$.facts['us-gaap']['IncomeTaxExpenseBenefit'].units['USD'][0]",
+        "tag": "us-gaap:IncomeTaxExpenseBenefit",
+        "unit": "USD"
+      },
+      "period": "pd_20231001_20240928",
+      "scale": null,
+      "source": "src_aapl_10k",
+      "unit": "USD",
+      "value": "29749000000",
+      "value_text": "29749000000"
+    }
+  },
+  "quotes": {},
+  "series": {},
+  "version": 1
+}

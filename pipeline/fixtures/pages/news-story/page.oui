@@ -1,0 +1,4 @@
+root = Page([facts, statement, reason])
+facts = Prose(["The Bank of Canada raised its target for the overnight rate, its announcement said. It opened with these words:"])
+statement = Quote("q_7001_1")
+reason = Prose(["Governing Council decided on the increase to reduce the risk that continuing high energy prices spread broadly to the prices of other goods and services, the announcement said. It added that the Bank remains committed to maintaining Canadians' confidence in price stability."])

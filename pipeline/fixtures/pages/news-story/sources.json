@@ -1,0 +1,21 @@
+{
+  "sources": {
+    "src_boc_statement": {
+      "connector": "cb-boc",
+      "licence": {
+        "name": "Bank of Canada terms of use",
+        "redistribution": true,
+        "url": "https://www.bankofcanada.ca/terms/"
+      },
+      "primary": true,
+      "published_at": "2026-10-28",
+      "publisher": "Bank of Canada",
+      "retrieved_at": "2026-11-28",
+      "short": "Interest rate announcement",
+      "title": "Bank of Canada press release: interest rate announcement",
+      "type": "statement",
+      "url": "https://www.bankofcanada.ca/2026/10/fad-press-release-2026-10-28/"
+    }
+  },
+  "version": 1
+}

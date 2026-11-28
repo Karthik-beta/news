@@ -1,0 +1,43 @@
+{
+  "bundle_sha256": "345b955a621142ecf477d9850c3d09eee6a81bf1cc265f1dda6e34c0a27f9cc7",
+  "files": [
+    {
+      "bytes": 274,
+      "path": "charts/path.csv",
+      "sha256": "bbabd8cdd9a07c97e5e6474b72b6b1d9179870c89b82d032cb842f4895e2669f"
+    },
+    {
+      "bytes": 8765,
+      "path": "data.json",
+      "sha256": "30b97ea4811991bdc8ca55af1d4f15e87822681bf832ecc984992b7c288923b5"
+    },
+    {
+      "bytes": 22383,
+      "path": "index.html",
+      "sha256": "cb6a4eee549306e02524f97d2268bd13a20a6d80a8ab8604b9662d1f0ac0d71a"
+    },
+    {
+      "bytes": 2187,
+      "path": "index.md",
+      "sha256": "a80563f71f7ddd2fcc97c1ca94e7eccc695743aed56bb2267579f32b7a27fe75"
+    },
+    {
+      "bytes": 1252,
+      "path": "meta.json",
+      "sha256": "9e46230712e45a2f7c0372a1ff456fc8d1dced1103e6848c4cc1fce3bce89102"
+    },
+    {
+      "bytes": 964,
+      "path": "page.oui",
+      "sha256": "c09f63da6ce47945bef9370ecc532f353fdb93abb57a7740bc9285684dfdfd9f"
+    },
+    {
+      "bytes": 1174,
+      "path": "sources.json",
+      "sha256": "c4115c06f96255350ce91b3a85bca38c5e57f1437619dee6f7b41c467096fb19"
+    }
+  ],
+  "page_id": "policy-boc-2026-10-28",
+  "schema": "manifest.v1",
+  "version": 1
+}

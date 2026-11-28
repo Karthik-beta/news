@@ -1,0 +1,47 @@
+{
+  "categories": [
+    "economy/growth"
+  ],
+  "chart_ids": [
+    "years",
+    "table"
+  ],
+  "data_ids": [
+    "dp_2kkf6eorryn4eygg",
+    "dp_4stpfufc74tc24cy",
+    "dp_qz3sungkfd3u2b7a",
+    "dp_u5lcrrglxtnd5hut",
+    "dp_zt2xelifklqugfmy",
+    "dv_kzlk4w44czg7dxrt"
+  ],
+  "entities": [
+    {
+      "id": "ent_us",
+      "kind": "country",
+      "name": "United States"
+    },
+    {
+      "id": "ent_wb",
+      "kind": "institution",
+      "name": "The World Bank"
+    }
+  ],
+  "fly_title": "America's economy",
+  "id": "macro-us-gdp-wb-2025",
+  "index_status": "noindex",
+  "lang": "en-GB",
+  "page_type": "report",
+  "path": "/2026/11/macro-us-gdp-wb-2025",
+  "published_at": "2026-11-11T12:00:00Z",
+  "region": "north-america",
+  "renderer_version": "1.1.0",
+  "schema": "meta.v1",
+  "summary": "GDP in current US dollars rose by {dv_kzlk4w44czg7dxrt} from {pd_2024}, when it was {dp_2kkf6eorryn4eygg}, according to the World Bank's World Development Indicators.",
+  "tags": [
+    "gdp"
+  ],
+  "tier": 2,
+  "title": "The World Bank puts America's GDP at {dp_4stpfufc74tc24cy} in {pd_2025}",
+  "updated_at": "2026-11-11T12:00:00Z",
+  "version": 1
+}

@@ -3,3 +3,5 @@
 *.jpg binary
 *.woff2 binary
 *.ico binary
+# Rendered fixture bundles are compared byte for byte (CSV downloads use CRLF, RFC 4180).
+pipeline/fixtures/pages/** -text

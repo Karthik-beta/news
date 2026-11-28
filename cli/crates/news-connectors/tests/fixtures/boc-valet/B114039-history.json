@@ -1,0 +1,94 @@
+{
+    "terms": {
+        "url": "https://www.bankofcanada.ca/terms/"
+    },
+    "seriesDetail": {
+        "B114039": {
+            "label": "Target for the overnight rate",
+            "description": "Also called the policy interest rate, the average rate that the Bank of Canada wants to see in the market for overnight money market financing. (V39079)",
+            "dimension": {
+                "key": "d",
+                "name": "Date"
+            },
+            "dateFormat": "daily",
+            "metadata": {
+                "unit": "Percent",
+                "frequency": "Business daily"
+            }
+        }
+    },
+    "observations": [
+        {
+            "d": "2026-10-29",
+            "B114039": {
+                "v": "2.50"
+            }
+        },
+        {
+            "d": "2025-10-30",
+            "B114039": {
+                "v": "2.25"
+            }
+        },
+        {
+            "d": "2025-09-18",
+            "B114039": {
+                "v": "2.50"
+            }
+        },
+        {
+            "d": "2025-03-13",
+            "B114039": {
+                "v": "2.75"
+            }
+        },
+        {
+            "d": "2025-01-30",
+            "B114039": {
+                "v": "3.00"
+            }
+        },
+        {
+            "d": "2024-12-12",
+            "B114039": {
+                "v": "3.25"
+            }
+        },
+        {
+            "d": "2024-10-24",
+            "B114039": {
+                "v": "3.75"
+            }
+        },
+        {
+            "d": "2024-09-05",
+            "B114039": {
+                "v": "4.25"
+            }
+        },
+        {
+            "d": "2024-07-25",
+            "B114039": {
+                "v": "4.50"
+            }
+        },
+        {
+            "d": "2024-06-06",
+            "B114039": {
+                "v": "4.75"
+            }
+        },
+        {
+            "d": "2023-07-13",
+            "B114039": {
+                "v": "5.00"
+            }
+        },
+        {
+            "d": "2023-06-08",
+            "B114039": {
+                "v": "4.75"
+            }
+        }
+    ]
+}

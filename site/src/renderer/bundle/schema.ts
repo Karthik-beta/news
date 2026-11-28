@@ -142,6 +142,16 @@ export const ContextLine = z
   })
   .strict();
 
+/** An image's stored record: the credit as its source gives it, and the source, whose licence the page states. */
+export const ImageRecord = z
+  .object({
+    credit: z.string().min(1).nullable().meta({
+      description: "The credit line as the source gives it ('NASA/Brandon Hancock'); null when it gives none.",
+    }),
+    source: SourceId,
+  })
+  .strict();
+
 export const PageData = z
   .object({
     $schema: z.string().optional(),
@@ -152,6 +162,10 @@ export const PageData = z
     periods: z.record(ref("pd"), Period).meta({ description: "pd_… period labels." }),
     quotes: z.record(ref("q"), Quote).meta({ description: "q_… quotes." }),
     context: z.record(ref("cx"), ContextLine).meta({ description: "cx_… context lines." }),
+    images: z
+      .record(z.string().min(1), ImageRecord)
+      .optional()
+      .meta({ description: "Image records by URL: the renderer adds each image's credit and licence from these." }),
   })
   .strict()
   .meta({
@@ -212,6 +226,7 @@ export type SeriesT = z.infer<typeof Series>;
 export type PeriodT = z.infer<typeof Period>;
 export type QuoteT = z.infer<typeof Quote>;
 export type ContextLineT = z.infer<typeof ContextLine>;
+export type ImageRecordT = z.infer<typeof ImageRecord>;
 export type PageDataT = z.infer<typeof PageData>;
 export type SourceT = z.infer<typeof Source>;
 export type PageSourcesT = z.infer<typeof PageSources>;

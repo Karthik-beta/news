@@ -1,0 +1,108 @@
+{
+  "brief_version": 1,
+  "item": {
+    "story_id": 91003,
+    "event_key": "macro:us.gdp_wb:2025",
+    "page_type": "major-report",
+    "tier": 2,
+    "action": "new",
+    "slug_hint": "macro-us-gdp-wb-2025",
+    "data_as_of": "2026-11-11"
+  },
+  "entities": [
+    {
+      "id": "ent_us",
+      "name": "United States",
+      "kind": "country"
+    },
+    {
+      "id": "ent_wb",
+      "name": "The World Bank",
+      "kind": "institution"
+    }
+  ],
+  "facts": [
+    {
+      "ref": "dp_4stpfufc74tc24cy",
+      "label": "GDP (current US$)",
+      "value": "30769700000000",
+      "unit": "current US$",
+      "period": "2025"
+    },
+    {
+      "ref": "dv_kzlk4w44czg7dxrt",
+      "label": "GDP (current US$), change from 2024",
+      "value": "5.0",
+      "unit": "Percent",
+      "period": "2025",
+      "derived": "pct_change"
+    },
+    {
+      "ref": "dp_2kkf6eorryn4eygg",
+      "label": "GDP (current US$)",
+      "value": "29298013000000",
+      "unit": "current US$",
+      "period": "2024"
+    }
+  ],
+  "series": [
+    {
+      "ref": "sr_am7mvf3ghynd",
+      "label": "GDP (current US$), 2021 to 2025",
+      "points": 5
+    }
+  ],
+  "periods": [
+    {
+      "ref": "pd_2025",
+      "label": "2025"
+    },
+    {
+      "ref": "pd_2021",
+      "label": "2021"
+    },
+    {
+      "ref": "pd_2022",
+      "label": "2022"
+    },
+    {
+      "ref": "pd_2023",
+      "label": "2023"
+    },
+    {
+      "ref": "pd_2024",
+      "label": "2024"
+    }
+  ],
+  "context": [
+    {
+      "id": "cx_1",
+      "text": "GDP (current US$): highest of every observation held, which begin in 2021",
+      "rule": "series_record_high"
+    }
+  ],
+  "quotes": [],
+  "source_text": {
+    "untrusted": true,
+    "points": []
+  },
+  "media": {
+    "images": [],
+    "video": null
+  },
+  "related_pages": [],
+  "components": {
+    "suggested": [
+      "KeyFigures",
+      "DataTable",
+      "BarChart",
+      "Prose",
+      "Note",
+      "VideoEmbed"
+    ]
+  },
+  "rules": {
+    "disclaimer": "not-investment-advice",
+    "fiscal_note": null
+  }
+}

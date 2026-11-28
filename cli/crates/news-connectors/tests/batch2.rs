@@ -212,6 +212,120 @@ fn sdmx_null_observation_is_missing_not_zero() {
     assert_eq!(p.missing[0].period_label, "2023-08-02");
 }
 
+// ----------------------------------------------------------------------------- Bank of Canada Valet
+
+#[test]
+fn boc_policy_rate_keeps_the_banks_digits_dates_and_unit() {
+    let p = stat_flow(
+        "boc-valet",
+        "B114039",
+        "boc-valet/B114039-probe.json",
+        "boc-valet/B114039-history.json",
+    );
+    assert_eq!(p.points.len(), 12);
+    assert!(p.needs_human.is_empty() && p.missing.is_empty());
+    // Newest first, as published; "2.50" keeps its trailing zero.
+    let first = &p.points[0];
+    assert_eq!(first.series_key, "boc-valet:B114039");
+    assert_eq!(first.label, "Target for the overnight rate");
+    assert_eq!(first.unit, "Percent");
+    assert_eq!(first.value_text, "2.50");
+    assert_eq!(first.period_label, "2026-10-29");
+    assert_eq!(first.period_start, first.period_end);
+    assert!(first.currency.is_none() && first.scale.is_none());
+    assert_eq!(first.vintage, at());
+    assert_eq!(first.locator["path"], "$.observations[0].B114039.v");
+    let previous = &p.points[1];
+    assert_eq!(
+        (previous.value_text.as_str(), previous.period_label.as_str()),
+        ("2.25", "2025-10-30")
+    );
+    // The rate's story is the decision's (`policy:boc:<decision_date>`, from the statement): no key of its
+    // own, and the bank as its entity, the one the `cb-boc` statement carries.
+    let c = &p.candidates[0];
+    assert_eq!(c.event_key, None);
+    assert_eq!(c.entity, Some(("cb".into(), "boc".into())));
+    assert_eq!(c.dp_ids, std::slice::from_ref(&first.dp_id));
+    assert_eq!(c.rule_key, "family:policy_rate");
+    let entities: Vec<(&str, &str)> = p
+        .entities
+        .iter()
+        .map(|e| (e.value.as_str(), e.kind.as_str()))
+        .collect();
+    assert_eq!(entities, [("boc", "central_bank"), ("CA", "country")]);
+}
+
+fn valet(body: &str) -> Result<Parsed, news_connectors::ParseError> {
+    let conn = connector("boc-valet").unwrap();
+    let item = series_item("boc-valet", "B114039");
+    let url = conn.fetch_requests(&item)[0].url.clone();
+    conn.parse(&item, &[snap(&url, body.as_bytes().to_vec())])
+}
+
+const VALET_HEAD: &str = r#"{"seriesDetail":{"B114039":{"label":"Target for the overnight rate","metadata":{"unit":"Percent"}}},"observations":"#;
+
+#[test]
+fn boc_empty_or_missing_observations_are_missing_not_zero() {
+    let p = valet(&format!(
+        r#"{VALET_HEAD}[{{"d":"2026-10-29","B114039":{{"v":"2.50"}}}},{{"d":"2026-10-28","B114039":{{"v":""}}}},{{"d":"2026-10-27","B114039":{{}}}},{{"d":"2026-10-26"}},{{"d":"2026-10-23","B114039":{{"v":null}}}}]}}"#
+    ))
+    .unwrap();
+    assert_eq!(p.points.len(), 1);
+    let missing: Vec<&str> = p.missing.iter().map(|m| m.period_label.as_str()).collect();
+    assert_eq!(
+        missing,
+        ["2026-10-28", "2026-10-27", "2026-10-26", "2026-10-23"]
+    );
+    // No observations at all: no points and no candidate, but not an error.
+    let none = valet(&format!("{VALET_HEAD}[]}}")).unwrap();
+    assert!(none.points.is_empty() && none.candidates.is_empty());
+}
+
+#[test]
+fn boc_malformed_values_and_responses_fail_cleanly() {
+    let bad = |v: &str| {
+        valet(&format!(
+            r#"{VALET_HEAD}[{{"d":"2026-10-29","B114039":{{"v":{v}}}}}]}}"#
+        ))
+        .unwrap_err()
+    };
+    let e = bad(r#""2.5O""#);
+    assert_eq!(e.kind, ParseErrorKind::Value);
+    assert_eq!(e.locator, "$.observations[0].B114039.v");
+    let e = bad("2.5");
+    assert_eq!(
+        e.kind,
+        ParseErrorKind::Shape,
+        "a number, not the published string"
+    );
+    let e = valet(&format!(
+        r#"{VALET_HEAD}[{{"d":"2026-10","B114039":{{"v":"2.50"}}}}]}}"#
+    ))
+    .unwrap_err();
+    assert_eq!(e.kind, ParseErrorKind::Value, "a month is not a day");
+    for (body, what) in [
+        ("not json", "garbage"),
+        (r#"{"observations":[]}"#, "no seriesDetail"),
+        (
+            r#"{"seriesDetail":{"V39079":{"label":"x"}},"observations":[]}"#,
+            "another series",
+        ),
+        (
+            &format!(r#"{VALET_HEAD}[{{"B114039":{{"v":"2.50"}}}}]}}"#),
+            "no date",
+        ),
+    ] {
+        let e = valet(body).unwrap_err();
+        assert_eq!(e.kind, ParseErrorKind::Shape, "{what}");
+        assert_eq!(e.class(), ErrorClass::UpstreamChanged);
+    }
+    let conn = connector("boc-valet").unwrap();
+    let e = conn
+        .parse(&series_item("boc-valet", "B114039"), &[])
+        .unwrap_err();
+    assert_eq!(e.kind, ParseErrorKind::MissingSnapshot);
+}
+
 // ----------------------------------------------------------------------------- OECD, ABS, Eurostat
 
 #[test]

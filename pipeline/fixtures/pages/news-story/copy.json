@@ -1,0 +1,22 @@
+{
+  "draft_id": "news-story-b038f35ef35f",
+  "story": "news-story",
+  "saved_at": "2026-11-18T12:00:00Z",
+  "source": "save",
+  "job": null,
+  "flags": [],
+  "copy": {
+    "angle": "decision",
+    "components_used": [
+      "Prose",
+      "Quote"
+    ],
+    "fly_title": "Canada's central bank",
+    "headline": "The Bank of Canada raised its target for the overnight rate",
+    "oui": "root = Page([facts, statement, reason])\nfacts = Prose([\"The Bank of Canada raised its target for the overnight rate, its announcement said. It opened with these words:\"])\nstatement = Quote(\"q_7001_1\")\nreason = Prose([\"Governing Council decided on the increase to reduce the risk that continuing high energy prices spread broadly to the prices of other goods and services, the announcement said. It added that the Bank remains committed to maintaining Canadians' confidence in price stability.\"])\n",
+    "refs_used": [
+      "q_7001_1"
+    ],
+    "summary": "Its Governing Council said inflation was higher and more persistent than the Bank had expected in July. The announcement is quoted below."
+  }
+}

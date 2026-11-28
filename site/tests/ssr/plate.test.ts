@@ -55,6 +55,22 @@ describe("Plate handler", () => {
     expect(props.errors[0]?.where).toStartWith("oui:a");
   });
 
+  test("check refuses an image credit or licence typed by hand: they come from the image record", () => {
+    const fig = (credit: string, licence: string) =>
+      `root = Page([p])
+p = ImageFigure("https://images.example.org/a.jpg", "The lander on the surface.", 1600, 1200, ${credit}, ${licence}, "The lander.")`;
+    expect(check(fig("null", "null")).errors).toEqual([]);
+    for (const typed of [fig('"NASA/JPL-Caltech"', "null"), fig("null", '"Public domain"')]) {
+      expect(check(typed).errors).toEqual([
+        { rule: "props", where: "oui:p", message: "credit and licence come from the image record: leave them null" },
+      ]);
+    }
+    const img = (extra: string) => `{src: "https://images.example.org/a.jpg", alt: "A.", width: 16, height: 9${extra}}`;
+    const gallery = check(`root = Page([g])
+g = ImageGallery([${img("")}, ${img(', credit: "NASA"')}])`);
+    expect(gallery.errors.map((e) => e.where)).toEqual(["oui:g.images.1"]);
+  });
+
   test("refuses bad requests and maps a contract failure to 422", async () => {
     expect((await post("/render", { oui: 1 })).status).toBe(400);
     expect((await post("/render", { oui: "root = Page([])" })).status).toBe(400);

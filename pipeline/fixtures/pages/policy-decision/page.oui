@@ -1,0 +1,6 @@
+root = Page([decision, statement, explain, timeline])
+decision = PolicyDecision("Target for the overnight rate", "dp_jaube55grwlqrie3", null, [{label: "In effect from", value: "pd_2026_10_29"}, {label: "Previous rate", value: "dp_qrdaeedxyxdzomqw"}, {label: "Context", value: "cx_2"}], path)
+path = StepLineChart("The target is above the rate it replaced", "Target for the overnight rate, %, {pd_2023_06_08} to {pd_2026_10_29}", ["sr_k5xc5nfhvghh"], ["pd_2025_10_30", "pd_2026_10_29"], "sr_k5xc5nfhvghh")
+statement = Quote("q_7002_1")
+explain = Prose(["The Bank of Canada's Valet service publishes the target for the overnight rate as a dated series; the decision, the chart and the timeline come from it. The quotation comes from the Bank's announcement of the decision."])
+timeline = Timeline([{date: "pd_2025_10_30", text: "The target became {dp_qrdaeedxyxdzomqw}."}, {date: "pd_2026_10_29", text: "The target became {dp_jaube55grwlqrie3}."}], "pd_2026_10_29")

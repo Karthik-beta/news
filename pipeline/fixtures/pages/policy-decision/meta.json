@@ -1,0 +1,48 @@
+{
+  "categories": [
+    "economy/monetary-policy"
+  ],
+  "chart_ids": [
+    "path"
+  ],
+  "data_ids": [
+    "dp_2dkg7ydo3bfgq6am",
+    "dp_2tnmnfnsbvblr3oh",
+    "dp_5fjedq3jszoollkp",
+    "dp_7h3kpqgulnihg32a",
+    "dp_awub3vu7n4j36ysa",
+    "dp_fs2hcpakezxryqfo",
+    "dp_fyi4jijuokoe2ujt",
+    "dp_jaube55grwlqrie3",
+    "dp_qrdaeedxyxdzomqw",
+    "dp_w6qywgzekxzi2uvu",
+    "dp_wilrvrc2wfdxyoyu",
+    "dp_yrdtj5oo2xo7kyqz"
+  ],
+  "entities": [
+    {
+      "id": "ent_boc",
+      "kind": "institution",
+      "name": "Bank of Canada"
+    }
+  ],
+  "fly_title": "Canadian interest rates",
+  "id": "policy-boc-2026-10-28",
+  "index_status": "noindex",
+  "lang": "en-GB",
+  "page_type": "policy",
+  "path": "/2026/11/policy-boc-2026-10-28",
+  "published_at": "2026-11-28T12:00:00Z",
+  "region": "north-america",
+  "renderer_version": "1.1.0",
+  "schema": "meta.v1",
+  "summary": "The target replaced {dp_qrdaeedxyxdzomqw}, which had applied since {pd_2025_10_30}. The figures come from the Bank of Canada's Valet service.",
+  "tags": [
+    "bank-of-canada",
+    "interest-rates"
+  ],
+  "tier": 1,
+  "title": "The Bank of Canada raised its target for the overnight rate to {dp_jaube55grwlqrie3}",
+  "updated_at": "2026-11-28T12:00:00Z",
+  "version": 1
+}

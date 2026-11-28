@@ -82,6 +82,11 @@ impl Inputs {
             "sources": self.sources,
             "head": {"flyTitle": self.copy.fly_title, "headline": self.copy.headline, "summary": self.copy.summary},
             "indexStatus": self.index_status(),
+            "disclaimer": match self.brief.rules.disclaimer.as_deref() {
+                Some("not-investment-advice") => Some("investment"),
+                Some("not-medical-advice") => Some("medical"),
+                _ => None,
+            },
         })
     }
 }
@@ -463,6 +468,19 @@ pub(crate) mod tests {
         let m = assemble(&i, &rendered()).unwrap().meta;
         assert_eq!(m["index_status"], "noindex");
         assert_eq!(m["flags"], json!(["templated"]));
+    }
+
+    #[test]
+    fn the_brief_rule_names_the_disclaimer_plate_adds() {
+        let mut i = inputs();
+        for (rule, kind) in [
+            (Some("not-investment-advice"), json!("investment")),
+            (Some("not-medical-advice"), json!("medical")),
+            (None, Value::Null),
+        ] {
+            i.brief.rules.disclaimer = rule.map(str::to_owned);
+            assert_eq!(i.render_request()["disclaimer"], kind);
+        }
     }
 
     #[test]

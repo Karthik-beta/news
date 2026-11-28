@@ -1,0 +1,76 @@
+{
+  "categories": [
+    "economy/inflation"
+  ],
+  "chart_ids": [
+    "chart",
+    "table"
+  ],
+  "data_ids": [
+    "dp_2dyav47pupt4m2xu",
+    "dp_2ien4vysi3w5uzbi",
+    "dp_7k5udtvin2tq2s64",
+    "dp_7to7gkoiapo4uqeg",
+    "dp_a4n2fttave3b3jlb",
+    "dp_aq2jyfyjggh77dlr",
+    "dp_bdikbloqrlzof2wi",
+    "dp_bquyte6mkuq37nqt",
+    "dp_cr7fe5tb6a7uo5tj",
+    "dp_crywh4fctf3wmb2n",
+    "dp_fdtccpjjhpdzdbv3",
+    "dp_gbtd5m37jdwjywov",
+    "dp_hvye2ti25gk5bppy",
+    "dp_hwooxgtje5ukms6o",
+    "dp_ihkzs3p7c7wtzydl",
+    "dp_j74bvll3m4qxh5bm",
+    "dp_jv45o5ts4vw6q3ol",
+    "dp_lnppnzpgvd4n53ns",
+    "dp_mbndld6fadkewv27",
+    "dp_mwapoakkwr7hgyyg",
+    "dp_od5utmzki4mipsz7",
+    "dp_olbfyfr6zil6wzjn",
+    "dp_qpdp6moow5ihf6we",
+    "dp_rvwyygyug35vgdo6",
+    "dp_sctrdmooixqqghwf",
+    "dp_tbsaj6ffdqitoqpg",
+    "dp_uvo2l2y2qvrrqx2q",
+    "dp_vjgnlrgccxnexypp",
+    "dp_wecugv66gptoxul4",
+    "dp_xwuqp3t6raljefru",
+    "dp_ymar7ygyecswyxqj",
+    "dp_ztnwz4vbgwgjvd4r",
+    "dp_zxysextisaux3owt",
+    "dv_bszudzy4cykpigag"
+  ],
+  "entities": [
+    {
+      "id": "ent_us",
+      "kind": "country",
+      "name": "United States"
+    },
+    {
+      "id": "ent_bls",
+      "kind": "institution",
+      "name": "U.S. Bureau of Labor Statistics"
+    }
+  ],
+  "fly_title": "Consumer prices",
+  "id": "macro-us-cpi-2026-10",
+  "index_status": "noindex",
+  "lang": "en-GB",
+  "page_type": "explainer",
+  "path": "/2026/11/macro-us-cpi-2026-10",
+  "published_at": "2026-11-16T12:00:00Z",
+  "region": "north-america",
+  "renderer_version": "1.1.0",
+  "schema": "meta.v1",
+  "summary": "The index for all urban consumers was {dp_aq2jyfyjggh77dlr} in {pd_2026_10}, up {dv_bszudzy4cykpigag} on {pd_2026_09}. Inflation is the rate at which that index changes.",
+  "tags": [
+    "inflation",
+    "cpi"
+  ],
+  "tier": 1,
+  "title": "How America's consumer price index measures the change in prices",
+  "updated_at": "2026-11-16T12:00:00Z",
+  "version": 1
+}

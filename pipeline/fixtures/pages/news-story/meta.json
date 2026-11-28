@@ -1,0 +1,33 @@
+{
+  "categories": [
+    "economy/monetary-policy"
+  ],
+  "chart_ids": [],
+  "data_ids": [],
+  "entities": [
+    {
+      "id": "ent_boc",
+      "kind": "institution",
+      "name": "Bank of Canada"
+    }
+  ],
+  "fly_title": "Canada's central bank",
+  "id": "policy-boc-2026-10-28",
+  "index_status": "noindex",
+  "lang": "en-GB",
+  "page_type": "news",
+  "path": "/2026/11/policy-boc-2026-10-28",
+  "published_at": "2026-11-18T12:00:00Z",
+  "region": "north-america",
+  "renderer_version": "1.1.0",
+  "schema": "meta.v1",
+  "summary": "Its Governing Council said inflation was higher and more persistent than the Bank had expected in July. The announcement is quoted below.",
+  "tags": [
+    "bank-of-canada",
+    "interest-rates"
+  ],
+  "tier": 2,
+  "title": "The Bank of Canada raised its target for the overnight rate",
+  "updated_at": "2026-11-18T12:00:00Z",
+  "version": 1
+}

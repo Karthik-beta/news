@@ -90,7 +90,7 @@ describe("fixture pages", () => {
     expect(injected({})).toEqual([]);
   });
 
-  it("NEWS_FIXTURES=1 adds the renderer, primitive and component fixture pages; OPENUI_SPIKE=1 the spike's", () => {
+  it("NEWS_FIXTURES=1 adds the renderer, primitive, component and fixture-page routes; OPENUI_SPIKE=1 the spike's", () => {
     expect(injected({ NEWS_FIXTURES: "1" })).toEqual([
       "/fixtures/renderer/[bundle]",
       "/fixtures/renderer/[bundle]/[...file]",
@@ -98,6 +98,8 @@ describe("fixture pages", () => {
       "/fixtures/components/[name]/[fixture]",
       "/fixtures/components/[name]/[fixture]/[...file]",
       "/fixtures/images/[file]",
+      "/fixtures/pages/[page]",
+      "/fixtures/pages/[page]/[...file]",
     ]);
     expect(injected({ OPENUI_SPIKE: "1" })).toEqual(["/fixtures/openui-ssr/[approach]"]);
   });

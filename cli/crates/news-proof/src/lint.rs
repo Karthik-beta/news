@@ -13,7 +13,8 @@ pub const ALLOWED_TERMS: &[&str] = &["G7", "G20", "COVID-19", "5G"];
 pub const FIXED_EXPRESSIONS: &[&str] = &["one of the", "one-off"];
 
 /// Written-out quantities (C4): cardinals zero to ninety-nine (compounds split at the hyphen), the large
-/// numbers, fractions used as amounts and multipliers.
+/// numbers singular and plural, fractions used as amounts and multipliers. Keep in step with Proof's
+/// `number_words`, `fraction_words` and `multiplier_words` in `data/seeds/proof-v1.toml`.
 pub const QUANTITY_WORDS: &[&str] = &[
     "zero",
     "one",
@@ -44,10 +45,17 @@ pub const QUANTITY_WORDS: &[&str] = &[
     "eighty",
     "ninety",
     "hundred",
+    "hundreds",
     "thousand",
+    "thousands",
     "million",
+    "millions",
     "billion",
+    "billions",
     "trillion",
+    "trillions",
+    "dozen",
+    "dozens",
     "half",
     "halves",
     "third",
@@ -56,6 +64,8 @@ pub const QUANTITY_WORDS: &[&str] = &[
     "quarters",
     "tenth",
     "tenths",
+    "fifth",
+    "fifths",
     "twice",
     "double",
     "doubled",
@@ -65,6 +75,10 @@ pub const QUANTITY_WORDS: &[&str] = &[
     "tripled",
     "triples",
     "tripling",
+    "treble",
+    "trebled",
+    "quadruple",
+    "quadrupled",
     "halved",
     "halving",
 ];
@@ -229,6 +243,11 @@ mod tests {
         );
         assert_eq!(numeric_literals("rose 2.4%", &[]), ["2", "4"]);
         assert_eq!(numeric_literals("a ½ share", &[]), ["½"]);
+        // The plurals Proof's C4 blocks, so the validators never accept what C4 then fails.
+        assert_eq!(
+            numeric_literals("thousands of jobs, sales trebled", &[]),
+            ["thousands", "trebled"]
+        );
     }
 
     #[test]

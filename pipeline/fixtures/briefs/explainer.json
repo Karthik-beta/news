@@ -1,0 +1,217 @@
+{
+  "brief_version": 1,
+  "item": {
+    "story_id": 91007,
+    "event_key": "macro:us.cpi:2026-10",
+    "page_type": "explainer",
+    "tier": 1,
+    "action": "new",
+    "slug_hint": "macro-us-cpi-2026-10",
+    "data_as_of": "2026-11-16"
+  },
+  "entities": [
+    {
+      "id": "ent_us",
+      "name": "United States",
+      "kind": "country"
+    },
+    {
+      "id": "ent_bls",
+      "name": "U.S. Bureau of Labor Statistics",
+      "kind": "agency"
+    }
+  ],
+  "facts": [
+    {
+      "ref": "dp_aq2jyfyjggh77dlr",
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted",
+      "value": "337.511",
+      "unit": "Index 1982-1984=100",
+      "period": "October 2026"
+    },
+    {
+      "ref": "dv_bszudzy4cykpigag",
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted, change from September 2026",
+      "value": "0.2",
+      "unit": "Percent",
+      "period": "October 2026",
+      "derived": "pct_change"
+    },
+    {
+      "ref": "dp_ihkzs3p7c7wtzydl",
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted",
+      "value": "336.940",
+      "unit": "Index 1982-1984=100",
+      "period": "September 2026"
+    }
+  ],
+  "series": [
+    {
+      "ref": "sr_2lqxjpnitr44",
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted, January 2024 to October 2026",
+      "points": 33
+    }
+  ],
+  "periods": [
+    {
+      "ref": "pd_2026_10",
+      "label": "October 2026"
+    },
+    {
+      "ref": "pd_2024_01",
+      "label": "January 2024"
+    },
+    {
+      "ref": "pd_2024_02",
+      "label": "February 2024"
+    },
+    {
+      "ref": "pd_2024_03",
+      "label": "March 2024"
+    },
+    {
+      "ref": "pd_2024_04",
+      "label": "April 2024"
+    },
+    {
+      "ref": "pd_2024_05",
+      "label": "May 2024"
+    },
+    {
+      "ref": "pd_2024_06",
+      "label": "June 2024"
+    },
+    {
+      "ref": "pd_2024_07",
+      "label": "July 2024"
+    },
+    {
+      "ref": "pd_2024_08",
+      "label": "August 2024"
+    },
+    {
+      "ref": "pd_2024_09",
+      "label": "September 2024"
+    },
+    {
+      "ref": "pd_2024_10",
+      "label": "October 2024"
+    },
+    {
+      "ref": "pd_2024_11",
+      "label": "November 2024"
+    },
+    {
+      "ref": "pd_2024_12",
+      "label": "December 2024"
+    },
+    {
+      "ref": "pd_2025_01",
+      "label": "January 2025"
+    },
+    {
+      "ref": "pd_2025_02",
+      "label": "February 2025"
+    },
+    {
+      "ref": "pd_2025_03",
+      "label": "March 2025"
+    },
+    {
+      "ref": "pd_2025_04",
+      "label": "April 2025"
+    },
+    {
+      "ref": "pd_2025_05",
+      "label": "May 2025"
+    },
+    {
+      "ref": "pd_2025_06",
+      "label": "June 2025"
+    },
+    {
+      "ref": "pd_2025_07",
+      "label": "July 2025"
+    },
+    {
+      "ref": "pd_2025_08",
+      "label": "August 2025"
+    },
+    {
+      "ref": "pd_2025_09",
+      "label": "September 2025"
+    },
+    {
+      "ref": "pd_2025_11",
+      "label": "November 2025"
+    },
+    {
+      "ref": "pd_2025_12",
+      "label": "December 2025"
+    },
+    {
+      "ref": "pd_2026_01",
+      "label": "January 2026"
+    },
+    {
+      "ref": "pd_2026_02",
+      "label": "February 2026"
+    },
+    {
+      "ref": "pd_2026_03",
+      "label": "March 2026"
+    },
+    {
+      "ref": "pd_2026_04",
+      "label": "April 2026"
+    },
+    {
+      "ref": "pd_2026_05",
+      "label": "May 2026"
+    },
+    {
+      "ref": "pd_2026_06",
+      "label": "June 2026"
+    },
+    {
+      "ref": "pd_2026_07",
+      "label": "July 2026"
+    },
+    {
+      "ref": "pd_2026_08",
+      "label": "August 2026"
+    },
+    {
+      "ref": "pd_2026_09",
+      "label": "September 2026"
+    }
+  ],
+  "context": [
+    {
+      "id": "cx_1",
+      "text": "All items in U.S. city average, all urban consumers, not seasonally adjusted: highest of every observation held, which begin in January 2024",
+      "rule": "series_record_high"
+    }
+  ],
+  "quotes": [],
+  "source_text": {
+    "untrusted": true,
+    "points": []
+  },
+  "media": {
+    "images": [],
+    "video": null
+  },
+  "related_pages": [],
+  "components": {
+    "suggested": [
+      "Waterfall",
+      "Prose",
+      "Note"
+    ]
+  },
+  "rules": {
+    "disclaimer": "not-investment-advice",
+    "fiscal_note": null
+  }
+}

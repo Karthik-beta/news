@@ -1,0 +1,33 @@
+{
+  "categories": [
+    "science/space"
+  ],
+  "chart_ids": [],
+  "data_ids": [],
+  "entities": [
+    {
+      "id": "ent_nasa",
+      "kind": "institution",
+      "name": "NASA"
+    }
+  ],
+  "fly_title": "NASA's Artemis programme",
+  "id": "science-nasa-artemis-ii-launch",
+  "index_status": "noindex",
+  "lang": "en-GB",
+  "page_type": "science",
+  "path": "/2026/11/science-nasa-artemis-ii-launch",
+  "published_at": "2026-11-18T12:00:00Z",
+  "region": "north-america",
+  "renderer_version": "1.1.0",
+  "schema": "meta.v1",
+  "summary": "A NASA photograph shows the Space Launch System rocket lifting off from the Kennedy Space Center in Florida with the Orion spacecraft and its crew.",
+  "tags": [
+    "artemis",
+    "nasa"
+  ],
+  "tier": 2,
+  "title": "NASA launched its Artemis II test flight with astronauts aboard Orion",
+  "updated_at": "2026-11-18T12:00:00Z",
+  "version": 1
+}

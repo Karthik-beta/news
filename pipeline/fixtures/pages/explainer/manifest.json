@@ -1,0 +1,48 @@
+{
+  "bundle_sha256": "d3189e2741e9a825edfff0b54f966f65da1cb9f4cf99214e3ffe8b6b735e10dd",
+  "files": [
+    {
+      "bytes": 833,
+      "path": "charts/chart.csv",
+      "sha256": "e9ec5f3b8e53d9392ec607291d9a5c8c87051dc8167913764021a2f35dbae46a"
+    },
+    {
+      "bytes": 833,
+      "path": "charts/table.csv",
+      "sha256": "e9ec5f3b8e53d9392ec607291d9a5c8c87051dc8167913764021a2f35dbae46a"
+    },
+    {
+      "bytes": 24571,
+      "path": "data.json",
+      "sha256": "fdf398ceed68717b748de489901b3468e6e1d8c4055b5df146085b76cfd0604e"
+    },
+    {
+      "bytes": 45558,
+      "path": "index.html",
+      "sha256": "559833b2fed32373830a0ef722dcde928e7585361251d6d9e338e10c36547861"
+    },
+    {
+      "bytes": 3789,
+      "path": "index.md",
+      "sha256": "db7d98eca117bb2804ca66c9d37fcdcc4e8ebdc6c4b96857faa393b38b78eb30"
+    },
+    {
+      "bytes": 1946,
+      "path": "meta.json",
+      "sha256": "a7e424e4420e70eb5ea8c657ea91c2cf21db5e1714c762cb0ba6ab54e1ae7e1c"
+    },
+    {
+      "bytes": 1337,
+      "path": "page.oui",
+      "sha256": "38c03e63a74ac8b0257b05900c463feb2bd59fd521a328b38a54463b1e3a1c34"
+    },
+    {
+      "bytes": 610,
+      "path": "sources.json",
+      "sha256": "ce8a1908748311b5ddf75584cd7036ba8f0febfb22ed0a9fb331baaa73768106"
+    }
+  ],
+  "page_id": "macro-us-cpi-2026-10",
+  "schema": "manifest.v1",
+  "version": 1
+}

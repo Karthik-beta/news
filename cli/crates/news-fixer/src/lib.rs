@@ -17,6 +17,7 @@ pub mod components;
 pub mod context;
 pub mod db;
 pub mod inputs;
+pub mod page;
 pub mod prefix;
 
 use news_core::job::{Handler, JobFailure, JobFuture, JobInput};

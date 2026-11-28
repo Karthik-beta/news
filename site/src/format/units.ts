@@ -43,6 +43,8 @@ export type UnitKind = "percent" | "pp" | "bp" | "other";
 const UNIT_KINDS: Record<string, UnitKind> = {
   percent: "percent",
   "%": "percent",
+  // Policy and market rates (ECB Data Portal): a rate is written as a percentage, its period stays in the label.
+  "percent per annum": "percent",
   pp: "pp",
   "percentage points": "pp",
   "percentage point": "pp",

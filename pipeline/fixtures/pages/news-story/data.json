@@ -1,0 +1,19 @@
+{
+  "context": {},
+  "derived": {},
+  "periods": {},
+  "points": {},
+  "quotes": {
+    "q_7001_1": {
+      "locator": {
+        "block": 1,
+        "doc": 7001,
+        "kind": "text_block"
+      },
+      "source": "src_boc_statement",
+      "text": "The Bank of Canada today increased its target for the overnight rate by 25 basis points to 2.5%, with the Bank Rate at 2.75% and the deposit rate at 2.45%."
+    }
+  },
+  "series": {},
+  "version": 1
+}

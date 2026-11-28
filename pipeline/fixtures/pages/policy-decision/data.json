@@ -1,0 +1,347 @@
+{
+  "context": {
+    "cx_1": {
+      "inputs": [
+        "dp_jaube55grwlqrie3",
+        "dp_7h3kpqgulnihg32a"
+      ],
+      "rule": "series_max_since",
+      "text": "Target for the overnight rate: highest since 2025-09-18"
+    },
+    "cx_2": {
+      "inputs": [
+        "dp_jaube55grwlqrie3",
+        "dp_yrdtj5oo2xo7kyqz"
+      ],
+      "rule": "first_hike_since",
+      "text": "Target for the overnight rate: first rise since 2023-07-13"
+    }
+  },
+  "derived": {},
+  "periods": {
+    "pd_2023_06_08": {
+      "end": "2023-06-08",
+      "label": "2023-06-08",
+      "start": "2023-06-08"
+    },
+    "pd_2023_07_13": {
+      "end": "2023-07-13",
+      "label": "2023-07-13",
+      "start": "2023-07-13"
+    },
+    "pd_2024_06_06": {
+      "end": "2024-06-06",
+      "label": "2024-06-06",
+      "start": "2024-06-06"
+    },
+    "pd_2024_07_25": {
+      "end": "2024-07-25",
+      "label": "2024-07-25",
+      "start": "2024-07-25"
+    },
+    "pd_2024_09_05": {
+      "end": "2024-09-05",
+      "label": "2024-09-05",
+      "start": "2024-09-05"
+    },
+    "pd_2024_10_24": {
+      "end": "2024-10-24",
+      "label": "2024-10-24",
+      "start": "2024-10-24"
+    },
+    "pd_2024_12_12": {
+      "end": "2024-12-12",
+      "label": "2024-12-12",
+      "start": "2024-12-12"
+    },
+    "pd_2025_01_30": {
+      "end": "2025-01-30",
+      "label": "2025-01-30",
+      "start": "2025-01-30"
+    },
+    "pd_2025_03_13": {
+      "end": "2025-03-13",
+      "label": "2025-03-13",
+      "start": "2025-03-13"
+    },
+    "pd_2025_09_18": {
+      "end": "2025-09-18",
+      "label": "2025-09-18",
+      "start": "2025-09-18"
+    },
+    "pd_2025_10_30": {
+      "end": "2025-10-30",
+      "label": "2025-10-30",
+      "start": "2025-10-30"
+    },
+    "pd_2026_10_29": {
+      "end": "2026-10-29",
+      "label": "2026-10-29",
+      "start": "2026-10-29"
+    }
+  },
+  "points": {
+    "dp_2dkg7ydo3bfgq6am": {
+      "currency": null,
+      "label": "Target for the overnight rate",
+      "locator": {
+        "date": "2024-06-06",
+        "kind": "json",
+        "path": "$.observations[9].B114039.v",
+        "series": "B114039"
+      },
+      "period": "pd_2024_06_06",
+      "scale": null,
+      "source": "src_boc_rate",
+      "unit": "Percent",
+      "value": "4.75",
+      "value_text": "4.75"
+    },
+    "dp_2tnmnfnsbvblr3oh": {
+      "currency": null,
+      "label": "Target for the overnight rate",
+      "locator": {
+        "date": "2023-06-08",
+        "kind": "json",
+        "path": "$.observations[11].B114039.v",
+        "series": "B114039"
+      },
+      "period": "pd_2023_06_08",
+      "scale": null,
+      "source": "src_boc_rate",
+      "unit": "Percent",
+      "value": "4.75",
+      "value_text": "4.75"
+    },
+    "dp_5fjedq3jszoollkp": {
+      "currency": null,
+      "label": "Target for the overnight rate",
+      "locator": {
+        "date": "2025-01-30",
+        "kind": "json",
+        "path": "$.observations[4].B114039.v",
+        "series": "B114039"
+      },
+      "period": "pd_2025_01_30",
+      "scale": null,
+      "source": "src_boc_rate",
+      "unit": "Percent",
+      "value": "3.00",
+      "value_text": "3.00"
+    },
+    "dp_7h3kpqgulnihg32a": {
+      "currency": null,
+      "label": "Target for the overnight rate",
+      "locator": {
+        "date": "2025-09-18",
+        "kind": "json",
+        "path": "$.observations[2].B114039.v",
+        "series": "B114039"
+      },
+      "period": "pd_2025_09_18",
+      "scale": null,
+      "source": "src_boc_rate",
+      "unit": "Percent",
+      "value": "2.50",
+      "value_text": "2.50"
+    },
+    "dp_awub3vu7n4j36ysa": {
+      "currency": null,
+      "label": "Target for the overnight rate",
+      "locator": {
+        "date": "2025-03-13",
+        "kind": "json",
+        "path": "$.observations[3].B114039.v",
+        "series": "B114039"
+      },
+      "period": "pd_2025_03_13",
+      "scale": null,
+      "source": "src_boc_rate",
+      "unit": "Percent",
+      "value": "2.75",
+      "value_text": "2.75"
+    },
+    "dp_fs2hcpakezxryqfo": {
+      "currency": null,
+      "label": "Target for the overnight rate",
+      "locator": {
+        "date": "2024-09-05",
+        "kind": "json",
+        "path": "$.observations[7].B114039.v",
+        "series": "B114039"
+      },
+      "period": "pd_2024_09_05",
+      "scale": null,
+      "source": "src_boc_rate",
+      "unit": "Percent",
+      "value": "4.25",
+      "value_text": "4.25"
+    },
+    "dp_fyi4jijuokoe2ujt": {
+      "currency": null,
+      "label": "Target for the overnight rate",
+      "locator": {
+        "date": "2024-07-25",
+        "kind": "json",
+        "path": "$.observations[8].B114039.v",
+        "series": "B114039"
+      },
+      "period": "pd_2024_07_25",
+      "scale": null,
+      "source": "src_boc_rate",
+      "unit": "Percent",
+      "value": "4.50",
+      "value_text": "4.50"
+    },
+    "dp_jaube55grwlqrie3": {
+      "currency": null,
+      "label": "Target for the overnight rate",
+      "locator": {
+        "date": "2026-10-29",
+        "kind": "json",
+        "path": "$.observations[0].B114039.v",
+        "series": "B114039"
+      },
+      "period": "pd_2026_10_29",
+      "scale": null,
+      "source": "src_boc_rate",
+      "unit": "Percent",
+      "value": "2.50",
+      "value_text": "2.50"
+    },
+    "dp_qrdaeedxyxdzomqw": {
+      "currency": null,
+      "label": "Target for the overnight rate",
+      "locator": {
+        "date": "2025-10-30",
+        "kind": "json",
+        "path": "$.observations[1].B114039.v",
+        "series": "B114039"
+      },
+      "period": "pd_2025_10_30",
+      "scale": null,
+      "source": "src_boc_rate",
+      "unit": "Percent",
+      "value": "2.25",
+      "value_text": "2.25"
+    },
+    "dp_w6qywgzekxzi2uvu": {
+      "currency": null,
+      "label": "Target for the overnight rate",
+      "locator": {
+        "date": "2024-12-12",
+        "kind": "json",
+        "path": "$.observations[5].B114039.v",
+        "series": "B114039"
+      },
+      "period": "pd_2024_12_12",
+      "scale": null,
+      "source": "src_boc_rate",
+      "unit": "Percent",
+      "value": "3.25",
+      "value_text": "3.25"
+    },
+    "dp_wilrvrc2wfdxyoyu": {
+      "currency": null,
+      "label": "Target for the overnight rate",
+      "locator": {
+        "date": "2024-10-24",
+        "kind": "json",
+        "path": "$.observations[6].B114039.v",
+        "series": "B114039"
+      },
+      "period": "pd_2024_10_24",
+      "scale": null,
+      "source": "src_boc_rate",
+      "unit": "Percent",
+      "value": "3.75",
+      "value_text": "3.75"
+    },
+    "dp_yrdtj5oo2xo7kyqz": {
+      "currency": null,
+      "label": "Target for the overnight rate",
+      "locator": {
+        "date": "2023-07-13",
+        "kind": "json",
+        "path": "$.observations[10].B114039.v",
+        "series": "B114039"
+      },
+      "period": "pd_2023_07_13",
+      "scale": null,
+      "source": "src_boc_rate",
+      "unit": "Percent",
+      "value": "5.00",
+      "value_text": "5.00"
+    }
+  },
+  "quotes": {
+    "q_7002_1": {
+      "locator": {
+        "block": 1,
+        "doc": 7002,
+        "kind": "text_block"
+      },
+      "source": "src_boc_statement",
+      "text": "The Bank of Canada today increased its target for the overnight rate by 25 basis points to 2.5%, with the Bank Rate at 2.75% and the deposit rate at 2.45%."
+    }
+  },
+  "series": {
+    "sr_k5xc5nfhvghh": {
+      "currency": null,
+      "label": "Target for the overnight rate, 2023-06-08 to 2026-10-29",
+      "points": [
+        {
+          "period": "pd_2023_06_08",
+          "point": "dp_2tnmnfnsbvblr3oh"
+        },
+        {
+          "period": "pd_2023_07_13",
+          "point": "dp_yrdtj5oo2xo7kyqz"
+        },
+        {
+          "period": "pd_2024_06_06",
+          "point": "dp_2dkg7ydo3bfgq6am"
+        },
+        {
+          "period": "pd_2024_07_25",
+          "point": "dp_fyi4jijuokoe2ujt"
+        },
+        {
+          "period": "pd_2024_09_05",
+          "point": "dp_fs2hcpakezxryqfo"
+        },
+        {
+          "period": "pd_2024_10_24",
+          "point": "dp_wilrvrc2wfdxyoyu"
+        },
+        {
+          "period": "pd_2024_12_12",
+          "point": "dp_w6qywgzekxzi2uvu"
+        },
+        {
+          "period": "pd_2025_01_30",
+          "point": "dp_5fjedq3jszoollkp"
+        },
+        {
+          "period": "pd_2025_03_13",
+          "point": "dp_awub3vu7n4j36ysa"
+        },
+        {
+          "period": "pd_2025_09_18",
+          "point": "dp_7h3kpqgulnihg32a"
+        },
+        {
+          "period": "pd_2025_10_30",
+          "point": "dp_qrdaeedxyxdzomqw"
+        },
+        {
+          "period": "pd_2026_10_29",
+          "point": "dp_jaube55grwlqrie3"
+        }
+      ],
+      "scale": null,
+      "unit": "Percent"
+    }
+  },
+  "version": 1
+}

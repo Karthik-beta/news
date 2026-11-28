@@ -1,0 +1,31 @@
+{
+  "draft_id": "major-report-e9b57ca2d0c8",
+  "story": "major-report",
+  "saved_at": "2026-11-11T12:00:00Z",
+  "source": "save",
+  "job": null,
+  "flags": [],
+  "copy": {
+    "angle": "latest-figure",
+    "components_used": [
+      "KeyFigures",
+      "KeyFigure",
+      "ColumnChart",
+      "Prose",
+      "DataTable"
+    ],
+    "fly_title": "America's economy",
+    "headline": "The World Bank puts America's GDP at {dp_4stpfufc74tc24cy} in {pd_2025}",
+    "oui": "root = Page([figures, years, method, table])\nfigures = KeyFigures([gdp, before])\ngdp = KeyFigure(\"GDP, current US$\", \"dp_4stpfufc74tc24cy\", \"dv_kzlk4w44czg7dxrt\", \"pd_2024\", \"sr_am7mvf3ghynd\")\nbefore = KeyFigure(\"The year before\", \"dp_2kkf6eorryn4eygg\")\nyears = ColumnChart(\"America's GDP in current dollars was higher in each year shown\", \"GDP, current US$, {pd_2021} to {pd_2025}\", [\"sr_am7mvf3ghynd\"], \"pd_2025\")\nmethod = Prose([\"The World Bank reports GDP in current US dollars, the measure its indicator names. The figures are as the World Development Indicators publish them.\"])\ntable = DataTable(\"GDP by year, as the World Bank publishes it\", \"GDP, current US$, {pd_2021} to {pd_2025}\", [\"sr_am7mvf3ghynd\"], \"pd_2025\")\n",
+    "refs_used": [
+      "dp_2kkf6eorryn4eygg",
+      "dp_4stpfufc74tc24cy",
+      "dv_kzlk4w44czg7dxrt",
+      "pd_2021",
+      "pd_2024",
+      "pd_2025",
+      "sr_am7mvf3ghynd"
+    ],
+    "summary": "GDP in current US dollars rose by {dv_kzlk4w44czg7dxrt} from {pd_2024}, when it was {dp_2kkf6eorryn4eygg}, according to the World Bank's World Development Indicators."
+  }
+}

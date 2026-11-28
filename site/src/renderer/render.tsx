@@ -12,6 +12,7 @@
 import { createParser, type ElementNode, type Library, Renderer, useRenderNode } from "@openuidev/react-lang";
 import { Fragment, type ReactNode } from "react";
 import type { AnyComponentSpec, ChartTable } from "../components/contract";
+import { Disclaimer, type DisclaimerKind } from "../components/Disclaimer/Disclaimer";
 import { type Glossary, GlossaryProvider } from "../components/GlossaryTerm/GlossaryTerm";
 import { type NewsLibrary, newsLibrary } from "../components/library";
 import { RefText } from "../components/SourceRef/RefText";
@@ -62,6 +63,8 @@ export interface RenderOptions {
    * changes (ADR 0004, "Index status").
    */
   indexStatus?: "index" | "noindex";
+  /** The disclaimer the page's categories need (the brief's rule), after the sources. Code adds it, never the writer. */
+  disclaimer?: DisclaimerKind | null;
 }
 
 export interface ChartExport {
@@ -172,6 +175,55 @@ export function checkProps(root: ElementNode, library: Library): void {
     throw new RenderError("parse", `page.oui has invalid props:\n  ${problems.join("\n  ")}`, problems);
 }
 
+/** Every element under `value`, depth first. */
+function eachElement(value: unknown, f: (node: ElementNode) => void): void {
+  if (Array.isArray(value)) {
+    for (const v of value) eachElement(v, f);
+    return;
+  }
+  if (!value || typeof value !== "object" || (value as ElementNode).type !== "element") return;
+  const node = value as ElementNode;
+  f(node);
+  for (const v of Object.values(node.props)) eachElement(v, f);
+}
+
+/** The image records an element shows: ImageFigure's own props, or each of ImageGallery's images. */
+function imagesOf(node: ElementNode): Record<string, unknown>[] {
+  if (node.typeName === "ImageFigure") return [node.props as Record<string, unknown>];
+  if (node.typeName === "ImageGallery" && Array.isArray(node.props.images))
+    return node.props.images as Record<string, unknown>[];
+  return [];
+}
+
+const handSet = (image: Record<string, unknown>) => image.credit != null || image.licence != null;
+
+/** Where page.oui types an image's credit or licence by hand: the Copy validator refuses these. */
+export function handSetImageCredits(root: ElementNode): string[] {
+  const out: string[] = [];
+  eachElement(root, (node) => {
+    const name = node.statementId ?? node.typeName;
+    imagesOf(node).forEach((image, i) => {
+      if (handSet(image)) out.push(node.typeName === "ImageGallery" ? `${name}.images.${i}` : name);
+    });
+  });
+  return out;
+}
+
+/**
+ * Adds each image's credit and licence from its stored record (data.json `images`), never from the writer. An
+ * image with no record keeps what it states (component fixtures); one stating nothing is a data problem.
+ */
+function fillImageCredits(root: ElementNode, resolver: PageDataResolver): void {
+  eachElement(root, (node) => {
+    for (const image of imagesOf(node)) {
+      const src = String(image.src);
+      if (handSet(image) && !resolver.data.images?.[src]) continue;
+      const record = resolver.image(src);
+      if (record) Object.assign(image, record);
+    }
+  });
+}
+
 /** Renders the parsed root inside OpenUI's runtime, without <Renderer>'s wrapper divs. */
 function RootSlot({ root }: { root: ElementNode }) {
   return <>{useRenderNode()(root)}</>;
@@ -228,11 +280,13 @@ function Article({
   body,
   sourceIds,
   resolver,
+  disclaimer,
 }: {
   head: PageHead;
   body: ReactNode;
   sourceIds: () => string[];
   resolver: PageDataResolver;
+  disclaimer?: DisclaimerKind | null;
 }) {
   return (
     <article className="article" data-renderer={rendererTag()}>
@@ -249,6 +303,7 @@ function Article({
       </header>
       {body}
       <LateSources ids={sourceIds} resolver={resolver} />
+      {disclaimer ? <Disclaimer kind={disclaimer} /> : null}
     </article>
   );
 }
@@ -311,6 +366,7 @@ export function renderPage(input: PageBundleInput, options: RenderOptions = {}):
   resolver.checkIntegrity();
   const root = parsePage(input.oui, library);
   checkProps(root, library);
+  fillImageCredits(root, resolver);
 
   const body =
     options.engine === "walker" ? (
@@ -323,7 +379,13 @@ export function renderPage(input: PageBundleInput, options: RenderOptions = {}):
   const article = staticMarkup(
     <PageDataProvider resolver={resolver}>
       <GlossaryProvider glossary={options.glossary ?? {}}>
-        <Article head={input.head} body={body} sourceIds={() => sourceIdsInOrder(resolver)} resolver={resolver} />
+        <Article
+          head={input.head}
+          body={body}
+          sourceIds={() => sourceIdsInOrder(resolver)}
+          resolver={resolver}
+          disclaimer={options.disclaimer}
+        />
       </GlossaryProvider>
     </PageDataProvider>,
   );
