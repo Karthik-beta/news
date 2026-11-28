@@ -99,6 +99,7 @@ describe("fixture pages", () => {
       "/fixtures/components/[name]/[fixture]/[...file]",
       "/fixtures/images/[file]",
       "/fixtures/pages/[page]",
+      "/fixtures/pages/[page]/[...file]",
     ]);
     expect(injected({ OPENUI_SPIKE: "1" })).toEqual(["/fixtures/openui-ssr/[approach]"]);
   });
