@@ -12,3 +12,4 @@ File names: `NNNN-short-title.md`. Status is one of proposed, accepted, supersed
 | [0012](0012-scoring-and-selection.md) | Scoring and selection (Nose and Desk) | proposed | 2026-11-23 |
 | [0013](0013-proof-and-templated-fallback.md) | Proof and the templated fallback | proposed | 2026-11-25 |
 | [0014](0014-lean-page-call.md) | The lean page call (flags as built; spike measurements to come) | proposed | 2026-11-28 |
+| [0015](0015-evaluation-and-promotion.md) | Evaluation and promotion (Critic, Audit, Huddle) | proposed | 2026-11-28 |
