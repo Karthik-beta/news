@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/hotline/commands/form.submit.schema.json",
+  "title": "Hotline form.submit",
+  "description": "Submit the answer to a run's open form step and continue the run. Bound to the form's round and to the form_sha of what Board displayed, as gate answers are to their subject: a different hash is gated; a run not waiting at that form, another round, or a form already answered is precondition. `answer` must validate against the form's schema in `../forms/`. Input is the request's args; output is the reply envelope's data.",
+  "x-news-tier": "H",
+  "x-hotline-from": ["board"],
+  "x-news-status": "#19",
+  "x-news-cli": null,
+  "x-news-errors": ["usage", "not_found", "precondition", "gated", "validation_failed", "upstream_unavailable"],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "run": {
+          "$ref": "../common.schema.json#/$defs/runRef"
+        },
+        "form": {
+          "enum": ["huddle.calibration"],
+          "description": "The form step's handler"
+        },
+        "round": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "form_sha": {
+          "$ref": "../common.schema.json#/$defs/sha256"
+        },
+        "answer": {
+          "$ref": "../forms/huddle.calibration.schema.json#/$defs/answer"
+        }
+      },
+      "required": ["run", "form", "round", "form_sha", "answer"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "run_id": {
+          "$ref": "../common.schema.json#/$defs/uuid"
+        },
+        "short_id": {
+          "$ref": "../common.schema.json#/$defs/shortId"
+        },
+        "form": {
+          "type": "string"
+        },
+        "round": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "run_status": {
+          "$ref": "../common.schema.json#/$defs/runStatus"
+        },
+        "text": {
+          "$ref": "../common.schema.json#/$defs/text"
+        }
+      },
+      "required": ["run_id", "short_id", "form", "round", "run_status", "text"],
+      "additionalProperties": false
+    }
+  }
+}

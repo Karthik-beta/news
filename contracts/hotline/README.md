@@ -12,6 +12,7 @@ The Hotline is the Bureau service's control pipe, `\\.\pipe\news-hotline` ([ADR 
 | `common.schema.json` | Shared types: run ids, statuses, the run summary, open gates, Lineup entries, the Wrap, usage, Standing changes, preset declarations |
 | `commands/<cmd>.schema.json` | One per command: `$defs/input` (the args), `$defs/output` (the envelope's data), extra `$defs` for structured `error.details` |
 | `events/<topic>.schema.json` | One per event topic: `$defs/data` |
+| `forms/<form>.schema.json` | One per form step, named by its handler: `$defs/answer`, what `form.submit` sends as `answer` |
 
 `../cli/envelope.schema.json` arrives with #5 (`contracts/cli/`); until that merges the reply schema's `$ref` resolves only on that branch.
 
@@ -63,6 +64,7 @@ A frame is a little-endian `u32` length, then that many bytes of UTF-8 JSON, at 
 | `standing.set` | H | Board | #10 | — |
 | `huddle.questions` | R | Board | #19 | — |
 | `huddle.answer` | H | Board | #19 | — (the file form is `news scores label`) |
+| `form.submit` | H | Board | #19 | — (completes a form step, such as Huddle's calibration, and continues the run) |
 | `home.rollback` | H | Board | #20 | — |
 | `docker.status` | R | Board, terminal | #29 | — |
 | `docker.start`, `docker.stop` | H | Board | #29 | — |

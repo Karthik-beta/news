@@ -7,7 +7,7 @@ use crate::log::LogRing;
 use crate::reads::{self, ReadCtx};
 use crate::update::{self, UpdateGate};
 use chrono::{DateTime, Utc};
-use news_chief::gates::{Answer, Decision};
+use news_chief::gates::{Answer, Decision, FormAnswer};
 use news_chief::presets;
 use news_chief::state::Status;
 use news_chief::{Chief, IfBusy, RunStopper, StartPolicy, StartReq, Started};
@@ -334,6 +334,21 @@ pub async fn h_command(
             Ok(
                 json!({"run_id": r.run_id, "short_id": r.short_id, "status": "cancelled", "wrap": wrap,
                       "text": format!("{} removed from the Lineup.", r.short_id)}),
+            )
+        }
+        "form.submit" => {
+            let a = FormAnswer {
+                run,
+                form: args["form"].as_str().unwrap_or_default(),
+                round: args["round"].as_i64().unwrap_or(0),
+                form_sha: args["form_sha"].as_str().unwrap_or_default(),
+                answer: args["answer"].clone(),
+            };
+            let (r, status) = chief.submit_form(a.clone()).await?;
+            Ok(
+                json!({"run_id": r.run_id, "short_id": r.short_id, "form": a.form, "round": a.round,
+                      "run_status": status.as_str(),
+                      "text": format!("Form {} of {} submitted; the run is {}.", a.form, r.short_id, status.as_str())}),
             )
         }
         "huddle.answer" => {
