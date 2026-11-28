@@ -12,7 +12,7 @@ use serde_json::{Value, json};
 use std::sync::Mutex;
 use std::time::Duration;
 
-fn now() -> DateTime<Utc> {
+pub(super) fn now() -> DateTime<Utc> {
     "2026-11-23T09:00:00Z".parse().unwrap()
 }
 
@@ -51,7 +51,7 @@ fn score_input(cat: &str, region: &str, entity: usize) -> Value {
 }
 
 /// Twelve published pages `home-p0`…`home-p11`, one story each, p0 with a figure `dp_p0_rate`.
-async fn seed(f: &Fixture) {
+pub(super) async fn seed(f: &Fixture) {
     for k in 0..12 {
         let story_id: i64 = sqlx::query_scalar(
             "insert into stories (title, first_seen, last_seen, status, score_input)
@@ -83,7 +83,7 @@ async fn seed(f: &Fixture) {
     .unwrap();
 }
 
-fn draft() -> Value {
+pub(super) fn draft() -> Value {
     let s = |k: usize| json!({"page_id": format!("home-p{k}")});
     json!({
         "curator_model": "claude-sonnet-5-5",
