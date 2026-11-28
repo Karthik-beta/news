@@ -201,6 +201,10 @@ pub enum ServiceCmd {
         /// Account to run as (default: the current user, `.\name`)
         #[arg(long)]
         account: Option<String>,
+        /// The News repository Audit reads (default: the one this is run from); recorded beside the
+        /// installed binary. `NEWS_ROOT` in the service's environment overrides it
+        #[arg(long)]
+        root: Option<std::path::PathBuf>,
         /// Set by the elevated re-launch
         #[arg(long, hide = true)]
         elevated: bool,

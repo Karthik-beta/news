@@ -61,6 +61,29 @@ pub fn register(h: Handlers, root: PathBuf) -> Handlers {
     })
 }
 
+/// Every Audit step fails with `message` (the repository root is not set), so a run says why instead
+/// of ending at a step that is "not built".
+struct Unset(String);
+
+impl StepHandler for Unset {
+    fn run<'a>(&'a self, _: &'a mut StepCx) -> BoxFut<'a, Result<StepOutcome, StepError>> {
+        Box::pin(async move {
+            Err(StepError::Fail {
+                class: ErrorClass::InvalidData,
+                message: self.0.clone(),
+            })
+        })
+    }
+}
+
+/// Bind the Audit preset's steps to fail with `message`.
+pub fn register_unset(h: Handlers, message: String) -> Handlers {
+    let unset = Arc::new(Unset(message));
+    STEPS
+        .into_iter()
+        .fold(h, |h, (name, _)| h.with(name, unset.clone()))
+}
+
 /// A retryable error (a busy database) is re-entered; anything else (an unknown suite, a bad set, a
 /// missing output) fails the run, because re-entering would meet it again.
 fn step_err(e: NewsError) -> StepError {
