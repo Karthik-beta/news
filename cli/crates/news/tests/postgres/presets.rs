@@ -96,14 +96,20 @@ impl StepHandler for Done {
     }
 }
 
-/// Edition's publish step as far as the G-tier rule goes: authorised by the plan approval, or by the
-/// start when the plan stop was skipped.
+/// Edition's publish step as far as the G-tier rule goes: a step-wide request is authorised by the
+/// start when the plan stop was skipped, and refused under the plan approval, which lists its items.
 struct Authorised;
 impl StepHandler for Authorised {
     fn run<'a>(&'a self, cx: &'a mut StepCx) -> BoxFut<'a, Result<StepOutcome, StepError>> {
         Box::pin(async move {
+            let gated: bool =
+                sqlx::query_scalar("select exists (select 1 from gates where run_id = $1)")
+                    .bind(cx.run_id)
+                    .fetch_one(&cx.db)
+                    .await
+                    .unwrap();
             let mut conn = cx.db.acquire().await.unwrap();
-            gates::authorize(
+            let r = gates::authorize(
                 &mut conn,
                 GRequest {
                     run_id: cx.run_id,
@@ -113,10 +119,17 @@ impl StepHandler for Authorised {
                 },
             )
             .await
-            .map_err(|e| StepError::Fail {
-                class: news_core::job::ErrorClass::Bug,
-                message: e.message,
-            })?;
+            .map(|_| ());
+            match (gated, r) {
+                (false, Ok(())) => {}
+                (true, Err(e)) if e.code == news_core::ErrorCode::Gated => {}
+                (_, r) => {
+                    return Err(StepError::Fail {
+                        class: news_core::job::ErrorClass::Bug,
+                        message: format!("gate {gated}: {:?}", r.err().map(|e| e.message)),
+                    });
+                }
+            }
             Ok(StepOutcome::Done(json!({"wrap": {"published": 1}})))
         })
     }
@@ -233,7 +246,10 @@ fn fake_curator(input: JobInput) -> JobFuture {
         }
         let out = root.join(format!("work/home/out-{}.json", input.job_id));
         std::fs::write(&out, draft.to_string()).unwrap();
-        Ok(json!({"step": "A8", "valid": true, "stored": false, "output": out.to_string_lossy()}))
+        Ok(
+            json!({"step": "A8", "valid": true, "stored": false, "output": out.to_string_lossy(),
+                         "model": "claude-ghost-ran"}),
+        )
     })
 }
 
@@ -435,6 +451,12 @@ async fn frontpage_runs_end_to_end_with_a_fix_round_changes_approval_and_rejecti
         )
         .await,
         "published:1"
+    );
+    // The provenance is the model Ghost called, not the one the curator named in its draft.
+    assert_eq!(
+        f.scalar_str("select curator_model from home_curations where status = 'published'")
+            .await,
+        "claude-ghost-ran"
     );
 
     // Run 2: rejected in Board. Nothing is published and the live curation stays.

@@ -32,6 +32,8 @@ pub struct Bundle {
     pub downloads: BTreeMap<String, String>,
     /// (file, what is wrong): missing, unreadable, or not JSON.
     pub problems: Vec<(String, String)>,
+    /// SHA-256 (hex) of each bundle file as read, by path: what [`Bundle::bundle_sha256`] hashes.
+    pub hashes: BTreeMap<String, String>,
 }
 
 impl Bundle {
@@ -74,11 +76,29 @@ impl Bundle {
         if !self.files.contains_key(rel) {
             return String::new();
         }
-        std::fs::read_to_string(self.dir.join(rel)).unwrap_or_else(|e| {
-            self.problems
-                .push((rel.to_owned(), format!("unreadable: {e}")));
-            String::new()
-        })
+        match std::fs::read_to_string(self.dir.join(rel)) {
+            Ok(t) => {
+                self.hashes
+                    .insert(rel.to_owned(), crate::work::sha256_hex(t.as_bytes()));
+                t
+            }
+            Err(e) => {
+                self.problems
+                    .push((rel.to_owned(), format!("unreadable: {e}")));
+                String::new()
+            }
+        }
+    }
+
+    /// The `bundle_sha256` of the files the checks read, by the manifest's rule (SHA-256 of the
+    /// `"<path> <sha256>\n"` lines in path order), so the caller registers exactly these bytes.
+    pub fn bundle_sha256(&self) -> String {
+        let lines: String = self
+            .hashes
+            .iter()
+            .map(|(p, s)| format!("{p} {s}\n"))
+            .collect();
+        crate::work::sha256_hex(lines.as_bytes())
     }
 
     fn json(&mut self, rel: &str) -> Value {
