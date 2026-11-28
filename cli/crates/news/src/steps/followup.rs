@@ -98,6 +98,7 @@ pub fn bulk_gate(pages: &Value, counts: &Value) -> GateOpen {
         summary: json!({"text": format!("{n} pages would change at once (the limit without approval is {BULK})"),
                         "counts": counts}),
         preview: None,
+        whole_subject: false,
     }
 }
 

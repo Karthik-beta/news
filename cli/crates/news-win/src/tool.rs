@@ -359,6 +359,19 @@ mod tests {
         assert_eq!(t.integrity_rid, 0x2000, "not at Medium integrity");
         assert!(!t.admins_enabled, "Administrators is enabled");
         assert_eq!(t.privileges_enabled, ["SeChangeNotifyPrivilege"]);
+        // It owns what it creates and can open it again: owner and default DACL name the user,
+        // SYSTEM and the logon session, never Administrators (deny-only in this token).
+        let me = crate::current_user_sid().unwrap();
+        assert_eq!(t.owner, me);
+        assert_eq!(&t.default_dacl[..2], [me.as_str(), "S-1-5-18"]);
+        assert!(
+            t.default_dacl[2..]
+                .iter()
+                .all(|s| s.starts_with("S-1-5-5-")),
+            "{:?}",
+            t.default_dacl
+        );
+        assert!(!t.default_dacl.iter().any(|s| s == "S-1-5-32-544"));
         let out = run_tool(&cmd, &["/c".to_owned(), "set".to_owned()], None, &env).unwrap();
         assert!(out.status.success());
         let text = String::from_utf8_lossy(&out.stdout);

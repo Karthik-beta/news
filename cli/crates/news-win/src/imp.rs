@@ -483,12 +483,12 @@ impl RestrictedChild {
     }
 }
 
-/// A SID parsed from a constant string, freed on drop.
+/// A SID parsed from a string, freed on drop.
 struct LocalSid(PSID);
 
 impl LocalSid {
     #[allow(unsafe_code)]
-    fn parse(text: &'static str) -> io::Result<Self> {
+    fn parse(text: &str) -> io::Result<Self> {
         use windows_sys::Win32::Security::Authorization::ConvertStringSidToSidW;
         let w = wide(text);
         let mut sid: PSID = null_mut();
@@ -510,6 +510,110 @@ impl Drop for LocalSid {
 
 /// BUILTIN\Administrators.
 const ADMINISTRATORS: &str = "S-1-5-32-544";
+
+/// The SID strings of a token's groups whose attributes include all of `flags`.
+#[allow(unsafe_code)]
+fn group_sids(token: HANDLE, flags: u32) -> io::Result<Vec<String>> {
+    use windows_sys::Win32::Security::{SID_AND_ATTRIBUTES, TOKEN_GROUPS, TokenGroups};
+    let buf = token_info(token, TokenGroups)?;
+    // SAFETY: the buffer holds a TOKEN_GROUPS followed by its GroupCount entries, each SID pointing
+    // into the same buffer, which outlives the slice.
+    let groups: &[SID_AND_ATTRIBUTES] = unsafe {
+        let g = buf.as_ptr().cast::<TOKEN_GROUPS>();
+        std::slice::from_raw_parts(
+            std::ptr::addr_of!((*g).Groups).cast(),
+            (*g).GroupCount as usize,
+        )
+    };
+    groups
+        .iter()
+        .filter(|a| a.Attributes & flags == flags)
+        .map(|a| sid_string(a.Sid))
+        .collect()
+}
+
+/// A security descriptor from SDDL, freed on drop.
+struct LocalSd(PSECURITY_DESCRIPTOR);
+
+impl LocalSd {
+    #[allow(unsafe_code)]
+    fn parse(sddl: &str) -> io::Result<Self> {
+        let w = wide(sddl);
+        let mut sd: PSECURITY_DESCRIPTOR = null_mut();
+        // SAFETY: `w` is NUL-terminated; `sd` receives a LocalAlloc'd descriptor freed on drop.
+        if unsafe {
+            ConvertStringSecurityDescriptorToSecurityDescriptorW(
+                w.as_ptr(),
+                SDDL_REVISION_1,
+                &mut sd,
+                null_mut(),
+            )
+        } == 0
+        {
+            return Err(last());
+        }
+        Ok(Self(sd))
+    }
+}
+
+impl Drop for LocalSd {
+    #[allow(unsafe_code)]
+    fn drop(&mut self) {
+        // SAFETY: frees the descriptor the conversion allocated, once.
+        unsafe { LocalFree(self.0) };
+    }
+}
+
+/// Give a restricted token the user as owner and a default DACL of the user, SYSTEM and the logon
+/// session (all `GA`). Under the SCM the service's token owner and default DACL name Administrators,
+/// which the child holds deny-only, so without this it could not open the objects it creates itself.
+#[allow(unsafe_code)]
+fn set_owner_and_default_dacl(own: HANDLE, child: HANDLE) -> io::Result<()> {
+    use windows_sys::Win32::Security::{
+        ACL, GetSecurityDescriptorDacl, SetTokenInformation, TOKEN_DEFAULT_DACL, TOKEN_OWNER,
+        TokenDefaultDacl, TokenOwner,
+    };
+    const SE_GROUP_LOGON_ID: u32 = 0xC000_0000;
+    let user = token_user_sid(own)?;
+    let mut sddl = format!("D:(A;;GA;;;{user})(A;;GA;;;SY)");
+    for logon in group_sids(own, SE_GROUP_LOGON_ID)? {
+        sddl += &format!("(A;;GA;;;{logon})");
+    }
+    let sd = LocalSd::parse(&sddl)?;
+    let (mut present, mut defaulted, mut dacl) = (0, 0, null_mut::<ACL>());
+    // SAFETY: `sd` is a valid descriptor; `dacl` receives a pointer into it, alive while `sd` is.
+    if unsafe { GetSecurityDescriptorDacl(sd.0, &mut present, &mut dacl, &mut defaulted) } == 0 {
+        return Err(last());
+    }
+    let info = TOKEN_DEFAULT_DACL { DefaultDacl: dacl };
+    // SAFETY: `info` points at the ACL inside `sd`, alive for the call; the kernel copies it.
+    if unsafe {
+        SetTokenInformation(
+            child,
+            TokenDefaultDacl,
+            (&info as *const TOKEN_DEFAULT_DACL).cast(),
+            size_of::<TOKEN_DEFAULT_DACL>() as u32,
+        )
+    } == 0
+    {
+        return Err(last());
+    }
+    let user_sid = LocalSid::parse(&user)?;
+    let owner = TOKEN_OWNER { Owner: user_sid.0 };
+    // SAFETY: `owner` points at a SID alive for the call; the user SID is a valid owner of its token.
+    if unsafe {
+        SetTokenInformation(
+            child,
+            TokenOwner,
+            (&owner as *const TOKEN_OWNER).cast(),
+            size_of::<TOKEN_OWNER>() as u32,
+        )
+    } == 0
+    {
+        return Err(last());
+    }
+    Ok(())
+}
 
 /// Quote one argument the way the MSVC runtime (and Rust's `std`) splits a command line.
 fn push_arg(line: &mut String, arg: &str) {
@@ -660,6 +764,7 @@ fn spawn_restricted(
         return Err(last());
     }
     let low = Handle(low);
+    set_owner_and_default_dacl(own.0, low.0)?;
     let low_sid = LocalSid::parse(integrity)?;
     let label = TOKEN_MANDATORY_LABEL {
         Label: SID_AND_ATTRIBUTES {
@@ -776,6 +881,46 @@ pub struct TokenFacts {
     pub admins_enabled: bool,
     /// The names of the enabled privileges.
     pub privileges_enabled: Vec<String>,
+    /// The SID new objects are owned by.
+    pub owner: String,
+    /// The SIDs the default DACL's access-allowed entries name, in order.
+    pub default_dacl: Vec<String>,
+}
+
+/// The token's owner SID and the SIDs of its default DACL's access-allowed entries.
+#[allow(unsafe_code)]
+fn owner_and_default_dacl(token: HANDLE) -> io::Result<(String, Vec<String>)> {
+    use windows_sys::Win32::Security::{
+        ACCESS_ALLOWED_ACE, ACL, GetAce, TOKEN_DEFAULT_DACL, TOKEN_OWNER, TokenDefaultDacl,
+        TokenOwner,
+    };
+    let buf = token_info(token, TokenOwner)?;
+    // SAFETY: the buffer holds a TOKEN_OWNER whose SID points into the same buffer.
+    let owner = sid_string(unsafe { (*buf.as_ptr().cast::<TOKEN_OWNER>()).Owner })?;
+    let buf = token_info(token, TokenDefaultDacl)?;
+    // SAFETY: the buffer holds a TOKEN_DEFAULT_DACL whose ACL (or null) points into the same buffer.
+    let acl: *mut ACL = unsafe { (*buf.as_ptr().cast::<TOKEN_DEFAULT_DACL>()).DefaultDacl };
+    let mut sids = Vec::new();
+    if !acl.is_null() {
+        // SAFETY: a valid ACL inside `buf`.
+        let count = unsafe { (*acl).AceCount };
+        for i in 0..u32::from(count) {
+            let mut ace = null_mut();
+            // SAFETY: `i` is below the ACL's count; `ace` receives a pointer into the ACL.
+            if unsafe { GetAce(acl, i, &mut ace) } == 0 {
+                return Err(last());
+            }
+            let ace = ace.cast::<ACCESS_ALLOWED_ACE>();
+            // SAFETY: every ACE starts with an ACE_HEADER; type 0 is ACCESS_ALLOWED, whose SID
+            // starts at SidStart inside the ACE.
+            unsafe {
+                if (*ace).Header.AceType == 0 {
+                    sids.push(sid_string(std::ptr::addr_of_mut!((*ace).SidStart).cast())?);
+                }
+            }
+        }
+    }
+    Ok((owner, sids))
 }
 
 /// A token information class's buffer, 8-byte aligned.
@@ -845,10 +990,13 @@ pub fn process_token(pid: u32) -> io::Result<TokenFacts> {
         }
         privileges_enabled.push(String::from_utf16_lossy(&name[..n as usize]));
     }
+    let (owner, default_dacl) = owner_and_default_dacl(tok.0)?;
     Ok(TokenFacts {
         integrity_rid: token_integrity(tok.0)?,
         admins_enabled,
         privileges_enabled,
+        owner,
+        default_dacl,
     })
 }
 

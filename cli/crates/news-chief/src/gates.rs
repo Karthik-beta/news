@@ -300,9 +300,18 @@ pub struct Authorized<'t> {
     pub command: GCommand,
     /// The item this authorisation was checked for (`GRequest::item`); `None` means a step-wide check.
     pub item: Option<String>,
-    /// The approval it rests on, `(round, subject_sha)`, for a gate cover; `None` for the start's.
-    /// A publisher can check that what it publishes is what was approved.
-    pub approved: Option<(i16, [u8; 32])>,
+    /// The approval it rests on, for a gate cover; `None` for the start's.
+    pub approved: Option<Approved>,
+}
+
+/// The approval behind an [`Authorized`]: what a publisher compares the bytes it publishes against.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Approved {
+    pub round: i16,
+    /// The gate's hash: of the summary and preview Board showed ([`gate_sha`]).
+    pub gate_sha: [u8; 32],
+    /// The approved subject's own hash: a publisher checks `subject_sha(what it publishes)` equals it.
+    pub subject_sha: [u8; 32],
 }
 
 impl Authorized<'_> {
@@ -438,13 +447,13 @@ pub fn covered_by_subject(summary: &Value, item: Option<&str>) -> bool {
     }
 }
 
-/// The summary of the gate's latest round, with that round and its hash, when it has an unused
+/// The summary of the gate's latest round, with its [`Approved`], when it has an unused
 /// approval from Board for its hash.
 async fn approved_summary(
     conn: &mut PgConnection,
     run_id: Uuid,
     gate: &str,
-) -> Result<Option<(Value, (i16, [u8; 32]))>, NewsError> {
+) -> Result<Option<(Value, Approved)>, NewsError> {
     let row = sqlx::query(
         "select g.summary, g.round, g.subject_sha from gates g
            join approvals a on a.run_id = g.run_id and a.gate = g.gate and a.round = g.round
@@ -458,12 +467,27 @@ async fn approved_summary(
     .fetch_optional(&mut *conn)
     .await
     .map_err(map_err)?;
-    Ok(row.map(|r| {
-        let sha: Vec<u8> = r.get("subject_sha");
-        // The column's check constraint holds it at 32 bytes.
-        let sha: [u8; 32] = sha.as_slice().try_into().unwrap_or([0; 32]);
-        (r.get("summary"), (r.get("round"), sha))
-    }))
+    let Some(r) = row else { return Ok(None) };
+    let summary: Value = r.get("summary");
+    let sha: Vec<u8> = r.get("subject_sha");
+    // The column's check constraint holds it at 32 bytes.
+    let gate_sha: [u8; 32] = sha.as_slice().try_into().unwrap_or([0; 32]);
+    let a = approval(&summary, r.get("round"), gate_sha)?;
+    Ok(Some((summary, a)))
+}
+
+/// The [`Approved`] of a gate row: refused (`gated`) when its summary holds no subject hash.
+fn approval(summary: &Value, round: i16, gate_sha: [u8; 32]) -> Result<Approved, NewsError> {
+    let subject_sha = summary["subject_hash"]
+        .as_str()
+        .and_then(unhex)
+        .and_then(|b| <[u8; 32]>::try_from(b.as_slice()).ok())
+        .ok_or_else(|| gated("the approved gate holds no subject hash"))?;
+    Ok(Approved {
+        round,
+        gate_sha,
+        subject_sha,
+    })
 }
 
 /// Mark the approvals a finished step used as consumed (in the transaction that marks it done).
@@ -539,6 +563,20 @@ mod tests {
         other = g.clone();
         other.preview = Some(json!({"draft": 2}));
         assert_ne!(gate_sha(&other), base, "a new preview");
+    }
+
+    #[test]
+    fn an_authorisation_carries_the_approved_subjects_own_hash() {
+        let subject = json!({"draft_id": 4, "slots": ["a"]});
+        let g = open(subject.clone(), None, true);
+        let a = approval(&shown_summary(&g), 2, gate_sha(&g)).unwrap();
+        assert_eq!((a.round, a.gate_sha), (2, gate_sha(&g)));
+        // What a publisher compares: the hash of the subject it is about to publish.
+        assert_eq!(a.subject_sha, subject_sha(&subject));
+        assert_ne!(a.subject_sha, subject_sha(&json!({"draft_id": 5})));
+        // A gate row without the subject's hash authorises nothing.
+        let e = approval(&json!({"text": "Plan"}), 1, [0; 32]).unwrap_err();
+        assert_eq!(e.code, news_core::ErrorCode::Gated);
     }
 
     #[test]

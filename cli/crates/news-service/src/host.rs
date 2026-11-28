@@ -332,29 +332,31 @@ mod hotline {
             .into_owned();
         let first = news_win::create_pipe(pipe, &sddl, true)?;
         let pipe = pipe.to_owned();
-        tokio::spawn(async move {
-            let mut server = first;
-            loop {
+        let accept = |server: tokio::net::windows::named_pipe::NamedPipeServer| -> news_hotline::BoxFut<'static, _> {
+            Box::pin(async move {
                 if let Err(e) = server.connect().await {
                     tracing::warn!(error = %e, "Hotline connect failed");
                 }
-                let conn = server;
-                // All instances busy (ERROR_PIPE_BUSY) is temporary: wait for one to close.
-                server =
-                    news_hotline::retry_create(|| news_win::create_pipe(&pipe, &sddl, false)).await;
-                let (svc, marker, sid, me) = (svc.clone(), marker.clone(), sid.clone(), me.clone());
-                tokio::spawn(async move {
-                    match news_win::peer_facts(&conn, Some(marker.as_ref())) {
-                        Ok((facts, process)) => {
-                            let svc: Arc<dyn Service> = svc;
-                            news_hotline::serve_conn(conn, peer(&facts, &sid, &me), svc).await;
-                            drop(process);
-                        }
-                        Err(e) => tracing::warn!(error = %e, "cannot identify a Hotline client"),
+                server
+            })
+        };
+        let serve = move |conn: tokio::net::windows::named_pipe::NamedPipeServer| {
+            let (svc, marker, sid, me) = (svc.clone(), marker.clone(), sid.clone(), me.clone());
+            tokio::spawn(async move {
+                match news_win::peer_facts(&conn, Some(marker.as_ref())) {
+                    Ok((facts, process)) => {
+                        let svc: Arc<dyn Service> = svc;
+                        news_hotline::serve_conn(conn, peer(&facts, &sid, &me), svc).await;
+                        drop(process);
                     }
-                });
-            }
-        });
+                    Err(e) => tracing::warn!(error = %e, "cannot identify a Hotline client"),
+                }
+            });
+        };
+        // The client is served before the next instance is opened; while all instances are busy
+        // (ERROR_PIPE_BUSY) the loop backs off and retries.
+        let create = move || news_win::create_pipe(&pipe, &sddl, false);
+        tokio::spawn(news_hotline::accept_loop(first, accept, create, serve));
         Ok(())
     }
 }
