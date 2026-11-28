@@ -2,7 +2,8 @@
 //! stdin, pid) to `fake-claude-<pid>.json` in its current directory, then replies as its input asks:
 //! `{"fake": {"mode": "ok" | "usage_limit" | "fail" | "spawn", "reset": <unix s>, "output": {…}}}` at
 //! the top level or under `brief` (a repair input). `spawn` starts a copy of itself first, and both
-//! wait for a `go` file, so a test can look at both processes while they live.
+//! wait for a `go` file, so a test can look at both processes while they live. `"probe": <path>` makes
+//! it try to write that file first and record whether it could (`probe_written`).
 
 use serde_json::{Value, json};
 use std::io::Read;
@@ -12,7 +13,7 @@ use std::time::Duration;
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.first().map(String::as_str) == Some("--fake-sleep") {
-        // It inherits its parent's stdout pipe (Windows inherits handles), so it lives only until the
+        // It inherits its parent's stdout (Windows inherits handles), so it lives only until the
         // test's `go`, or Ghost would wait for it.
         wait_for_go();
         return;
@@ -39,9 +40,12 @@ fn main() {
             .ok()
             .map(|c| c.id());
     }
+    let probe_written = fake["probe"]
+        .as_str()
+        .map(|p| std::fs::write(p, "written at Low integrity?").is_ok());
     let env: Vec<(String, String)> = std::env::vars().collect();
     let record = json!({"pid": std::process::id(), "argv": args, "env": env, "stdin": stdin,
-                        "grandchild": grandchild});
+                        "grandchild": grandchild, "probe_written": probe_written});
     let _ = std::fs::write(
         format!("fake-claude-{}.json", std::process::id()),
         record.to_string(),
