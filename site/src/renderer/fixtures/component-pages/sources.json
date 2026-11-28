@@ -90,6 +90,20 @@
         "redistribution": false
       },
       "retrieved_at": "2026-11-23"
+    },
+    "src_test_news_outlet": {
+      "title": "A test news outlet's report with a long headline that wraps on phones and a very long word Pneumonoultramicroscopicsilicovolcanoconiosis, fixture",
+      "short": "Test outlet",
+      "publisher": "News test fixtures",
+      "connector": "fixture",
+      "type": "news",
+      "primary": false,
+      "url": "https://example.org/news/test-outlet-report",
+      "licence": {
+        "name": "Linked only",
+        "redistribution": false
+      },
+      "retrieved_at": "2026-11-28"
     }
   }
 }

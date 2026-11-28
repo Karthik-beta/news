@@ -105,6 +105,16 @@ For science pages.
 - So the key event is not told by colour alone, its dot also has a 1px crimson ring 2px out, and screen readers hear "Key event" before its date.
 - Horizontal timelines only inside charts.
 
+### Steps (`Steps`)
+For explainers: how something works, in order (the extension set, [EXTENSIONS.md](../site/src/components/EXTENSIONS.md)).
+- An ordered list of 2–8 steps. Each: its number in Fira 600 at the headline-s size (worked out from the order), in a 2em column; a short title in Fira 600, 15px; one or two sentences in Literata at the small body size, with `{ref}` tokens.
+- A 1px `color.rule` line runs down the number column from each number to the next. No boxes, circles or colour.
+- One source line under the list for every value and quote the steps cite.
+
+### Source card (`SourceCard`)
+- The one document a page rests on (a report, paper or filing), placed in the body. A 1px ink rule on top; the source's badges (as in the sources panel); the document title as a link in Literata 600 at the headline-s size, with the external-link icon; a meta line in Fira 13.5, ink-2: type, publisher and publication date ("Report, International Monetary Fund, published 22 October 2024").
+- Every word comes from `sources.json`; showing a source cites it, so the sources panel lists it.
+
 ### Map (`MapFigure`)
 - A chart; see [charts.md](charts.md#maps).
 

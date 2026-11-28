@@ -145,3 +145,56 @@ Signed (pass, with the exceptions above): Opus 5.5 component tester, 20 November
 ## Re-test: x labels chosen by the plot's em width (22 November 2026)
 
 The phone/wide x-label switch is now `@container chart-x (min-width: 40em)` instead of the 600px media query. At 100% text the labels are the same as before at every matrix width; at 200% text a wide screen keeps the phone set. Details, runs and the one open exception (ColumnChart `long` edge fixture, 2.9px gap at 572-581px) are in `ChartFigure/SIGNOFF.md`; tests in `site/tests/e2e/components/x-label-plan.tester.spec.ts`.
+
+## Re-test: numbered notes (`notes` prop, #11 extension set, 28 November 2026)
+
+Status after re-test: **not signed off for notes: LC-1 open (sent back to the builder).** Charts without notes are
+unchanged (no event lines, no list; `tests/component/extension-set.test.tsx` "charts without notes are unchanged"),
+so the earlier sign-off stands for them.
+
+Tester: Opus 5.5 component tester (not the builder) · Builder: Opus 5.5 component builder (#11 extension set) · PR #107,
+component at 4e25bd6; tests and this section in the tester's commits on top of it.
+Scope: only what the PR changed: `notes`, `numberedNotes`, the note labels on the plot, the list under it, the Markdown.
+
+| Area | Result | Tests | Notes |
+|---|---|---|---|
+| Rendering | ☑ pass | `tests/unit/extension-set.tester.test.ts` "LineChart notes" | Numbered 1-3 left to right whatever the writer's order; each note a line on the plot labelled on every screen (never wide-only) and an item in `ol "Notes on the chart"`, period in Fira 600 |
+| Data | ☑ pass | same file | Off-axis notes and second notes at one period left out, numbers without gaps; no notes and no list when the chart has no data; a note at a missing value still points at its period; CSV, table and plotted values identical with and without notes |
+| Content edge cases | ☒ fail | `tests/e2e/components/extension-set.tester.spec.ts` "note numbers on the plot never overlap …", "… on a tight plot (200% text) …", and each page's "nothing … overlapping" / "reflows at 200% text" | **LC-1** below. A 40-character note wraps in the list on every screen |
+| Formatting | ☑ pass | `extension-set.tester.test.ts` | Period labels as the source writes them; note words escaped in HTML and Markdown ("1. Jun 2024: \<b\>…") |
+| Server rendering | ☑ pass | `extension-set.tester.spec.ts` "with the island script blocked, the numbers, lines and list still read" | Numbers, lines and list are in the static HTML; no dead tab stop before hydration |
+| Design-system compliance | ☑ pass | "each note is a 1px ink-3 line at its period …" | Lines 1px `ink-3`; list Fira `type.label`, `ink-2`, period 600; both themes by system and `data-theme` |
+| Accessibility | ☑ pass | axe both themes on every screen; "the accessibility tree: a list named Notes on the chart" | Numbers `aria-hidden` on the plot and in the list; the list reads "Mar 2024: Spring" etc. Screen readers by hand: none |
+| Interaction | ☑ pass | "the plot keeps its keys and tooltip with notes on it" | End key shows the last period's tooltip; Escape closes |
+| Themes, forced colours, print | ☑ pass | forced-colours and print tests | Note lines visible in forced colours; numbers, lines and list print |
+| Motion, performance | ☑ pass | motion and layout-shift tests | Nothing animates; shift after fonts < 0.001 |
+| Cross-browser | ☒ fail | Chromium, Firefox, WebKit | LC-1 in every engine |
+
+| # | Area / screen | Problem | Expected (spec), failing test |
+|---|---|---|---|
+| LC-1 | Content edge cases / Chromium 320-430 at 100% text, every width (320-1920 and landscape) at 200% text, light and dark; Firefox the same plus 980 at 100% text; WebKit (see Runs) | Note numbers overprint. In the `close` fixture (notes on three neighbouring months of a 60-month series) "2" and "3" are drawn on the same spot of the second row and read as "23" next to "1" (`src/components/LineChart/geometry.ts:282-293`: when no row is free the third number is forced onto row 1 over the second). On a tight plot (phones at 150-200% text and every screen at 200% text where the plot is narrower than 20em) all three numbers go into the one row above the plot, a single grid cell (`LineChart.css:186-210`, `.line-chart__events-label { grid-area: 1 / 1 }`; `LineChartPlot.client.tsx:130-152`), so any notes closer than a number's width overprint ("1", "2" and "3" on one spot). Overprinted digits read as a different number, so the shortcut's claim that "the list under the plot still reads" does not hold: the plot points the reader at a note "23" that does not exist | charts.md: "Each is a 1px ink-3 line labelled with its number at the top, on every screen"; the testing rule "no clipped or overlapping text, no label collisions" at every size. Numbers that cannot get a place of their own must not overprint: for example join them into one label at the first line ("2, 3" or "2–3"), or add a third row, and on a tight plot place the row's labels side by side the same way. Failing tests: `extension-set.tester.spec.ts` "LineChart notes › note numbers on the plot never overlap each other or any other label", "… on a tight plot (200% text) …", "LineChart/notes: nothing clipped, outside the screen, overlapping or under 12px", "LineChart/notes: reflows at 200% text and 200% zoom". **Decision on the builder's shortcut: not acceptable; must be fixed.** |
+
+Observation (not blocking): the notes schema bars ASCII digits only (`/^[^{}0-9]*$/`, `spec.ts`); full-width or other
+script digits ("５", "٣") pass. Number words pass anyway, so it is a guard, not a guarantee; `\p{Nd}` would close the
+digit gap if wanted.
+
+Runs (laptop shared with another agent's Rust build, one Playwright worker; `extension-set.tester.spec.ts` and the
+builder's `extension-set.spec.ts` together, all six extension-set fixture pages each time):
+
+- **Chromium, first slice** (`chromium-light-360`): 69 runs, 10 failed: 6 tester test bugs (a token probe without a
+  border style, the sources panel and the chart source line looked up by the wrong class, the card's link counted with
+  the panel's, popover panels counted as boxes in the steps) fixed and re-run, and 4 LC-1 (LineChart notes).
+- **Chromium matrix**, every width light and dark, both landscapes, print, motion, forced colours light and dark:
+  1,542 runs, 1,270 passed, 212 skipped (by design: `@visual` outside Docker, 200% zoom below 640px, keyboard tests
+  on touch phones), 60 failed, all LC-1. Every other notes test passed.
+- **Firefox** (light 320, 390, 600, 980, 1440; dark 360, 430, 768, 1120, 1920; both landscapes; print; motion): 840
+  runs, 708 passed, 97 skipped, 35 failed: 33 LC-1 and 2 timeouts under load (axe on `Steps/in-context` at 600 and the
+  builder's axe test on `Steps/edge-cases` at 980, 1.1 and 1.9 minutes); both re-run alone: passed.
+- **WebKit** (the same projects): 840 runs, 675 passed, 133 skipped (also: WebKit does not tab to links by default),
+  32 failed, all LC-1.
+- **Vitest** (`--maxWorkers=1`): 2,204 tests in 61 files (unit, component, astro), 2,203 passed, 1 failed: SC-1, a SourceCard Markdown defect (the SourceCard test file, `tests/unit/extension-set.tester.test.ts`). Run with a local placeholder `SourceCard/SIGNOFF.md` so the folder-contract checks could run; it is not committed.
+- **SSR in Bun** (`bun test tests/ssr`): 184 passed, 0 failed. `bun run typecheck`: 0 errors; `bun run lint`: no errors (5 older warnings elsewhere); `bun run validate`: OK.
+
+Screenshots: no baseline for `LineChart/notes` while LC-1 is open (the `@visual` test skips it with that reason).
+
+Signed (fail for notes, LC-1 open): Opus 5.5 component tester, 28 November 2026

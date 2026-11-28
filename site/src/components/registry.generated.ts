@@ -55,6 +55,7 @@ import selectSpec from "./Select/spec";
 import skipLinkSpec from "./SkipLink/spec";
 import slopeSpec from "./Slope/spec";
 import smallMultiplesSpec from "./SmallMultiples/spec";
+import sourceCardSpec from "./SourceCard/spec";
 import sourcePopoverSpec from "./SourcePopover/spec";
 import sourceRefSpec from "./SourceRef/spec";
 import sourcesPanelSpec from "./SourcesPanel/spec";
@@ -63,6 +64,7 @@ import stackedBarSpec from "./StackedBar/spec";
 import standfirstSpec from "./Standfirst/spec";
 import stateMessageSpec from "./StateMessage/spec";
 import stepLineChartSpec from "./StepLineChart/spec";
+import stepsSpec from "./Steps/spec";
 import storyItemSpec from "./StoryItem/spec";
 import textSpec from "./Text/spec";
 import textAreaSpec from "./TextArea/spec";
@@ -127,6 +129,7 @@ export const specs: readonly AnySpec[] = [
   skipLinkSpec,
   slopeSpec,
   smallMultiplesSpec,
+  sourceCardSpec,
   sourcePopoverSpec,
   sourceRefSpec,
   sourcesPanelSpec,
@@ -135,6 +138,7 @@ export const specs: readonly AnySpec[] = [
   standfirstSpec,
   stateMessageSpec,
   stepLineChartSpec,
+  stepsSpec,
   storyItemSpec,
   textSpec,
   textAreaSpec,

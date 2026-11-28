@@ -158,6 +158,11 @@ export class PageDataResolver {
     return this.sources.sources[id] ?? null;
   }
 
+  /** A source the page shows directly (SourceCard): recorded as used, so the sources panel lists it. */
+  citeSource(id: string): CitedSource | null {
+    return this.cite([id])[0] ?? null;
+  }
+
   /** An image's credit and licence from its stored record (data.json `images`, by URL), citing its source. */
   image(src: string): { credit: string; licence: string } | null {
     const record = this.data.images?.[src];
