@@ -84,6 +84,7 @@ async fn finish(
         match pipeline::render_one(cx, ctx, story).await? {
             Rendered::Registered(r) => ok.push(r),
             Rendered::Failed(f) => dead.push(json!({"page_id": page, "failures": f})),
+            Rendered::Broken(why) => dead.push(json!({"page_id": page, "error": why})),
         }
     }
     Ok((ok, dead))

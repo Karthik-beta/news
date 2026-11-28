@@ -122,6 +122,8 @@ fn resolve() -> Resolver {
 pub(super) struct FakeTools {
     version: Mutex<String>,
     fail_once: Mutex<HashSet<String>>,
+    /// Stories whose render fails for a reason of their own (not retryable).
+    render_error: Mutex<HashSet<String>>,
 }
 
 impl FakeTools {
@@ -129,6 +131,7 @@ impl FakeTools {
         Arc::new(Self {
             version: Mutex::new(version.into()),
             fail_once: Mutex::default(),
+            render_error: Mutex::default(),
         })
     }
 }
@@ -136,6 +139,9 @@ impl FakeTools {
 impl PageTools for FakeTools {
     fn render<'a>(&'a self, work: &'a Work, story: &'a str) -> BoxFut<'a, NewsResult<Rendered>> {
         Box::pin(async move {
+            if self.render_error.lock().unwrap().contains(story) {
+                return Err(news_core::NewsError::precondition("the page has no inputs"));
+            }
             let inputs = news_proof::render::load_inputs(work, story)?;
             let version = self.version.lock().unwrap().clone();
             let points: Vec<String> = inputs.data["points"]
@@ -329,15 +335,21 @@ struct World {
 }
 
 async fn world() -> World {
+    world_with(|h| h).await
+}
+
+async fn world_with(
+    wrap: impl FnOnce(news_chief::driver::Handlers) -> news_chief::driver::Handlers,
+) -> World {
     let f = Fixture::migrated().await;
     let story = seed(&f).await;
     let root = root_for(&f);
     let tools = FakeTools::new("plate-1.0.0");
     let api = Arc::new(FakeApi::new());
-    let handlers = news::steps::register(
+    let handlers = wrap(news::steps::register(
         news_chief::driver::Handlers::default(),
         ctx(&root, tools.clone(), api.clone()),
-    );
+    ));
     let ch = chief(&f, handlers);
     let (stop, rx) = tokio::sync::oneshot::channel::<()>();
     let mut opts = WorkOptions::new(vec!["ai".into(), "cpu".into(), "net".into()], "pages-w");
@@ -545,8 +557,10 @@ async fn reprint_rebuilds_a_pruned_page_on_a_newer_renderer_and_publishes_versio
     assert_eq!(
         w.f.scalar_str("select status || ':' || version::text from pages")
             .await,
-        "draft:2"
+        "published:1",
+        "the live page stays published while version 2 waits"
     );
+    assert_eq!(w.n("select version::bigint from page_drafts").await, 2);
     answer(&w.ch, &run.short_id, &g, Decision::Approved, None).await;
     wait_status(&w.f, run.run_id, "succeeded").await;
     assert_eq!(
@@ -567,8 +581,11 @@ async fn reprint_rebuilds_a_pruned_page_on_a_newer_renderer_and_publishes_versio
         2
     );
 
-    // A second Reprint finds nothing older.
-    let again = w.start("reprint", json!({"renderer": "plate-2.0.0"})).await;
+    assert_eq!(w.n("select count(*) from page_drafts").await, 0);
+
+    // A rejected sample leaves the live page as it was and throws the draft away.
+    *w.tools.version.lock().unwrap() = "plate-3.0.0".into();
+    let again = w.start("reprint", json!({"renderer": "plate-3.0.0"})).await;
     wait_status(&w.f, again.run_id, "waiting_approval").await;
     let g = open_gate(&w.f, again.run_id).await;
     answer(&w.ch, &again.short_id, &g, Decision::Rejected, None).await;
@@ -577,6 +594,15 @@ async fn reprint_rebuilds_a_pruned_page_on_a_newer_renderer_and_publishes_versio
         w.f.scalar_str("select version::text from pages").await,
         "2",
         "a rejected sample changes nothing"
+    );
+    assert_eq!(
+        w.f.scalar_str("select status from pages").await,
+        "published"
+    );
+    assert_eq!(
+        w.n("select count(*) from page_drafts").await,
+        0,
+        "the rejected draft is discarded"
     );
     w.finish().await;
 }
@@ -676,7 +702,28 @@ async fn register_copies_the_bundle_fills_the_rows_and_is_idempotent() {
     assert_eq!(
         f.scalar_str("select status || ':' || version::text from pages")
             .await,
-        "draft:2"
+        "published:1",
+        "the live version stays published"
+    );
+    assert_eq!(
+        f.scalar_i64("select version::bigint from page_drafts")
+            .await,
+        2
+    );
+    let again = news_press::register::register(&f.pool, &work, &s, story, now())
+        .await
+        .unwrap();
+    assert!(!again.changed, "the same draft again is a no-op");
+    assert!(
+        news_press::register::discard_draft(&f.pool, "a-page")
+            .await
+            .unwrap()
+    );
+    assert_eq!(f.scalar_i64("select count(*) from page_drafts").await, 0);
+    assert_eq!(
+        f.scalar_i64("select count(*) from page_refs where version = 2")
+            .await,
+        0
     );
     let _ = std::fs::remove_dir_all(&root);
 }
@@ -785,4 +832,181 @@ async fn page_revise_by_code_refuses_a_flip_and_a_page_with_no_story_folder() {
     .unwrap_err();
     assert_eq!(none.class, news_core::job::ErrorClass::Bug);
     let _ = std::fs::remove_dir_all(&root);
+}
+
+// ---- the fix round: live pages stay live, rejections, re-entries -------------------------------------
+
+/// A new vintage of the story's latest point: 2.0 becomes 2.1 (a value-only revision).
+async fn revise_point(f: &Fixture) {
+    sqlx::query(
+        "insert into data_points (dp_id, context_key, series_key, concept, label, value_text, value, unit,
+           period_label, period_start, period_end, period_type, vintage, supersedes, snapshot_sha, locator,
+           parser, retrieved_at)
+         select 'dp_t30', context_key, series_key, concept, label, '2.1', 2.1, unit, period_label, period_start,
+                period_end, period_type, '2026-11-22T00:00:00Z', 'dp_t29', snapshot_sha, locator, parser, now()
+           from data_points where dp_id = 'dp_t29'",
+    )
+    .execute(&f.pool)
+    .await
+    .unwrap();
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres"]
+async fn followup_re_renders_a_value_only_revision_and_ends_with_the_page_published_at_version_two()
+{
+    let w = world().await;
+    let first = w.start("edition", json!({})).await;
+    wait_status(&w.f, first.run_id, "succeeded").await;
+    revise_point(&w.f).await;
+    let run = w.start("followup", json!({})).await;
+    wait_status(&w.f, run.run_id, "succeeded").await;
+    assert_eq!(
+        w.f.scalar_str("select status || ':' || version::text from pages")
+            .await,
+        "published:2"
+    );
+    assert_eq!(w.n("select count(*) from page_drafts").await, 0);
+    assert_eq!(
+        w.n("select count(*) from publish_outbox where op = 'put_page' and sent_at is not null")
+            .await,
+        2
+    );
+    w.finish().await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres"]
+async fn edition_re_entered_after_a_lost_answer_still_publishes_its_planned_revision() {
+    let w = world().await;
+    let first = w.start("edition", json!({})).await;
+    wait_status(&w.f, first.run_id, "succeeded").await;
+    // Nothing new to write; one value-only revision to publish, and the API does not answer at first.
+    sqlx::query("update stories set status = 'covered'")
+        .execute(&w.f.pool)
+        .await
+        .unwrap();
+    revise_point(&w.f).await;
+    w.api.script(std::iter::repeat_n(
+        news_press::fake::Fault::Unreachable,
+        news_press::api::MAX_ATTEMPTS as usize,
+    ));
+    let run = w.start("edition", json!({})).await;
+    wait_status(&w.f, run.run_id, "succeeded").await;
+    assert_eq!(
+        w.f.scalar_str("select status || ':' || version::text from pages")
+            .await,
+        "published:2"
+    );
+    assert_eq!(w.n("select count(*) from page_drafts").await, 0);
+    w.finish().await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres"]
+async fn edition_ignores_nothing_when_the_plan_is_rejected() {
+    let w = world().await;
+    let run = w.start("edition", json!({"review_plan": true})).await;
+    wait_status(&w.f, run.run_id, "waiting_approval").await;
+    let g = open_gate(&w.f, run.run_id).await;
+    assert_eq!(g.0, "plan");
+    answer(&w.ch, &run.short_id, &g, Decision::Rejected, None).await;
+    wait_status(&w.f, run.run_id, "succeeded").await;
+    assert_eq!(w.n("select count(*) from pages").await, 0);
+    assert_eq!(
+        w.n("select count(*) from jobs where kind in ('ai.write', 'ai.repair')")
+            .await,
+        0
+    );
+    assert_eq!(
+        w.f.scalar_str(&format!(
+            "select status from run_steps where run_id = '{}' and step = 'publish'",
+            run.run_id
+        ))
+        .await,
+        "skipped"
+    );
+    w.finish().await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres"]
+async fn one_page_that_cannot_be_built_is_dead_and_the_run_goes_on() {
+    let w = world().await;
+    w.tools
+        .render_error
+        .lock()
+        .unwrap()
+        .insert(w.story.to_string());
+    let run = w.start("edition", json!({})).await;
+    wait_status(&w.f, run.run_id, "succeeded").await;
+    assert_eq!(w.n("select count(*) from pages").await, 0);
+    assert_eq!(
+        w.n("select count(*) from jobs where kind = 'ai.repair'")
+            .await,
+        0,
+        "no repair for a page with no inputs"
+    );
+    assert_eq!(
+        w.f.scalar_str(&format!(
+            "select output->'dead'->0->>'error' from run_steps where run_id = '{}' and step = 'render'",
+            run.run_id
+        ))
+        .await,
+        "the page has no inputs"
+    );
+    w.finish().await;
+}
+
+/// Runs the step, then fails it once after it yielded: a crash between a chunk's publish and its checkpoint.
+struct CrashAfterYield(
+    Arc<dyn news_chief::driver::StepHandler>,
+    std::sync::atomic::AtomicBool,
+);
+
+impl news_chief::driver::StepHandler for CrashAfterYield {
+    fn run<'a>(
+        &'a self,
+        cx: &'a mut news_chief::driver::StepCx,
+    ) -> BoxFut<'a, Result<news_chief::driver::StepOutcome, news_chief::driver::StepError>> {
+        Box::pin(async move {
+            let out = self.0.run(cx).await;
+            if matches!(out, Ok(news_chief::driver::StepOutcome::Yield(_)))
+                && !self.1.swap(true, std::sync::atomic::Ordering::SeqCst)
+            {
+                return Err(news_chief::driver::StepError::Retry("crash".into()));
+            }
+            out
+        })
+    }
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres"]
+async fn catchup_re_entering_a_published_chunk_does_not_publish_a_needless_next_version() {
+    let w = world_with(|h| {
+        let inner = h.get("catchup.chunks");
+        h.with(
+            "catchup.chunks",
+            Arc::new(CrashAfterYield(inner, Default::default())),
+        )
+    })
+    .await;
+    let run = w.start("catchup", json!({"chunk": 1})).await;
+    wait_status(&w.f, run.run_id, "waiting_approval").await;
+    let g = open_gate(&w.f, run.run_id).await;
+    answer(&w.ch, &run.short_id, &g, Decision::Approved, None).await;
+    wait_status(&w.f, run.run_id, "succeeded").await;
+    assert_eq!(
+        w.f.scalar_str("select status || ':' || version::text from pages")
+            .await,
+        "published:1",
+        "the chunk ran twice but the page was sent once"
+    );
+    assert_eq!(
+        w.n("select count(*) from publish_outbox where op = 'put_page'")
+            .await,
+        1
+    );
+    w.finish().await;
 }

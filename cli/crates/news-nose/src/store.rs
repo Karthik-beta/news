@@ -156,13 +156,15 @@ pub async fn save(
         "select exists (select 1 from approvals where run_id = $1)
              or exists (select 1 from run_steps l
                          where l.run_id = $1 and l.status <> 'pending'
-                           and l.seq > (select seq from run_steps where run_id = $1 and step = 'plan'))",
+                           and l.seq > (select seq from run_steps where run_id = $1 and step in ('plan', 'capture', 'select') limit 1))",
     )
     .bind(run_id)
     .fetch_one(&mut *tx)
     .await?;
     let locked = !matches!(status.as_str(), "queued" | "running")
-        || step.as_deref().is_some_and(|s| s != "plan")
+        || step
+            .as_deref()
+            .is_some_and(|s| !matches!(s, "plan" | "capture" | "select"))
         || moved_on;
     if locked {
         if !same {

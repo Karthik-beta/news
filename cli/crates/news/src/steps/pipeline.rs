@@ -176,7 +176,9 @@ async fn registered(
     };
     let sha: Option<Vec<u8>> = sqlx::query_scalar(
         "select bundle_sha from pages where page_id = $1 and version = $2 and bundle_sha is not null
-            and status in ('draft', 'ready', 'published')",
+            and status in ('draft', 'ready', 'published')
+         union all
+         select bundle_sha from page_drafts where page_id = $1 and version = $2 limit 1",
     )
     .bind(&page_id)
     .bind(version)
@@ -195,7 +197,18 @@ async fn registered(
 
 pub enum Rendered {
     Registered(Registered),
+    /// Proof or the validators blocked the page: the writer may repair it once.
     Failed(Vec<Value>),
+    /// The page cannot be built for a reason of its own (no inputs, a version conflict): dead, no repair.
+    Broken(String),
+}
+
+fn broken(e: news_core::NewsError) -> Result<Rendered, StepError> {
+    if e.retryable {
+        Err(step_err(e))
+    } else {
+        Ok(Rendered::Broken(e.message))
+    }
 }
 
 /// Render the story's page folder, check it, and register it as a draft when it passes. A Copy the
@@ -210,7 +223,7 @@ pub async fn render_one(cx: &StepCx, ctx: &Ctx, story_id: i64) -> Result<Rendere
                 json!({"check": "copy", "where": "/", "message": e.message}),
             ]));
         }
-        Err(e) => return Err(step_err(e)),
+        Err(e) => return broken(e),
     }
     check_one(cx, ctx, story_id).await
 }
@@ -219,17 +232,14 @@ pub async fn render_one(cx: &StepCx, ctx: &Ctx, story_id: i64) -> Result<Rendere
 pub async fn check_one(cx: &StepCx, ctx: &Ctx, story_id: i64) -> Result<Rendered, StepError> {
     let work = work(ctx);
     let story = story_id.to_string();
-    match ctx
-        .tools
-        .check(&cx.db, &work, &story)
-        .await
-        .map_err(step_err)?
-    {
-        Check::Pass => register(&cx.db, &ctx.root.join("work"), &story, story_id, cx.now)
-            .await
-            .map(Rendered::Registered)
-            .map_err(step_err),
-        Check::Fail(f) => Ok(Rendered::Failed(f)),
+    match ctx.tools.check(&cx.db, &work, &story).await {
+        Ok(Check::Pass) => {}
+        Ok(Check::Fail(f)) => return Ok(Rendered::Failed(f)),
+        Err(e) => return broken(e),
+    }
+    match register(&cx.db, &ctx.root.join("work"), &story, story_id, cx.now).await {
+        Ok(r) => Ok(Rendered::Registered(r)),
+        Err(e) => broken(e),
     }
 }
 
@@ -258,6 +268,7 @@ pub async fn render(
         }
         match render_one(cx, ctx, s).await? {
             Rendered::Registered(r) => ok.push(r),
+            Rendered::Broken(why) => dead.push(json!({"story": s, "error": why})),
             Rendered::Failed(failures) => {
                 match repair {
                     None => {
@@ -327,7 +338,11 @@ pub async fn spotcheck(
     .map_err(db_err)?;
     let drafts: Vec<(i64, String, i16)> = sqlx::query_as(
         "select story_id, page_id, coalesce(tier, 2::smallint) from pages
-          where story_id = any($1) and status = 'draft' order by page_id",
+          where story_id = any($1) and status = 'draft'
+         union all
+         select p.story_id, d.page_id, coalesce(d.tier, p.tier, 2::smallint) from page_drafts d
+           join pages p on p.page_id = d.page_id where p.story_id = any($1) and d.state = 'draft'
+         order by 2",
     )
     .bind(stories)
     .fetch_all(&cx.db)
@@ -380,6 +395,14 @@ pub async fn spotcheck(
                     .execute(&cx.db)
                     .await
                     .map_err(db_err)?;
+                    sqlx::query(
+                        "update page_drafts set flags = array_append(flags, 'spot_blocked')
+                          where page_id = $1 and state = 'draft' and not 'spot_blocked' = any(flags)",
+                    )
+                    .bind(&page_id)
+                    .execute(&cx.db)
+                    .await
+                    .map_err(db_err)?;
                 }
             }
         }
@@ -401,7 +424,11 @@ pub async fn publish(
     let drafts: Vec<(String, i32, Vec<u8>)> = sqlx::query_as(
         "select page_id, version, bundle_sha from pages
           where story_id = any($1) and status = 'draft' and bundle_sha is not null
-            and not 'spot_blocked' = any(flags) order by page_id",
+            and not 'spot_blocked' = any(flags)
+         union all
+         select d.page_id, d.version, d.bundle_sha from page_drafts d join pages p on p.page_id = d.page_id
+          where p.story_id = any($1) and d.state = 'draft' and not 'spot_blocked' = any(d.flags)
+         order by 1",
     )
     .bind(stories)
     .fetch_all(&cx.db)
@@ -473,4 +500,26 @@ pub fn ids(v: &Value) -> Vec<i64> {
 
 pub fn set(ids: &[i64]) -> BTreeSet<i64> {
     ids.iter().copied().collect()
+}
+
+/// The page ids the plan step (or `classify`) put in the Budget under `key` (`items`, `revise`, `update`).
+pub fn budget_ids(cx: &StepCx, key: &str) -> Vec<String> {
+    cx.budget[key]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|v| v.as_str().map(str::to_owned))
+        .collect()
+}
+
+/// The stories of these pages. A run that publishes revisions stages their pending drafts through the
+/// stories of the pages its Budget names, so a re-entered step loses none of them.
+pub async fn stories_of(cx: &StepCx, page_ids: &[String]) -> Result<Vec<i64>, StepError> {
+    sqlx::query_scalar(
+        "select distinct story_id from pages where page_id = any($1) and story_id is not null order by 1",
+    )
+    .bind(page_ids)
+    .fetch_all(&cx.db)
+    .await
+    .map_err(db_err)
 }

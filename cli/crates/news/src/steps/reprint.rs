@@ -189,6 +189,9 @@ async fn run(ctx: Option<&Ctx>, step: Step, cx: &StepCx) -> Result<StepOutcome, 
                     pipeline::Rendered::Failed(f) => {
                         dead.push(json!({"page_id": id, "failures": f}))
                     }
+                    pipeline::Rendered::Broken(why) => {
+                        dead.push(json!({"page_id": id, "error": why}))
+                    }
                 }
             }
             Ok(StepOutcome::Done(json!({
@@ -203,8 +206,19 @@ async fn run(ctx: Option<&Ctx>, step: Step, cx: &StepCx) -> Result<StepOutcome, 
                 .and_then(|r| r["decisions"].as_array())
                 .is_some_and(|d| d.iter().any(|x| x["decision"] == "rejected"));
             if rejected {
-                return Ok(StepOutcome::Skip(
-                    "the sample was rejected in Board; nothing is published".into(),
+                // The live pages stay as they were: their unsent next versions are thrown away.
+                let mut discarded = 0;
+                for p in pages(cx, "check") {
+                    let id = p["page_id"].as_str().unwrap_or_default();
+                    if news_press::register::discard_draft(&cx.db, id)
+                        .await
+                        .map_err(step_err)?
+                    {
+                        discarded += 1;
+                    }
+                }
+                return Ok(StepOutcome::Done(
+                    json!({"discarded": discarded, "wrap": {"discarded": discarded}}),
                 ));
             }
             let stories: Vec<i64> = pages(cx, "check")
@@ -217,9 +231,6 @@ async fn run(ctx: Option<&Ctx>, step: Step, cx: &StepCx) -> Result<StepOutcome, 
                 ));
             }
             let (staged, sent, dead) = pipeline::publish(cx, ctx, &stories).await?;
-            if sent == 0 && staged == 0 {
-                return Err(fail(ErrorClass::Bug, "no page was staged for the reprint"));
-            }
             Ok(StepOutcome::Done(
                 json!({"staged": staged, "sent": sent, "wrap": {"published": sent, "failed": dead}}),
             ))

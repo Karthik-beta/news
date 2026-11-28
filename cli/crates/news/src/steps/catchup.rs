@@ -193,13 +193,38 @@ async fn chunks(ctx: &Ctx, cx: &StepCx) -> Result<StepOutcome, StepError> {
     let i = state["chunk"].as_u64().unwrap_or(0) as usize;
     let total = |k: &str| state["totals"][k].as_i64().unwrap_or(0);
     if i * size >= all.len() {
-        let (published, failed) = (total("published"), total("failed"));
+        // Counted from the outbox: a chunk that ran twice after a restart reported nothing the second time.
+        let published: i64 = sqlx::query_scalar(
+            "select count(*) from publish_outbox where run_id = $1 and op = 'put_page' and sent_at is not null",
+        )
+        .bind(cx.run_id)
+        .fetch_one(&cx.db)
+        .await
+        .map_err(db_err)?;
+        let failed = total("failed");
         return Ok(StepOutcome::Done(json!({
             "chunks": i, "published": published, "failed": failed,
             "wrap": {"published": published, "failed": failed},
         })));
     }
-    let slice = &all[i * size..all.len().min((i + 1) * size)];
+    let chunk = &all[i * size..all.len().min((i + 1) * size)];
+    // A chunk re-entered after a restart (published, not yet checkpointed) skips what this run already sent:
+    // briefing a published page again would build a needless next version.
+    let sent: Vec<i64> = sqlx::query_scalar(
+        "select distinct p.story_id from pages p join publish_outbox o on o.page_id = p.page_id
+          where o.run_id = $1 and o.op = 'put_page' and o.sent_at is not null and p.story_id = any($2)",
+    )
+    .bind(cx.run_id)
+    .bind(chunk)
+    .fetch_all(&cx.db)
+    .await
+    .map_err(db_err)?;
+    let slice: Vec<i64> = chunk
+        .iter()
+        .copied()
+        .filter(|s| !sent.contains(s))
+        .collect();
+    let slice = &slice[..];
     let (briefed, mut dead) = pipeline::brief(cx, ctx, slice).await?;
     let briefed: Vec<i64> = briefed
         .iter()

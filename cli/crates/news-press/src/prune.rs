@@ -80,6 +80,8 @@ pub async fn prune(db: &PgPool, work: &Path) -> NewsResult<(u64, u64)> {
                 (p.story_id is not null
                  and not exists (select 1 from pages q where q.story_id = p.story_id
                                     and q.status not in ('published', 'withdrawn'))
+                 and not exists (select 1 from page_drafts d join pages q on q.page_id = d.page_id
+                                  where q.story_id = p.story_id)
                  and not exists (select 1 from publish_outbox o join pages q on q.page_id = o.page_id
                                   where q.story_id = p.story_id and o.sent_at is null)) as story_done
            from pages p

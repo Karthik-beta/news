@@ -2,8 +2,9 @@
 //!
 //! Proof (`news render`) writes the bundle into the story's page folder, `work/pages/<story>/`, with
 //! `manifest.json` beside the files. Press reads `work/pages/<page_id>/v<n>/` and a `pages` row. [`register`]
-//! copies the first into the second, verifies the copy with [`bundle::load`], inserts or advances the `pages`
-//! row (status `draft`, at the bundle's version) and fills `page_refs` from `meta.json`'s `data_ids` and the
+//! copies the first into the second, verifies the copy with [`bundle::load`], and records the bundle: a new
+//! page is a `pages` row (status `draft`); the next version of a live page is a `page_drafts` row, and the
+//! page stays `published` until the draft is sent. `page_refs` come from `meta.json`'s `data_ids` and the
 //! `sr_` series of `data.json`. One transaction; the same bundle again changes nothing.
 
 use std::path::Path;
@@ -171,25 +172,47 @@ pub async fn register(
                 .map_err(map_err)?;
                 true
             } else if version == have + 1 && status == "published" {
-                sqlx::query(
-                    "update pages set version = $2, status = 'draft', bundle_sha = $3, oui_sha = $4,
-                            renderer_version = $5, flags = $6, updated_at = $7, tier = coalesce($8, tier),
-                            page_type = coalesce($9, page_type)
-                      where page_id = $1",
+                // The live page stays published; the next version waits in `page_drafts`.
+                let pending: Option<(i32, Vec<u8>, String)> = sqlx::query_as(
+                    "select version, bundle_sha, state from page_drafts where page_id = $1 for update",
                 )
                 .bind(&page_id)
-                .bind(version)
-                .bind(&sha_vec)
-                .bind(&oui_sha)
-                .bind(meta["renderer_version"].as_str())
-                .bind(&flags)
-                .bind(now)
-                .bind(tier)
-                .bind(meta["page_type"].as_str())
-                .execute(&mut *tx)
+                .fetch_optional(&mut *tx)
                 .await
                 .map_err(map_err)?;
-                true
+                match pending {
+                    Some((v, s, _)) if v == version && s == sha_vec => false,
+                    Some((_, _, st)) if st == "ready" => {
+                        return Err(NewsError::conflict(format!(
+                            "page {page_id} has a draft staged for sending; it cannot be replaced"
+                        )));
+                    }
+                    _ => {
+                        sqlx::query(
+                            "insert into page_drafts (page_id, version, bundle_sha, oui_sha, renderer_version, tier,
+                                                      page_type, flags, state, updated_at)
+                             values ($1, $2, $3, $4, $5, $6, $7, $8, 'draft', $9)
+                             on conflict (page_id) do update set version = excluded.version,
+                                bundle_sha = excluded.bundle_sha, oui_sha = excluded.oui_sha,
+                                renderer_version = excluded.renderer_version, tier = excluded.tier,
+                                page_type = excluded.page_type, flags = excluded.flags, state = 'draft',
+                                updated_at = excluded.updated_at",
+                        )
+                        .bind(&page_id)
+                        .bind(version)
+                        .bind(&sha_vec)
+                        .bind(&oui_sha)
+                        .bind(meta["renderer_version"].as_str())
+                        .bind(tier)
+                        .bind(meta["page_type"].as_str())
+                        .bind(&flags)
+                        .bind(now)
+                        .execute(&mut *tx)
+                        .await
+                        .map_err(map_err)?;
+                        true
+                    }
+                }
             } else {
                 return Err(NewsError::conflict(format!(
                     "page {page_id} is at version {have} ({status}); the bundle is version {version}"
@@ -211,6 +234,14 @@ pub async fn register(
     }
     refs.sort();
     refs.dedup();
+    if changed {
+        sqlx::query("delete from page_refs where page_id = $1 and version = $2")
+            .bind(&page_id)
+            .bind(version)
+            .execute(&mut *tx)
+            .await
+            .map_err(map_err)?;
+    }
     sqlx::query(
         "insert into page_refs (page_id, version, ref) select $1, $2, r from unnest($3::text[]) as r
          on conflict do nothing",
@@ -234,4 +265,28 @@ pub async fn register(
         bundle_sha: sha,
         changed,
     })
+}
+
+/// Throw away the unsent next version of a live page (a rejected or dead revision): the draft and its
+/// refs go, and the live page stays as it was. A draft already staged for sending is left to the outbox.
+/// Returns whether a draft was discarded.
+pub async fn discard_draft(db: &PgPool, page_id: &str) -> NewsResult<bool> {
+    let mut tx = db.begin().await.map_err(map_err)?;
+    let gone: Option<i32> = sqlx::query_scalar(
+        "delete from page_drafts where page_id = $1 and state = 'draft' returning version",
+    )
+    .bind(page_id)
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(map_err)?;
+    if let Some(v) = gone {
+        sqlx::query("delete from page_refs where page_id = $1 and version = $2")
+            .bind(page_id)
+            .bind(v)
+            .execute(&mut *tx)
+            .await
+            .map_err(map_err)?;
+    }
+    tx.commit().await.map_err(map_err)?;
+    Ok(gone.is_some())
 }

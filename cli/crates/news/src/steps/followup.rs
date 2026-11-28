@@ -214,7 +214,8 @@ async fn publish(ctx: Option<&Ctx>, cx: &StepCx) -> Result<StepOutcome, StepErro
     let found = plans(cx, Some(&only)).await?;
     let flips: Vec<PagePlan> = found.iter().filter(|p| !p.by_code()).cloned().collect();
     let (flipped, mut dead) = revise::flips(cx, ctx, &flips).await?;
-    let stories: Vec<i64> = found.iter().filter_map(|p| p.change.story_id).collect();
+    // The drafts `rerender` registered (and the flips just finished) are the Budget's pages' pending versions.
+    let stories = pipeline::stories_of(cx, &pipeline::budget_ids(cx, "items")).await?;
     let (staged, sent, dead_rows) = pipeline::publish(cx, ctx, &stories).await?;
     if let Some(r) = cx.outputs.get("rerender") {
         dead.extend(r["dead"].as_array().cloned().unwrap_or_default());

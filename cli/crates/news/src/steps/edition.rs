@@ -143,7 +143,24 @@ impl StepHandler for Edition {
     }
 }
 
+/// Whether Board rejected the plan at the `plan` gate: nothing is then briefed, written or published.
+fn plan_rejected(cx: &StepCx) -> bool {
+    cx.outputs
+        .get("review")
+        .and_then(|r| r["decisions"].as_array())
+        .is_some_and(|d| d.iter().any(|x| x["decision"] == "rejected"))
+}
+
 async fn run(ctx: &Ctx, step: Step, cx: &StepCx) -> Result<StepOutcome, StepError> {
+    let after_plan = !matches!(
+        step,
+        Step::Preflight | Step::Discover | Step::Stories | Step::Plan | Step::Review
+    );
+    if after_plan && plan_rejected(cx) {
+        return Ok(StepOutcome::Skip(
+            "the plan was rejected in Board; nothing is written or published".into(),
+        ));
+    }
     match step {
         Step::Review => Ok(review(cx)),
         Step::Preflight => preflight(ctx, cx).await,
@@ -335,9 +352,12 @@ async fn publish(ctx: &Ctx, cx: &StepCx) -> Result<StepOutcome, StepError> {
     let flips = planned_updates(cx).await?;
     let (flipped, dead_flips) = revise::flips(cx, ctx, &flips).await?;
     dead.extend(dead_flips);
-    for p in now.iter().chain(&flips) {
-        story_ids.extend(p.change.story_id);
-    }
+    // Every revision the Budget names, found now or already registered by an earlier entry of this step.
+    let mut revision_pages: Vec<String> = budgeted(cx, "revise").into_iter().collect();
+    revision_pages.extend(budgeted(cx, "update"));
+    story_ids.extend(pipeline::stories_of(cx, &revision_pages).await?);
+    story_ids.sort_unstable();
+    story_ids.dedup();
     let revised = by_code.len() + flipped.len();
     let (staged, sent, dead_rows) = pipeline::publish(cx, ctx, &story_ids).await?;
     let tier1: i64 = sqlx::query_scalar(
