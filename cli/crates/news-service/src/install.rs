@@ -240,7 +240,7 @@ fn record_root(root: &Path, p: &InstallPaths) -> Result<(), NewsError> {
         .map_err(|e| io(&format!("cannot restrict {}", f.display()), e))
 }
 
-/// The absolute paths of the tools the service runs (docker, bun), found on PATH now.
+/// The absolute paths of the tools the service runs (docker, bun, claude), found on PATH now.
 pub fn found_tools() -> Vec<(&'static str, PathBuf)> {
     let path = std::env::var_os("PATH").unwrap_or_default();
     news_win::TOOLS

@@ -54,12 +54,14 @@ pub struct Options {
     /// `service.update`: the caller keeps a clone and reads `restart_requested()` after `run` returns.
     pub update: Arc<UpdateGate>,
     /// Called once the database is migrated and before any job is claimed, with the pool and the root
-    /// marker job (Windows): it installs the handlers that need them (Ghost, Rewrite).
+    /// marker job (Windows): it installs the handlers that need them (Ghost, Rewrite). What it returns
+    /// (what it could not install) goes to the service log as warnings.
     pub on_connect: Option<OnConnect>,
 }
 
 /// See [`Options::on_connect`].
-pub type OnConnect = Arc<dyn Fn(&sqlx::PgPool, Option<Arc<news_win::Job>>) + Send + Sync>;
+pub type OnConnect =
+    Arc<dyn Fn(&sqlx::PgPool, Option<Arc<news_win::Job>>) -> Vec<String> + Send + Sync>;
 
 impl Options {
     pub fn new(db: DbConfig, resolve: Resolver) -> Self {
@@ -211,7 +213,9 @@ async fn connect(
         .emit(emit.clone())
         .build();
     if let Some(install) = &opts.on_connect {
-        install(&pool, marker);
+        for m in install(&pool, marker) {
+            say("warn", &m);
+        }
     }
     let recovered = chief.recover().await?;
     say("info", &format!("recovered: {recovered}"));

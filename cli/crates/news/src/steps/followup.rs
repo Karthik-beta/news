@@ -22,7 +22,7 @@ use news_chief::gates::GateOpen;
 use news_core::job::ErrorClass;
 use news_rewrite::classify::Kind;
 use news_rewrite::plan::{self, BULK, PagePlan};
-use news_rewrite::{apply, find, update};
+use news_rewrite::{apply, find};
 use serde_json::{Value, json};
 use std::collections::BTreeSet;
 use std::sync::Arc;
@@ -164,7 +164,7 @@ impl StepHandler for Followup {
                     )]))
                 }
                 Step::Rerender => rerender(self.1.as_deref(), cx).await,
-                Step::Update => update_flips(cx).await,
+                Step::Update => update_flips(self.1.as_deref(), cx).await,
                 Step::Publish => publish(self.1.as_deref(), cx).await,
             }
         })
@@ -229,7 +229,7 @@ async fn publish(ctx: Option<&Ctx>, cx: &StepCx) -> Result<StepOutcome, StepErro
 
 /// A1 update jobs (`ai.write`, mode `update`) for the direction flips, one per page, keyed by page,
 /// version and diff, so a re-entered step queues only what is missing. Waits for them to finish.
-async fn update_flips(cx: &StepCx) -> Result<StepOutcome, StepError> {
+async fn update_flips(ctx: Option<&Ctx>, cx: &StepCx) -> Result<StepOutcome, StepError> {
     if bulk_rejected(cx) {
         return Ok(StepOutcome::Skip(
             "the bulk change was rejected in Board; no page is updated".into(),
@@ -244,6 +244,8 @@ async fn update_flips(cx: &StepCx) -> Result<StepOutcome, StepError> {
     if flips.is_empty() {
         return Ok(StepOutcome::Skip("no direction flips".into()));
     }
+    // The update's input is written under the root's work folder.
+    let ctx = ctx.ok_or_else(|| pipeline::fail(ErrorClass::InvalidData, NO_ROOT))?;
     // The first entry queues the jobs and waits; the next finds them done.
     let mut queued = 0;
     for p in &flips {
@@ -253,21 +255,10 @@ async fn update_flips(cx: &StepCx) -> Result<StepOutcome, StepError> {
                 message: format!("page {} has no story to rewrite", p.change.page_id),
             });
         };
-        let job = update::update_job(p, &story.to_string());
         // A job of this run that already ran, even one that failed or was cancelled, is not queued
         // again: a failed update goes to the dead list for Salvage, it does not loop here.
-        let known: bool = sqlx::query_scalar(
-            "select exists (select 1 from jobs where run_id = $1 and unique_key = $2)",
-        )
-        .bind(cx.run_id)
-        .bind(&job.unique_key)
-        .fetch_one(&cx.db)
-        .await
-        .map_err(db_err)?;
-        if !known {
-            cx.enqueue(job).await.map_err(step_err)?;
-            queued += 1;
-        }
+        let (_, now) = pipeline::queue_update(cx, ctx, p, &story.to_string()).await?;
+        queued += usize::from(now);
     }
     let live: i64 = sqlx::query_scalar(
         "select count(*) from jobs where run_id = $1 and step_seq = $2

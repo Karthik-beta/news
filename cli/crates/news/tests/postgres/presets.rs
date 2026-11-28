@@ -492,8 +492,12 @@ async fn followup_finds_classifies_and_queues_the_a1_update_for_the_direction_fl
         .execute(&f.pool)
         .await
         .unwrap();
-    // `rerender` and `publish` are not built; they are stood in for here so the run reaches `update`.
-    let handlers = news::steps::register_unset(Handlers::default(), "no root".into())
+    // The update's input is composed from the story's brief and stored Copy, under the root.
+    let root = super::pages::root_for(&f);
+    super::pages::published_story(&root, &story.to_string());
+    // `rerender` and `publish` are stood in for here so the run stops at `update`.
+    let ctx = super::pages::ctx(&root, super::pages::tools(), super::pages::api());
+    let handlers = news::steps::register(Handlers::default(), ctx)
         .with("followup.rerender", Arc::new(Done))
         .with("followup.publish", Arc::new(Done));
     let ch = chief(&f, handlers);
@@ -562,6 +566,24 @@ async fn followup_finds_classifies_and_queues_the_a1_update_for_the_direction_fl
         .collect::<Vec<_>>(),
         ["update", "p-flip", "2"]
     );
+    // It carries what Ghost needs: the composed input (a file under work/), the schema and A1's prefix.
+    let args: Value = sqlx::query_scalar::<_, Value>(sqlx::AssertSqlSafe(format!(
+        "select args from jobs where run_id = '{}' and kind = 'ai.write'",
+        run.run_id
+    )))
+    .fetch_one(&f.pool)
+    .await
+    .unwrap();
+    assert_eq!(args["schema"], news::steps::pipeline::PAGE_SCHEMA, "{args}");
+    assert!(
+        args["prefix"]
+            .as_str()
+            .is_some_and(|p| p.starts_with("work/prefix/macro-release.")),
+        "{args}"
+    );
+    let input = news_proof::work::read_json(&root.join(args["input"].as_str().unwrap())).unwrap();
+    assert_eq!(input["mode"], "update");
+    assert_eq!(input["previous_copy"]["headline"], "Written");
     // Four pages: within the bulk limit, so no gate.
     assert_eq!(
         f.scalar_str(&format!(
@@ -596,6 +618,7 @@ async fn followup_finds_classifies_and_queues_the_a1_update_for_the_direction_fl
         1,
         "the cancelled update is not queued again"
     );
+    let _ = std::fs::remove_dir_all(&root);
 }
 
 /// Opens the `bulk` gate whatever the page count, so a test needs no 101 pages.
