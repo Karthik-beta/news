@@ -1,38 +1,38 @@
 {
-  "bundle_sha256": "49d09bb596466a0ba8bf3055e7b46cc4b70a152a3a4d91c2a475c56d89469481",
+  "bundle_sha256": "af5e629609e0ff63bf5a4bb639d3aa015a0d5a872aebd8a6ec9c2319edc88308",
   "files": [
     {
-      "bytes": 529,
+      "bytes": 453,
       "path": "data.json",
-      "sha256": "fcaa5992de78baca65566f8edb237217a737f09d7608f4a0ad96f4e1e269dd8e"
+      "sha256": "84bd44a5b1c577c9abef6e0fe9aecf6ec7809ae29f4ada90e47bbb0d1208d7a5"
     },
     {
-      "bytes": 2616,
+      "bytes": 2533,
       "path": "index.html",
-      "sha256": "f0a7f534c2c6db3d230bc2a5fd51278c60dbb3516d8d87eb3526a527e045f435"
+      "sha256": "e12e29c7972705adc874483bf6c9c8f1db1b0ea99e2b218c2cc8374e28c4c3b4"
     },
     {
-      "bytes": 1470,
+      "bytes": 1393,
       "path": "index.md",
-      "sha256": "1f782cdcd7f262f1b08af957cc24740d022b30ab9ab6a3ce3e1e93de62b91d29"
+      "sha256": "8379e1740ec1de604bcde6b95d2ff321f86b419d62bb3ac6ec85a928f576299e"
     },
     {
-      "bytes": 902,
+      "bytes": 879,
       "path": "meta.json",
-      "sha256": "91ca9921911d4b1984aeaee2a66aeea0c289989181642beb9e0d44b35ac2c0b6"
+      "sha256": "c31b0e5665e70acc4db3a972ee0170f582399f25ad4fb2632e9902bc08eb8bb0"
     },
     {
-      "bytes": 431,
+      "bytes": 496,
       "path": "page.oui",
-      "sha256": "8b122388a1323223fb8b8b33061ad610fefd0648edd89963060229bfdedf69ab"
+      "sha256": "0b50c3f083e69ea768dbf9702972dd442b229833f6f4cdfb17070325d0ee25c6"
     },
     {
-      "bytes": 652,
+      "bytes": 620,
       "path": "sources.json",
-      "sha256": "e1464cb77231185ec25159b7f9a560897bff835f0d79ccfc36aeaa73267ad97d"
+      "sha256": "d03b6c3adb3907e1046f70674a23674ff0137e7310405c6c87ca2595b66897d4"
     }
   ],
-  "page_id": "policy-cb-fed-2025-09-17",
+  "page_id": "policy-boc-2026-10-28",
   "schema": "manifest.v1",
   "version": 1
 }

@@ -1,20 +1,20 @@
 {
   "sources": {
-    "src_fed_statement": {
-      "connector": "cb-fed",
+    "src_boc_statement": {
+      "connector": "cb-boc",
       "licence": {
-        "name": "Federal Reserve website policies",
-        "redistribution": false,
-        "url": "https://www.federalreserve.gov/disclaimer.htm"
+        "name": "Bank of Canada terms of use",
+        "redistribution": true,
+        "url": "https://www.bankofcanada.ca/terms/"
       },
       "primary": true,
-      "published_at": "2025-09-17",
-      "publisher": "Board of Governors of the Federal Reserve System",
-      "retrieved_at": "2026-11-18",
-      "short": "FOMC statement",
-      "title": "Federal Reserve issues FOMC statement",
+      "published_at": "2026-10-28",
+      "publisher": "Bank of Canada",
+      "retrieved_at": "2026-11-28",
+      "short": "Interest rate announcement",
+      "title": "Bank of Canada press release: interest rate announcement",
       "type": "statement",
-      "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20250917a.htm"
+      "url": "https://www.bankofcanada.ca/2026/10/fad-press-release-2026-10-28/"
     }
   },
   "version": 1

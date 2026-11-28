@@ -89,7 +89,7 @@ struct Doc {
     url: String,
     licence: &'static str,
     licence_url: Option<&'static str>,
-    published: Option<&'static str>,
+    published: Option<String>,
     retrieved: DateTime<Utc>,
 }
 
@@ -277,7 +277,7 @@ fn earnings() -> Fixture {
             url: item.url.clone(),
             licence: "Public filing",
             licence_url: None,
-            published: Some("2024-11-01"),
+            published: Some("2024-11-01".into()),
             retrieved: t(2026, 11, 21, 0),
         }],
         region: "north-america",
@@ -388,66 +388,125 @@ fn policy_decision() -> Fixture {
     }
 }
 
-/// Paragraphs of a text file as blocks, the first line a heading.
-fn document(doc_id: i64, text: &str) -> Document {
-    let text = text.replace("\r\n", "\n");
-    Document {
-        doc_id,
-        blocks: text
-            .split("\n\n")
-            .map(str::trim)
-            .filter(|p| !p.is_empty())
-            .enumerate()
-            .map(|(i, p)| Block {
-                block_no: i32::try_from(i).unwrap(),
-                kind: Some(if i == 0 { "heading" } else { "paragraph" }.into()),
-                text: p.to_owned(),
-            })
-            .collect(),
-    }
+/// The statement's text blocks, by code from the recorded page: the `<h1>`, then each `<h2>` and `<p>` of the
+/// `post-content` block, inline tags (`<em>`) removed and entities decoded, nothing else changed.
+fn statement_blocks(html: &str) -> Vec<Block> {
+    use news_proof::html::{decode, tags};
+    let all = tags(html);
+    let text = |t: &news_proof::html::Tag| {
+        let rest = &html[t.end..];
+        let inner = &rest[..rest.find(&format!("</{}>", t.name)).unwrap()];
+        // Inline tags only (`<em>`): drop them without adding space, so the text stays as published.
+        let mut out = String::new();
+        let mut in_tag = false;
+        for c in inner.chars() {
+            match c {
+                '<' => in_tag = true,
+                '>' if in_tag => in_tag = false,
+                _ if !in_tag => out.push(c),
+                _ => {}
+            }
+        }
+        decode(&out).trim().to_owned()
+    };
+    let h1 = all.iter().find(|t| t.name == "h1").unwrap();
+    let body = all
+        .iter()
+        .find(|t| t.name == "div" && t.has_class("post-content"))
+        .unwrap();
+    let stop = body.end + html[body.end..].find("</div>").unwrap();
+    let mut blocks = vec![("heading", text(h1))];
+    blocks.extend(
+        all.iter()
+            .filter(|t| t.end > body.end && t.end < stop && matches!(t.name.as_str(), "h2" | "p"))
+            .map(|t| {
+                (
+                    if t.name == "h2" {
+                        "heading"
+                    } else {
+                        "paragraph"
+                    },
+                    text(t),
+                )
+            }),
+    );
+    blocks
+        .into_iter()
+        .enumerate()
+        .map(|(i, (kind, text))| Block {
+            block_no: i32::try_from(i).unwrap(),
+            kind: Some(kind.into()),
+            text,
+        })
+        .collect()
 }
 
-/// The Federal Reserve's statement of 17 September 2025, as Taster's tests hold it.
+/// The Bank of Canada's interest rate announcement of 28 October 2026, recorded 28 Nov 2026 (Bank of Canada
+/// terms of use: free to use, copy and distribute with attribution). The item comes from the recorded press
+/// feed through the `cb-boc` Stringer, which also parses the page.
 fn news_story() -> Fixture {
-    let text = String::from_utf8(read(
-        repo().join("cli/crates/news-taster/tests/fixtures/fomc-2025-09-17-board.txt"),
-    ))
-    .unwrap();
+    let conn = connector("cb-boc").unwrap();
+    let c = cx(&[]);
+    let req = &conn.discovery_requests(&c, None)[0];
+    let d = conn
+        .parse_discovery(
+            &c,
+            None,
+            &[snap(
+                &req.url,
+                recorded("centralbank/boc-feed.xml"),
+                t(2026, 11, 28, 3),
+            )],
+        )
+        .unwrap();
+    let item = d
+        .refs
+        .iter()
+        .find(|r| r.url.ends_with("/fad-press-release-2026-10-28/"))
+        .unwrap();
+    let bytes = recorded("centralbank/boc-statement-20261028.html");
+    let html = String::from_utf8(bytes.clone()).unwrap();
+    let url = &conn.fetch_requests(item)[0].url;
+    let p = conn
+        .parse(item, &[snap(url, bytes, t(2026, 11, 28, 3))])
+        .unwrap();
     let inputs = Inputs {
         story_id: 91005,
-        event_key: Some("policy:cb-fed:2025-09-17".into()),
+        event_key: p.candidates[0].event_key.clone(),
         page_type: "news-story".into(),
         tier: 2,
         action: Action::New,
         categories: vec!["economy".into(), "monetary-policy".into()],
-        entities: vec![entity("ent_fed", "Federal Reserve", "central_bank")],
+        entities: vec![entity("ent_boc", "Bank of Canada", "central_bank")],
         points: Vec::new(),
         history: Vec::new(),
-        documents: vec![document(7001, &text)],
+        documents: vec![Document {
+            doc_id: 7001,
+            blocks: statement_blocks(&html),
+        }],
         images: Vec::new(),
         related: Vec::new(),
     };
     let mut prov = Provenance::default();
-    prov.docs.insert(7001, "src_fed_statement".into());
+    prov.docs.insert(7001, "src_boc_statement".into());
     Fixture {
         name: "news-story",
         inputs,
         prov,
         docs: vec![Doc {
-            src: "src_fed_statement",
-            registry: "cb-fed",
-            title: "Federal Reserve issues FOMC statement",
-            short: "FOMC statement",
+            src: "src_boc_statement",
+            registry: "cb-boc",
+            title: "Bank of Canada press release: interest rate announcement",
+            short: "Interest rate announcement",
             kind: "statement",
-            url: "https://www.federalreserve.gov/newsevents/pressreleases/monetary20250917a.htm"
-                .into(),
-            licence: "Federal Reserve website policies",
-            licence_url: Some("https://www.federalreserve.gov/disclaimer.htm"),
-            published: Some("2025-09-17"),
-            retrieved: t(2026, 11, 18, 6),
+            url: item.url.clone(),
+            licence: "Bank of Canada terms of use",
+            licence_url: Some("https://www.bankofcanada.ca/terms/"),
+            published: item.published_at.map(|d| d.date_naive().to_string()),
+            retrieved: t(2026, 11, 28, 3),
         }],
         region: "north-america",
-        tags: vec!["federal-reserve", "interest-rates"],
+        tags: vec!["bank-of-canada", "interest-rates"],
     }
 }
 

@@ -1,24 +1,24 @@
 ---
-title: "The Federal Reserve lowered its target range for the federal funds rate"
-fly_title: "America's central bank"
-summary: "The Federal Open Market Committee said job gains had slowed and that downside risks to employment had risen. Its statement is quoted below."
+title: "The Bank of Canada raised its target for the overnight rate"
+fly_title: "Canada's central bank"
+summary: "Its Governing Council said inflation was higher and more persistent than the Bank had expected in July. The announcement is quoted below."
 generator: "news-renderer 1.1.0"
 ---
 
-America's central bank
+Canada's central bank
 
-# The Federal Reserve lowered its target range for the federal funds rate
+# The Bank of Canada raised its target for the overnight rate
 
-The Federal Open Market Committee said job gains had slowed and that downside risks to employment had risen. Its statement is quoted below.
+Its Governing Council said inflation was higher and more persistent than the Bank had expected in July. The announcement is quoted below.
 
-The Federal Open Market Committee lowered the target range for the federal funds rate, its statement said, citing the shift in the balance of risks. It described the economy in these words:
+The Bank of Canada raised its target for the overnight rate, its announcement said. It opened with these words:
 
-> “Recent indicators suggest that growth of economic activity moderated in the first half of the year. Job gains have slowed, and the unemployment rate has edged up but remains low. Inflation has moved up and remains somewhat elevated.”
+> “The Bank of Canada today increased its target for the overnight rate by 25 basis points to 2.5%, with the Bank Rate at 2.75% and the deposit rate at 2.45%.”
 >
-> — [FOMC statement](https://www.federalreserve.gov/newsevents/pressreleases/monetary20250917a.htm)
+> — [Interest rate announcement](https://www.bankofcanada.ca/2026/10/fad-press-release-2026-10-28/)
 
-Stephen I. Miran voted against the action, the statement said; he preferred a larger reduction. The other members present voted for it.
+Governing Council decided on the increase to reduce the risk that continuing high energy prices spread broadly to the prices of other goods and services, the announcement said. It added that the Bank remains committed to maintaining Canadians' confidence in price stability.
 
 ## Sources
 
-- [Federal Reserve issues FOMC statement](https://www.federalreserve.gov/newsevents/pressreleases/monetary20250917a.htm). Board of Governors of the Federal Reserve System. Federal Reserve website policies. Retrieved 18 November 2026.
+- [Bank of Canada press release: interest rate announcement](https://www.bankofcanada.ca/2026/10/fad-press-release-2026-10-28/). Bank of Canada. Bank of Canada terms of use. Retrieved 28 November 2026.

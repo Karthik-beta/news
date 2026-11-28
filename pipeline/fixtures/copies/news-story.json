@@ -1,8 +1,8 @@
 {
-  "headline": "The Federal Reserve lowered its target range for the federal funds rate",
-  "fly_title": "America's central bank",
-  "summary": "The Federal Open Market Committee said job gains had slowed and that downside risks to employment had risen. Its statement is quoted below.",
-  "oui": "root = Page([facts, statement, vote])\nfacts = Prose([\"The Federal Open Market Committee lowered the target range for the federal funds rate, its statement said, citing the shift in the balance of risks. It described the economy in these words:\"])\nstatement = Quote(\"q_7001_1\")\nvote = Prose([\"Stephen I. Miran voted against the action, the statement said; he preferred a larger reduction. The other members present voted for it.\"])\n",
+  "headline": "The Bank of Canada raised its target for the overnight rate",
+  "fly_title": "Canada's central bank",
+  "summary": "Its Governing Council said inflation was higher and more persistent than the Bank had expected in July. The announcement is quoted below.",
+  "oui": "root = Page([facts, statement, reason])\nfacts = Prose([\"The Bank of Canada raised its target for the overnight rate, its announcement said. It opened with these words:\"])\nstatement = Quote(\"q_7001_1\")\nreason = Prose([\"Governing Council decided on the increase to reduce the risk that continuing high energy prices spread broadly to the prices of other goods and services, the announcement said. It added that the Bank remains committed to maintaining Canadians' confidence in price stability.\"])\n",
   "refs_used": [
     "q_7001_1"
   ],
