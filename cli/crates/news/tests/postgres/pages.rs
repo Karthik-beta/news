@@ -39,7 +39,7 @@ fn now() -> DateTime<Utc> {
 }
 
 /// A work folder under the target directory (on the Dev Drive), one per test.
-fn root_for(f: &Fixture) -> PathBuf {
+pub(super) fn root_for(f: &Fixture) -> PathBuf {
     let root = Path::new(env!("CARGO_TARGET_TMPDIR")).join(format!("pages-{}", f.schema));
     let _ = std::fs::remove_dir_all(&root);
     std::fs::create_dir_all(root.join("work/ai")).unwrap();
@@ -52,6 +52,18 @@ fn root_for(f: &Fixture) -> PathBuf {
     )
     .unwrap();
     root
+}
+
+/// What a published story leaves in the work folder for an update: its brief and its stored Copy.
+pub(super) fn published_story(root: &Path, story: &str) {
+    let work = Work::new(root.join("work"));
+    std::fs::create_dir_all(root.join("work/briefs")).unwrap();
+    std::fs::copy(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../news-proof/tests/fixtures/brief.json"),
+        work.brief(story),
+    )
+    .unwrap();
+    save(&work, story, copy("Written"), vec![], "ai", None, now()).unwrap();
 }
 
 // ---- the fakes ------------------------------------------------------------------------------------
@@ -79,6 +91,41 @@ fn fake_claude(input: JobInput) -> JobFuture {
         let story = input.args["story"].as_str().unwrap_or_default().to_owned();
         let work = Work::new(root.join("work"));
         match input.kind.as_str() {
+            // A direction flip's A1 update: Ghost's arguments must be there (an input under work/, the
+            // page schema and A1's prefix), with the input composed from the previous Copy and the diff.
+            "ai.write" if input.args["mode"] == "update" => {
+                let file = |k: &str| {
+                    input.args[k]
+                        .as_str()
+                        .filter(|p| p.starts_with("work/"))
+                        .map(|p| root.join(p))
+                        .filter(|p| p.is_file())
+                };
+                let composed = file("input").and_then(|p| news_proof::work::read_json(&p).ok());
+                let ok = input.args["schema"] == news::steps::pipeline::PAGE_SCHEMA
+                    && file("prefix").is_some()
+                    && composed.as_ref().is_some_and(|c| {
+                        c["mode"] == "update"
+                            && c["previous_copy"]["headline"] == "Written"
+                            && c["diff"].as_array().is_some_and(|d| !d.is_empty())
+                    });
+                if !ok {
+                    return Err(news_core::job::JobFailure::new(
+                        news_core::job::ErrorClass::Bug,
+                        format!("bad update job: args {} input {composed:?}", input.args),
+                    ));
+                }
+                save(
+                    &work,
+                    &story,
+                    copy("Updated"),
+                    vec![],
+                    "ai",
+                    Some(input.job_id),
+                    now(),
+                )
+                .unwrap();
+            }
             "ai.write" => {
                 save(
                     &work,
@@ -181,7 +228,7 @@ impl PageTools for FakeTools {
     fn check<'a>(
         &'a self,
         _: &'a news_store::PgPool,
-        _: &'a Work,
+        work: &'a Work,
         story: &'a str,
     ) -> BoxFut<'a, NewsResult<Check>> {
         Box::pin(async move {
@@ -190,7 +237,8 @@ impl PageTools for FakeTools {
                     json!({"check": "C4", "where": "headline", "message": "a number in prose"}),
                 ])
             } else {
-                Check::Pass
+                // What Proof's check reads: the story folder's files, hashed by the manifest's rule.
+                Check::Pass(news_proof::bundle::Bundle::load(&work.page(story)).bundle_sha256())
             })
         })
     }
@@ -674,10 +722,20 @@ async fn register_copies_the_bundle_fills_the_rows_and_is_idempotent() {
     let work = root.join("work");
     let s = story.to_string();
     let sha = story_bundle(&work, &s, "a-page", 1, "<p>one</p>");
+    let reg = |sha: [u8; 32]| {
+        let (pool, work, s) = (f.pool.clone(), work.clone(), s.clone());
+        async move {
+            let checked = news_chief::gates::hex(&sha);
+            news_press::register::register(&pool, &work, &s, story, None, &checked, now()).await
+        }
+    };
 
-    let r = news_press::register::register(&f.pool, &work, &s, story, now())
-        .await
-        .unwrap();
+    // Bytes other than the ones Proof checked are refused, and nothing is registered.
+    let e = reg([7; 32]).await.unwrap_err();
+    assert_eq!(e.code, news_core::ErrorCode::Conflict);
+    assert_eq!(f.scalar_i64("select count(*) from pages").await, 0);
+
+    let r = reg(sha).await.unwrap();
     assert_eq!(
         (r.page_id.as_str(), r.version, r.bundle_sha, r.changed),
         ("a-page", 1, sha, true)
@@ -695,34 +753,60 @@ async fn register_copies_the_bundle_fills_the_rows_and_is_idempotent() {
     );
 
     // The same bundle again: nothing changes, nothing is duplicated.
-    let again = news_press::register::register(&f.pool, &work, &s, story, now())
-        .await
-        .unwrap();
+    let again = reg(sha).await.unwrap();
     assert!(!again.changed);
     assert_eq!(f.scalar_i64("select count(*) from pages").await, 1);
     assert_eq!(f.scalar_i64("select count(*) from page_refs").await, 3);
 
     // A re-render of the unsent version replaces the bytes; a version that skips one is refused.
     let sha2 = story_bundle(&work, &s, "a-page", 1, "<p>one again</p>");
-    let r = news_press::register::register(&f.pool, &work, &s, story, now())
+    let r = reg(sha2).await.unwrap();
+    assert!(r.changed && r.bundle_sha == sha2);
+    let sha3 = story_bundle(&work, &s, "a-page", 3, "<p>three</p>");
+    let e = reg(sha3).await.unwrap_err();
+    assert_eq!(e.code, news_core::ErrorCode::Conflict);
+
+    // A bundle staged for sending (`ready`) is never replaced, and its bytes on disk stay as staged.
+    sqlx::query("update pages set status = 'ready'")
+        .execute(&f.pool)
         .await
         .unwrap();
-    assert!(r.changed && r.bundle_sha == sha2);
-    story_bundle(&work, &s, "a-page", 3, "<p>three</p>");
-    let e = news_press::register::register(&f.pool, &work, &s, story, now())
-        .await
-        .unwrap_err();
+    let other = story_bundle(&work, &s, "a-page", 1, "<p>one, third time</p>");
+    let e = reg(other).await.unwrap_err();
     assert_eq!(e.code, news_core::ErrorCode::Conflict);
+    assert_eq!(
+        news_press::bundle::load(&work, "a-page", 1)
+            .unwrap()
+            .bundle_sha,
+        sha2
+    );
+
+    // A link in the story folder is refused, not followed.
+    #[cfg(unix)]
+    {
+        sqlx::query("update pages set status = 'draft'")
+            .execute(&f.pool)
+            .await
+            .unwrap();
+        let dir = work.join("pages").join(&s);
+        let linked = story_bundle(&work, &s, "a-page", 1, "<p>linked</p>");
+        let outside = root.join("outside.html");
+        std::fs::write(&outside, "<p>linked</p>").unwrap();
+        std::fs::remove_file(dir.join("index.html")).unwrap();
+        std::os::unix::fs::symlink(&outside, dir.join("index.html")).unwrap();
+        let e = reg(linked).await.unwrap_err();
+        assert_eq!(e.code, news_core::ErrorCode::ValidationFailed, "{e:?}");
+        // Drop the link, so the next bundle writes a regular file instead of writing through it.
+        std::fs::remove_file(dir.join("index.html")).unwrap();
+    }
 
     // Once published, the next version advances the same row.
     sqlx::query("update pages set status = 'published'")
         .execute(&f.pool)
         .await
         .unwrap();
-    story_bundle(&work, &s, "a-page", 2, "<p>two</p>");
-    let r = news_press::register::register(&f.pool, &work, &s, story, now())
-        .await
-        .unwrap();
+    let sha_v2 = story_bundle(&work, &s, "a-page", 2, "<p>two</p>");
+    let r = reg(sha_v2).await.unwrap();
     assert_eq!((r.version, r.changed), (2, true));
     assert_eq!(
         f.scalar_str("select status || ':' || version::text from pages")
@@ -735,9 +819,7 @@ async fn register_copies_the_bundle_fills_the_rows_and_is_idempotent() {
             .await,
         2
     );
-    let again = news_press::register::register(&f.pool, &work, &s, story, now())
-        .await
-        .unwrap();
+    let again = reg(sha_v2).await.unwrap();
     assert!(!again.changed, "the same draft again is a no-op");
     assert!(
         news_press::register::discard_draft(&f.pool, "a-page")
@@ -772,7 +854,8 @@ async fn prune_removes_the_built_bundle_and_screenshots_and_keeps_what_a_rerende
     std::fs::write(dir.join("home.png"), "png").unwrap();
     std::fs::create_dir_all(work.join("briefs")).unwrap();
     std::fs::write(work.join("briefs").join(format!("{s}.json")), "{}").unwrap();
-    news_press::register::register(&f.pool, &work, &s, story, now())
+    let checked = news_chief::gates::hex(&sha);
+    news_press::register::register(&f.pool, &work, &s, story, None, &checked, now())
         .await
         .unwrap();
     // Sent and published.
@@ -861,16 +944,18 @@ async fn page_revise_by_code_refuses_a_flip_and_a_page_with_no_story_folder() {
 
 // ---- the fix round: live pages stay live, rejections, re-entries -------------------------------------
 
-/// A new vintage of the story's latest point: 2.0 becomes 2.1 (a value-only revision).
-async fn revise_point(f: &Fixture) {
+/// A new vintage of the story's latest point: 2.0 becomes `to` (2.1 is a value-only revision, a
+/// negative value a direction flip).
+async fn revise_point(f: &Fixture, to: &str) {
     sqlx::query(
         "insert into data_points (dp_id, context_key, series_key, concept, label, value_text, value, unit,
            period_label, period_start, period_end, period_type, vintage, supersedes, snapshot_sha, locator,
            parser, retrieved_at)
-         select 'dp_t30', context_key, series_key, concept, label, '2.1', 2.1, unit, period_label, period_start,
+         select 'dp_t30', context_key, series_key, concept, label, $1, $1::numeric, unit, period_label, period_start,
                 period_end, period_type, '2026-11-22T00:00:00Z', 'dp_t29', snapshot_sha, locator, parser, now()
            from data_points where dp_id = 'dp_t29'",
     )
+    .bind(to)
     .execute(&f.pool)
     .await
     .unwrap();
@@ -883,9 +968,47 @@ async fn followup_re_renders_a_value_only_revision_and_ends_with_the_page_publis
     let w = world().await;
     let first = w.start("edition", json!({})).await;
     wait_status(&w.f, first.run_id, "succeeded").await;
-    revise_point(&w.f).await;
+    revise_point(&w.f, "2.1").await;
     let run = w.start("followup", json!({})).await;
     wait_status(&w.f, run.run_id, "succeeded").await;
+    assert_eq!(
+        w.f.scalar_str("select status || ':' || version::text from pages")
+            .await,
+        "published:2"
+    );
+    assert_eq!(w.n("select count(*) from page_drafts").await, 0);
+    assert_eq!(
+        w.n("select count(*) from publish_outbox where op = 'put_page' and sent_at is not null")
+            .await,
+        2
+    );
+    w.finish().await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres"]
+async fn followup_sends_a_direction_flip_to_a1_and_publishes_the_update_at_version_two() {
+    let w = world().await;
+    let first = w.start("edition", json!({})).await;
+    wait_status(&w.f, first.run_id, "succeeded").await;
+    // 2.0 becomes -0.3: the sign changes, so the prose may no longer hold and A1 rewrites it.
+    revise_point(&w.f, "-0.3").await;
+    let run = w.start("followup", json!({})).await;
+    wait_status(&w.f, run.run_id, "succeeded").await;
+    let (job, state, key, args): (i64, String, String, Value) = sqlx::query_as(
+        "select job_id, state, unique_key, args from jobs where run_id = $1 and kind = 'ai.write'",
+    )
+    .bind(run.run_id)
+    .fetch_one(&w.f.pool)
+    .await
+    .unwrap();
+    assert_eq!(state, "completed", "{args}");
+    assert!(key.starts_with("update:macro-us-t-2026-06:2:"), "{key}");
+    // The update's Copy is the story's stored Copy (as NewsAccept stores it), and the next version.
+    let stored =
+        news_proof::work::load(&Work::new(w.root.join("work")), &w.story.to_string()).unwrap();
+    assert_eq!(stored.copy["headline"], "Updated");
+    assert_eq!(stored.job, Some(job));
     assert_eq!(
         w.f.scalar_str("select status || ':' || version::text from pages")
             .await,
@@ -911,7 +1034,7 @@ async fn edition_re_entered_after_a_lost_answer_still_publishes_its_planned_revi
         .execute(&w.f.pool)
         .await
         .unwrap();
-    revise_point(&w.f).await;
+    revise_point(&w.f, "2.1").await;
     w.api.script(std::iter::repeat_n(
         news_press::fake::Fault::Unreachable,
         news_press::api::MAX_ATTEMPTS as usize,
@@ -1033,5 +1156,152 @@ async fn catchup_re_entering_a_published_chunk_does_not_publish_a_needless_next_
             .await,
         1
     );
+    w.finish().await;
+}
+
+// ---- a run publishes only what it registered, and Reprint only what Board approved ----------------
+
+struct StepDone;
+impl news_chief::driver::StepHandler for StepDone {
+    fn run<'a>(
+        &'a self,
+        _: &'a mut news_chief::driver::StepCx,
+    ) -> BoxFut<'a, Result<news_chief::driver::StepOutcome, news_chief::driver::StepError>> {
+        Box::pin(async { Ok(news_chief::driver::StepOutcome::Done(json!({}))) })
+    }
+}
+
+struct StepSkip;
+impl news_chief::driver::StepHandler for StepSkip {
+    fn run<'a>(
+        &'a self,
+        _: &'a mut news_chief::driver::StepCx,
+    ) -> BoxFut<'a, Result<news_chief::driver::StepOutcome, news_chief::driver::StepError>> {
+        Box::pin(async { Ok(news_chief::driver::StepOutcome::Skip("no bulk".into())) })
+    }
+}
+
+/// A publish step whose run has the page in its Budget (so the start covers it) but never rendered or
+/// checked it: it hands the page's story to the shared publish phase, as Edition does for its updates.
+struct PublishStory;
+impl news_chief::driver::StepHandler for PublishStory {
+    fn run<'a>(
+        &'a self,
+        cx: &'a mut news_chief::driver::StepCx,
+    ) -> BoxFut<'a, Result<news_chief::driver::StepOutcome, news_chief::driver::StepError>> {
+        Box::pin(async move {
+            let (story, page): (i64, String) =
+                sqlx::query_as("select story_id, page_id from pages limit 1")
+                    .fetch_one(&cx.db)
+                    .await
+                    .unwrap();
+            sqlx::query(
+                "update runs set budget = jsonb_build_object('items', jsonb_build_array($2::text))
+                  where run_id = $1",
+            )
+            .bind(cx.run_id)
+            .bind(&page)
+            .execute(&cx.db)
+            .await
+            .unwrap();
+            let ctx = ctx(&root_of(Some(cx.run_id)), tools(), api());
+            let (staged, _, _) = news::steps::pipeline::publish(cx, &ctx, &[story], None).await?;
+            Ok(news_chief::driver::StepOutcome::Done(
+                json!({"staged": staged}),
+            ))
+        })
+    }
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres"]
+async fn a_run_publishes_only_its_own_drafts_and_reprint_only_the_bytes_board_approved() {
+    let w = world_with(|h| {
+        h.with("followup.find", Arc::new(StepDone))
+            .with("followup.classify", Arc::new(StepDone))
+            .with("followup.bulk_review", Arc::new(StepSkip))
+            .with("followup.rerender", Arc::new(StepDone))
+            .with("followup.update", Arc::new(StepDone))
+            .with("followup.publish", Arc::new(PublishStory))
+    })
+    .await;
+    let first = w.start("edition", json!({})).await;
+    wait_status(&w.f, first.run_id, "succeeded").await;
+
+    // Reprint registers version 2 and waits at its sample gate.
+    *w.tools.version.lock().unwrap() = "plate-2.0.0".into();
+    let reprint = w.start("reprint", json!({"renderer": "plate-2.0.0"})).await;
+    wait_status(&w.f, reprint.run_id, "waiting_approval").await;
+    let puts = "select count(*) from publish_outbox where op = 'put_page'";
+    assert_eq!(w.n(puts).await, 1);
+
+    // Another run, with the page in its Budget, does not publish the draft Reprint is waiting on.
+    let other = w.start("followup", json!({})).await;
+    wait_status(&w.f, other.run_id, "succeeded").await;
+    assert_eq!(
+        w.f.scalar_str(&format!(
+            "select output->>'staged' from run_steps where run_id = '{}' and step = 'publish'",
+            other.run_id
+        ))
+        .await,
+        "0"
+    );
+    assert_eq!(w.n(puts).await, 1, "nothing staged for version 2");
+    assert_eq!(
+        w.f.scalar_str("select state from page_drafts").await,
+        "draft"
+    );
+    assert_eq!(
+        w.f.scalar_str("select status || ':' || version::text from pages")
+            .await,
+        "published:1"
+    );
+
+    // Reprint's draft changes after Board saw the sample: the approval does not cover those bytes.
+    sqlx::query("update page_drafts set bundle_sha = sha256('not what Board saw'::bytea)")
+        .execute(&w.f.pool)
+        .await
+        .unwrap();
+    let g = open_gate(&w.f, reprint.run_id).await;
+    answer(&w.ch, &reprint.short_id, &g, Decision::Approved, None).await;
+    wait_status(&w.f, reprint.run_id, "failed").await;
+    assert_eq!(w.n(puts).await, 1, "nothing staged under the approval");
+    assert_eq!(
+        w.f.scalar_str("select status || ':' || version::text from pages")
+            .await,
+        "published:1"
+    );
+    assert_eq!(w.api.applied().len(), 2, "v1 and its index promotion only");
+    w.finish().await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres"]
+async fn a_refused_new_page_goes_back_to_draft_and_a_later_run_publishes_it() {
+    let w = world().await;
+    // The write API refuses the first put (a 4xx): the row is dead and the page is a draft again.
+    w.api
+        .script([news_press::fake::Fault::Status(422, "invalid_bundle", None)]);
+    let first = w.start("flash", json!({"keys": [KEY]})).await;
+    wait_status(&w.f, first.run_id, "succeeded").await;
+    assert_eq!(
+        w.f.scalar_str("select status || ':' || coalesce(run_id::text, '-') from pages")
+            .await,
+        "draft:-"
+    );
+    assert_eq!(
+        w.n("select count(*) from publish_outbox where dead_at is not null")
+            .await,
+        1
+    );
+
+    // A later run renders and checks it again, and publishes it.
+    let again = w.start("flash", json!({"keys": [KEY]})).await;
+    wait_status(&w.f, again.run_id, "succeeded").await;
+    assert_eq!(
+        w.f.scalar_str("select status from pages").await,
+        "published"
+    );
+    assert_eq!(w.api.applied().len(), 1);
     w.finish().await;
 }

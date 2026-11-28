@@ -96,14 +96,20 @@ impl StepHandler for Done {
     }
 }
 
-/// Edition's publish step as far as the G-tier rule goes: authorised by the plan approval, or by the
-/// start when the plan stop was skipped.
+/// Edition's publish step as far as the G-tier rule goes: a step-wide request is authorised by the
+/// start when the plan stop was skipped, and refused under the plan approval, which lists its items.
 struct Authorised;
 impl StepHandler for Authorised {
     fn run<'a>(&'a self, cx: &'a mut StepCx) -> BoxFut<'a, Result<StepOutcome, StepError>> {
         Box::pin(async move {
+            let gated: bool =
+                sqlx::query_scalar("select exists (select 1 from gates where run_id = $1)")
+                    .bind(cx.run_id)
+                    .fetch_one(&cx.db)
+                    .await
+                    .unwrap();
             let mut conn = cx.db.acquire().await.unwrap();
-            gates::authorize(
+            let r = gates::authorize(
                 &mut conn,
                 GRequest {
                     run_id: cx.run_id,
@@ -113,10 +119,17 @@ impl StepHandler for Authorised {
                 },
             )
             .await
-            .map_err(|e| StepError::Fail {
-                class: news_core::job::ErrorClass::Bug,
-                message: e.message,
-            })?;
+            .map(|_| ());
+            match (gated, r) {
+                (false, Ok(())) => {}
+                (true, Err(e)) if e.code == news_core::ErrorCode::Gated => {}
+                (_, r) => {
+                    return Err(StepError::Fail {
+                        class: news_core::job::ErrorClass::Bug,
+                        message: format!("gate {gated}: {:?}", r.err().map(|e| e.message)),
+                    });
+                }
+            }
             Ok(StepOutcome::Done(json!({"wrap": {"published": 1}})))
         })
     }
@@ -233,7 +246,10 @@ fn fake_curator(input: JobInput) -> JobFuture {
         }
         let out = root.join(format!("work/home/out-{}.json", input.job_id));
         std::fs::write(&out, draft.to_string()).unwrap();
-        Ok(json!({"step": "A8", "valid": true, "stored": false, "output": out.to_string_lossy()}))
+        Ok(
+            json!({"step": "A8", "valid": true, "stored": false, "output": out.to_string_lossy(),
+                         "model": "claude-ghost-ran"}),
+        )
     })
 }
 
@@ -436,6 +452,12 @@ async fn frontpage_runs_end_to_end_with_a_fix_round_changes_approval_and_rejecti
         .await,
         "published:1"
     );
+    // The provenance is the model Ghost called, not the one the curator named in its draft.
+    assert_eq!(
+        f.scalar_str("select curator_model from home_curations where status = 'published'")
+            .await,
+        "claude-ghost-ran"
+    );
 
     // Run 2: rejected in Board. Nothing is published and the live curation stays.
     let run = ch
@@ -492,8 +514,12 @@ async fn followup_finds_classifies_and_queues_the_a1_update_for_the_direction_fl
         .execute(&f.pool)
         .await
         .unwrap();
-    // `rerender` and `publish` are not built; they are stood in for here so the run reaches `update`.
-    let handlers = news::steps::register_unset(Handlers::default(), "no root".into())
+    // The update's input is composed from the story's brief and stored Copy, under the root.
+    let root = super::pages::root_for(&f);
+    super::pages::published_story(&root, &story.to_string());
+    // `rerender` and `publish` are stood in for here so the run stops at `update`.
+    let ctx = super::pages::ctx(&root, super::pages::tools(), super::pages::api());
+    let handlers = news::steps::register(Handlers::default(), ctx)
         .with("followup.rerender", Arc::new(Done))
         .with("followup.publish", Arc::new(Done));
     let ch = chief(&f, handlers);
@@ -562,6 +588,24 @@ async fn followup_finds_classifies_and_queues_the_a1_update_for_the_direction_fl
         .collect::<Vec<_>>(),
         ["update", "p-flip", "2"]
     );
+    // It carries what Ghost needs: the composed input (a file under work/), the schema and A1's prefix.
+    let args: Value = sqlx::query_scalar::<_, Value>(sqlx::AssertSqlSafe(format!(
+        "select args from jobs where run_id = '{}' and kind = 'ai.write'",
+        run.run_id
+    )))
+    .fetch_one(&f.pool)
+    .await
+    .unwrap();
+    assert_eq!(args["schema"], news::steps::pipeline::PAGE_SCHEMA, "{args}");
+    assert!(
+        args["prefix"]
+            .as_str()
+            .is_some_and(|p| p.starts_with("work/prefix/macro-release.")),
+        "{args}"
+    );
+    let input = news_proof::work::read_json(&root.join(args["input"].as_str().unwrap())).unwrap();
+    assert_eq!(input["mode"], "update");
+    assert_eq!(input["previous_copy"]["headline"], "Written");
     // Four pages: within the bulk limit, so no gate.
     assert_eq!(
         f.scalar_str(&format!(
@@ -596,6 +640,67 @@ async fn followup_finds_classifies_and_queues_the_a1_update_for_the_direction_fl
         1,
         "the cancelled update is not queued again"
     );
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres"]
+async fn followup_counts_a_flip_with_no_stored_copy_as_dead_and_still_reaches_publish() {
+    let f = Fixture::migrated().await;
+    super::rewrite::seed(&f).await;
+    let story: i64 = sqlx::query_scalar(
+        "insert into stories (event_key, first_seen, last_seen) values ('e-flip', now(), now()) returning story_id",
+    )
+    .fetch_one(&f.pool)
+    .await
+    .unwrap();
+    sqlx::query("update pages set story_id = $1 where page_id = 'p-flip'")
+        .bind(story)
+        .execute(&f.pool)
+        .await
+        .unwrap();
+    // A root, but no brief or copy.json for the flip's story: its update input cannot be composed.
+    let root = super::pages::root_for(&f);
+    let ctx = super::pages::ctx(&root, super::pages::tools(), super::pages::api());
+    let handlers = news::steps::register(Handlers::default(), ctx)
+        .with("followup.rerender", Arc::new(Done))
+        .with("followup.publish", Arc::new(Done));
+    let ch = chief(&f, handlers);
+    let run = ch
+        .start(StartReq::board("followup", Map::new(), IfBusy::Offer))
+        .await
+        .unwrap()
+        .run()
+        .clone();
+    ch.ensure_drivers().await.unwrap();
+    wait_status(&f, run.run_id, "succeeded").await;
+    let update: Value = sqlx::query_scalar::<_, Value>(sqlx::AssertSqlSafe(format!(
+        "select output from run_steps where run_id = '{}' and step = 'update'",
+        run.run_id
+    )))
+    .fetch_one(&f.pool)
+    .await
+    .unwrap();
+    assert_eq!(update["dead"], 1, "{update}");
+    assert_eq!(update["failed"][0]["page_id"], "p-flip", "{update}");
+    assert_eq!(
+        f.scalar_i64(&format!(
+            "select count(*) from jobs where run_id = '{}' and kind = 'ai.write'",
+            run.run_id
+        ))
+        .await,
+        0
+    );
+    assert_eq!(
+        f.scalar_str(&format!(
+            "select status from run_steps where run_id = '{}' and step = 'publish'",
+            run.run_id
+        ))
+        .await,
+        "done",
+        "the dead flip does not stop the run before publish"
+    );
+    let _ = std::fs::remove_dir_all(&root);
 }
 
 /// Opens the `bulk` gate whatever the page count, so a test needs no 101 pages.

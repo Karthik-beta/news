@@ -544,8 +544,9 @@ pub async fn authorize<'t>(
 }
 
 /// Whether an approved gate's stored summary covers `item`. Fails closed: a gate covers every item
-/// only when it was opened `whole_subject`; otherwise only its `subject_items` (an item-less,
-/// step-wide request passes when the gate lists items), and a gate with neither covers nothing.
+/// only when it was opened `whole_subject`; otherwise only the items it lists (`subject_items`), each
+/// named by the request: an item-less, step-wide request does not pass a gate that lists items, and a
+/// gate with neither covers nothing.
 pub fn covered_by_subject(summary: &Value, item: Option<&str>) -> bool {
     if summary["whole_subject"] == true {
         return true;
@@ -554,7 +555,6 @@ pub fn covered_by_subject(summary: &Value, item: Option<&str>) -> bool {
         (Some(i), Some(Value::Array(l))) => l
             .iter()
             .any(|x| x.as_str() == Some(i) || x.as_i64().is_some_and(|n| n.to_string() == i)),
-        (None, Some(Value::Array(_))) => true,
         _ => false,
     }
 }
@@ -697,7 +697,10 @@ mod tests {
         assert!(covered_by_subject(&listed, Some("a")));
         assert!(covered_by_subject(&listed, Some("81")));
         assert!(!covered_by_subject(&listed, Some("b")));
-        assert!(covered_by_subject(&listed, None), "a step-wide request");
+        assert!(
+            !covered_by_subject(&listed, None),
+            "a step-wide request does not pass a gate that lists items"
+        );
         // No items and not declared whole-subject: refused, not passed.
         let bare = shown_summary(&open(json!({"draft": 7}), None, false));
         assert!(!covered_by_subject(&bare, Some("a")));

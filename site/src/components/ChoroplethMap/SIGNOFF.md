@@ -73,7 +73,7 @@ Chromium ran every project below for `choropleth.spec.ts`, `choropleth.tester.sp
 
 ## Open for Karthik
 
-- **Charts that cannot make a social image.** Every Sankey (min 26rem plot) and any bar/waterfall/slope with many rows is taller than the card's 301 CSS px and fails, as designed ("an error, never shrunk"). Options: accept (share those charts by screenshot), or let the card grow to a 1200×1200 square for tall charts. Not changed here.
+- **Charts that cannot make a social image.** Every Sankey (min 26rem plot) and any bar/waterfall/slope with many rows is taller than the card's 301 CSS px and fails, as designed ("an error, never shrunk"). Options: accept (share those charts by screenshot), or let the card grow to a 1200×1200 square for tall charts. Not changed here. **Decided in #71:** tall charts get the 1200×1200 square (design/charts.md, "Tall charts get a square"), tested in `social-image.tester.spec.ts`.
 - **Map details proposal** (`design/README.md`) still awaits approval, unchanged by testing.
 
 ## Runs
@@ -93,3 +93,7 @@ Tooling exception: Playwright's Firefox crashes the page ("Page crashed") when a
 
 ☑ Every area and every screen above is passed or has an accepted exception.
 Signed: Opus 5.5 component tester, 23 November 2026
+
+## Screenshot baselines (#71)
+
+Accepted 28 Nov 2026 by an Opus component tester that did not build this component. First baselines for the `ChoroplethMap/default` and `ChoroplethMap/edge-cases` fixture pages (`<main>` after every visible island has hydrated): `site/tests/e2e/components/charts-visual.spec.ts`, PNGs in `site/tests/e2e/__screenshots__/chromium-<screen>/components/charts-visual.spec.ts/`. Made in `mcr.microsoft.com/playwright:v1.65.1-noble` with `bun run test:visual:update`; Chromium, light and dark at 360 and 1440, light at 768 and 980 (site/TESTING.md, "Screenshots", says why not the whole matrix). Reason for accepting: no baseline existed; the images were reviewed against design/charts.md (one highlight, no crimson on a fall, labels whole, nothing past the column) and a second run in the image matched every one pixel for pixel. CI compares the 360 and 1440 ones on every PR (`Site screenshots (smoke, Playwright image)`), nightly all of them. This replaces the "no screenshot baselines" exception above for these screens; Firefox, WebKit and the other widths stay without pixel baselines.

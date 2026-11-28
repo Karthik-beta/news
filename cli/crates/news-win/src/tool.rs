@@ -18,8 +18,9 @@ use std::process::{ExitStatus, Output};
 /// The file beside `repo-root` in `%ProgramFiles%\News` that holds `name=absolute path` per tool.
 pub const TOOLS_FILE: &str = "tools";
 
-/// The tools `news service install` records.
-pub const TOOLS: &[&str] = &["docker", "bun"];
+/// The tools `news service install` records. `claude` is only located here: Ghost starts it with its own
+/// Low-integrity spawn, not as a tool child.
+pub const TOOLS: &[&str] = &["docker", "bun", "claude"];
 
 /// What every tool child may see of this process's environment (upper case; Windows names are
 /// case-insensitive). Nothing secret: no `DATABASE_URL`, no `NEWS_*`, no keys.

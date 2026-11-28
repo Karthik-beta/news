@@ -242,12 +242,13 @@ See [accessibility.md](accessibility.md#charts). In short: a text summary as the
 
 ## Social images
 
-For manual sharing (and later auto-posting), any chart can be exported as a 1200×675 PNG:
+For manual sharing (and later auto-posting), any chart can be exported as a 1200×675 PNG (1200×1200 for a tall chart, below):
 
 - Paper background, the chart's brand rule and tag, title, subtitle, the chart, the source line.
 - The wordmark "News" at the bottom right, and the page URL at the bottom left, in `ink-3`.
 - Light mode only. 48px padding. Text at least 20px.
-- Made on the laptop with `bun scripts/social-image.ts <page path> <chart id> [--base URL] [--out file.png]` (in `site/`, with the site running): Chromium lays the chart out at 720×405 CSS px and captures it at 5/3 device pixels, so 12px chart text is 20px in the image. The data table, downloads and a map's ranked table or bars are left out; the plot (a chart's plot box or the map) gives up height to fit, and a chart that still does not fit is an error, never shrunk.
+- Made on the laptop with `bun scripts/social-image.ts <page path> <chart id> [--base URL] [--out file.png]` (in `site/`, with the site running): Chromium lays the chart out at 720×405 CSS px and captures it at 5/3 device pixels, so 12px chart text is 20px in the image. The data table, downloads and a map's ranked table or bars are left out; the plot (a chart's plot box or the map) gives up height to fit.
+- **Tall charts get a square.** A chart that still does not fit 1200×675 (every Sankey; a long waterfall, bar, dot or slope chart) is made as a 1200×1200 square instead, laid out at 720×720 CSS px by the same rules. The script tries the 16:9 card first and takes the square only when the chart does not fit it, so the size is never a choice. A chart too tall for the square is an error, never shrunk; share a shorter chart instead. Decided in #71: refusing tall charts left the Sankey, the chart most worth sharing from an earnings page, with no image; a square is a standard post size that feeds show whole; shrinking would break the 20px text floor.
 
 ## Checklist before a chart ships
 

@@ -70,3 +70,7 @@ Shared with the other Charts II components; counts in the Sankey sign-off. No Do
 ## Sign-off
 
 ☑ Signed (pass): Opus 5.5 component tester, 21 November 2026
+
+## Screenshot baselines (#71)
+
+Accepted 28 Nov 2026 by an Opus component tester that did not build this component. First baselines for the `DotPlot/default` and `DotPlot/edge-cases` fixture pages (`<main>` after every visible island has hydrated): `site/tests/e2e/components/charts-visual.spec.ts`, PNGs in `site/tests/e2e/__screenshots__/chromium-<screen>/components/charts-visual.spec.ts/`. Made in `mcr.microsoft.com/playwright:v1.65.1-noble` with `bun run test:visual:update`; Chromium, light and dark at 360 and 1440, light at 768 and 980 (site/TESTING.md, "Screenshots", says why not the whole matrix). Reason for accepting: no baseline existed; the images were reviewed against design/charts.md (one highlight, no crimson on a fall, labels whole, nothing past the column) and a second run in the image matched every one pixel for pixel. CI compares the 360 and 1440 ones on every PR (`Site screenshots (smoke, Playwright image)`), nightly all of them. This replaces the "no screenshot baselines" exception above for these screens; Firefox, WebKit and the other widths stay without pixel baselines.

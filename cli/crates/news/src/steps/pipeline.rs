@@ -205,6 +205,56 @@ pub async fn write(
     Ok(if live { Ph::Wait } else { Ph::Done((ok, dead)) })
 }
 
+/// The A1 update job for a direction flip, ready for Ghost: Rewrite's job (key, diff, story) plus its
+/// input composed by code (`news_rewrite::update::input`) and written under `work/ai/`, the page schema
+/// and the page type's prefix, as [`write`] gives A1. `NewsAccept` stores its Copy as the story's next one.
+pub fn update_job(
+    root: &Path,
+    plan: &news_rewrite::plan::PagePlan,
+    story: &str,
+) -> Result<NewJob, StepError> {
+    let mut job = news_rewrite::update::update_job(plan, story);
+    let w = Work::new(root.join("work"));
+    let input =
+        news_rewrite::update::input(&w, story, job.args["diff"].clone()).map_err(step_err)?;
+    let page_type = input["brief"]["item"]["page_type"]
+        .as_str()
+        .unwrap_or_default()
+        .to_owned();
+    // Named by the key's diff hash, so another flip of the same page never overwrites a queued input.
+    let sha = job
+        .unique_key
+        .as_deref()
+        .and_then(|k| k.rsplit(':').next())
+        .unwrap_or_default();
+    let rel = format!("work/ai/update-{story}-{sha}.json");
+    work::write_atomic(&root.join(&rel), &work::pretty(&input)).map_err(step_err)?;
+    job.args["input"] = json!(rel);
+    job.args["schema"] = json!(PAGE_SCHEMA);
+    job.args["prefix"] = json!(prefix(root, &page_type)?);
+    Ok(job)
+}
+
+/// Queue the flip's [`update_job`] unless the run already has it (in any state, as [`queue_once`]);
+/// the input is composed only for a job not yet queued. Returns its state and whether it was queued now.
+pub async fn queue_update(
+    cx: &StepCx,
+    ctx: &Ctx,
+    plan: &news_rewrite::plan::PagePlan,
+    story: &str,
+) -> Result<(Job, bool), StepError> {
+    let key = news_rewrite::update::update_job(plan, story)
+        .unique_key
+        .unwrap_or_default();
+    if let Some(j) = job(cx, &key).await? {
+        return Ok((j, false));
+    }
+    cx.enqueue(update_job(&ctx.root, plan, story)?)
+        .await
+        .map_err(step_err)?;
+    Ok((Job::Live, true))
+}
+
 /// The page id and version a story's page folder will publish, from its `page.json`.
 fn expected(work: &Work, story: &str) -> Option<(String, i32)> {
     let p = work::read_json(&work.page(story).join("page.json")).ok()?;
@@ -214,8 +264,9 @@ fn expected(work: &Work, story: &str) -> Option<(String, i32)> {
     ))
 }
 
-/// The page this folder would publish, when it is already registered as a draft (or further): its
-/// render and check passed in an earlier entry of this step.
+/// The page this folder would publish, when this run already registered it as a draft (or it is
+/// further on): its render and check passed in an earlier entry of this step. Another run's draft is
+/// rendered and checked again, so this run publishes only what it checked itself.
 async fn registered(
     cx: &StepCx,
     work: &Work,
@@ -226,12 +277,14 @@ async fn registered(
     };
     let sha: Option<Vec<u8>> = sqlx::query_scalar(
         "select bundle_sha from pages where page_id = $1 and version = $2 and bundle_sha is not null
-            and status in ('draft', 'ready', 'published')
+            and (status in ('ready', 'published') or (status = 'draft' and run_id = $3))
          union all
-         select bundle_sha from page_drafts where page_id = $1 and version = $2 limit 1",
+         select bundle_sha from page_drafts where page_id = $1 and version = $2
+            and (state = 'ready' or run_id = $3) limit 1",
     )
     .bind(&page_id)
     .bind(version)
+    .bind(cx.run_id)
     .fetch_optional(&cx.db)
     .await
     .map_err(db_err)?;
@@ -282,12 +335,23 @@ pub async fn render_one(cx: &StepCx, ctx: &Ctx, story_id: i64) -> Result<Rendere
 pub async fn check_one(cx: &StepCx, ctx: &Ctx, story_id: i64) -> Result<Rendered, StepError> {
     let work = work(ctx);
     let story = story_id.to_string();
-    match ctx.tools.check(&cx.db, &work, &story).await {
-        Ok(Check::Pass) => {}
+    let checked = match ctx.tools.check(&cx.db, &work, &story).await {
+        Ok(Check::Pass(sha)) => sha,
         Ok(Check::Fail(f)) => return Ok(Rendered::Failed(f)),
         Err(e) => return broken(e),
-    }
-    match register(&cx.db, &ctx.root.join("work"), &story, story_id, cx.now).await {
+    };
+    let root = ctx.root.join("work");
+    match register(
+        &cx.db,
+        &root,
+        &story,
+        story_id,
+        Some(cx.run_id),
+        &checked,
+        cx.now,
+    )
+    .await
+    {
         Ok(r) => Ok(Rendered::Registered(r)),
         Err(e) => broken(e),
     }
@@ -466,23 +530,29 @@ pub async fn spotcheck(
     })
 }
 
-/// Stage every draft page of these stories (not blocked by a spot check) in the outbox, each under its
-/// own G-tier check, then send the run's outbox. Returns `(staged, sent, dead)`.
+/// Stage every draft page of these stories that this run registered (not blocked by a spot check) in
+/// the outbox, each under its own G-tier check, then send the run's outbox. `approved` is the gate
+/// subject when the step's approval names bytes (`pages[].after`, Reprint's `sample`): each page is
+/// staged only when that subject is the one approved and names this page's bundle. Returns
+/// `(staged, sent, dead)`.
 pub async fn publish(
     cx: &StepCx,
     ctx: &Ctx,
     stories: &[i64],
+    approved: Option<&Value>,
 ) -> Result<(usize, u32, u32), StepError> {
     let drafts: Vec<(String, i32, Vec<u8>)> = sqlx::query_as(
         "select page_id, version, bundle_sha from pages
-          where story_id = any($1) and status = 'draft' and bundle_sha is not null
+          where story_id = any($1) and status = 'draft' and bundle_sha is not null and run_id = $2
             and not 'spot_blocked' = any(flags)
          union all
          select d.page_id, d.version, d.bundle_sha from page_drafts d join pages p on p.page_id = d.page_id
-          where p.story_id = any($1) and d.state = 'draft' and not 'spot_blocked' = any(d.flags)
+          where p.story_id = any($1) and d.state = 'draft' and d.run_id = $2
+            and not 'spot_blocked' = any(d.flags)
          order by 1",
     )
     .bind(stories)
+    .bind(cx.run_id)
     .fetch_all(&cx.db)
     .await
     .map_err(db_err)?;
@@ -507,6 +577,9 @@ pub async fn publish(
             )
             .await
             .map_err(step_err)?;
+            if let Some(subject) = approved {
+                approved_bytes(&auth, subject, page_id, &sha).map_err(step_err)?;
+            }
             news_press::store::stage_put(&mut auth, page_id, *version, &sha, cx.now)
                 .await
                 .map_err(step_err)?;
@@ -516,6 +589,35 @@ pub async fn publish(
     }
     let d = send(cx, ctx).await?;
     Ok((staged, d.0, d.1))
+}
+
+/// `gated` unless `subject` is the subject Board approved (its hash is the authorisation's) and its
+/// `pages[]` entry for `page_id` names exactly this bundle as `after`.
+pub fn approved_bytes(
+    auth: &gates::Authorized<'_>,
+    subject: &Value,
+    page_id: &str,
+    sha: &[u8; 32],
+) -> news_core::NewsResult<()> {
+    let gated = |why: String| news_core::NewsError::gated(format!("not authorised: {why}"));
+    let a = auth
+        .approved
+        .ok_or_else(|| gated("no approval names the bytes to publish".into()))?;
+    if gates::subject_sha(subject) != a.subject_sha {
+        return Err(gated("the subject is not the one Board approved".into()));
+    }
+    let after = subject["pages"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .find(|p| p["page_id"] == page_id)
+        .and_then(|p| p["after"].as_str());
+    if after != Some(gates::hex(sha).as_str()) {
+        return Err(gated(format!(
+            "page {page_id}'s bundle is not the one Board approved"
+        )));
+    }
+    Ok(())
 }
 
 /// Send the run's outbox rows. No answer from the API is a retry of the step (the same keys go again);
@@ -615,6 +717,80 @@ mod tests {
             }
             other => panic!("{other:?}"),
         }
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn a_flips_update_job_carries_ghosts_arguments_and_the_composed_input() {
+        use news_rewrite::find::{PageChange, PointMove};
+        let root = std::env::temp_dir().join(format!("news-update-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let here = Path::new(env!("CARGO_MANIFEST_DIR"));
+        let index = root.join(news_fixer::components::INDEX_REL);
+        std::fs::create_dir_all(index.parent().unwrap()).unwrap();
+        std::fs::copy(here.join("tests/fixtures/component-index.json"), &index).unwrap();
+        let w = Work::new(root.join("work"));
+        std::fs::create_dir_all(root.join("work/briefs")).unwrap();
+        std::fs::copy(
+            here.join("../news-proof/tests/fixtures/brief.json"),
+            w.brief("81234"),
+        )
+        .unwrap();
+        let at = "2026-11-01T10:00:00Z".parse().unwrap();
+        work::save(
+            &w,
+            "81234",
+            json!({"headline": "Old"}),
+            vec![],
+            "save",
+            None,
+            at,
+        )
+        .unwrap();
+        let flip = news_rewrite::plan::plan(vec![PageChange {
+            page_id: "us-cpi".into(),
+            version: 3,
+            story_id: Some(81234),
+            points: vec![PointMove {
+                old_id: "dp_old".into(),
+                new_id: "dp_new".into(),
+                old_text: "-0.2".into(),
+                new_text: "0.1".into(),
+                new_numeric: Some("0.1".into()),
+                new_locator: json!({"kind": "json"}),
+                ..Default::default()
+            }],
+            derived: vec![],
+        }])
+        .remove(0);
+
+        let job = update_job(&root, &flip, "81234").unwrap();
+        // The key is Rewrite's, so `revise::flips` finds the job it queued.
+        let bare = news_rewrite::update::update_job(&flip, "81234");
+        assert_eq!(job.unique_key, bare.unique_key);
+        assert_eq!(job.item_ref.as_deref(), Some("81234"));
+        assert_eq!(
+            (&job.args["mode"], &job.args["story"]),
+            (&json!("update"), &json!("81234"))
+        );
+        // What Ghost needs: an input under work/, the page schema, and A1's prefix for the page type.
+        assert_eq!(job.args["schema"], PAGE_SCHEMA);
+        assert_eq!(job.args["prefix"], prefix(&root, "macro-release").unwrap());
+        let rel = job.args["input"].as_str().unwrap();
+        assert!(rel.starts_with("work/ai/update-81234-"), "{rel}");
+        let input = work::read_json(&root.join(rel)).unwrap();
+        assert_eq!(input["mode"], "update");
+        assert_eq!(input["brief"]["item"]["story_id"], 81234);
+        assert_eq!(input["previous_copy"]["headline"], "Old");
+        assert_eq!(
+            input["diff"],
+            json!([{"ref": "dp_new", "old": "-0.2", "new": "0.1"}])
+        );
+        // A story with no stored Copy has nothing to update: the item fails, not the service.
+        assert!(matches!(
+            update_job(&root, &flip, "99999"),
+            Err(StepError::Fail { .. })
+        ));
         let _ = std::fs::remove_dir_all(&root);
     }
 }

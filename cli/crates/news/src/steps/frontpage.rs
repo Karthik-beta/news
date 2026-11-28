@@ -157,13 +157,17 @@ async fn changes(cx: &StepCx) -> Result<(u32, Option<String>), StepError> {
 }
 
 /// The curator's output: the file Ghost kept, read back as a draft. A reply that is not a draft is a
-/// failed round with the reason, so the next round tells the curator what was wrong.
-fn read_draft(result: &Value) -> Result<news_home::draft::Draft, String> {
+/// failed round with the reason, so the next round tells the curator what was wrong. `curator_model`
+/// is the model Ghost called (its job result), never what the model says about itself.
+fn read_draft(result: &Value, model: &str) -> Result<news_home::draft::Draft, String> {
     let path = result["output"]
         .as_str()
         .ok_or("the curator call left no output file")?;
     let text = std::fs::read_to_string(path).map_err(|e| format!("cannot read {path}: {e}"))?;
-    let value: Value = serde_json::from_str(&text).map_err(|e| format!("not JSON: {e}"))?;
+    let mut value: Value = serde_json::from_str(&text).map_err(|e| format!("not JSON: {e}"))?;
+    if let Some(d) = value.as_object_mut() {
+        d.insert("curator_model".into(), json!(model));
+    }
     ops::parse_draft(value).map_err(|e| e.message)
 }
 
@@ -205,7 +209,15 @@ async fn draft(ctx: &Ctx, cx: &StepCx) -> Result<StepOutcome, StepError> {
             }
             _ => return Ok(StepOutcome::Wait),
         }
-        let outcome = match read_draft(&result.unwrap_or(Value::Null)) {
+        let result = result.unwrap_or(Value::Null);
+        let model = result["model"].as_str().unwrap_or_default().to_owned();
+        if model.is_empty() {
+            return Err(StepError::Fail {
+                class: ErrorClass::Bug,
+                message: format!("the curator call ({key}) did not record the model it ran"),
+            });
+        }
+        let outcome = match read_draft(&result, &model) {
             Ok(d) => {
                 let (id, _) = store::save(&cx.db, &d, Some(cx.run_id))
                     .await
@@ -265,16 +277,22 @@ async fn queue(
     Ok(StepOutcome::Wait)
 }
 
+fn preview(cx: &StepCx) -> Value {
+    cx.outputs
+        .get("preview")
+        .map_or(Value::Null, |p| p["preview"].clone())
+}
+
+/// The subject is the draft and the bytes the preview showed: a different draft is a different hash.
+fn subject(id: i64, st: &store::Stored, preview: &Value) -> Value {
+    json!({"draft_id": id, "slots": st.draft.slots, "preview_sha": preview["sha256"]})
+}
+
 async fn review(cx: &StepCx) -> Result<StepOutcome, StepError> {
     let id = draft_id(cx)?;
     let st = store::get(&cx.db, id).await.map_err(step_err)?;
-    let preview = cx
-        .outputs
-        .get("preview")
-        .map_or(Value::Null, |p| p["preview"].clone());
-    // The subject is the draft and the bytes the preview showed: a different draft is a different hash.
-    let subject =
-        json!({"draft_id": id, "slots": st.draft.slots, "preview_sha": preview["sha256"]});
+    let preview = preview(cx);
+    let subject = subject(id, &st, &preview);
     let n = st.draft.page_ids().len();
     Ok(StepOutcome::OpenGates(vec![GateOpen {
         gate: "publish".into(),
@@ -299,10 +317,11 @@ async fn publish(ctx: &Ctx, cx: &StepCx) -> Result<StepOutcome, StepError> {
         ));
     }
     let id = draft_id(cx)?;
-    // The G-tier rule: an unused approval of the `publish` gate, for the hash Board showed.
-    let mut conn = cx.db.acquire().await.map_err(db_err)?;
-    gates::authorize(
-        &mut conn,
+    // The G-tier rule: an unused approval of the `publish` gate, for the hash Board showed. The
+    // transaction holds the run row (`for share`) until the send is done, so a cancel cannot land between.
+    let mut tx = cx.db.begin().await.map_err(db_err)?;
+    let auth = gates::authorize(
+        &mut tx,
         GRequest {
             run_id: cx.run_id,
             step_seq: cx.seq,
@@ -312,12 +331,20 @@ async fn publish(ctx: &Ctx, cx: &StepCx) -> Result<StepOutcome, StepError> {
     )
     .await
     .map_err(step_err)?;
-    drop(conn);
+    // The draft as stored now must be the subject Board approved.
+    let st = store::get(&cx.db, id).await.map_err(step_err)?;
+    let now_sha = gates::subject_sha(&subject(id, &st, &preview(cx)));
+    if auth.approved.map(|a| a.subject_sha) != Some(now_sha) {
+        return Err(step_err(news_core::NewsError::gated(format!(
+            "not authorised: curation draft {id} is not the one Board approved"
+        ))));
+    }
     let sent = ctx
         .home
         .publish(&cx.db, id, cx.now)
         .await
         .map_err(step_err)?;
+    tx.commit().await.map_err(db_err)?;
     Ok(StepOutcome::Done(json!({
         "draft_id": id, "published": sent, "wrap": {"published": 1},
     })))

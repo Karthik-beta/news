@@ -22,7 +22,7 @@ use news_chief::gates::GateOpen;
 use news_core::job::ErrorClass;
 use news_rewrite::classify::Kind;
 use news_rewrite::plan::{self, BULK, PagePlan};
-use news_rewrite::{apply, find, update};
+use news_rewrite::{apply, find};
 use serde_json::{Value, json};
 use std::collections::BTreeSet;
 use std::sync::Arc;
@@ -164,7 +164,7 @@ impl StepHandler for Followup {
                     )]))
                 }
                 Step::Rerender => rerender(self.1.as_deref(), cx).await,
-                Step::Update => update_flips(cx).await,
+                Step::Update => update_flips(self.1.as_deref(), cx).await,
                 Step::Publish => publish(self.1.as_deref(), cx).await,
             }
         })
@@ -217,7 +217,7 @@ async fn publish(ctx: Option<&Ctx>, cx: &StepCx) -> Result<StepOutcome, StepErro
     let (flipped, mut dead) = revise::flips(cx, ctx, &flips).await?;
     // The drafts `rerender` registered (and the flips just finished) are the Budget's pages' pending versions.
     let stories = pipeline::stories_of(cx, &pipeline::budget_ids(cx, "items")).await?;
-    let (staged, sent, dead_rows) = pipeline::publish(cx, ctx, &stories).await?;
+    let (staged, sent, dead_rows) = pipeline::publish(cx, ctx, &stories, None).await?;
     if let Some(r) = cx.outputs.get("rerender") {
         dead.extend(r["dead"].as_array().cloned().unwrap_or_default());
     }
@@ -229,7 +229,7 @@ async fn publish(ctx: Option<&Ctx>, cx: &StepCx) -> Result<StepOutcome, StepErro
 
 /// A1 update jobs (`ai.write`, mode `update`) for the direction flips, one per page, keyed by page,
 /// version and diff, so a re-entered step queues only what is missing. Waits for them to finish.
-async fn update_flips(cx: &StepCx) -> Result<StepOutcome, StepError> {
+async fn update_flips(ctx: Option<&Ctx>, cx: &StepCx) -> Result<StepOutcome, StepError> {
     if bulk_rejected(cx) {
         return Ok(StepOutcome::Skip(
             "the bulk change was rejected in Board; no page is updated".into(),
@@ -244,8 +244,12 @@ async fn update_flips(cx: &StepCx) -> Result<StepOutcome, StepError> {
     if flips.is_empty() {
         return Ok(StepOutcome::Skip("no direction flips".into()));
     }
+    // The update's input is written under the root's work folder.
+    let ctx = ctx.ok_or_else(|| pipeline::fail(ErrorClass::InvalidData, NO_ROOT))?;
     // The first entry queues the jobs and waits; the next finds them done.
     let mut queued = 0;
+    // A flip whose input cannot be composed (no stored Copy or brief) is dead, not the run (as Edition).
+    let mut failed = Vec::new();
     for p in &flips {
         let Some(story) = p.change.story_id else {
             return Err(StepError::Fail {
@@ -253,20 +257,14 @@ async fn update_flips(cx: &StepCx) -> Result<StepOutcome, StepError> {
                 message: format!("page {} has no story to rewrite", p.change.page_id),
             });
         };
-        let job = update::update_job(p, &story.to_string());
         // A job of this run that already ran, even one that failed or was cancelled, is not queued
         // again: a failed update goes to the dead list for Salvage, it does not loop here.
-        let known: bool = sqlx::query_scalar(
-            "select exists (select 1 from jobs where run_id = $1 and unique_key = $2)",
-        )
-        .bind(cx.run_id)
-        .bind(&job.unique_key)
-        .fetch_one(&cx.db)
-        .await
-        .map_err(db_err)?;
-        if !known {
-            cx.enqueue(job).await.map_err(step_err)?;
-            queued += 1;
+        match pipeline::queue_update(cx, ctx, p, &story.to_string()).await {
+            Ok((_, now)) => queued += usize::from(now),
+            Err(StepError::Fail { message, .. }) => {
+                failed.push(json!({"page_id": p.change.page_id, "error": message}));
+            }
+            Err(e) => return Err(e),
         }
     }
     let live: i64 = sqlx::query_scalar(
@@ -291,8 +289,9 @@ async fn update_flips(cx: &StepCx) -> Result<StepOutcome, StepError> {
     .fetch_one(&cx.db)
     .await
     .map_err(db_err)?;
+    let dead = dead + i64::try_from(failed.len()).unwrap_or(i64::MAX);
     Ok(StepOutcome::Done(json!({
-        "flips": flips.len(), "queued": queued, "dead": dead,
+        "flips": flips.len(), "queued": queued, "dead": dead, "failed": failed,
         "wrap": {"updates_queued": flips.len(), "updates_failed": dead},
     })))
 }

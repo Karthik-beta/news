@@ -14,6 +14,7 @@ use news_store::{PgPool, map_err};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use sqlx::Row;
+use uuid::Uuid;
 
 use crate::bundle;
 
@@ -52,6 +53,28 @@ fn copy_bundle(
     {
         return Ok(b.bundle_sha);
     }
+    // Every source is vetted before anything is removed or copied. The path allowlist runs before the
+    // disk is touched, as in `bundle::load`; `fs::copy` follows links, so anything that is not a regular
+    // file (a symlink, a linked `charts`) is refused.
+    let mut paths = vec!["manifest.json"];
+    for f in manifest["files"].as_array().map_or(&[][..], Vec::as_slice) {
+        let path = f["path"].as_str().unwrap_or_default();
+        if !bundle::is_bundle_path(path) {
+            return Err(NewsError::validation(format!(
+                "manifest path {path:?} is not a bundle path"
+            )));
+        }
+        paths.push(path);
+    }
+    for path in &paths {
+        let charts_ok = !path.starts_with("charts/")
+            || std::fs::symlink_metadata(from.join("charts")).is_ok_and(|m| m.is_dir());
+        if !(charts_ok && std::fs::symlink_metadata(from.join(path)).is_ok_and(|m| m.is_file())) {
+            return Err(NewsError::validation(format!(
+                "{path} in the story folder is not a regular file"
+            )));
+        }
+    }
     let to = bundle::dir(work, page_id, version);
     let io =
         |e: std::io::Error| NewsError::internal(format!("cannot copy to {}: {e}", to.display()));
@@ -61,33 +84,29 @@ fn copy_bundle(
         Err(e) => return Err(io(e)),
     }
     std::fs::create_dir_all(&to).map_err(io)?;
-    for f in manifest["files"].as_array().map_or(&[][..], Vec::as_slice) {
-        let path = f["path"].as_str().unwrap_or_default();
-        // The path allowlist runs before the disk is touched, as in `bundle::load`.
-        if !bundle::is_bundle_path(path) {
-            return Err(NewsError::validation(format!(
-                "manifest path {path:?} is not a bundle path"
-            )));
-        }
+    for path in paths {
         let target = to.join(path);
         if let Some(parent) = target.parent() {
             std::fs::create_dir_all(parent).map_err(io)?;
         }
         std::fs::copy(from.join(path), &target).map_err(io)?;
     }
-    std::fs::copy(from.join("manifest.json"), to.join("manifest.json")).map_err(io)?;
     let b = bundle::load(work, page_id, version).map_err(NewsError::validation)?;
     Ok(b.bundle_sha)
 }
 
-/// Register story `story_id`'s rendered bundle (folder `story`) as a draft page. The bundle's version is
-/// the page's next one: 1 for a new page, the published version plus one for a revision; anything else is
-/// a conflict, so a stale folder never overwrites a newer page.
+/// Register story `story_id`'s rendered bundle (folder `story`) as a draft page of `run`, the run that
+/// checked it: only that run publishes it. The bundle's version is the page's next one: 1 for a new
+/// page, the published version plus one for a revision; anything else is a conflict, so a stale folder
+/// never overwrites a newer page. `checked` is the `bundle_sha256` Proof passed: other bytes are refused,
+/// and a bundle already staged for sending (`ready`) is never replaced.
 pub async fn register(
     db: &PgPool,
     work: &Path,
     story: &str,
     story_id: i64,
+    run: Option<Uuid>,
+    checked: &str,
     now: chrono::DateTime<chrono::Utc>,
 ) -> NewsResult<Registered> {
     let dir = story_dir(work, story);
@@ -104,7 +123,33 @@ pub async fn register(
         .ok()
         .filter(|v| *v >= 1)
         .ok_or_else(|| NewsError::validation("the manifest has no version"))?;
+    let not_checked = || {
+        NewsError::conflict(format!(
+            "the bundle of page {page_id} is not the one Proof checked; check it again"
+        ))
+    };
+    if manifest["bundle_sha256"].as_str() != Some(checked) {
+        return Err(not_checked());
+    }
+    // Before the copy replaces v<n>/: a bundle staged for sending keeps its bytes on disk.
+    let staged: Option<Vec<u8>> = sqlx::query_scalar(
+        "select bundle_sha from pages where page_id = $1 and version = $2 and status = 'ready'
+         union all
+         select bundle_sha from page_drafts where page_id = $1 and version = $2 and state = 'ready'
+         limit 1",
+    )
+    .bind(&page_id)
+    .bind(version)
+    .fetch_optional(db)
+    .await
+    .map_err(map_err)?;
+    if staged.is_some_and(|s| news_chief::gates::hex(&s) != checked) {
+        return Err(staged_conflict(&page_id));
+    }
     let sha = copy_bundle(work, &dir, &page_id, version, &manifest)?;
+    if news_chief::gates::hex(&sha) != checked {
+        return Err(not_checked());
+    }
     let sha_vec = sha.to_vec();
 
     let mut tx = db.begin().await.map_err(map_err)?;
@@ -132,8 +177,8 @@ pub async fn register(
             }
             sqlx::query(
                 "insert into pages (page_id, slug, story_id, page_type, tier, version, status, updated_at,
-                                    renderer_version, bundle_sha, oui_sha, flags)
-                 values ($1, $1, $2, $3, $4, 1, 'draft', $5, $6, $7, $8, $9)",
+                                    renderer_version, bundle_sha, oui_sha, flags, run_id)
+                 values ($1, $1, $2, $3, $4, 1, 'draft', $5, $6, $7, $8, $9, $10)",
             )
             .bind(&page_id)
             .bind(story_id)
@@ -144,6 +189,7 @@ pub async fn register(
             .bind(&sha_vec)
             .bind(&oui_sha)
             .bind(&flags)
+            .bind(run)
             .execute(&mut *tx)
             .await
             .map_err(map_err)?;
@@ -154,12 +200,21 @@ pub async fn register(
                 (r.get("version"), r.get("status"), r.get("bundle_sha"));
             if have == version && have_sha.as_deref() == Some(&sha_vec[..]) && status != "withdrawn"
             {
+                // The same bytes, checked by this run: an unsent draft becomes this run's to publish.
+                sqlx::query("update pages set run_id = $2 where page_id = $1 and status = 'draft'")
+                    .bind(&page_id)
+                    .bind(run)
+                    .execute(&mut *tx)
+                    .await
+                    .map_err(map_err)?;
                 false
-            } else if have == version && matches!(status.as_str(), "draft" | "ready") {
+            } else if have == version && status == "ready" {
+                return Err(staged_conflict(&page_id));
+            } else if have == version && status == "draft" {
                 // A re-render of the unsent version: the new bytes replace the old.
                 sqlx::query(
                     "update pages set status = 'draft', bundle_sha = $2, oui_sha = $3, renderer_version = $4,
-                            flags = $5, updated_at = $6 where page_id = $1",
+                            flags = $5, updated_at = $6, run_id = $7 where page_id = $1",
                 )
                 .bind(&page_id)
                 .bind(&sha_vec)
@@ -167,6 +222,7 @@ pub async fn register(
                 .bind(meta["renderer_version"].as_str())
                 .bind(&flags)
                 .bind(now)
+                .bind(run)
                 .execute(&mut *tx)
                 .await
                 .map_err(map_err)?;
@@ -181,22 +237,28 @@ pub async fn register(
                 .await
                 .map_err(map_err)?;
                 match pending {
-                    Some((v, s, _)) if v == version && s == sha_vec => false,
-                    Some((_, _, st)) if st == "ready" => {
-                        return Err(NewsError::conflict(format!(
-                            "page {page_id} has a draft staged for sending; it cannot be replaced"
-                        )));
+                    Some((v, s, _)) if v == version && s == sha_vec => {
+                        sqlx::query(
+                            "update page_drafts set run_id = $2 where page_id = $1 and state = 'draft'",
+                        )
+                        .bind(&page_id)
+                        .bind(run)
+                        .execute(&mut *tx)
+                        .await
+                        .map_err(map_err)?;
+                        false
                     }
+                    Some((_, _, st)) if st == "ready" => return Err(staged_conflict(&page_id)),
                     _ => {
                         sqlx::query(
                             "insert into page_drafts (page_id, version, bundle_sha, oui_sha, renderer_version, tier,
-                                                      page_type, flags, state, updated_at)
-                             values ($1, $2, $3, $4, $5, $6, $7, $8, 'draft', $9)
+                                                      page_type, flags, state, updated_at, run_id)
+                             values ($1, $2, $3, $4, $5, $6, $7, $8, 'draft', $9, $10)
                              on conflict (page_id) do update set version = excluded.version,
                                 bundle_sha = excluded.bundle_sha, oui_sha = excluded.oui_sha,
                                 renderer_version = excluded.renderer_version, tier = excluded.tier,
                                 page_type = excluded.page_type, flags = excluded.flags, state = 'draft',
-                                updated_at = excluded.updated_at",
+                                updated_at = excluded.updated_at, run_id = excluded.run_id",
                         )
                         .bind(&page_id)
                         .bind(version)
@@ -207,6 +269,7 @@ pub async fn register(
                         .bind(meta["page_type"].as_str())
                         .bind(&flags)
                         .bind(now)
+                        .bind(run)
                         .execute(&mut *tx)
                         .await
                         .map_err(map_err)?;
@@ -265,6 +328,12 @@ pub async fn register(
         bundle_sha: sha,
         changed,
     })
+}
+
+fn staged_conflict(page_id: &str) -> NewsError {
+    NewsError::conflict(format!(
+        "page {page_id} has a bundle staged for sending; it cannot be replaced until it is sent"
+    ))
 }
 
 /// Throw away the unsent next version of a live page (a rejected or dead revision): the draft and its

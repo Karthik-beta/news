@@ -86,22 +86,6 @@ fn service_root() -> Result<PathBuf, String> {
     audit_root(env, recorded, news_critic::golden::find_root)
 }
 
-/// The `claude` executable Ghost runs: the first absolute PATH folder that has it.
-// TODO(#99): when #99 merges, add "claude" to `news_win::tool::TOOLS` and return
-// `news_win::tool::tool_path("claude")` here, so the installed service runs the path
-// `news service install` recorded and refuses when none was.
-fn claude_exe() -> Option<PathBuf> {
-    let name = if cfg!(windows) {
-        "claude.exe"
-    } else {
-        "claude"
-    };
-    std::env::split_paths(&std::env::var_os("PATH")?)
-        .filter(|d| d.is_absolute())
-        .map(|d| d.join(name))
-        .find(|p| p.is_file())
-}
-
 /// Install the handlers that need the service's pool: Rewrite (`page.revise`) and, given `claude`,
 /// Ghost (`ai.*`, with [`NewsAccept`] as its accept sink and its calls in `job`, the root marker job).
 /// Returns which were installed now (`false`: none given, or one already was).
@@ -136,21 +120,26 @@ pub fn install_ai(
     (ghost, rewrite)
 }
 
-/// [`install_ai`] for `news service run` (`host::Options::on_connect`). Without a repository root or
-/// `claude` it says so and leaves those handlers out; their jobs then fail as `bug`, naming the gap.
-pub fn install_service_ai(db: &PgPool, job: Option<Arc<news_win::Job>>) {
-    let root = match service_root() {
-        Ok(r) => r,
-        Err(m) => {
-            tracing::warn!("Ghost and Rewrite are not installed: {m}");
-            return;
-        }
-    };
-    let claude = claude_exe();
-    if claude.is_none() {
-        tracing::warn!("Ghost is not installed: claude is not on PATH");
+/// [`install_ai`] for `news service run` (`host::Options::on_connect`), with `claude` at the path
+/// `news service install` recorded (`news_win::tool_path`: the installed service refuses when none was;
+/// a dev build falls back to PATH). Without a repository root or `claude` it leaves those handlers
+/// out, so their jobs fail as `bug`, and returns the gap as warnings for the service log Board shows.
+pub fn install_service_ai(db: &PgPool, job: Option<Arc<news_win::Job>>) -> Vec<String> {
+    let (root, claude) = (service_root(), news_win::tool_path("claude"));
+    let gaps = ai_gaps(&root, &claude);
+    if let Ok(root) = root {
+        install_ai(db, &root, claude.ok(), job);
     }
-    install_ai(db, &root, claude, job);
+    gaps
+}
+
+/// What [`install_service_ai`] cannot install, as service-log lines.
+fn ai_gaps(root: &Result<PathBuf, String>, claude: &std::io::Result<PathBuf>) -> Vec<String> {
+    match (root, claude) {
+        (Err(m), _) => vec![format!("Ghost and Rewrite are not installed: {m}")],
+        (Ok(_), Err(e)) => vec![format!("Ghost is not installed: cannot find claude: {e}")],
+        (Ok(_), Ok(_)) => vec![],
+    }
 }
 
 /// The handler for a job kind, or `None` for an unknown kind.
@@ -187,6 +176,32 @@ mod tests {
         assert_eq!(audit_root(None, None, elsewhere), Ok("/elsewhere".into()));
         let none = audit_root(None, None, || Err(NewsError::precondition("x"))).unwrap_err();
         assert!(none.contains("repository root is not set") && none.contains("NEWS_ROOT"));
+    }
+
+    #[test]
+    fn a_missing_root_or_claude_is_a_line_for_the_service_log() {
+        // `claude` is recorded by `news service install` with the other tools.
+        assert!(news_win::TOOLS.contains(&"claude"));
+        // What `tool_path` says when the installed service has no path for it.
+        let unrecorded = || {
+            Err(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                "no path for claude was recorded; run `news service install` again",
+            ))
+        };
+        let root = Ok(PathBuf::from("/repo"));
+        assert_eq!(
+            ai_gaps(&Err("the repository root is not set".into()), &unrecorded()),
+            ["Ghost and Rewrite are not installed: the repository root is not set"]
+        );
+        assert_eq!(
+            ai_gaps(&root, &unrecorded()),
+            [
+                "Ghost is not installed: cannot find claude: no path for claude was recorded; \
+              run `news service install` again"
+            ]
+        );
+        assert!(ai_gaps(&root, &Ok(PathBuf::from("/bin/claude"))).is_empty());
     }
 
     #[test]

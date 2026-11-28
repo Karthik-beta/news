@@ -103,7 +103,8 @@ async fn run(ctx: &Ctx, step: Step, cx: &StepCx) -> Result<StepOutcome, StepErro
             },
         ),
         Step::Publish => {
-            let (staged, sent, dead) = pipeline::publish(cx, ctx, &recorded(cx, "write")).await?;
+            let (staged, sent, dead) =
+                pipeline::publish(cx, ctx, &recorded(cx, "write"), None).await?;
             Ok(StepOutcome::Done(json!({
                 "staged": staged, "sent": sent, "wrap": {"published": sent, "failed": dead},
             })))

@@ -239,7 +239,7 @@ async fn chunks(ctx: &Ctx, cx: &StepCx) -> Result<StepOutcome, StepError> {
         return Ok(StepOutcome::Wait);
     };
     dead.extend(dead_r);
-    let (_, sent, dead_rows) = pipeline::publish(cx, ctx, &written).await?;
+    let (_, sent, dead_rows) = pipeline::publish(cx, ctx, &written, None).await?;
     let failed = dead.len() as i64 + i64::from(dead_rows);
     let _ = registered;
     Ok(StepOutcome::Yield(json!({

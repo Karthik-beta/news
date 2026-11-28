@@ -61,7 +61,9 @@ pub fn install(spec: &ServiceSpec, password: Option<&[u16]>) -> io::Result<()> {
         // NULL: the password is set below, or left as it is.
         account_password: None,
     };
-    let access = ServiceAccess::CHANGE_CONFIG | ServiceAccess::QUERY_STATUS;
+    // START too: failure actions that restart the service need SERVICE_START on the handle
+    // (ChangeServiceConfig2 refuses with access denied without it).
+    let access = ServiceAccess::CHANGE_CONFIG | ServiceAccess::QUERY_STATUS | ServiceAccess::START;
     let svc = match m.open_service(&spec.name, access) {
         Ok(s) => {
             s.change_config(&info).map_err(io_err)?;
