@@ -2,45 +2,47 @@
   "categories": [
     "economy/monetary-policy"
   ],
-  "chart_ids": [],
+  "chart_ids": [
+    "path"
+  ],
   "data_ids": [
-    "dp_2efohn72dtu3sl3j",
-    "dp_ayvmv67k6qwi2tu5",
-    "dp_c23vzs55tlfe6zm4",
-    "dp_d4jegwpgekxk5glw",
-    "dp_jiu4oi2xoaevncoi",
-    "dp_lrcdyjec4bca3k3y",
-    "dp_muuvkjavtyet24fx",
-    "dp_piuyjqgryeamaalp",
-    "dp_qyldnb7tydmc7tzg",
-    "dp_rlxbur3fguyrftvd",
-    "dp_yqg2royirj3j66pz",
-    "dp_zqmtgkcrnjro6jq4"
+    "dp_2dkg7ydo3bfgq6am",
+    "dp_2tnmnfnsbvblr3oh",
+    "dp_5fjedq3jszoollkp",
+    "dp_7h3kpqgulnihg32a",
+    "dp_awub3vu7n4j36ysa",
+    "dp_fs2hcpakezxryqfo",
+    "dp_fyi4jijuokoe2ujt",
+    "dp_jaube55grwlqrie3",
+    "dp_qrdaeedxyxdzomqw",
+    "dp_w6qywgzekxzi2uvu",
+    "dp_wilrvrc2wfdxyoyu",
+    "dp_yrdtj5oo2xo7kyqz"
   ],
   "entities": [
     {
-      "id": "ent_ecb",
+      "id": "ent_boc",
       "kind": "institution",
-      "name": "European Central Bank"
+      "name": "Bank of Canada"
     }
   ],
-  "fly_title": "Euro-area interest rates",
-  "id": "macro-ea-policy-rate-2026-09-16",
+  "fly_title": "Canadian interest rates",
+  "id": "macro-ca-policy-rate-2026-10-29",
   "index_status": "noindex",
   "lang": "en-GB",
   "page_type": "policy",
-  "path": "/2026/11/macro-ea-policy-rate-2026-09-16",
-  "published_at": "2026-11-18T12:00:00Z",
-  "region": "europe",
+  "path": "/2026/11/macro-ca-policy-rate-2026-10-29",
+  "published_at": "2026-11-28T12:00:00Z",
+  "region": "north-america",
   "renderer_version": "1.1.0",
   "schema": "meta.v1",
-  "summary": "The rate replaced {dp_zqmtgkcrnjro6jq4}, which had applied since {pd_2026_06_17}. The figures come from the ECB Data Portal.",
+  "summary": "The target replaced {dp_qrdaeedxyxdzomqw}, which had applied since {pd_2025_10_30}. The figures come from the Bank of Canada's Valet service.",
   "tags": [
-    "ecb",
+    "bank-of-canada",
     "interest-rates"
   ],
   "tier": 1,
-  "title": "The ECB's main refinancing rate has been {dp_ayvmv67k6qwi2tu5} since {pd_2026_09_16}",
-  "updated_at": "2026-11-18T12:00:00Z",
+  "title": "The Bank of Canada raised its target for the overnight rate to {dp_jaube55grwlqrie3}",
+  "updated_at": "2026-11-28T12:00:00Z",
   "version": 1
 }

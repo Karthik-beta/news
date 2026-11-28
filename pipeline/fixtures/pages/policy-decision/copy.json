@@ -1,7 +1,7 @@
 {
-  "draft_id": "policy-decision-4ede8a79d09c",
+  "draft_id": "policy-decision-945e9309de54",
   "story": "policy-decision",
-  "saved_at": "2026-11-18T12:00:00Z",
+  "saved_at": "2026-11-28T12:00:00Z",
   "source": "save",
   "job": null,
   "flags": [],
@@ -10,21 +10,23 @@
     "components_used": [
       "PolicyDecision",
       "StepLineChart",
+      "Quote",
       "Prose",
       "Timeline"
     ],
-    "fly_title": "Euro-area interest rates",
-    "headline": "The ECB's main refinancing rate has been {dp_ayvmv67k6qwi2tu5} since {pd_2026_09_16}",
-    "oui": "root = Page([decision, explain, timeline])\ndecision = PolicyDecision(\"Main refinancing operations, fixed rate\", \"dp_ayvmv67k6qwi2tu5\", null, [{label: \"In effect from\", value: \"pd_2026_09_16\"}, {label: \"Previous rate\", value: \"dp_zqmtgkcrnjro6jq4\"}, {label: \"Context\", value: \"cx_1\"}], path)\npath = StepLineChart(\"The rate in effect is above the rate it replaced\", \"Main refinancing operations, fixed rate, % per annum, {pd_2023_08_02} to {pd_2026_09_16}\", [\"sr_liw7sejpktdh\"], [\"pd_2026_06_17\", \"pd_2026_09_16\"], \"sr_liw7sejpktdh\")\nexplain = Prose([\"The ECB Data Portal publishes the rate as main refinancing operations, fixed rate, and records a new value on the date a change takes effect. Its series is the source of every figure on this page.\"])\ntimeline = Timeline([{date: \"pd_2026_06_17\", text: \"The rate became {dp_zqmtgkcrnjro6jq4}.\"}, {date: \"pd_2026_09_16\", text: \"The rate became {dp_ayvmv67k6qwi2tu5}.\"}], \"pd_2026_09_16\")\n",
+    "fly_title": "Canadian interest rates",
+    "headline": "The Bank of Canada raised its target for the overnight rate to {dp_jaube55grwlqrie3}",
+    "oui": "root = Page([decision, statement, explain, timeline])\ndecision = PolicyDecision(\"Target for the overnight rate\", \"dp_jaube55grwlqrie3\", null, [{label: \"In effect from\", value: \"pd_2026_10_29\"}, {label: \"Previous rate\", value: \"dp_qrdaeedxyxdzomqw\"}, {label: \"Context\", value: \"cx_2\"}], path)\npath = StepLineChart(\"The target is above the rate it replaced\", \"Target for the overnight rate, %, {pd_2023_06_08} to {pd_2026_10_29}\", [\"sr_k5xc5nfhvghh\"], [\"pd_2025_10_30\", \"pd_2026_10_29\"], \"sr_k5xc5nfhvghh\")\nstatement = Quote(\"q_7002_1\")\nexplain = Prose([\"The Bank of Canada's Valet service publishes the target for the overnight rate as a dated series; the decision, the chart and the timeline come from it. The quotation comes from the Bank's announcement of the decision.\"])\ntimeline = Timeline([{date: \"pd_2025_10_30\", text: \"The target became {dp_qrdaeedxyxdzomqw}.\"}, {date: \"pd_2026_10_29\", text: \"The target became {dp_jaube55grwlqrie3}.\"}], \"pd_2026_10_29\")\n",
     "refs_used": [
-      "cx_1",
-      "dp_ayvmv67k6qwi2tu5",
-      "dp_zqmtgkcrnjro6jq4",
-      "pd_2023_08_02",
-      "pd_2026_06_17",
-      "pd_2026_09_16",
-      "sr_liw7sejpktdh"
+      "cx_2",
+      "dp_jaube55grwlqrie3",
+      "dp_qrdaeedxyxdzomqw",
+      "pd_2023_06_08",
+      "pd_2025_10_30",
+      "pd_2026_10_29",
+      "q_7002_1",
+      "sr_k5xc5nfhvghh"
     ],
-    "summary": "The rate replaced {dp_zqmtgkcrnjro6jq4}, which had applied since {pd_2026_06_17}. The figures come from the ECB Data Portal."
+    "summary": "The target replaced {dp_qrdaeedxyxdzomqw}, which had applied since {pd_2025_10_30}. The figures come from the Bank of Canada's Valet service."
   }
 }

@@ -1,20 +1,36 @@
 {
   "sources": {
-    "src_ecb_mrr": {
-      "connector": "ecb",
+    "src_boc_rate": {
+      "connector": "boc-valet",
       "licence": {
-        "name": "ECB terms of use",
-        "redistribution": false,
-        "url": "https://www.ecb.europa.eu/services/disclaimer/html/index.en.html"
+        "name": "Bank of Canada terms of use",
+        "redistribution": true,
+        "url": "https://www.bankofcanada.ca/terms/"
       },
       "primary": true,
       "published_at": null,
-      "publisher": "European Central Bank",
-      "retrieved_at": "2026-11-18",
-      "short": "ECB Data Portal",
-      "title": "ECB Data Portal: main refinancing operations, fixed rate",
+      "publisher": "Bank of Canada",
+      "retrieved_at": "2026-11-28",
+      "short": "Bank of Canada Valet",
+      "title": "Bank of Canada: policy interest rate (Valet)",
       "type": "dataset",
-      "url": "https://data.ecb.europa.eu/data/datasets/FM/FM.B.U2.EUR.4F.KR.MRR_FR.LEV"
+      "url": "https://www.bankofcanada.ca/rates/interest-rates/key-interest-rate/"
+    },
+    "src_boc_statement": {
+      "connector": "cb-boc",
+      "licence": {
+        "name": "Bank of Canada terms of use",
+        "redistribution": true,
+        "url": "https://www.bankofcanada.ca/terms/"
+      },
+      "primary": true,
+      "published_at": "2026-10-28",
+      "publisher": "Bank of Canada",
+      "retrieved_at": "2026-11-28",
+      "short": "Interest rate announcement",
+      "title": "Bank of Canada press release: interest rate announcement",
+      "type": "statement",
+      "url": "https://www.bankofcanada.ca/2026/10/fad-press-release-2026-10-28/"
     }
   },
   "version": 1

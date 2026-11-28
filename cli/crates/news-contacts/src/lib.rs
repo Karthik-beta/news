@@ -366,6 +366,7 @@ mod tests {
                 "arxiv",
                 "bea",
                 "bls",
+                "boc-valet",
                 "cb-boc",
                 "cb-boe",
                 "cb-ecb",
@@ -441,6 +442,17 @@ mod tests {
             "FRED's per-series terms are unclear: link and summarise"
         );
         assert_eq!(fred.auth_env.as_deref(), Some("FRED_API_KEY"));
+        // The Bank of Canada's terms let anyone use, copy and distribute its content with attribution;
+        // the records cite them, and the licence gate lets the Stringers emit candidates.
+        for id in ["boc-valet", "cb-boc"] {
+            let boc = sources.iter().find(|s| s.source_id == id).unwrap();
+            assert_eq!(boc.licence.as_deref(), Some("custom"), "{id}");
+            assert!(boc.redistribution, "{id}");
+            assert_eq!(boc.attribution, "Source: Bank of Canada.");
+            let notes = boc.notes.as_deref().unwrap();
+            assert!(notes.contains("https://www.bankofcanada.ca/terms/"), "{id}");
+            assert!(licence_gate(id, boc.licence.as_deref()).is_ok());
+        }
         let bls = sources.iter().find(|s| s.source_id == "bls").unwrap();
         assert_eq!(bls.daily_quota, Some(400));
         // robots.txt applies to every BLS host except the documented API prefix.

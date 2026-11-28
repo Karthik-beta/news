@@ -61,6 +61,7 @@ pub const RULES: &[Rule] = &[
     // central-bank statements `policy`, papers `paper`.
     rr("ecb", "family:policy_rate", "macro", POLICY, "eu"),
     rr("ecb", "family:eur_usd", "macro", ECONOMY, "eu"),
+    rr("boc-valet", "family:policy_rate", "macro", POLICY, "ca"),
     rr("eurostat", "family:hicp", "macro", INFLATION, "eu"),
     rr("oecd", "family:cpi_yoy", "macro", INFLATION, "us"),
     rr("oecd", "family:cli", "macro", ECONOMY, "us"),

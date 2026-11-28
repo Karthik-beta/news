@@ -12,7 +12,7 @@ NEWS_WORK_DIR=pipeline/fixtures news check earnings    # live link checks and ax
 | `earnings` | Apple's fiscal 2024 Form 10-K facts, SEC companyfacts (`site/tests/support/sec/`) | Public domain |
 | `macro-release` | BLS payrolls (`CES0000000001`) and unemployment rate (`LNS14000000`) | Public domain |
 | `major-report` | World Bank, GDP (current US$), United States | CC BY 4.0 |
-| `policy-decision` | ECB main refinancing rate (`FM.MRR`) | ECB terms: cited, no download (C8) |
+| `policy-decision` | Bank of Canada target for the overnight rate (Valet `B114039`), with the 28 October 2026 announcement as context | Bank of Canada terms of use: free to use, copy and distribute with attribution |
 | `news-story` | The Bank of Canada's interest rate announcement of 28 October 2026 (`centralbank/boc-statement-20261028.html`, through the `cb-boc` Stringer) | Bank of Canada terms of use: free to use, copy and distribute with attribution |
 | `science` | NASA Image and Video Library, Artemis II launch | NASA media guidelines |
 | `explainer` | BLS consumer price index (`CUUR0000SA0`) | Public domain |

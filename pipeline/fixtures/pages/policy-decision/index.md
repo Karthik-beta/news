@@ -1,47 +1,52 @@
 ---
-title: "The ECB's main refinancing rate has been 2.65% since 2026-09-16"
-fly_title: "Euro-area interest rates"
-summary: "The rate replaced 2.4%, which had applied since 2026-06-17. The figures come from the ECB Data Portal."
+title: "The Bank of Canada raised its target for the overnight rate to 2.50%"
+fly_title: "Canadian interest rates"
+summary: "The target replaced 2.25%, which had applied since 2025-10-30. The figures come from the Bank of Canada's Valet service."
 generator: "news-renderer 1.1.0"
 ---
 
-Euro-area interest rates
+Canadian interest rates
 
-# The ECB's main refinancing rate has been 2.65% since 2026-09-16
+# The Bank of Canada raised its target for the overnight rate to 2.50%
 
-The rate replaced 2.4%, which had applied since 2026-06-17. The figures come from the ECB Data Portal.
+The target replaced 2.25%, which had applied since 2025-10-30. The figures come from the Bank of Canada's Valet service.
 
-- **Main refinancing operations, fixed rate:** 2.65%
-- **In effect from:** 2026-09-16
-- **Previous rate:** 2.4%
-- **Context:** Financial market data: highest since 2025-03-12
+- **Target for the overnight rate:** 2.50%
+- **In effect from:** 2026-10-29
+- **Previous rate:** 2.25%
+- **Context:** Target for the overnight rate: first rise since 2023-07-13
 
-Source: European Central Bank, ECB Data Portal.
+Source: Bank of Canada, Bank of Canada Valet.
 
-### The rate in effect is above the rate it replaced
+### The target is above the rate it replaced
 
-Main refinancing operations, fixed rate, % per annum, 2023-08-02 to 2026-09-16
+Target for the overnight rate, %, 2023-06-08 to 2026-10-29
 
-| Period | Financial market data, 2023-08-02 to 2026-09-16 (%) |
+| Period | Target for the overnight rate, 2023-06-08 to 2026-10-29 (%) |
 | --- | ---: |
-| 2023-08-02 | 4.25 |
-| 2023-09-20 | 4.5 |
-| 2024-06-12 | 4.25 |
-| 2024-09-18 | 3.65 |
-| 2024-10-23 | 3.4 |
-| 2024-12-18 | 3.15 |
-| 2025-02-05 | 2.9 |
-| 2025-03-12 | 2.65 |
-| 2025-04-23 | 2.4 |
-| 2025-06-11 | 2.15 |
-| 2026-06-17 | 2.4 |
-| 2026-09-16 | 2.65 |
+| 2023-06-08 | 4.75 |
+| 2023-07-13 | 5.00 |
+| 2024-06-06 | 4.75 |
+| 2024-07-25 | 4.50 |
+| 2024-09-05 | 4.25 |
+| 2024-10-24 | 3.75 |
+| 2024-12-12 | 3.25 |
+| 2025-01-30 | 3.00 |
+| 2025-03-13 | 2.75 |
+| 2025-09-18 | 2.50 |
+| 2025-10-30 | 2.25 |
+| 2026-10-29 | 2.50 |
 
-The ECB Data Portal publishes the rate as main refinancing operations, fixed rate, and records a new value on the date a change takes effect. Its series is the source of every figure on this page.
+> “The Bank of Canada today increased its target for the overnight rate by 25 basis points to 2.5%, with the Bank Rate at 2.75% and the deposit rate at 2.45%.”
+>
+> — [Interest rate announcement](https://www.bankofcanada.ca/2026/10/fad-press-release-2026-10-28/)
 
-- **2026-06-17:** The rate became 2.4%.
-- **2026-09-16 (key event):** The rate became 2.65%.
+The Bank of Canada's Valet service publishes the target for the overnight rate as a dated series; the decision, the chart and the timeline come from it. The quotation comes from the Bank's announcement of the decision.
+
+- **2025-10-30:** The target became 2.25%.
+- **2026-10-29 (key event):** The target became 2.50%.
 
 ## Sources
 
-- [ECB Data Portal: main refinancing operations, fixed rate](https://data.ecb.europa.eu/data/datasets/FM/FM.B.U2.EUR.4F.KR.MRR_FR.LEV). European Central Bank. ECB terms of use. Retrieved 18 November 2026.
+- [Bank of Canada: policy interest rate (Valet)](https://www.bankofcanada.ca/rates/interest-rates/key-interest-rate/). Bank of Canada. Bank of Canada terms of use. Retrieved 28 November 2026.
+- [Bank of Canada press release: interest rate announcement](https://www.bankofcanada.ca/2026/10/fad-press-release-2026-10-28/). Bank of Canada. Bank of Canada terms of use. Retrieved 28 November 2026.

@@ -1,0 +1,21 @@
+# Contacts row for the Bank of Canada Valet API (Bureau Design §3.1). Loaded by `news sources sync`; the Contacts lint checks it in CI.
+source_id = "boc-valet"
+name = "Bank of Canada Valet API"
+publisher = "Bank of Canada"
+connector = "boc-valet"
+base_url = "https://www.bankofcanada.ca/valet/"
+source_tier = 1
+licence = "custom"
+attribution = "Source: Bank of Canada."
+redistribution = true
+image_policy = "none"
+rate_per_sec = 0.5
+documented_rate_per_sec = 1
+documented_limit = "No published request limit (unverified: 28 Nov 2026); polite pacing"
+max_concurrency = 1
+robots_respect = true
+requires_contact_email = false
+regions = ["ca"]
+categories = ["economy","monetary-policy"]
+enabled = true
+notes = "Every Valet response names its terms (\"terms\": {\"url\": \"https://www.bankofcanada.ca/terms/\"}). Bank of Canada Terms of use (read 28 Nov 2026), section 1: the Bank permits you to freely use, copy, distribute and transmit its website content, provided you (1.1) attribute the Bank of Canada as the source and indicate changes, (1.2) take care that reproduced content is accurate and (1.3) tell buyers of any paid product that the content is free on the Bank's website. Section 2 excludes bank note images, the logo and wordmark, and third-party content; the target for the overnight rate is the Bank's own. Followed series: B114039, the target for the overnight rate on each date a new target took effect (the change-dated form of V39079). Values are strings kept as published (\"2.50\"); unit as the response states it (\"Percent\"). Discovery: recent=1 probe; history: recent=12."

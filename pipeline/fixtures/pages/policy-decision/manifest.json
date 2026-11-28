@@ -1,38 +1,43 @@
 {
-  "bundle_sha256": "a789c107924530c952f9aff31891453ce98329706d7a6193323df5da8431cb42",
+  "bundle_sha256": "02d5c0918f414b3972884fbea040fbbe1c644ad3458145c2c62de03ade4d8e59",
   "files": [
     {
-      "bytes": 9648,
+      "bytes": 274,
+      "path": "charts/path.csv",
+      "sha256": "bbabd8cdd9a07c97e5e6474b72b6b1d9179870c89b82d032cb842f4895e2669f"
+    },
+    {
+      "bytes": 8765,
       "path": "data.json",
-      "sha256": "b7fce490be2a02cb9bb45997b923a4538a83b419bc0dbd745fb704288c13351d"
+      "sha256": "30b97ea4811991bdc8ca55af1d4f15e87822681bf832ecc984992b7c288923b5"
     },
     {
-      "bytes": 21508,
+      "bytes": 22383,
       "path": "index.html",
-      "sha256": "1cfa1dd01296951808084d96fa1e937015d38d490aca7d12906c59f02ba7dc26"
+      "sha256": "cb6a4eee549306e02524f97d2268bd13a20a6d80a8ab8604b9662d1f0ac0d71a"
     },
     {
-      "bytes": 1672,
+      "bytes": 2187,
       "path": "index.md",
-      "sha256": "561cb961ead41960e8aef98e7d146a57e1d97779253ffe08d5ec823b120c44af"
+      "sha256": "a80563f71f7ddd2fcc97c1ca94e7eccc695743aed56bb2267579f32b7a27fe75"
     },
     {
-      "bytes": 1231,
+      "bytes": 1272,
       "path": "meta.json",
-      "sha256": "98046a597c40f457ef13798e7d0e9abbc5364a3afdeba1497ec32d86eff28053"
+      "sha256": "2ecba5c620e1d7d4c6e8163842c896cca2daeb7302b488db628d607d7e732b91"
     },
     {
-      "bytes": 935,
+      "bytes": 964,
       "path": "page.oui",
-      "sha256": "613981c22af8d923494e1759d6de1e082489c5f0421eb7c2754cfc2f2635eb7e"
+      "sha256": "c09f63da6ce47945bef9370ecc532f353fdb93abb57a7740bc9285684dfdfd9f"
     },
     {
-      "bytes": 624,
+      "bytes": 1174,
       "path": "sources.json",
-      "sha256": "48b13dca3aab5c508dabb58204c0d9e8694c343bedd5d4fd1ab3f6a33a54851b"
+      "sha256": "c4115c06f96255350ce91b3a85bca38c5e57f1437619dee6f7b41c467096fb19"
     }
   ],
-  "page_id": "macro-ea-policy-rate-2026-09-16",
+  "page_id": "macro-ca-policy-rate-2026-10-29",
   "schema": "manifest.v1",
   "version": 1
 }

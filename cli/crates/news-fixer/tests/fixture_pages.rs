@@ -354,37 +354,45 @@ fn major_report() -> Fixture {
     }
 }
 
-/// The ECB's main refinancing rate, ECB Data Portal, recorded 18 Nov 2026. The registry says the data may be
-/// cited but not redistributed, so the page offers no download of it (C8).
+/// The Bank of Canada's target for the overnight rate, Valet series B114039, recorded 28 Nov 2026, with the
+/// Bank's announcement of 28 October 2026 as context (Bank of Canada terms of use: free to use, copy and
+/// distribute with attribution).
 fn policy_decision() -> Fixture {
     let p = stat(
-        "ecb",
-        "FM.MRR",
-        "ecb/FM.MRR-probe.json",
-        "ecb/FM.MRR-history.json",
-        t(2026, 11, 18, 6),
+        "boc-valet",
+        "B114039",
+        "boc-valet/B114039-probe.json",
+        "boc-valet/B114039-history.json",
+        t(2026, 11, 28, 3),
     );
+    let (statement, doc, _) = boc_statement(7002);
     let mut inputs = from_parsed(91004, "policy-decision", 1, &[&p]);
     inputs.categories = vec!["economy".into(), "monetary-policy".into()];
-    inputs.entities = vec![entity("ent_ecb", "European Central Bank", "central_bank")];
+    inputs.entities = vec![entity("ent_boc", "Bank of Canada", "central_bank")];
+    inputs.documents = vec![doc];
+    let mut prov = provenance(&[(&p, "src_boc_rate")]);
+    prov.docs.insert(7002, "src_boc_statement".into());
     Fixture {
         name: "policy-decision",
-        prov: provenance(&[(&p, "src_ecb_mrr")]),
+        prov,
         inputs,
-        docs: vec![Doc {
-            src: "src_ecb_mrr",
-            registry: "ecb",
-            title: "ECB Data Portal: main refinancing operations, fixed rate",
-            short: "ECB Data Portal",
-            kind: "dataset",
-            url: "https://data.ecb.europa.eu/data/datasets/FM/FM.B.U2.EUR.4F.KR.MRR_FR.LEV".into(),
-            licence: "ECB terms of use",
-            licence_url: Some("https://www.ecb.europa.eu/services/disclaimer/html/index.en.html"),
-            published: None,
-            retrieved: t(2026, 11, 18, 6),
-        }],
-        region: "europe",
-        tags: vec!["ecb", "interest-rates"],
+        docs: vec![
+            Doc {
+                src: "src_boc_rate",
+                registry: "boc-valet",
+                title: "Bank of Canada: policy interest rate (Valet)",
+                short: "Bank of Canada Valet",
+                kind: "dataset",
+                url: p.candidates[0].url.clone(),
+                licence: "Bank of Canada terms of use",
+                licence_url: Some("https://www.bankofcanada.ca/terms/"),
+                published: None,
+                retrieved: t(2026, 11, 28, 3),
+            },
+            statement,
+        ],
+        region: "north-america",
+        tags: vec!["bank-of-canada", "interest-rates"],
     }
 }
 
@@ -442,9 +450,10 @@ fn statement_blocks(html: &str) -> Vec<Block> {
 }
 
 /// The Bank of Canada's interest rate announcement of 28 October 2026, recorded 28 Nov 2026 (Bank of Canada
-/// terms of use: free to use, copy and distribute with attribution). The item comes from the recorded press
-/// feed through the `cb-boc` Stringer, which also parses the page.
-fn news_story() -> Fixture {
+/// terms of use: free to use, copy and distribute with attribution), as document `doc_id`, and its source
+/// record and event key. The item comes from the recorded press feed through the `cb-boc` Stringer, which also parses the
+/// page.
+fn boc_statement(doc_id: i64) -> (Doc, Document, Option<String>) {
     let conn = connector("cb-boc").unwrap();
     let c = cx(&[]);
     let req = &conn.discovery_requests(&c, None)[0];
@@ -470,9 +479,33 @@ fn news_story() -> Fixture {
     let p = conn
         .parse(item, &[snap(url, bytes, t(2026, 11, 28, 3))])
         .unwrap();
+    assert_eq!(p.candidates[0].event_key, item.event_key_hint);
+    let doc = Doc {
+        src: "src_boc_statement",
+        registry: "cb-boc",
+        title: "Bank of Canada press release: interest rate announcement",
+        short: "Interest rate announcement",
+        kind: "statement",
+        url: item.url.clone(),
+        licence: "Bank of Canada terms of use",
+        licence_url: Some("https://www.bankofcanada.ca/terms/"),
+        published: item.published_at.map(|d| d.date_naive().to_string()),
+        retrieved: t(2026, 11, 28, 3),
+    };
+    let blocks = statement_blocks(&html);
+    (
+        doc,
+        Document { doc_id, blocks },
+        item.event_key_hint.clone(),
+    )
+}
+
+/// The Bank of Canada's announcement of 28 October 2026, quoted.
+fn news_story() -> Fixture {
+    let (statement, doc, event_key) = boc_statement(7001);
     let inputs = Inputs {
         story_id: 91005,
-        event_key: p.candidates[0].event_key.clone(),
+        event_key,
         page_type: "news-story".into(),
         tier: 2,
         action: Action::New,
@@ -480,10 +513,7 @@ fn news_story() -> Fixture {
         entities: vec![entity("ent_boc", "Bank of Canada", "central_bank")],
         points: Vec::new(),
         history: Vec::new(),
-        documents: vec![Document {
-            doc_id: 7001,
-            blocks: statement_blocks(&html),
-        }],
+        documents: vec![doc],
         images: Vec::new(),
         related: Vec::new(),
     };
@@ -493,18 +523,7 @@ fn news_story() -> Fixture {
         name: "news-story",
         inputs,
         prov,
-        docs: vec![Doc {
-            src: "src_boc_statement",
-            registry: "cb-boc",
-            title: "Bank of Canada press release: interest rate announcement",
-            short: "Interest rate announcement",
-            kind: "statement",
-            url: item.url.clone(),
-            licence: "Bank of Canada terms of use",
-            licence_url: Some("https://www.bankofcanada.ca/terms/"),
-            published: item.published_at.map(|d| d.date_naive().to_string()),
-            retrieved: t(2026, 11, 28, 3),
-        }],
+        docs: vec![statement],
         region: "north-america",
         tags: vec!["bank-of-canada", "interest-rates"],
     }
