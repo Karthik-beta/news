@@ -1,0 +1,212 @@
+{
+  "title": "Payrolls and the unemployment rate as published",
+  "subtitle": "Seasonally adjusted, monthly from January 2024",
+  "unit": null,
+  "currency": null,
+  "scale": null,
+  "columns": [
+    {
+      "key": "label",
+      "label": "Period"
+    },
+    {
+      "key": "sr_3bj36ttsa3ar",
+      "label": "All employees, thousands, total nonfarm, seasonally adjusted, January 2024 to October 2026 (All employees, thousands)"
+    },
+    {
+      "key": "sr_yahxrdyv7qax",
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted, January 2024 to October 2026 (%)"
+    }
+  ],
+  "rows": [
+    {
+      "label": "January 2024",
+      "sr_3bj36ttsa3ar": "157032",
+      "sr_yahxrdyv7qax": "3.7"
+    },
+    {
+      "label": "February 2024",
+      "sr_3bj36ttsa3ar": "157238",
+      "sr_yahxrdyv7qax": "3.9"
+    },
+    {
+      "label": "March 2024",
+      "sr_3bj36ttsa3ar": "157466",
+      "sr_yahxrdyv7qax": "3.9"
+    },
+    {
+      "label": "April 2024",
+      "sr_3bj36ttsa3ar": "157530",
+      "sr_yahxrdyv7qax": "3.9"
+    },
+    {
+      "label": "May 2024",
+      "sr_3bj36ttsa3ar": "157608",
+      "sr_yahxrdyv7qax": "3.9"
+    },
+    {
+      "label": "June 2024",
+      "sr_3bj36ttsa3ar": "157695",
+      "sr_yahxrdyv7qax": "4.1"
+    },
+    {
+      "label": "July 2024",
+      "sr_3bj36ttsa3ar": "157748",
+      "sr_yahxrdyv7qax": "4.2"
+    },
+    {
+      "label": "August 2024",
+      "sr_3bj36ttsa3ar": "157757",
+      "sr_yahxrdyv7qax": "4.2"
+    },
+    {
+      "label": "September 2024",
+      "sr_3bj36ttsa3ar": "157912",
+      "sr_yahxrdyv7qax": "4.1"
+    },
+    {
+      "label": "October 2024",
+      "sr_3bj36ttsa3ar": "157945",
+      "sr_yahxrdyv7qax": "4.1"
+    },
+    {
+      "label": "November 2024",
+      "sr_3bj36ttsa3ar": "158079",
+      "sr_yahxrdyv7qax": "4.2"
+    },
+    {
+      "label": "December 2024",
+      "sr_3bj36ttsa3ar": "158316",
+      "sr_yahxrdyv7qax": "4.1"
+    },
+    {
+      "label": "January 2025",
+      "sr_3bj36ttsa3ar": "158268",
+      "sr_yahxrdyv7qax": "4.0"
+    },
+    {
+      "label": "February 2025",
+      "sr_3bj36ttsa3ar": "158310",
+      "sr_yahxrdyv7qax": "4.2"
+    },
+    {
+      "label": "March 2025",
+      "sr_3bj36ttsa3ar": "158377",
+      "sr_yahxrdyv7qax": "4.2"
+    },
+    {
+      "label": "April 2025",
+      "sr_3bj36ttsa3ar": "158485",
+      "sr_yahxrdyv7qax": "4.2"
+    },
+    {
+      "label": "May 2025",
+      "sr_3bj36ttsa3ar": "158498",
+      "sr_yahxrdyv7qax": "4.3"
+    },
+    {
+      "label": "June 2025",
+      "sr_3bj36ttsa3ar": "158478",
+      "sr_yahxrdyv7qax": "4.1"
+    },
+    {
+      "label": "July 2025",
+      "sr_3bj36ttsa3ar": "158542",
+      "sr_yahxrdyv7qax": "4.3"
+    },
+    {
+      "label": "August 2025",
+      "sr_3bj36ttsa3ar": "158472",
+      "sr_yahxrdyv7qax": "4.3"
+    },
+    {
+      "label": "September 2025",
+      "sr_3bj36ttsa3ar": "158548",
+      "sr_yahxrdyv7qax": "4.4"
+    },
+    {
+      "label": "October 2025",
+      "sr_3bj36ttsa3ar": "158408",
+      "sr_yahxrdyv7qax": null
+    },
+    {
+      "label": "November 2025",
+      "sr_3bj36ttsa3ar": "158449",
+      "sr_yahxrdyv7qax": "4.5"
+    },
+    {
+      "label": "December 2025",
+      "sr_3bj36ttsa3ar": "158432",
+      "sr_yahxrdyv7qax": "4.4"
+    },
+    {
+      "label": "January 2026",
+      "sr_3bj36ttsa3ar": "158592",
+      "sr_yahxrdyv7qax": "4.3"
+    },
+    {
+      "label": "February 2026",
+      "sr_3bj36ttsa3ar": "158436",
+      "sr_yahxrdyv7qax": "4.4"
+    },
+    {
+      "label": "March 2026",
+      "sr_3bj36ttsa3ar": "158650",
+      "sr_yahxrdyv7qax": "4.3"
+    },
+    {
+      "label": "April 2026",
+      "sr_3bj36ttsa3ar": "158798",
+      "sr_yahxrdyv7qax": "4.3"
+    },
+    {
+      "label": "May 2026",
+      "sr_3bj36ttsa3ar": "158861",
+      "sr_yahxrdyv7qax": "4.3"
+    },
+    {
+      "label": "June 2026",
+      "sr_3bj36ttsa3ar": "158892",
+      "sr_yahxrdyv7qax": "4.2"
+    },
+    {
+      "label": "July 2026",
+      "sr_3bj36ttsa3ar": "158882",
+      "sr_yahxrdyv7qax": "4.1"
+    },
+    {
+      "label": "August 2026",
+      "sr_3bj36ttsa3ar": "159068",
+      "sr_yahxrdyv7qax": "4.1"
+    },
+    {
+      "label": "September 2026",
+      "sr_3bj36ttsa3ar": "159128",
+      "sr_yahxrdyv7qax": "4.2"
+    },
+    {
+      "label": "October 2026",
+      "sr_3bj36ttsa3ar": "159293",
+      "sr_yahxrdyv7qax": "4.1"
+    }
+  ],
+  "sources": [
+    {
+      "id": "src_bls_ces",
+      "title": "Current Employment Statistics: total nonfarm employment",
+      "publisher": "U.S. Bureau of Labor Statistics",
+      "url": "https://data.bls.gov/timeseries/CES0000000001",
+      "licence": "Public domain",
+      "retrieved_at": "2026-11-16"
+    },
+    {
+      "id": "src_bls_cps",
+      "title": "Current Population Survey: unemployment rate",
+      "publisher": "U.S. Bureau of Labor Statistics",
+      "url": "https://data.bls.gov/timeseries/LNS14000000",
+      "licence": "Public domain",
+      "retrieved_at": "2026-11-16"
+    }
+  ],
+  "generator": "news-renderer 1.1.0"
+}

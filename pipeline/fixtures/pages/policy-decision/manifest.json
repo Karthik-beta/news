@@ -1,10 +1,15 @@
 {
-  "bundle_sha256": "345b955a621142ecf477d9850c3d09eee6a81bf1cc265f1dda6e34c0a27f9cc7",
+  "bundle_sha256": "a877c153d713ddf0faacfaca42461922f4089adc271beb89876199a244d42cb9",
   "files": [
     {
       "bytes": 274,
       "path": "charts/path.csv",
       "sha256": "bbabd8cdd9a07c97e5e6474b72b6b1d9179870c89b82d032cb842f4895e2669f"
+    },
+    {
+      "bytes": 1661,
+      "path": "charts/path.json",
+      "sha256": "c518b09d7173ec1c0ff4d8e867da8b99942f3c05bddd3162c93a8e3b547bfa6b"
     },
     {
       "bytes": 8765,

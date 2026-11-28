@@ -54,6 +54,12 @@ describe("put-page request", () => {
     expect(check(schemas.validatePutPageRequest, await makeBundle()).ok).toBe(true);
   });
 
+  it("accepts a chart's JSON download beside its CSV", async () => {
+    const bundle = await makeBundle();
+    const files = { ...bundle.files, "charts/cpi-trend.json": "{}\n" };
+    expect(check(schemas.validatePutPageRequest, { ...bundle, files }).ok).toBe(true);
+  });
+
   it.each(["../escape.html", "index.php", "charts/../x.csv", "CHARTS/a.csv", "charts/a.svg"])(
     "refuses the file name %s",
     async (name) => {

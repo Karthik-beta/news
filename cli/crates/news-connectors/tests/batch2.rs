@@ -149,13 +149,18 @@ fn ecb_policy_rate_keeps_the_ecb_dates_and_units() {
     // The rate is published only when it changes: irregular dates stay as published.
     let labels: Vec<&str> = p.points.iter().map(|d| d.period_label.as_str()).collect();
     assert_eq!(&labels[9..], ["2025-06-11", "2026-06-17", "2026-09-16"]);
+    // Dated the day the rate took effect, not the decision day: no key of its own (the `cb-ecb` statement
+    // keys the story), and the bank as its entity, like the Bank of Canada's Valet target.
     let c = &p.candidates[0];
-    assert_eq!(
-        c.event_key.as_deref(),
-        Some("macro:ea.policy_rate:2026-09-16")
-    );
+    assert_eq!(c.event_key, None);
+    assert_eq!(c.entity, Some(("cb".into(), "ecb".into())));
     assert_eq!(c.rule_key, "family:policy_rate");
-    assert_eq!(p.entities[0].value, "EA");
+    let entities: Vec<(&str, &str)> = p
+        .entities
+        .iter()
+        .map(|e| (e.value.as_str(), e.kind.as_str()))
+        .collect();
+    assert_eq!(entities, [("EA", "country"), ("ecb", "central_bank")]);
 }
 
 #[test]
