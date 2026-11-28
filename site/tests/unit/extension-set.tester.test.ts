@@ -7,7 +7,7 @@
 import { JSDOM } from "jsdom";
 import { describe, expect, it } from "vitest";
 import type { z } from "zod/v4";
-import { type ChartNote, linePlot, lineChartData, numberedNotes } from "../../src/components/LineChart/geometry";
+import { type ChartNote, lineChartData, linePlot, numberedNotes } from "../../src/components/LineChart/geometry";
 import lineChartSpec from "../../src/components/LineChart/spec";
 import sourceCardSpec from "../../src/components/SourceCard/spec";
 import stepsSpec from "../../src/components/Steps/spec";
@@ -65,7 +65,10 @@ function render(oui: string, extra: { points?: Record<string, Point>; sources?: 
     };
   }
   for (const [id, s] of Object.entries(extra.sources ?? {})) base.sources.sources[id] = s;
-  const result = renderPage({ oui, ...base, head: { flyTitle: "Test", headline: "Test", summary: "Test" } }, { library });
+  const result = renderPage(
+    { oui, ...base, head: { flyTitle: "Test", headline: "Test", summary: "Test" } },
+    { library },
+  );
   return { result, doc: new JSDOM(result.article).window.document, md: result.files["index.md"] as string };
 }
 
@@ -291,9 +294,7 @@ describe("Steps", () => {
     const p = render(`root = Page([p])\np = Prose([${refs.map((r) => JSON.stringify(sentence(r))).join(", ")}])`, {
       points: MONEY,
     });
-    const stepTexts = [...s.doc.querySelectorAll(".steps__text"), ...s2.doc.querySelectorAll(".steps__text")].map(
-      text,
-    );
+    const stepTexts = [...s.doc.querySelectorAll(".steps__text"), ...s2.doc.querySelectorAll(".steps__text")].map(text);
     const proseTexts = [...p.doc.querySelectorAll(".prose p")].map(text);
     expect(stepTexts).toEqual(proseTexts);
     const all = stepTexts.join(" ");

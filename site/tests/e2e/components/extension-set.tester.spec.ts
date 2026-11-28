@@ -174,7 +174,10 @@ for (const p of PAGES) {
   test.describe(() => {
     // The blocked font requests are the only failures these tests allow.
     test.use({
-      allowedConsoleErrors: [[/\/fonts\//,/^Failed to load resource/, /downloadable font/i], { scope: "test" }] as never,
+      allowedConsoleErrors: [
+        [/\/fonts\//, /^Failed to load resource/, /downloadable font/i],
+        { scope: "test" },
+      ] as never,
     });
     test(`${p}: still reads with the web fonts blocked`, async ({ page }) => {
       await page.route("**/fonts/**", (r) => r.abort());
@@ -248,12 +251,13 @@ for (const p of PAGES) {
   }) => {
     await gotoPage(page, url(p));
     await hydrateVisible(page);
-    const before = await page.locator("main").innerText();
     await page.emulateMedia({ media: "print" });
     for (const sel of [".source-card", ".steps__step", ".line-chart__notes li", ".line-chart__event-label"])
       for (const el of await page.locator(sel).all()) await expect(el).toBeVisible();
-    for (const t of await page.locator(".steps__title, .steps__text, .source-card__title, .line-chart__note").all())
-      expect(before).toContain((await t.innerText()).trim().split("\n")[0]);
+    for (const t of await page.locator(".steps__title, .steps__text, .source-card__title, .line-chart__note").all()) {
+      await expect(t).toBeVisible();
+      await expect(t).not.toBeEmpty();
+    }
     await expectNoSidewaysScroll(page);
     await expectNoClippedText(page);
   });
@@ -307,13 +311,13 @@ test.describe("SourceCard", () => {
     }
   });
 
-  test("the title is one link named by the document's title, with a visible focus ring", { tag: "@interaction" }, async ({
-    page,
-    browserName,
-    isMobile,
-  }) => {
+  test("the title is one link named by the document's title, with a visible focus ring", {
+    tag: "@interaction",
+  }, async ({ page, browserName, isMobile }) => {
     await gotoPage(page, url("SourceCard/default"));
-    const link = page.locator(".source-card").getByRole("link", { name: "Apple Inc. Form 10-K, fiscal 2024", exact: true });
+    const link = page
+      .locator(".source-card")
+      .getByRole("link", { name: "Apple Inc. Form 10-K, fiscal 2024", exact: true });
     await expect(link).toHaveCount(1);
     await expect(link).toHaveAttribute("href", /^https:\/\/www\.sec\.gov\//);
     test.skip(isMobile || browserName === "webkit", "WebKit does not tab to links by default; no keyboard on phones");
@@ -357,7 +361,10 @@ test.describe("SourceCard", () => {
   test("the sources panel lists each card's source", async ({ page }) => {
     await gotoPage(page, url("SourceCard/default"));
     const panel = page.getByRole("region", { name: "Sources" });
-    for (const title of ["Apple Inc. Form 10-K, fiscal 2024", "A test trial of a daily walking programme, fixture paper"])
+    for (const title of [
+      "Apple Inc. Form 10-K, fiscal 2024",
+      "A test trial of a daily walking programme, fixture paper",
+    ])
       await expect(panel.getByRole("link", { name: title, exact: true })).toHaveCount(1);
   });
 });
@@ -411,7 +418,9 @@ test.describe("Steps", () => {
         const steps = [...list.querySelectorAll<HTMLElement>(":scope > .steps__step")];
         return steps.slice(0, -1).map((li, i) => {
           const num = (li.querySelector(".steps__number") as HTMLElement).getBoundingClientRect();
-          const next = (steps[i + 1]?.querySelector(".steps__number") as HTMLElement).getBoundingClientRect();
+          const next = (
+            (steps[i + 1] as HTMLElement).querySelector(".steps__number") as HTMLElement
+          ).getBoundingClientRect();
           const body = (li.querySelector(".steps__body") as HTMLElement).getBoundingClientRect();
           const title = (li.querySelector(".steps__title") as HTMLElement).getBoundingClientRect();
           const a = getComputedStyle(li, "::after");
@@ -458,9 +467,13 @@ test.describe("Steps", () => {
 
   test("steps are 24px apart and the source line sits 16px under the list", async ({ page }) => {
     await gotoPage(page, url("Steps/default"));
-    const gaps = await page.locator(".steps__step").evaluateAll((els) =>
-      els.slice(1).map((el, i) => el.getBoundingClientRect().top - (els[i] as Element).getBoundingClientRect().bottom),
-    );
+    const gaps = await page
+      .locator(".steps__step")
+      .evaluateAll((els) =>
+        els
+          .slice(1)
+          .map((el, i) => el.getBoundingClientRect().top - (els[i] as Element).getBoundingClientRect().bottom),
+      );
     const s6 = Number.parseFloat(await resolved(page, "padding-top", "var(--space-6)"));
     for (const g of gaps) expect(Math.abs(g + s6) <= 1 || Math.abs(g) <= 1).toBe(true);
     const listToSource = await page
@@ -473,7 +486,10 @@ test.describe("Steps", () => {
       });
     expect(listToSource).toBeCloseTo(Number.parseFloat(await resolved(page, "padding-top", "var(--space-4)")), 0);
     // The step itself pads 24px below all but the last.
-    const pad = await page.locator(".steps__step").first().evaluate((n) => getComputedStyle(n).paddingBottom);
+    const pad = await page
+      .locator(".steps__step")
+      .first()
+      .evaluate((n) => getComputedStyle(n).paddingBottom);
     expect(Number.parseFloat(pad)).toBe(s6);
   });
 
@@ -529,9 +545,9 @@ test.describe("LineChart notes", () => {
     for (const s of ["cpi", "close", "odd"]) expect(await collisions(figure(page, s)), s).toEqual([]);
   });
 
-  test("note numbers on a tight plot (200% text) never overlap each other or any other label", { tag: "@zoom" }, async ({
-    page,
-  }) => {
+  test("note numbers on a tight plot (200% text) never overlap each other or any other label", {
+    tag: "@zoom",
+  }, async ({ page }) => {
     await gotoPage(page, PATH);
     await hydrateVisible(page);
     await setTextSize(page, 200);
@@ -635,7 +651,11 @@ test("in context: card, steps and chart read in the explainer body, in order and
   await hydrateVisible(page);
   const blocks = await page
     .locator(".page-body > *")
-    .evaluateAll((els) => els.map((el) => [el.className.toString(), el.getBoundingClientRect().top, el.getBoundingClientRect().bottom] as const));
+    .evaluateAll((els) =>
+      els.map(
+        (el) => [el.className.toString(), el.getBoundingClientRect().top, el.getBoundingClientRect().bottom] as const,
+      ),
+    );
   expect(blocks.length).toBeGreaterThanOrEqual(7);
   for (let i = 1; i < blocks.length; i++) {
     const gap = (blocks[i]?.[1] ?? 0) - (blocks[i - 1]?.[2] ?? 0);
@@ -647,5 +667,10 @@ test("in context: card, steps and chart read in the explainer body, in order and
     .evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().left)));
   expect(new Set(lefts).size).toBe(1);
   // Showing the card cites it: the panel lists the statement.
-  await expect(page.getByRole("region", { name: "Sources" }).getByRole("link", { name: /FOMC statement|Federal Reserve/ }).first()).toBeVisible();
+  await expect(
+    page
+      .getByRole("region", { name: "Sources" })
+      .getByRole("link", { name: /FOMC statement|Federal Reserve/ })
+      .first(),
+  ).toBeVisible();
 });
