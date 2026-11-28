@@ -312,8 +312,8 @@ fn resolve(r: &str, brief: &Value) -> Option<String> {
     find("periods").and_then(|p| p["label"].as_str().map(str::to_owned))
 }
 
-/// The stored outputs of `prompt_version` for a set, checked against `schemas/output.schema.json`.
-pub fn outputs(root: &Path, set: &str, prompt_version: &str) -> NewsResult<Vec<Output>> {
+/// `pipeline/eval/<set>/outputs/<prompt_version>.jsonl`; `usage` when the version could name a path.
+pub fn outputs_path(root: &Path, set: &str, prompt_version: &str) -> NewsResult<PathBuf> {
     if prompt_version.is_empty()
         || !prompt_version
             .chars()
@@ -324,11 +324,16 @@ pub fn outputs(root: &Path, set: &str, prompt_version: &str) -> NewsResult<Vec<O
             "prompt version {prompt_version:?} must be letters, digits, '.', '-' or '_'"
         )));
     }
-    let path = root
+    Ok(root
         .join("pipeline/eval")
         .join(set)
         .join("outputs")
-        .join(format!("{prompt_version}.jsonl"));
+        .join(format!("{prompt_version}.jsonl")))
+}
+
+/// The stored outputs of `prompt_version` for a set, checked against `schemas/output.schema.json`.
+pub fn outputs(root: &Path, set: &str, prompt_version: &str) -> NewsResult<Vec<Output>> {
+    let path = outputs_path(root, set, prompt_version)?;
     let text = std::fs::read_to_string(&path).map_err(|e| {
         NewsError::not_found(format!("no stored outputs {}: {e}", path.display()))
             .with_hint("Audit stores each version's outputs there")
