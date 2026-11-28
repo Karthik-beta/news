@@ -6,12 +6,21 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { composeEnv, noEnvFileProblem } from "./env-file";
-import { root } from "./lib";
+import { root, shortsNetworkProblem } from "./lib";
 
 const notReady = noEnvFileProblem(process.execArgv, "scripts/compose.ts");
 if (notReady) {
   console.error(`✗ ${notReady}`);
   process.exit(1);
+}
+
+// news-otel joins the shorts project's external network; say plainly when it is missing instead of Compose's error.
+if (process.argv[2] === "up") {
+  const problem = shortsNetworkProblem();
+  if (problem) {
+    console.error(`✗ ${problem}`);
+    process.exit(1);
+  }
 }
 
 const envPath = join(root, ".env");

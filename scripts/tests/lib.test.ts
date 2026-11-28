@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, spyOn, test } from "bun:test";
 import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { chQuery, env, mark, root, run } from "../lib";
+import { chQuery, env, mark, root, run, SHORTS_NETWORK, shortsNetworkProblem } from "../lib";
 import { withEnv } from "./helpers";
 
 const bun = process.execPath;
@@ -166,4 +166,44 @@ describe("chQuery", () => {
       mockFetch(() => new Response(""));
       expect(await chQuery("CREATE TABLE IF NOT EXISTS t (x Int8) ENGINE = Memory")).toEqual({ ok: true, body: "" });
     }));
+});
+
+describe("shortsNetworkProblem", () => {
+  const runner = (ok: boolean, err = "") => {
+    const calls: string[][] = [];
+    const fn = (cmd: string, args: string[]) => {
+      calls.push([cmd, ...args]);
+      return { ok, err };
+    };
+    return { fn, calls };
+  };
+
+  test("is null when the network exists, and inspects exactly shorts_default", () => {
+    const r = runner(true);
+    expect(shortsNetworkProblem(r.fn)).toBeNull();
+    expect(r.calls).toEqual([["docker", "network", "inspect", "--format", "{{.Name}}", SHORTS_NETWORK]]);
+  });
+
+  test("a missing network says to start the shorts stack", () => {
+    const msg = shortsNetworkProblem(runner(false, "Error response from daemon: network shorts_default not found").fn);
+    expect(msg).toContain("start the shorts stack first");
+    expect(msg).toContain("shorts_default");
+  });
+
+  test("'No such network' is also read as missing", () => {
+    expect(shortsNetworkProblem(runner(false, "Error: No such network: shorts_default").fn)).toContain(
+      "start the shorts",
+    );
+  });
+
+  test("any other failure (engine down, docker missing) reports its first line", () => {
+    const msg = shortsNetworkProblem(runner(false, "Cannot connect to the Docker daemon\nmore").fn);
+    expect(msg).toBe("could not check Docker network shorts_default: Cannot connect to the Docker daemon");
+  });
+
+  test("an empty error still gives a reason", () => {
+    expect(shortsNetworkProblem(runner(false, "").fn)).toBe(
+      "could not check Docker network shorts_default: docker failed",
+    );
+  });
 });
