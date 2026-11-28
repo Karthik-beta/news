@@ -10,6 +10,7 @@ publish.workspace = true
 news-core = { workspace = true }
 news-store = { workspace = true }
 news-nose = { workspace = true }
+news-win = { workspace = true }
 chrono = { workspace = true }
 jsonschema = { workspace = true }
 reqwest = { workspace = true }

@@ -88,6 +88,7 @@ pub fn plan(spec: &ServiceSpec, source: &Path, root: Option<&Path>) -> Value {
         "copy_from": source,
         "binary": spec.exe,
         "repo_root": root,
+        "tools": found_tools().into_iter().map(|(n, p)| (n.to_owned(), json!(p))).collect::<serde_json::Map<_, _>>(),
         "arguments": spec.args.join(" "),
         "account": spec.account,
         "start": "automatic (delayed)",
@@ -104,6 +105,8 @@ pub fn plan(spec: &ServiceSpec, source: &Path, root: Option<&Path>) -> Value {
             "keep only SeChangeNotifyPrivilege in the service's token",
             "let the account query, start and stop the service without elevation",
             "record the repository root (repo_root) in the install folder, for Audit to read",
+            "record where docker and bun are (absolute paths found on PATH now) in the install \
+             folder: the service runs those, never a PATH lookup",
             "add Board's log-on entry for the account: the installed binary, board --minimized",
         ],
         "text": format!(
@@ -237,6 +240,30 @@ fn record_root(root: &Path, p: &InstallPaths) -> Result<(), NewsError> {
         .map_err(|e| io(&format!("cannot restrict {}", f.display()), e))
 }
 
+/// The absolute paths of the tools the service runs (docker, bun), found on PATH now.
+pub fn found_tools() -> Vec<(&'static str, PathBuf)> {
+    let path = std::env::var_os("PATH").unwrap_or_default();
+    news_win::TOOLS
+        .iter()
+        .filter_map(|t| Some((*t, news_win::find_on_path(t, &path)?)))
+        .collect()
+}
+
+/// Write the tools' paths into the admin-only install folder (security review on #10, finding 1):
+/// the service never looks a tool up on PATH, which any process running as Karthik can change.
+fn record_tools(p: &InstallPaths) -> Result<Value, NewsError> {
+    let found = found_tools();
+    let f = p.dir.join(news_win::TOOLS_FILE);
+    std::fs::write(&f, news_win::tools_text(&found))
+        .map_err(|e| io(&format!("cannot write {}", f.display()), e))?;
+    news_win::make_admin_only(&f, false)
+        .map_err(|e| io(&format!("cannot restrict {}", f.display()), e))?;
+    Ok(found
+        .into_iter()
+        .map(|(n, p)| (n.to_owned(), json!(p)))
+        .collect())
+}
+
 /// The elevated install's check of what the command line said: the SID is a user account's, and the
 /// account name resolves (`LookupAccountNameW`) to that same SID.
 pub fn check_account(account: &str, sid: &str) -> Result<(), NewsError> {
@@ -315,6 +342,7 @@ fn install_elevated(
     if let Some(r) = root {
         record_root(r, paths)?;
     }
+    let tools = record_tools(paths)?;
     news_win::grant_service_logon(sid).map_err(|e| io("cannot grant 'Log on as a service'", e))?;
     news_win::scm::install(spec, Some(&password))
         .map_err(|e| io("cannot register the service", e))?;
@@ -325,6 +353,7 @@ fn install_elevated(
         .map_err(|e| io("cannot add Board's log-on entry", e))?;
     Ok(
         json!({"installed": true, "service": spec.name, "account": spec.account, "binary": spec.exe,
+        "tools": tools,
         "text": format!("{} is installed under {}, running {}. Start it from Board, or with \
                          `news service start` (restart it if it was running).",
                         spec.name, spec.account, spec.exe.display())}),

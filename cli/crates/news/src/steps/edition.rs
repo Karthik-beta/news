@@ -95,6 +95,7 @@ pub fn plan_gate(budget: &Value, plan: &Value) -> GateOpen {
         subject: json!({"items": items, "plan": plan}),
         summary: json!({"text": format!("Plan: {n} items to write and publish"), "items": n}),
         preview: None,
+        whole_subject: false,
     }
 }
 

@@ -592,9 +592,12 @@ fn done(calls: &Arc<AtomicUsize>) -> Arc<dyn StepHandler> {
     })
 }
 
+/// What `authorize()` returned inside the step.
+type Seen = Result<Option<gates::Approved>, ErrorCode>;
+
 /// Records the result of `authorize()` from inside the publish step.
 struct Publish {
-    seen: Arc<Mutex<Vec<Result<(), ErrorCode>>>>,
+    seen: Arc<Mutex<Vec<Seen>>>,
 }
 
 impl StepHandler for Publish {
@@ -611,7 +614,7 @@ impl StepHandler for Publish {
                 },
             )
             .await
-            .map(|_| ())
+            .map(|a| a.approved)
             .map_err(|e| e.code);
             self.seen.lock().unwrap().push(r);
             Ok(StepOutcome::Done(json!({"wrap": {"published": 1}})))
@@ -656,6 +659,7 @@ async fn a_gated_run_waits_for_board_binds_the_hash_and_authorises_once() {
                         subject: s2.clone(),
                         summary: json!({"text": "Curation v42"}),
                         preview: None,
+                        whole_subject: true,
                     }])
                 }),
             }),
@@ -713,7 +717,14 @@ async fn a_gated_run_waits_for_board_binds_the_hash_and_authorises_once() {
     .execute(&f.pool)
     .await;
     assert!(fk.is_err());
-    let right = gates::hex(&gates::subject_sha(&subject));
+    // The hash binds the subject, the summary and the preview Board shows.
+    let right = gates::hex(&gates::gate_sha(&GateOpen {
+        gate: "publish".into(),
+        subject: subject.clone(),
+        summary: json!({"text": "Curation v42"}),
+        preview: None,
+        whole_subject: true,
+    }));
     let (_, st) = ch
         .answer(Answer {
             run: &run.short_id,
@@ -728,7 +739,13 @@ async fn a_gated_run_waits_for_board_binds_the_hash_and_authorises_once() {
     assert_eq!(st, Status::Running);
     ch.ensure_drivers().await.unwrap();
     wait_status(&f, run.run_id, "succeeded").await;
-    assert_eq!(*seen.lock().unwrap(), vec![Ok(())]);
+    let a = seen.lock().unwrap().clone();
+    let a = a[0].expect("authorised").expect("by the gate's approval");
+    assert_eq!(seen.lock().unwrap().len(), 1);
+    // The authorisation names the approved round, the hash Board sent and the subject's own hash.
+    assert_eq!(a.round, 1);
+    assert_eq!(gates::hex(&a.gate_sha), right);
+    assert_eq!(a.subject_sha, gates::subject_sha(&subject));
     // The approval was consumed with the step: it authorises nothing again.
     let consumed: Option<DateTime<Utc>> =
         sqlx::query_scalar("select consumed_at from approvals where run_id = $1")

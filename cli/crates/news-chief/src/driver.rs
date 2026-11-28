@@ -489,7 +489,7 @@ impl Chief {
                     self.emit_raw(
                         "gate",
                         json!({"run_id": run_id, "short_id": run.short_id, "preset": run.preset, "gate": g.gate,
-                               "round": round, "state": "open", "subject_sha": gates::hex(&gates::subject_sha(&g.subject)),
+                               "round": round, "state": "open", "subject_sha": gates::hex(&gates::gate_sha(g)),
                                "decision": null, "text": g.summary["text"].as_str().unwrap_or("A gate is open")}),
                     );
                 }

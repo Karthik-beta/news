@@ -440,15 +440,18 @@ impl Job {
 
 // ---- Low-integrity processes (ADR 0008 §8.2) -------------------------------------------------------
 
-/// A process created suspended with a restricted, Low-integrity copy of this process's token. It runs
-/// nothing until a job adopts it ([`Job::adopt_suspended`]).
+/// A process started with a restricted copy of this process's token: a Low-integrity `claude -p`
+/// ([`spawn_low_suspended`], which runs nothing until a job adopts it) or a Medium-integrity tool
+/// ([`spawn_medium`]).
 #[derive(Debug)]
-pub struct LowChild {
+pub struct RestrictedChild {
     process: Handle,
     pub pid: u32,
 }
 
-impl LowChild {
+pub type LowChild = RestrictedChild;
+
+impl RestrictedChild {
     /// Block until the process exits; its exit code.
     #[allow(unsafe_code)]
     pub fn wait(&self) -> io::Result<u32> {
@@ -480,12 +483,12 @@ impl LowChild {
     }
 }
 
-/// A SID parsed from a constant string, freed on drop.
+/// A SID parsed from a string, freed on drop.
 struct LocalSid(PSID);
 
 impl LocalSid {
     #[allow(unsafe_code)]
-    fn parse(text: &'static str) -> io::Result<Self> {
+    fn parse(text: &str) -> io::Result<Self> {
         use windows_sys::Win32::Security::Authorization::ConvertStringSidToSidW;
         let w = wide(text);
         let mut sid: PSID = null_mut();
@@ -507,6 +510,110 @@ impl Drop for LocalSid {
 
 /// BUILTIN\Administrators.
 const ADMINISTRATORS: &str = "S-1-5-32-544";
+
+/// The SID strings of a token's groups whose attributes include all of `flags`.
+#[allow(unsafe_code)]
+fn group_sids(token: HANDLE, flags: u32) -> io::Result<Vec<String>> {
+    use windows_sys::Win32::Security::{SID_AND_ATTRIBUTES, TOKEN_GROUPS, TokenGroups};
+    let buf = token_info(token, TokenGroups)?;
+    // SAFETY: the buffer holds a TOKEN_GROUPS followed by its GroupCount entries, each SID pointing
+    // into the same buffer, which outlives the slice.
+    let groups: &[SID_AND_ATTRIBUTES] = unsafe {
+        let g = buf.as_ptr().cast::<TOKEN_GROUPS>();
+        std::slice::from_raw_parts(
+            std::ptr::addr_of!((*g).Groups).cast(),
+            (*g).GroupCount as usize,
+        )
+    };
+    groups
+        .iter()
+        .filter(|a| a.Attributes & flags == flags)
+        .map(|a| sid_string(a.Sid))
+        .collect()
+}
+
+/// A security descriptor from SDDL, freed on drop.
+struct LocalSd(PSECURITY_DESCRIPTOR);
+
+impl LocalSd {
+    #[allow(unsafe_code)]
+    fn parse(sddl: &str) -> io::Result<Self> {
+        let w = wide(sddl);
+        let mut sd: PSECURITY_DESCRIPTOR = null_mut();
+        // SAFETY: `w` is NUL-terminated; `sd` receives a LocalAlloc'd descriptor freed on drop.
+        if unsafe {
+            ConvertStringSecurityDescriptorToSecurityDescriptorW(
+                w.as_ptr(),
+                SDDL_REVISION_1,
+                &mut sd,
+                null_mut(),
+            )
+        } == 0
+        {
+            return Err(last());
+        }
+        Ok(Self(sd))
+    }
+}
+
+impl Drop for LocalSd {
+    #[allow(unsafe_code)]
+    fn drop(&mut self) {
+        // SAFETY: frees the descriptor the conversion allocated, once.
+        unsafe { LocalFree(self.0) };
+    }
+}
+
+/// Give a restricted token the user as owner and a default DACL of the user, SYSTEM and the logon
+/// session (all `GA`). Under the SCM the service's token owner and default DACL name Administrators,
+/// which the child holds deny-only, so without this it could not open the objects it creates itself.
+#[allow(unsafe_code)]
+fn set_owner_and_default_dacl(own: HANDLE, child: HANDLE) -> io::Result<()> {
+    use windows_sys::Win32::Security::{
+        ACL, GetSecurityDescriptorDacl, SetTokenInformation, TOKEN_DEFAULT_DACL, TOKEN_OWNER,
+        TokenDefaultDacl, TokenOwner,
+    };
+    const SE_GROUP_LOGON_ID: u32 = 0xC000_0000;
+    let user = token_user_sid(own)?;
+    let mut sddl = format!("D:(A;;GA;;;{user})(A;;GA;;;SY)");
+    for logon in group_sids(own, SE_GROUP_LOGON_ID)? {
+        sddl += &format!("(A;;GA;;;{logon})");
+    }
+    let sd = LocalSd::parse(&sddl)?;
+    let (mut present, mut defaulted, mut dacl) = (0, 0, null_mut::<ACL>());
+    // SAFETY: `sd` is a valid descriptor; `dacl` receives a pointer into it, alive while `sd` is.
+    if unsafe { GetSecurityDescriptorDacl(sd.0, &mut present, &mut dacl, &mut defaulted) } == 0 {
+        return Err(last());
+    }
+    let info = TOKEN_DEFAULT_DACL { DefaultDacl: dacl };
+    // SAFETY: `info` points at the ACL inside `sd`, alive for the call; the kernel copies it.
+    if unsafe {
+        SetTokenInformation(
+            child,
+            TokenDefaultDacl,
+            (&info as *const TOKEN_DEFAULT_DACL).cast(),
+            size_of::<TOKEN_DEFAULT_DACL>() as u32,
+        )
+    } == 0
+    {
+        return Err(last());
+    }
+    let user_sid = LocalSid::parse(&user)?;
+    let owner = TOKEN_OWNER { Owner: user_sid.0 };
+    // SAFETY: `owner` points at a SID alive for the call; the user SID is a valid owner of its token.
+    if unsafe {
+        SetTokenInformation(
+            child,
+            TokenOwner,
+            (&owner as *const TOKEN_OWNER).cast(),
+            size_of::<TOKEN_OWNER>() as u32,
+        )
+    } == 0
+    {
+        return Err(last());
+    }
+    Ok(())
+}
 
 /// Quote one argument the way the MSVC runtime (and Rust's `std`) splits a command line.
 fn push_arg(line: &mut String, arg: &str) {
@@ -564,7 +671,6 @@ fn env_block(env: &[(String, String)]) -> Vec<u16> {
 /// three handles: inheritable copies passed only through `PROC_THREAD_ATTRIBUTE_HANDLE_LIST` and
 /// closed straight after, so the caller's own handles are never inheritable. The caller puts it in a
 /// job, which resumes it ([`Job::adopt_suspended`]), or kills it.
-#[allow(unsafe_code)]
 pub fn spawn_low_suspended(
     exe: &std::path::Path,
     args: &[String],
@@ -574,6 +680,38 @@ pub fn spawn_low_suspended(
     stdout: &std::fs::File,
     stderr: &std::fs::File,
 ) -> io::Result<LowChild> {
+    let stdio = [stdin, stdout, stderr];
+    spawn_restricted(exe, args, env, Some(cwd), stdio, LOW, SPAWN_SUSPENDED)
+}
+
+/// Start a tool (docker, bun) with the same restricted token as [`spawn_low_suspended`] but at
+/// Medium integrity, running at once (security review on #10, finding 1): the service runs from the
+/// SCM with Karthik's unfiltered admin token, and no program it starts may hold that token. `cwd`
+/// `None` keeps this process's working folder.
+pub fn spawn_medium(
+    exe: &std::path::Path,
+    args: &[String],
+    env: &[(String, String)],
+    cwd: Option<&std::path::Path>,
+    stdio: [&std::fs::File; 3],
+) -> io::Result<RestrictedChild> {
+    spawn_restricted(exe, args, env, cwd, stdio, MEDIUM, CREATE_NO_WINDOW)
+}
+
+/// Mandatory integrity SIDs.
+const LOW: &str = "S-1-16-4096";
+const MEDIUM: &str = "S-1-16-8192";
+
+#[allow(unsafe_code)]
+fn spawn_restricted(
+    exe: &std::path::Path,
+    args: &[String],
+    env: &[(String, String)],
+    cwd: Option<&std::path::Path>,
+    stdio: [&std::fs::File; 3],
+    integrity: &'static str,
+    flags: u32,
+) -> io::Result<RestrictedChild> {
     use std::os::windows::ffi::OsStrExt;
     use windows_sys::Win32::Foundation::{DUPLICATE_SAME_ACCESS, DuplicateHandle};
     use windows_sys::Win32::Security::{
@@ -626,7 +764,8 @@ pub fn spawn_low_suspended(
         return Err(last());
     }
     let low = Handle(low);
-    let low_sid = LocalSid::parse("S-1-16-4096")?;
+    set_owner_and_default_dacl(own.0, low.0)?;
+    let low_sid = LocalSid::parse(integrity)?;
     let label = TOKEN_MANDATORY_LABEL {
         Label: SID_AND_ATTRIBUTES {
             Sid: low_sid.0,
@@ -647,7 +786,7 @@ pub fn spawn_low_suspended(
     }
 
     let mut copies = Vec::with_capacity(3);
-    for f in [stdin, stdout, stderr] {
+    for f in stdio {
         let mut h = null_mut();
         // SAFETY: duplicates a valid handle of this process into an inheritable copy we own.
         if unsafe {
@@ -687,7 +826,7 @@ pub fn spawn_low_suspended(
     si.lpAttributeList = list;
     let mut line = wide(&command_line(&exe.to_string_lossy(), args));
     let app: Vec<u16> = exe.as_os_str().encode_wide().chain(Some(0)).collect();
-    let dir: Vec<u16> = cwd.as_os_str().encode_wide().chain(Some(0)).collect();
+    let dir: Option<Vec<u16>> = cwd.map(|c| c.as_os_str().encode_wide().chain(Some(0)).collect());
     let block = env_block(env);
     // SAFETY: a zeroed PROCESS_INFORMATION is valid output space.
     let mut pi: PROCESS_INFORMATION = unsafe { std::mem::zeroed() };
@@ -710,9 +849,9 @@ pub fn spawn_low_suspended(
                 null(),
                 null(),
                 1,
-                SPAWN_SUSPENDED | CREATE_UNICODE_ENVIRONMENT | EXTENDED_STARTUPINFO_PRESENT,
+                flags | CREATE_UNICODE_ENVIRONMENT | EXTENDED_STARTUPINFO_PRESENT,
                 block.as_ptr().cast(),
-                dir.as_ptr(),
+                dir.as_ref().map_or(null(), |d| d.as_ptr()),
                 &si.StartupInfo,
                 &mut pi,
             ) != 0
@@ -727,7 +866,7 @@ pub fn spawn_low_suspended(
     }
     // Resumed through the process handle (NtResumeProcess), so the thread handle is closed now.
     drop(Handle(pi.hThread));
-    Ok(LowChild {
+    Ok(RestrictedChild {
         process: Handle(pi.hProcess),
         pid: pi.dwProcessId,
     })
@@ -742,6 +881,46 @@ pub struct TokenFacts {
     pub admins_enabled: bool,
     /// The names of the enabled privileges.
     pub privileges_enabled: Vec<String>,
+    /// The SID new objects are owned by.
+    pub owner: String,
+    /// The SIDs the default DACL's access-allowed entries name, in order.
+    pub default_dacl: Vec<String>,
+}
+
+/// The token's owner SID and the SIDs of its default DACL's access-allowed entries.
+#[allow(unsafe_code)]
+fn owner_and_default_dacl(token: HANDLE) -> io::Result<(String, Vec<String>)> {
+    use windows_sys::Win32::Security::{
+        ACCESS_ALLOWED_ACE, ACL, GetAce, TOKEN_DEFAULT_DACL, TOKEN_OWNER, TokenDefaultDacl,
+        TokenOwner,
+    };
+    let buf = token_info(token, TokenOwner)?;
+    // SAFETY: the buffer holds a TOKEN_OWNER whose SID points into the same buffer.
+    let owner = sid_string(unsafe { (*buf.as_ptr().cast::<TOKEN_OWNER>()).Owner })?;
+    let buf = token_info(token, TokenDefaultDacl)?;
+    // SAFETY: the buffer holds a TOKEN_DEFAULT_DACL whose ACL (or null) points into the same buffer.
+    let acl: *mut ACL = unsafe { (*buf.as_ptr().cast::<TOKEN_DEFAULT_DACL>()).DefaultDacl };
+    let mut sids = Vec::new();
+    if !acl.is_null() {
+        // SAFETY: a valid ACL inside `buf`.
+        let count = unsafe { (*acl).AceCount };
+        for i in 0..u32::from(count) {
+            let mut ace = null_mut();
+            // SAFETY: `i` is below the ACL's count; `ace` receives a pointer into the ACL.
+            if unsafe { GetAce(acl, i, &mut ace) } == 0 {
+                return Err(last());
+            }
+            let ace = ace.cast::<ACCESS_ALLOWED_ACE>();
+            // SAFETY: every ACE starts with an ACE_HEADER; type 0 is ACCESS_ALLOWED, whose SID
+            // starts at SidStart inside the ACE.
+            unsafe {
+                if (*ace).Header.AceType == 0 {
+                    sids.push(sid_string(std::ptr::addr_of_mut!((*ace).SidStart).cast())?);
+                }
+            }
+        }
+    }
+    Ok((owner, sids))
 }
 
 /// A token information class's buffer, 8-byte aligned.
@@ -811,10 +990,13 @@ pub fn process_token(pid: u32) -> io::Result<TokenFacts> {
         }
         privileges_enabled.push(String::from_utf16_lossy(&name[..n as usize]));
     }
+    let (owner, default_dacl) = owner_and_default_dacl(tok.0)?;
     Ok(TokenFacts {
         integrity_rid: token_integrity(tok.0)?,
         admins_enabled,
         privileges_enabled,
+        owner,
+        default_dacl,
     })
 }
 

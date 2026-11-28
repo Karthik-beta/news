@@ -282,6 +282,8 @@ async fn review(cx: &StepCx) -> Result<StepOutcome, StepError> {
         summary: json!({"text": format!("Curation draft {id}: {n} pages, lead {}", st.draft.slots.lead.page_id),
                         "draft_id": id, "rationale": st.draft.rationale}),
         preview: Some(json!({"draft_id": id, "url": preview["url"], "views": preview["views"]})),
+        // Home publish acts on the whole draft, never on one item.
+        whole_subject: true,
     }]))
 }
 

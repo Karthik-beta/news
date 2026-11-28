@@ -38,6 +38,34 @@ pub struct Bureau {
     pub update: Arc<UpdateGate>,
     /// `docker.*`: the Docker command line (a fake in tests).
     pub docker: Arc<dyn docker::Runner>,
+    /// Caps the `hotline_refusals` rows and log lines one process can cause.
+    pub refusals: RefusalLimit,
+}
+
+/// At most [`RefusalLimit::PER_MINUTE`] recorded H-tier refusals per client pid per minute (security
+/// review on #10, finding 10): a same-user loop could otherwise grow `hotline_refusals` without end.
+#[derive(Debug, Default)]
+pub struct RefusalLimit(
+    std::sync::Mutex<Option<(std::time::Instant, std::collections::HashMap<u32, u32>)>>,
+);
+
+impl RefusalLimit {
+    pub const PER_MINUTE: u32 = 10;
+
+    /// Whether to record one more refusal from `pid` at `now`.
+    pub fn allow(&self, pid: u32, now: std::time::Instant) -> bool {
+        let mut g = self
+            .0
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let (start, counts) = g.get_or_insert_with(|| (now, Default::default()));
+        if now.duration_since(*start) >= Duration::from_secs(60) {
+            (*start, *counts) = (now, Default::default());
+        }
+        let n = counts.entry(pid).or_insert(0);
+        *n += 1;
+        *n <= Self::PER_MINUTE
+    }
 }
 
 impl Bureau {
@@ -51,6 +79,7 @@ impl Bureau {
             core: RwLock::new(None),
             update: Arc::new(UpdateGate::default()),
             docker: docker::default_runner(),
+            refusals: RefusalLimit::default(),
         }
     }
 
@@ -433,6 +462,10 @@ impl Service for Bureau {
 
     fn refused<'a>(&'a self, cmd: &'a str, peer: &'a Peer, refusal: Refusal) -> BoxFut<'a, ()> {
         Box::pin(async move {
+            // The refusal itself still goes back to the peer; only the record is limited.
+            if !self.refusals.allow(peer.pid, std::time::Instant::now()) {
+                return;
+            }
             let line = self.log.push(
                 "warn",
                 "hotline",
@@ -460,5 +493,21 @@ impl Service for Bureau {
 
     fn bus(&self) -> &Bus {
         &self.bus
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn refusals_are_recorded_ten_a_minute_per_pid() {
+        let l = RefusalLimit::default();
+        let t0 = std::time::Instant::now();
+        assert!((0..10).all(|_| l.allow(7, t0)));
+        assert!(!l.allow(7, t0 + Duration::from_secs(59)));
+        // Another process has its own count; a new minute starts afresh.
+        assert!(l.allow(8, t0));
+        assert!(l.allow(7, t0 + Duration::from_secs(60)));
     }
 }

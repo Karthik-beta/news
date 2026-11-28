@@ -8,7 +8,8 @@
 //! membership of the root marker job), the client's check of the server's image, and Job Objects (the
 //! root marker job with kill-on-close and no breakaway, nested per-run jobs, terminate, emptiness, and
 //! adopting a suspended child: Ghost's spawn marker, #18), and Low-integrity processes
-//! (`spawn_low_suspended`) with Low-labelled work folders (`label_low`).
+//! (`spawn_low_suspended`) with Low-labelled work folders (`label_low`), and tool children (`tool`:
+//! docker and bun at Medium integrity, recorded paths, an allow-listed environment).
 
 #[cfg(not(windows))]
 use std::io;
@@ -123,6 +124,9 @@ pub fn explain_exit_code(code: u32) -> String {
         other => format!("Windows error {other}."),
     }
 }
+
+mod tool;
+pub use tool::*;
 
 #[cfg(windows)]
 mod admin;
