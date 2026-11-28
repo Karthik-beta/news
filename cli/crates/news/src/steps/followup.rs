@@ -5,19 +5,21 @@
 //! (`news_rewrite::apply::store_derived`, once, before any re-render), and the A1 update jobs for
 //! direction flips.
 //!
-//! Not built: `rerender` and `publish`. Re-rendering needs the story's page folder under `work/`, which
-//! `news prune` removes once a page is published, and publishing needs the rendered bundle in Press's
-//! layout (`work/pages/<page_id>/v<n>/`) plus a `pages` row at the new version; neither handoff is
-//! specified yet. Those two steps stay `NotBuilt`.
+//! `rerender` re-renders the value-only and restated pages by code from the story's page folder (which
+//! `news prune` leaves its inputs in), checks them and registers them as drafts (`news_press::register`);
+//! `publish` finishes the direction flips whose A1 update came back, then stages every draft under its
+//! own G-tier check and sends the outbox. Both skip when Board rejected the bulk change.
 //!
 //! The steps pass state in their outputs and re-find from PostgreSQL when they need the changes
 //! themselves, restricted to the pages the earlier step named, so a revision that arrives mid-run is
 //! never half-applied: it waits for the next Followup.
 
-use super::{db_err, step_err};
+use super::pipeline;
+use super::{Ctx, Unset, db_err, plan as plan_step, revise, step_err};
 use news_chief::BoxFut;
 use news_chief::driver::{Handlers, StepCx, StepError, StepHandler, StepOutcome};
 use news_chief::gates::GateOpen;
+use news_core::job::ErrorClass;
 use news_rewrite::classify::Kind;
 use news_rewrite::plan::{self, BULK, PagePlan};
 use news_rewrite::{apply, find, update};
@@ -30,20 +32,34 @@ enum Step {
     Find,
     Classify,
     BulkReview,
+    Rerender,
     Update,
+    Publish,
 }
 
-struct Followup(Step);
+struct Followup(Step, Option<Arc<Ctx>>);
 
-pub fn register(h: Handlers) -> Handlers {
-    [
-        ("followup.find", Step::Find),
-        ("followup.classify", Step::Classify),
-        ("followup.bulk_review", Step::BulkReview),
-        ("followup.update", Step::Update),
-    ]
-    .into_iter()
-    .fold(h, |h, (name, step)| h.with(name, Arc::new(Followup(step))))
+const STEPS: [(&str, Step); 6] = [
+    ("followup.find", Step::Find),
+    ("followup.classify", Step::Classify),
+    ("followup.bulk_review", Step::BulkReview),
+    ("followup.rerender", Step::Rerender),
+    ("followup.update", Step::Update),
+    ("followup.publish", Step::Publish),
+];
+
+pub fn register(h: Handlers, ctx: Arc<Ctx>) -> Handlers {
+    STEPS.into_iter().fold(h, |h, (name, step)| {
+        h.with(name, Arc::new(Followup(step, Some(ctx.clone()))))
+    })
+}
+
+/// Without a repository root the steps that re-render or publish say why they cannot.
+pub(super) fn register_unset(h: Handlers, unset: Arc<Unset>) -> Handlers {
+    STEPS.into_iter().fold(h, |h, (name, step)| match step {
+        Step::Rerender | Step::Publish => h.with(name, unset.clone()),
+        _ => h.with(name, Arc::new(Followup(step, None))),
+    })
 }
 
 /// The pages the `source` argument selects that a revision touches now, classified, in page order.
@@ -122,6 +138,9 @@ impl StepHandler for Followup {
                             .map_err(step_err)?;
                     }
                     let counts = plan::counts(&pages);
+                    // A standalone run's Budget is the pages it found: the G-tier check covers them.
+                    let ids: Vec<String> = pages.iter().map(|p| p.change.page_id.clone()).collect();
+                    plan_step::set_budget(cx, &ids, json!({})).await?;
                     Ok(StepOutcome::Done(json!({
                         "pages": listing(&pages),
                         "counts": counts,
@@ -143,19 +162,67 @@ impl StepHandler for Followup {
                         &classified["counts"],
                     )]))
                 }
+                Step::Rerender => rerender(self.1.as_deref(), cx).await,
                 Step::Update => update_flips(cx).await,
+                Step::Publish => publish(self.1.as_deref(), cx).await,
             }
         })
     }
 }
 
 /// Whether Board rejected the change at the `bulk` gate. Every step after it that changes a page
-/// (`update`, and `rerender` and `publish` once built) skips when it is.
+/// (`rerender`, `update` and `publish`) skips when it is.
 fn bulk_rejected(cx: &StepCx) -> bool {
     cx.outputs
         .get("bulk_review")
         .and_then(|r| r["decisions"].as_array())
         .is_some_and(|d| d.iter().any(|x| x["decision"] == "rejected"))
+}
+
+const NO_ROOT: &str = "the repository root is not set";
+
+/// Value-only and restated pages, re-rendered by code, checked and registered as drafts.
+async fn rerender(ctx: Option<&Ctx>, cx: &StepCx) -> Result<StepOutcome, StepError> {
+    if bulk_rejected(cx) {
+        return Ok(StepOutcome::Skip(
+            "the bulk change was rejected in Board; no page is re-rendered".into(),
+        ));
+    }
+    let ctx = ctx.ok_or_else(|| pipeline::fail(ErrorClass::InvalidData, NO_ROOT))?;
+    let only = named(cx, "classify");
+    let by_code: Vec<PagePlan> = plans(cx, Some(&only))
+        .await?
+        .into_iter()
+        .filter(PagePlan::by_code)
+        .collect();
+    let (ok, dead) = revise::by_code(cx, ctx, &by_code).await?;
+    Ok(StepOutcome::Done(json!({
+        "registered": ok.iter().map(|r| r.page_id.clone()).collect::<Vec<_>>(), "dead": dead,
+        "wrap": {"rerendered": ok.len(), "rerender_failed": dead.len()},
+    })))
+}
+
+/// Finish the flips, then stage and send every draft of the pages found, each under its own check.
+async fn publish(ctx: Option<&Ctx>, cx: &StepCx) -> Result<StepOutcome, StepError> {
+    if bulk_rejected(cx) {
+        return Ok(StepOutcome::Skip(
+            "the bulk change was rejected in Board; nothing is published".into(),
+        ));
+    }
+    let ctx = ctx.ok_or_else(|| pipeline::fail(ErrorClass::InvalidData, NO_ROOT))?;
+    let only = named(cx, "classify");
+    let found = plans(cx, Some(&only)).await?;
+    let flips: Vec<PagePlan> = found.iter().filter(|p| !p.by_code()).cloned().collect();
+    let (flipped, mut dead) = revise::flips(cx, ctx, &flips).await?;
+    let stories: Vec<i64> = found.iter().filter_map(|p| p.change.story_id).collect();
+    let (staged, sent, dead_rows) = pipeline::publish(cx, ctx, &stories).await?;
+    if let Some(r) = cx.outputs.get("rerender") {
+        dead.extend(r["dead"].as_array().cloned().unwrap_or_default());
+    }
+    Ok(StepOutcome::Done(json!({
+        "staged": staged, "sent": sent, "flips_published": flipped.len(), "dead": dead,
+        "wrap": {"published": sent, "failed": dead.len() + dead_rows as usize},
+    })))
 }
 
 /// A1 update jobs (`ai.write`, mode `update`) for the direction flips, one per page, keyed by page,
