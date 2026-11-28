@@ -159,10 +159,7 @@ jobs:
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           workspaces: cli
-      - run: cargo test --locked -p news-win -p news-hotline -p news-service -p news-board
-      # shortcut: Ghost's spawn tests exit 0xC0000142 (DLL init failed) on the hosted runner's
-      # non-interactive desktop; only its unit tests run here until the restricted-token fix (PR #99) lands.
-      - run: cargo test --locked -p news-ghost --lib
+      - run: cargo test --locked -p news-win -p news-hotline -p news-ghost -p news-service -p news-board
 
   rust-postgres:
     name: Rust PostgreSQL (pgvector)
