@@ -9,10 +9,10 @@ Usage: news [OPTIONS] <COMMAND>
 Commands:
   version      Print the CLI version as JSON
   db           Database: migrations and status
-  discover     Run source connectors; store new candidates
+  discover     List what a source has published; keep its calendar entries
   plan         Score, cluster and select stories for a run (the Budget)
-  fetch        Download a story's source files and API data
-  parse        Parse a story's snapshots into data points and text blocks
+  fetch        Download a source's items into the Morgue
+  parse        Parse a source's items into data points and candidates
   brief        Build the brief for a story
   components   List the component index, one line per component
   component    One component's props, data shape and example

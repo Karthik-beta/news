@@ -1,0 +1,48 @@
+{
+  "changed": 3,
+  "items": [
+    {
+      "changed": true,
+      "event_key": null,
+      "key": "0000320193-26-000104",
+      "snapshots": [
+        {
+          "bytes": 71,
+          "content_type": "text/html",
+          "sha256": "597fa47a3a0e99ec2090972c056308cc333f1a5d5bf97423f988747cabefb869",
+          "url": "https://www.sec.gov/Archives/edgar/data/320193/000032019326000104/aapl-20261030.htm"
+        }
+      ],
+      "source_id": "sec-edgar"
+    },
+    {
+      "changed": true,
+      "event_key": null,
+      "key": "0000320193-26-000105",
+      "snapshots": [
+        {
+          "bytes": 3266,
+          "content_type": "application/json",
+          "sha256": "ce9ef1d0bc283feafc42998c204565cc161efa11de0410be45a9173c2a16ec59",
+          "url": "https://data.sec.gov/api/xbrl/companyfacts/CIK0000320193.json"
+        }
+      ],
+      "source_id": "sec-edgar"
+    },
+    {
+      "changed": true,
+      "event_key": null,
+      "key": "0001193125-26-245117",
+      "snapshots": [
+        {
+          "bytes": 71,
+          "content_type": "text/html",
+          "sha256": "597fa47a3a0e99ec2090972c056308cc333f1a5d5bf97423f988747cabefb869",
+          "url": "https://www.sec.gov/Archives/edgar/data/320193/000119312526245117/d812345d8ka.htm"
+        }
+      ],
+      "source_id": "sec-edgar"
+    }
+  ],
+  "snapshots": 3
+}

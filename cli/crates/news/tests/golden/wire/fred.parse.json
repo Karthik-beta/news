@@ -1,0 +1,30 @@
+{
+  "items": [
+    {
+      "categories": [
+        "economy",
+        "inflation"
+      ],
+      "data_points": 1,
+      "event_key": "macro:us.cpi:2026-10",
+      "key": "CPIAUCSL",
+      "page_type": "macro",
+      "page_type_by": "rule",
+      "published_at": "2026-11-13T00:00:00Z",
+      "region": "us",
+      "source_id": "fred",
+      "title": "Consumer Price Index for All Urban Consumers: All Items in U.S. City Average, 2026-10-01",
+      "url": "https://fred.stlouisfed.org/series/CPIAUCSL"
+    }
+  ],
+  "parsed": 1,
+  "points": 6,
+  "stored": {
+    "candidates_inserted": 1,
+    "missing": 1,
+    "needs_human": 0,
+    "points_inserted": 6,
+    "points_unchanged": 0,
+    "revisions": 1
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "by_source": {
+    "bls": 1
+  },
+  "calendar_entries": 0,
+  "items": [
+    {
+      "event_key": "macro:us.cpi:2026-10",
+      "key": "CUUR0000SA0",
+      "kind": "bls.series",
+      "published_at": null,
+      "source_id": "bls",
+      "title": "All items in U.S. city average, all urban consumers, not seasonally adjusted, October 2026",
+      "url": "https://data.bls.gov/timeseries/CUUR0000SA0"
+    }
+  ]
+}

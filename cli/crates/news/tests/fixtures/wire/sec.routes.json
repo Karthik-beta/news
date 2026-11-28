@@ -1,0 +1,22 @@
+{
+  "now": "2026-11-16T08:00:00Z",
+  "routes": [
+    { "prefix": "https://data.sec.gov/robots.txt", "status": 404 },
+    { "prefix": "https://www.sec.gov/robots.txt", "status": 404 },
+    {
+      "prefix": "https://data.sec.gov/submissions/",
+      "content_type": "application/json",
+      "file": "../../../../news-connectors/tests/fixtures/sec/submissions-CIK0000320193.json"
+    },
+    {
+      "prefix": "https://data.sec.gov/api/xbrl/companyfacts/",
+      "content_type": "application/json",
+      "file": "../../../../news-connectors/tests/fixtures/sec/companyfacts-CIK0000320193.json"
+    },
+    {
+      "prefix": "https://www.sec.gov/Archives/",
+      "content_type": "text/html",
+      "file": "../../../../news-connectors/tests/fixtures/sec/primary-8k.htm"
+    }
+  ]
+}

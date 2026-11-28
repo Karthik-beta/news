@@ -1,0 +1,26 @@
+{
+  "changed": 1,
+  "items": [
+    {
+      "changed": true,
+      "event_key": null,
+      "key": "CPIAUCSL",
+      "snapshots": [
+        {
+          "bytes": 663,
+          "content_type": "application/json",
+          "sha256": "7f2b3ff6913f3f3cacc67de1ec8fd2e96e743b3dde78599c2755586f830b7645",
+          "url": "https://api.stlouisfed.org/fred/series?series_id=CPIAUCSL&file_type=json"
+        },
+        {
+          "bytes": 1178,
+          "content_type": "application/json",
+          "sha256": "7d9cf8610270adb5306b6ccadd03002c68d1c98044dee3c2ab764c044b2053fd",
+          "url": "https://api.stlouisfed.org/fred/series/observations?series_id=CPIAUCSL&realtime_start=1776-07-04&realtime_end=9999-12-31&observation_start=2024-11-13&file_type=json"
+        }
+      ],
+      "source_id": "fred"
+    }
+  ],
+  "snapshots": 2
+}

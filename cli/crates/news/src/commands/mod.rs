@@ -19,6 +19,7 @@ mod schema;
 mod sources;
 mod stories;
 mod update;
+mod wire;
 
 use crate::cli::*;
 use news_core::shape::DEFAULT_LIMIT;
@@ -66,12 +67,13 @@ pub async fn run(cli: Cli, path: &str, shape: &Shape) -> NewsResult<Reply> {
         C::Jobs(cmd) => jobs::run(cmd, shape).await,
         C::Ai(AiCmd::Schema { step }) => schema::ai(&step),
 
-        // Not built yet: each names the issue that builds its subsystem.
         C::Sources(cmd) => sources::run(cmd).await,
-        C::Discover { .. } | C::Fetch { .. } => stub(path, news_wire::ISSUE),
+        // Wire and Clerk from the terminal (tier W): one source, discover, then fetch, then parse.
+        C::Discover { source } => wire::discover(source).await,
+        C::Fetch { source } => wire::fetch(&source).await,
+        C::Parse { source } => wire::parse(&source).await,
         // Working files of published pages (Press); Wire's `work.prune` job keeps the raw snapshots.
         C::Prune => press::prune().await,
-        C::Parse { .. } => stub(path, news_clerk::ISSUE),
         C::Run(cmd) => run::run(cmd).await,
         C::Standing(cmd) => run::standing(cmd).await,
         C::Service(cmd) => run::service(cmd).await,
@@ -162,6 +164,9 @@ pub const BUILT: &[&str] = &[
     "sources.health",
     "sources.probe",
     "sources.sync",
+    "discover",
+    "fetch",
+    "parse",
     "plan",
     "prune",
     "stats",

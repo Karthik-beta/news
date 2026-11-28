@@ -7,10 +7,6 @@ use std::collections::BTreeSet;
 
 /// (argv, issue).
 pub const STUBS: &[(&str, &str)] = &[
-    ("discover", "#9"),
-    ("discover --source fred", "#9"),
-    ("fetch 81234", "#9"),
-    ("parse 81234", "#9"),
     ("corrections pull", "#21"),
     ("corrections show c1", "#21"),
     ("corrections resolve c1 --action dismiss", "#21"),

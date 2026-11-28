@@ -2,35 +2,95 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://news.karthik.nz/contracts/cli/commands/parse.schema.json",
   "title": "news parse",
-  "description": "Parse a story's snapshots. Input is the command's arguments as an object; output is the envelope's data.",
+  "description": "Discover and fetch a source's items, then parse each one (the connector's pure parse), apply the licence gate and the rule-based classification, and store data points (with vintages) and candidates. Idempotent: a second run stores nothing new. Items whose parse failed are warnings; the command fails when none could be parsed. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "W",
-  "x-news-status": "stub until #9",
-  "x-news-errors": ["validation_failed", "not_found"],
+  "x-news-status": "built",
+  "x-news-errors": [
+    "not_found",
+    "precondition",
+    "rate_limited",
+    "licence_blocked",
+    "upstream_unavailable",
+    "internal"
+  ],
   "$defs": {
     "input": {
       "type": "object",
       "properties": {
-        "story": {
+        "source": {
           "type": "string"
         }
       },
-      "required": ["story"],
+      "required": ["source"],
       "additionalProperties": false
     },
     "output": {
       "type": "object",
       "properties": {
-        "status": {
-          "type": "string"
+        "items": {
+          "type": "array",
+          "description": "The candidates the items produced, with their event keys and rule-based classification. `page_type_by` is `rule`, or `rule-unsure` (no rule matched: page type, categories and region are then null or empty).",
+          "items": {
+            "type": "object",
+            "properties": {
+              "source_id": { "type": "string" },
+              "key": { "type": "string" },
+              "event_key": { "type": ["string", "null"] },
+              "title": { "type": "string" },
+              "url": { "type": "string" },
+              "published_at": { "type": ["string", "null"] },
+              "page_type": { "type": ["string", "null"] },
+              "page_type_by": { "enum": ["rule", "rule-unsure"] },
+              "categories": { "type": "array", "items": { "type": "string" } },
+              "region": { "type": ["string", "null"] },
+              "data_points": { "type": "integer" }
+            },
+            "required": [
+              "source_id",
+              "key",
+              "event_key",
+              "title",
+              "url",
+              "published_at",
+              "page_type",
+              "page_type_by",
+              "categories",
+              "region",
+              "data_points"
+            ],
+            "additionalProperties": false
+          }
         },
-        "snapshots": {
-          "type": "integer"
+        "parsed": {
+          "type": "integer",
+          "description": "Items parsed."
         },
-        "data_points": {
-          "type": "integer"
+        "points": {
+          "type": "integer",
+          "description": "Data points the parsed items contain."
+        },
+        "stored": {
+          "type": "object",
+          "properties": {
+            "points_inserted": { "type": "integer" },
+            "points_unchanged": { "type": "integer" },
+            "revisions": { "type": "integer" },
+            "candidates_inserted": { "type": "integer" },
+            "missing": { "type": "integer" },
+            "needs_human": { "type": "integer" }
+          },
+          "required": [
+            "points_inserted",
+            "points_unchanged",
+            "revisions",
+            "candidates_inserted",
+            "missing",
+            "needs_human"
+          ],
+          "additionalProperties": false
         }
       },
-      "required": ["status", "snapshots", "data_points"],
+      "required": ["items", "parsed", "points", "stored"],
       "additionalProperties": false
     }
   }

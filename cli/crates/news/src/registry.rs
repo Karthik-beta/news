@@ -8,10 +8,10 @@ use std::sync::Arc;
 
 pub fn handler_for_owner(owner: &str) -> Option<Handler> {
     Some(match owner {
-        "wire" => news_wire::HANDLER,
-        "clerk" => news_clerk::HANDLER,
-        "diary" => news_diary::HANDLER,
-        "taster" => news_taster::HANDLER,
+        "wire" => crate::ingest::wire,
+        "clerk" => crate::ingest::clerk,
+        "diary" => crate::ingest::diary,
+        "taster" => crate::ingest::taster,
         "nose" => news_nose::HANDLER,
         "fixer" => news_fixer::HANDLER,
         "ghost" => news_ghost::HANDLER,
@@ -126,11 +126,29 @@ pub fn install_ai(
 /// out, so their jobs fail as `bug`, and returns the gap as warnings for the service log Board shows.
 pub fn install_service_ai(db: &PgPool, job: Option<Arc<news_win::Job>>) -> Vec<String> {
     let (root, claude) = (service_root(), news_win::tool_path("claude"));
-    let gaps = ai_gaps(&root, &claude);
+    let mut gaps = ai_gaps(&root, &claude);
     if let Ok(root) = root {
         install_ai(db, &root, claude.ok(), job);
+        if let Err(m) = install_ingest(db, &root) {
+            gaps.push(format!(
+                "Wire, Clerk, Diary and Taster jobs are not installed: {m}"
+            ));
+        }
     }
     gaps
+}
+
+/// Install the ingest context (`source.discover`, `doc.fetch`, `doc.parse`, `calendar.capture`,
+/// `story.detect`): the Runner over `NEWS_WORK_DIR` (default `<root>/work`), the Morgue's root.
+/// `Ok(false)` when one is already installed.
+pub fn install_ingest(db: &PgPool, root: &Path) -> Result<bool, String> {
+    let work = std::env::var_os("NEWS_WORK_DIR")
+        .filter(|v| !v.is_empty())
+        .map_or_else(|| root.join("work"), PathBuf::from);
+    Ok(crate::ingest::install(crate::ingest::Ingest::from_env(
+        db.clone(),
+        work,
+    )?))
 }
 
 /// What [`install_service_ai`] cannot install, as service-log lines.
@@ -276,7 +294,7 @@ mod tests {
         assert_eq!(installed, (true, true), "(ghost, rewrite)");
         for kind in &kinds {
             let handler = resolve(kind).unwrap_or_else(|| panic!("no handler for {kind}"));
-            // Wire's, Diary's and Taster's kinds are still stubs (#9, #12): not the AI path.
+            // Wire, Clerk, Diary and Taster kinds are ingest, not the AI path.
             let owner = news_dispatch::kinds::spec(kind).unwrap().owner;
             if !matches!(owner, "ghost" | "rewrite") {
                 continue;

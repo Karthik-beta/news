@@ -2,10 +2,17 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://news.karthik.nz/contracts/cli/commands/discover.schema.json",
   "title": "news discover",
-  "description": "Run source connectors; store new candidates. Input is the command's arguments as an object; output is the envelope's data.",
+  "description": "List what a source has published through the Runner (conditional requests, rate limits, robots.txt) and keep the calendar entries it announces. With no source, every enabled source in turn; a source that fails is a warning then. Reads the listing again each run (a terminal run keeps no cursor). Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "W",
-  "x-news-status": "stub until #9",
-  "x-news-errors": ["upstream_unavailable"],
+  "x-news-status": "built",
+  "x-news-errors": [
+    "not_found",
+    "precondition",
+    "rate_limited",
+    "licence_blocked",
+    "upstream_unavailable",
+    "internal"
+  ],
   "$defs": {
     "input": {
       "type": "object",
@@ -20,17 +27,35 @@
     "output": {
       "type": "object",
       "properties": {
-        "new_candidates": {
-          "type": "integer"
+        "items": {
+          "type": "array",
+          "description": "One row per item the listing names: a pointer, not content.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "source_id": { "type": "string" },
+              "key": { "type": "string" },
+              "kind": { "type": "string" },
+              "event_key": { "type": ["string", "null"] },
+              "title": { "type": ["string", "null"] },
+              "url": { "type": "string" },
+              "published_at": { "type": ["string", "null"] }
+            },
+            "required": ["source_id", "key", "kind", "event_key", "title", "url", "published_at"],
+            "additionalProperties": false
+          }
         },
         "by_source": {
           "type": "object",
           "additionalProperties": {
             "type": "integer"
           }
+        },
+        "calendar_entries": {
+          "type": "integer"
         }
       },
-      "required": ["new_candidates", "by_source"],
+      "required": ["items", "by_source", "calendar_entries"],
       "additionalProperties": false
     }
   }
