@@ -684,6 +684,19 @@ async fn frontpage_fails_when_the_curator_call_is_cancelled_at_the_cap() {
         .clone();
     ch.ensure_drivers().await.unwrap();
     wait_status(&f, run.run_id, "waiting_ai").await;
+    // Chief marks the run waiting_ai before the step queues its job; cancel only once the job exists.
+    for _ in 0..400 {
+        let n = f
+            .scalar_i64(&format!(
+                "select count(*) from jobs where run_id = '{}' and kind = 'ai.write'",
+                run.run_id
+            ))
+            .await;
+        if n > 0 {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+    }
     let mut conn = f.pool.acquire().await.unwrap();
     news_dispatch::queue::cancel_run_jobs(&mut conn, run.run_id, None, Some("ai"))
         .await
