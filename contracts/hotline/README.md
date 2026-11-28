@@ -63,6 +63,7 @@ A frame is a little-endian `u32` length, then that many bytes of UTF-8 JSON, at 
 | `standing.set` | H | Board | #10 | — |
 | `huddle.questions` | R | Board | #19 | — |
 | `huddle.answer` | H | Board | #19 | — (the file form is `news scores label`) |
+| `home.rollback` | H | Board | #20 | — |
 | `docker.status` | R | Board, terminal | #29 | — |
 | `docker.start`, `docker.stop` | H | Board | #29 | — |
 | `service.update` | H | Board | #29 | — |

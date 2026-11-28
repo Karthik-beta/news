@@ -49,6 +49,14 @@ pub trait WriteApi {
         bearer: &str,
         body: Vec<u8>,
     ) -> impl Future<Output = Result<CurationReply, ApiError>> + Send;
+
+    /// `POST /v1/home/curation/rollback` with `{"version": n}`: make an earlier curation live again.
+    fn post_rollback(
+        &self,
+        key: &str,
+        bearer: &str,
+        body: Vec<u8>,
+    ) -> impl Future<Output = Result<CurationReply, ApiError>> + Send;
 }
 
 /// reqwest 0.13 is built with `rustls-no-provider` and Cargo unifies features, so every client in the
@@ -106,16 +114,22 @@ impl HttpWriteApi {
     }
 }
 
-impl WriteApi for HttpWriteApi {
-    async fn put_curation(
+impl HttpWriteApi {
+    async fn call(
         &self,
+        path: &str,
+        put: bool,
         key: &str,
         bearer: &str,
         body: Vec<u8>,
     ) -> Result<CurationReply, ApiError> {
-        let resp = self
-            .client
-            .put(format!("{}/v1/home/curation", self.base))
+        let url = format!("{}{path}", self.base);
+        let request = if put {
+            self.client.put(url)
+        } else {
+            self.client.post(url)
+        };
+        let resp = request
             .bearer_auth(bearer)
             .header("idempotency-key", key)
             .header("content-type", "application/json")
@@ -146,6 +160,28 @@ impl WriteApi for HttpWriteApi {
             message,
             details: json["error"]["details"].clone(),
         })
+    }
+}
+
+impl WriteApi for HttpWriteApi {
+    async fn put_curation(
+        &self,
+        key: &str,
+        bearer: &str,
+        body: Vec<u8>,
+    ) -> Result<CurationReply, ApiError> {
+        self.call("/v1/home/curation", true, key, bearer, body)
+            .await
+    }
+
+    async fn post_rollback(
+        &self,
+        key: &str,
+        bearer: &str,
+        body: Vec<u8>,
+    ) -> Result<CurationReply, ApiError> {
+        self.call("/v1/home/curation/rollback", false, key, bearer, body)
+            .await
     }
 }
 
@@ -180,6 +216,7 @@ fn rejected(status: u16, code: &str, message: &str, details: &Value) -> NewsErro
     let err = match status {
         400 => NewsError::validation(text),
         401 | 403 => NewsError::precondition(text).with_hint("check the write-API key in Board"),
+        404 => NewsError::not_found(text),
         409 => NewsError::conflict(text),
         _ => NewsError::internal(text),
     };
@@ -264,9 +301,26 @@ pub(crate) async fn send<A: WriteApi>(
     bytes: &[u8],
     retry: Retry,
 ) -> NewsResult<CurationReply> {
+    send_to(api, false, key, bearer, bytes, retry).await
+}
+
+/// The retry loop for both routes: `rollback` picks `POST …/rollback` over `PUT …/curation`.
+pub(crate) async fn send_to<A: WriteApi>(
+    api: &A,
+    rollback: bool,
+    key: &str,
+    bearer: &str,
+    bytes: &[u8],
+    retry: Retry,
+) -> NewsResult<CurationReply> {
     let mut pause = retry.pause;
     for attempt in 1..=retry.attempts.max(1) {
-        match api.put_curation(key, bearer, bytes.to_vec()).await {
+        let answer = if rollback {
+            api.post_rollback(key, bearer, bytes.to_vec()).await
+        } else {
+            api.put_curation(key, bearer, bytes.to_vec()).await
+        };
+        match answer {
             Ok(r) => return Ok(r),
             Err(ApiError::Rejected {
                 status,

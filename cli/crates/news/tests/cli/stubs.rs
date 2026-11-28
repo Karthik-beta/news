@@ -13,7 +13,6 @@ pub const STUBS: &[(&str, &str)] = &[
     ("parse 81234", "#9"),
     ("eval run g1", "#19"),
     ("eval report e1", "#19"),
-    ("update 2026/11/us-cpi-october-2026", "#20"),
     ("corrections pull", "#21"),
     ("corrections show c1", "#21"),
     ("corrections resolve c1 --action dismiss", "#21"),
