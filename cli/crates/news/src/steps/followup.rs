@@ -248,6 +248,8 @@ async fn update_flips(ctx: Option<&Ctx>, cx: &StepCx) -> Result<StepOutcome, Ste
     let ctx = ctx.ok_or_else(|| pipeline::fail(ErrorClass::InvalidData, NO_ROOT))?;
     // The first entry queues the jobs and waits; the next finds them done.
     let mut queued = 0;
+    // A flip whose input cannot be composed (no stored Copy or brief) is dead, not the run (as Edition).
+    let mut failed = Vec::new();
     for p in &flips {
         let Some(story) = p.change.story_id else {
             return Err(StepError::Fail {
@@ -257,8 +259,13 @@ async fn update_flips(ctx: Option<&Ctx>, cx: &StepCx) -> Result<StepOutcome, Ste
         };
         // A job of this run that already ran, even one that failed or was cancelled, is not queued
         // again: a failed update goes to the dead list for Salvage, it does not loop here.
-        let (_, now) = pipeline::queue_update(cx, ctx, p, &story.to_string()).await?;
-        queued += usize::from(now);
+        match pipeline::queue_update(cx, ctx, p, &story.to_string()).await {
+            Ok((_, now)) => queued += usize::from(now),
+            Err(StepError::Fail { message, .. }) => {
+                failed.push(json!({"page_id": p.change.page_id, "error": message}));
+            }
+            Err(e) => return Err(e),
+        }
     }
     let live: i64 = sqlx::query_scalar(
         "select count(*) from jobs where run_id = $1 and step_seq = $2
@@ -282,8 +289,9 @@ async fn update_flips(ctx: Option<&Ctx>, cx: &StepCx) -> Result<StepOutcome, Ste
     .fetch_one(&cx.db)
     .await
     .map_err(db_err)?;
+    let dead = dead + i64::try_from(failed.len()).unwrap_or(i64::MAX);
     Ok(StepOutcome::Done(json!({
-        "flips": flips.len(), "queued": queued, "dead": dead,
+        "flips": flips.len(), "queued": queued, "dead": dead, "failed": failed,
         "wrap": {"updates_queued": flips.len(), "updates_failed": dead},
     })))
 }

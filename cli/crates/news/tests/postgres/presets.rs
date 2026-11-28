@@ -621,6 +621,66 @@ async fn followup_finds_classifies_and_queues_the_a1_update_for_the_direction_fl
     let _ = std::fs::remove_dir_all(&root);
 }
 
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres"]
+async fn followup_counts_a_flip_with_no_stored_copy_as_dead_and_still_reaches_publish() {
+    let f = Fixture::migrated().await;
+    super::rewrite::seed(&f).await;
+    let story: i64 = sqlx::query_scalar(
+        "insert into stories (event_key, first_seen, last_seen) values ('e-flip', now(), now()) returning story_id",
+    )
+    .fetch_one(&f.pool)
+    .await
+    .unwrap();
+    sqlx::query("update pages set story_id = $1 where page_id = 'p-flip'")
+        .bind(story)
+        .execute(&f.pool)
+        .await
+        .unwrap();
+    // A root, but no brief or copy.json for the flip's story: its update input cannot be composed.
+    let root = super::pages::root_for(&f);
+    let ctx = super::pages::ctx(&root, super::pages::tools(), super::pages::api());
+    let handlers = news::steps::register(Handlers::default(), ctx)
+        .with("followup.rerender", Arc::new(Done))
+        .with("followup.publish", Arc::new(Done));
+    let ch = chief(&f, handlers);
+    let run = ch
+        .start(StartReq::board("followup", Map::new(), IfBusy::Offer))
+        .await
+        .unwrap()
+        .run()
+        .clone();
+    ch.ensure_drivers().await.unwrap();
+    wait_status(&f, run.run_id, "succeeded").await;
+    let update: Value = sqlx::query_scalar::<_, Value>(sqlx::AssertSqlSafe(format!(
+        "select output from run_steps where run_id = '{}' and step = 'update'",
+        run.run_id
+    )))
+    .fetch_one(&f.pool)
+    .await
+    .unwrap();
+    assert_eq!(update["dead"], 1, "{update}");
+    assert_eq!(update["failed"][0]["page_id"], "p-flip", "{update}");
+    assert_eq!(
+        f.scalar_i64(&format!(
+            "select count(*) from jobs where run_id = '{}' and kind = 'ai.write'",
+            run.run_id
+        ))
+        .await,
+        0
+    );
+    assert_eq!(
+        f.scalar_str(&format!(
+            "select status from run_steps where run_id = '{}' and step = 'publish'",
+            run.run_id
+        ))
+        .await,
+        "succeeded",
+        "the dead flip does not stop the run before publish"
+    );
+    let _ = std::fs::remove_dir_all(&root);
+}
+
 /// Opens the `bulk` gate whatever the page count, so a test needs no 101 pages.
 struct BulkGate;
 impl StepHandler for BulkGate {

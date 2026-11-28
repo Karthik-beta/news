@@ -105,8 +105,9 @@ pub fn plan(spec: &ServiceSpec, source: &Path, root: Option<&Path>) -> Value {
             "keep only SeChangeNotifyPrivilege in the service's token",
             "let the account query, start and stop the service without elevation",
             "record the repository root (repo_root) in the install folder, for Audit to read",
-            "record where docker and bun are (absolute paths found on PATH now) in the install \
-             folder: the service runs those, never a PATH lookup",
+            "record where docker, bun and claude are (absolute paths found on PATH now; claude also \
+             in %USERPROFILE%\\.local\\bin) in the install folder: the service runs those, never a \
+             PATH lookup",
             "add Board's log-on entry for the account: the installed binary, board --minimized",
         ],
         "text": format!(
@@ -242,10 +243,49 @@ fn record_root(root: &Path, p: &InstallPaths) -> Result<(), NewsError> {
 
 /// The absolute paths of the tools the service runs (docker, bun, claude), found on PATH now.
 pub fn found_tools() -> Vec<(&'static str, PathBuf)> {
-    let path = std::env::var_os("PATH").unwrap_or_default();
+    let home = std::env::var_os("USERPROFILE").map(PathBuf::from);
+    find_tools(
+        &std::env::var_os("PATH").unwrap_or_default(),
+        home.as_deref(),
+    )
+}
+
+/// Each tool on `path`; `claude` also in its native install folder under `home` (`.local\bin`), which
+/// the elevated install's PATH may not have.
+fn find_tools(path: &std::ffi::OsStr, home: Option<&Path>) -> Vec<(&'static str, PathBuf)> {
+    let native = |t: &str| {
+        let file = if cfg!(windows) {
+            "claude.exe"
+        } else {
+            "claude"
+        };
+        home.filter(|h| t == "claude" && h.is_absolute())
+            .map(|h| h.join(".local").join("bin").join(file))
+            .filter(|p| p.is_file())
+    };
     news_win::TOOLS
         .iter()
-        .filter_map(|t| Some((*t, news_win::find_on_path(t, &path)?)))
+        .filter_map(|t| Some((*t, news_win::find_on_path(t, path).or_else(|| native(t))?)))
+        .collect()
+}
+
+/// What `install` and `stage` print for each tool they did not find: the service cannot run it.
+fn missing_tools(found: &[(&str, PathBuf)]) -> Vec<String> {
+    news_win::TOOLS
+        .iter()
+        .filter(|t| !found.iter().any(|(n, _)| n == *t))
+        .map(|t| match *t {
+            "claude" => {
+                "Warning: claude was not found on PATH or in %USERPROFILE%\\.local\\bin, so the \
+                         service will run no AI jobs (Ghost is off). Install Claude Code, then run \
+                         `news service install` again."
+                    .to_owned()
+            }
+            t => format!(
+                "Warning: {t} was not found on PATH; the service cannot run it until \
+                 `news service install` is run again where it is."
+            ),
+        })
         .collect()
 }
 
@@ -253,6 +293,9 @@ pub fn found_tools() -> Vec<(&'static str, PathBuf)> {
 /// the service never looks a tool up on PATH, which any process running as Karthik can change.
 fn record_tools(p: &InstallPaths) -> Result<Value, NewsError> {
     let found = found_tools();
+    for w in missing_tools(&found) {
+        println!("{w}");
+    }
     let f = p.dir.join(news_win::TOOLS_FILE);
     std::fs::write(&f, news_win::tools_text(&found))
         .map_err(|e| io(&format!("cannot write {}", f.display()), e))?;
@@ -435,6 +478,8 @@ fn stage_elevated(source: &Path) -> Result<Value, NewsError> {
         .map_err(|e| io("cannot record the staged build's hash", e))?;
     news_win::make_admin_only(&p.staged_hash, false)
         .map_err(|e| io(&format!("cannot restrict {}", p.staged_hash.display()), e))?;
+    // The staged build may run tools the installed one did not (claude, since #99): record them again.
+    record_tools(&p)?;
     Ok(staged_reply(&p, &hash))
 }
 
@@ -509,6 +554,39 @@ pub fn status() -> Result<Value, NewsError> {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn claude_is_found_in_its_native_folder_and_a_missing_tool_is_a_warning() {
+        let home = std::env::temp_dir().join(format!("news-tools-{}", std::process::id()));
+        let bin = home.join(".local").join("bin");
+        std::fs::create_dir_all(&bin).unwrap();
+        let none = std::ffi::OsString::new();
+        // Not on PATH, not installed natively: nothing found, and each tool is named in a warning.
+        assert!(find_tools(&none, Some(&home)).is_empty());
+        let warnings = missing_tools(&[]);
+        assert_eq!(warnings.len(), news_win::TOOLS.len());
+        assert!(
+            warnings
+                .iter()
+                .any(|w| w.contains("claude") && w.contains("Ghost is off")),
+            "{warnings:?}"
+        );
+        // The native install (`%USERPROFILE%\.local\bin`) is found without PATH, and only for claude.
+        let exe = |n: &str| {
+            if cfg!(windows) {
+                format!("{n}.exe")
+            } else {
+                n.to_owned()
+            }
+        };
+        std::fs::write(bin.join(exe("claude")), "").unwrap();
+        std::fs::write(bin.join(exe("bun")), "").unwrap();
+        let found = find_tools(&none, Some(&home));
+        assert_eq!(found, [("claude", bin.join(exe("claude")))]);
+        assert!(!missing_tools(&found).iter().any(|w| w.contains("claude")));
+        let _ = std::fs::remove_dir_all(&home);
+    }
 
     #[test]
     fn the_account_is_local_unless_the_domain_differs_from_the_computer() {
