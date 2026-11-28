@@ -417,6 +417,19 @@ impl Descriptor {
         Ok(acl)
     }
 
+    /// The descriptor's SACL (null when it has none).
+    #[allow(unsafe_code)]
+    fn sacl(&self) -> io::Result<*mut windows_sys::Win32::Security::ACL> {
+        use windows_sys::Win32::Security::GetSecurityDescriptorSacl;
+        let (mut present, mut defaulted, mut acl) = (0, 0, null_mut());
+        // SAFETY: a valid descriptor; the outputs are plain locals.
+        if unsafe { GetSecurityDescriptorSacl(self.0, &mut present, &mut acl, &mut defaulted) } == 0
+        {
+            return Err(last());
+        }
+        Ok(acl)
+    }
+
     /// The descriptor's owner SID.
     #[allow(unsafe_code)]
     fn owner(&self) -> io::Result<windows_sys::Win32::Security::PSID> {
@@ -562,6 +575,33 @@ pub fn make_admin_only(path: &Path, dir: bool) -> io::Result<()> {
             null_mut(),
             dacl,
             null(),
+        )
+    };
+    if st != 0 {
+        return Err(io::Error::from_raw_os_error(st as i32));
+    }
+    Ok(())
+}
+
+/// Give folder `path` a Low mandatory label, inherited by what is created in it (`S:(ML;OICI;NW;;;LW)`),
+/// so a Low-integrity `claude -p` can write there and nowhere else (ADR 0008 §8.2). Its DACL is kept.
+#[allow(unsafe_code)]
+pub fn label_low(path: &Path) -> io::Result<()> {
+    use windows_sys::Win32::Security::Authorization::{SE_FILE_OBJECT, SetNamedSecurityInfoW};
+    use windows_sys::Win32::Security::LABEL_SECURITY_INFORMATION;
+    let sd = Descriptor::from_sddl("S:(ML;OICI;NW;;;LW)")?;
+    let sacl = sd.sacl()?;
+    let name: Vec<u16> = path.as_os_str().encode_wide().chain(Some(0)).collect();
+    // SAFETY: `name` is NUL-terminated; the SACL points into `sd`, alive for the call.
+    let st = unsafe {
+        SetNamedSecurityInfoW(
+            name.as_ptr(),
+            SE_FILE_OBJECT,
+            LABEL_SECURITY_INFORMATION,
+            null_mut(),
+            null_mut(),
+            null(),
+            sacl,
         )
     };
     if st != 0 {
