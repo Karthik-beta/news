@@ -35,3 +35,20 @@ export async function chQuery(sql: string): Promise<{ ok: boolean; body: string 
 }
 
 export const mark = (ok: boolean | "warn") => (ok === "warn" ? "!" : ok ? "✓" : "✗");
+
+/** The shorts project's Docker network; news-otel joins it to reach the shared ClickHouse (infra/docker-compose.yml). */
+export const SHORTS_NETWORK = "shorts_default";
+
+type Runner = (cmd: string, args: string[]) => { ok: boolean; err: string };
+
+/**
+ * Why `infra:up` cannot attach news-otel to the shorts network, or null when it can. Compose's own error for a missing
+ * external network does not say to start the shorts stack, so this is checked first.
+ */
+export function shortsNetworkProblem(runner: Runner = run): string | null {
+  const r = runner("docker", ["network", "inspect", "--format", "{{.Name}}", SHORTS_NETWORK]);
+  if (r.ok) return null;
+  if (/no such network|not found/i.test(r.err))
+    return `Docker network ${SHORTS_NETWORK} not found: start the shorts stack first (it owns the shared ClickHouse that news-otel writes to)`;
+  return `could not check Docker network ${SHORTS_NETWORK}: ${r.err.split("\n")[0] || "docker failed"}`;
+}

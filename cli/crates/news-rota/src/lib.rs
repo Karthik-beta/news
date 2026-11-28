@@ -4,10 +4,10 @@
 //! the usage reading, and fires the schedules that are due. For each schedule only the latest due slot
 //! is considered, and the rules run in order: (1) the missed-slot rule drops a late slot whose next
 //! slot is close (`missed`, no run); (2) the late limit ends one past `lineup.queue_late_limit_minutes`
-//! as `skipped` with a Wrap; (3) otherwise it fires through Chief (`origin = 'schedule'`). While
-//! Karthik is signed out PostgreSQL is down and nothing ticks; the first tick after sign-in applies the
-//! same rules, so a slot that fell meanwhile runs if still within the late limit and is skipped
-//! otherwise.
+//! as `skipped` with a Wrap; (3) otherwise it fires through Chief (`origin = 'schedule'`). Kiri starts
+//! at boot, so being signed out does not stop Rota; while the laptop is off or asleep, or PostgreSQL is
+//! down, nothing ticks, and the first tick after applies the same rules, so a slot that fell meanwhile
+//! runs if still within the late limit and is skipped otherwise.
 //!
 //! [`RotaPolicy`] is Chief's `StartPolicy` and the `ai` pool's pre-claim hook: quiet hours hold heavy
 //! starts (`dont_start`) or shrink the `ai` pool (`reduced`); the quota guard refuses starts at the
