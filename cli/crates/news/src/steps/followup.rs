@@ -110,7 +110,6 @@ pub fn bulk_gate(pages: &Value, counts: &Value) -> GateOpen {
     let n = items.len();
     GateOpen {
         gate: "bulk".into(),
-        whole_subject: false,
         subject: json!({"items": items, "pages": pages}),
         summary: json!({"text": format!("{n} pages would change at once (the limit without approval is {BULK})"),
                         "counts": counts}),
