@@ -796,6 +796,8 @@ async fn register_copies_the_bundle_fills_the_rows_and_is_idempotent() {
         std::os::unix::fs::symlink(&outside, dir.join("index.html")).unwrap();
         let e = reg(linked).await.unwrap_err();
         assert_eq!(e.code, news_core::ErrorCode::ValidationFailed, "{e:?}");
+        // Drop the link, so the next bundle writes a regular file instead of writing through it.
+        std::fs::remove_file(dir.join("index.html")).unwrap();
     }
 
     // Once published, the next version advances the same row.
