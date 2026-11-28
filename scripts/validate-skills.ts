@@ -2,6 +2,7 @@
 //   skills:  .claude/skills/<name>/SKILL.md and skills/<name>/SKILL.md (runtime skills for page writers)
 //   agents:  .claude/agents/<name>.md
 // Each needs frontmatter with a non-empty `name` and `description`; a skill's `name` must equal its folder name.
+// Runtime skills also pass the page-writer lint (`runtimeSkillProblems`).
 // Exits 1 and lists every problem (not just the first) so one CI run shows everything to fix.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -66,6 +67,61 @@ export function checkFile(file: string, text: string, kind: "skill" | "agent", f
   return problems;
 }
 
+// Runtime skills (`skills/`) also pass the page-writer lint (#19): `news-brand` is at most 1,000 words, every
+// component a skill names is in the component index, and no example contains a digit outside a ref.
+const BRAND_MAX_WORDS = 1000;
+const REF = /\{?\b(?:dp|dv|pd|cx|q|sr)_[A-Za-z0-9_…]*\}?/g;
+const FENCE = /^```[^\n]*\n([\s\S]*?)^```/gm;
+
+/** The component index's names: component folders whose spec is a page component or the root, not a primitive. */
+export function indexedComponents(repoRoot: string): Set<string> {
+  const dir = join(repoRoot, "site/src/components");
+  return new Set(
+    subdirectories(dir).filter((name) => {
+      const spec = join(dir, name, "spec.ts");
+      return (
+        existsSync(spec) && /export default define(?:NewsComponent|RootComponent)\(/.test(readFileSync(spec, "utf8"))
+      );
+    }),
+  );
+}
+
+/**
+ * Lint problems in one runtime skill. Components named are backticked PascalCase names and `Name(` calls in code;
+ * examples are fenced blocks and quoted strings in the prose. An empty `components` set skips that check (a repo
+ * with no component folders).
+ */
+export function runtimeSkillProblems(file: string, text: string, folder: string, components: Set<string>): Problem[] {
+  const body = text
+    .replace(/^﻿/, "")
+    .replace(/\r\n/g, "\n")
+    .replace(/^---[ \t]*\n[\s\S]*?\n---[ \t]*(?:\n|$)/, "");
+  const problems: Problem[] = [];
+  if (folder === "news-brand") {
+    const words = body.split(/\s+/).filter(Boolean).length;
+    if (words > BRAND_MAX_WORDS)
+      problems.push({ file, message: `news-brand is ${words} words; the limit is ${BRAND_MAX_WORDS}` });
+  }
+  const fences = [...body.matchAll(FENCE)].map((m) => m[1] as string);
+  const prose = body.replace(FENCE, "");
+  const spans = [...prose.matchAll(/`([^`\n]+)`/g)].map((m) => m[1] as string);
+  if (components.size > 0) {
+    const named = new Set(spans.filter((s) => /^[A-Z][A-Za-z0-9]*$/.test(s)));
+    for (const code of [...fences, ...spans])
+      for (const m of code.matchAll(/\b([A-Z][A-Za-z0-9]*)\(/g)) named.add(m[1] as string);
+    for (const name of [...named].sort())
+      if (!components.has(name))
+        problems.push({ file, message: `names component \`${name}\`, which is not in the component index` });
+  }
+  const quotes = [...prose.replace(/`[^`\n]+`/g, "").matchAll(/"([^"\n]*)"|“([^”\n]*)”/g)].map(
+    (m) => (m[1] ?? m[2]) as string,
+  );
+  for (const example of [...fences, ...quotes])
+    if (/\d/.test(example.replace(REF, "")))
+      problems.push({ file, message: `an example has a digit outside a ref: ${example.trim().slice(0, 80)}` });
+  return problems;
+}
+
 function subdirectories(dir: string): string[] {
   if (!existsSync(dir)) return [];
   return readdirSync(dir, { withFileTypes: true })
@@ -78,6 +134,7 @@ function subdirectories(dir: string): string[] {
 export function validateRepo(repoRoot: string): { problems: Problem[]; checked: number } {
   const problems: Problem[] = [];
   let checked = 0;
+  const components = indexedComponents(repoRoot);
 
   for (const base of [".claude/skills", "skills"]) {
     for (const folder of subdirectories(join(repoRoot, base))) {
@@ -88,7 +145,9 @@ export function validateRepo(repoRoot: string): { problems: Problem[]; checked: 
         continue;
       }
       checked++;
-      problems.push(...checkFile(rel, readFileSync(path, "utf8"), "skill", folder));
+      const text = readFileSync(path, "utf8");
+      problems.push(...checkFile(rel, text, "skill", folder));
+      if (base === "skills") problems.push(...runtimeSkillProblems(rel, text, folder, components));
     }
   }
 

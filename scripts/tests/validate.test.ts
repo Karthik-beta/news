@@ -5,7 +5,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { root } from "../lib";
 import { configFiles, isLenientJson, parseProblem, validateConfigs, wranglerProblems } from "../validate-config";
-import { checkFile, parseFrontmatter, validateRepo } from "../validate-skills";
+import { checkFile, indexedComponents, parseFrontmatter, runtimeSkillProblems, validateRepo } from "../validate-skills";
 import { removeDir, tempDir } from "./helpers";
 
 const skill = (name: string, description = "Does a thing.") =>
@@ -86,6 +86,51 @@ describe("checkFile", () => {
   });
 });
 
+describe("runtimeSkillProblems (the page-writer lint)", () => {
+  const index = new Set(["Page", "KeyFigures", "LineChart"]);
+  const lint = (body: string, folder = "page-one") =>
+    runtimeSkillProblems("s/SKILL.md", `${skill(folder)}${body}`, folder, index).map((p) => p.message);
+
+  test("refs, indexed components and digit-free examples pass", () => {
+    const body = [
+      "Lead with `KeyFigures`, then `root = Page([...])` and `chart = LineChart(...)`.",
+      '- "Sales rose {dv_aapl_sales_yoy_fy2024} in {pd_fy2024}", with `"dp_…"` as a bare ref.',
+      "Output is `page-draft.v1` (a schema name, not an example).",
+      "```json",
+      '{"series": "sr_cpi_2024", "id": <block id>}',
+      "```",
+    ].join("\n");
+    expect(lint(body)).toEqual([]);
+  });
+
+  test("a component outside the index is reported, as a name or as a call", () => {
+    expect(lint("Use `PieChart` or `x = Donut(...)`.")).toEqual([
+      "names component `Donut`, which is not in the component index",
+      "names component `PieChart`, which is not in the component index",
+    ]);
+  });
+
+  test("a digit in a quoted or fenced example is reported; one inside a ref is not", () => {
+    expect(lint('"Sales rose 5% in {pd_fy2024}"')).toHaveLength(1);
+    expect(lint("“Up {dv_x} since 2019”")).toHaveLength(1);
+    expect(lint('```\n{"count": 3}\n```')).toHaveLength(1);
+    expect(lint('"Up {dv_q3_sales} in {pd_q3}"')).toEqual([]);
+  });
+
+  test("news-brand is held to 1,000 words of body; frontmatter does not count", () => {
+    // The fixture's body already has two words ("# Body").
+    expect(lint("word ".repeat(998), "news-brand")).toEqual([]);
+    expect(lint("word ".repeat(999), "news-brand")).toEqual(["news-brand is 1001 words; the limit is 1000"]);
+    expect(lint("word ".repeat(999))).toEqual([]);
+  });
+
+  test("the real component index has the page components and the root, not primitives", () => {
+    const names = indexedComponents(root);
+    expect(names.has("Page") && names.has("KeyFigures") && names.has("LineChart")).toBe(true);
+    expect(names.has("Button") || names.has("Headline")).toBe(false);
+  });
+});
+
 describe("validateRepo", () => {
   test("finds skills in both skill roots and agents, and passes when all are valid", () => {
     const dir = fixture({
@@ -118,6 +163,19 @@ describe("validateRepo", () => {
 
   test("a repo with neither root checks nothing, without throwing", () => {
     expect(validateRepo(fixture({ "README.md": "x" }))).toEqual({ problems: [], checked: 0 });
+  });
+
+  test("a runtime skill is linted; a development skill is not", () => {
+    const bad = `${skill("page-one")}Lead with \`PieChart\`. Example: "Sales rose 5% in 2024"\n`;
+    const dir = fixture({
+      "site/src/components/KeyFigures/spec.ts": "export default defineNewsComponent({",
+      ".claude/skills/dev-one/SKILL.md": bad.replace("page-one", "dev-one"),
+      "skills/page-one/SKILL.md": bad,
+    });
+    expect(validateRepo(dir).problems.map((p) => p.file)).toEqual([
+      "skills/page-one/SKILL.md",
+      "skills/page-one/SKILL.md",
+    ]);
   });
 
   test("the real repo's skills and agents are valid", () => {
