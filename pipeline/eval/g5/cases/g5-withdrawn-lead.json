@@ -10,13 +10,9 @@
       "tier": 1,
       "page_type": "policy",
       "published_at": "2026-11-20T03:00:00Z",
-      "categories": [
-        "economy/monetary-policy"
-      ],
+      "categories": ["economy/monetary-policy"],
       "region": "uk",
-      "entities": [
-        "institution:boe"
-      ],
+      "entities": ["institution:boe"],
       "figures": []
     },
     {
@@ -26,17 +22,10 @@
       "tier": 1,
       "page_type": "policy",
       "published_at": "2026-11-19T05:00:00Z",
-      "categories": [
-        "economy/monetary-policy"
-      ],
+      "categories": ["economy/monetary-policy"],
       "region": "europe",
-      "entities": [
-        "institution:ecb"
-      ],
-      "figures": [
-        "dp_ayvmv67k6qwi2tu5",
-        "dp_zqmtgkcrnjro6jq4"
-      ]
+      "entities": ["institution:ecb"],
+      "figures": ["dp_ayvmv67k6qwi2tu5", "dp_zqmtgkcrnjro6jq4"]
     },
     {
       "page_id": "2026/11/consumer-price-index-for-all-urban-consumers-all-items-in-u",
@@ -45,17 +34,10 @@
       "tier": 1,
       "page_type": "macro",
       "published_at": "2026-11-18T17:00:00Z",
-      "categories": [
-        "economy/inflation"
-      ],
+      "categories": ["economy/inflation"],
       "region": "north-america",
-      "entities": [
-        "institution:bls"
-      ],
-      "figures": [
-        "dp_4yog6v5qhiqchdrb",
-        "dp_4gbuxf2ixs5amiee"
-      ]
+      "entities": ["institution:bls"],
+      "figures": ["dp_4yog6v5qhiqchdrb", "dp_4gbuxf2ixs5amiee"]
     },
     {
       "page_id": "2026/11/apple-inc-10-k",
@@ -64,18 +46,10 @@
       "tier": 1,
       "page_type": "earnings",
       "published_at": "2026-11-18T02:00:00Z",
-      "categories": [
-        "finance/earnings"
-      ],
+      "categories": ["finance/earnings"],
       "region": "north-america",
-      "entities": [
-        "company:apple"
-      ],
-      "figures": [
-        "dp_kjfhexdo774vzbdy",
-        "dp_rurnaplntzkg2tzo",
-        "dp_3khm4dm4sqqxqm66"
-      ]
+      "entities": ["company:apple"],
+      "figures": ["dp_kjfhexdo774vzbdy", "dp_rurnaplntzkg2tzo", "dp_3khm4dm4sqqxqm66"]
     },
     {
       "page_id": "2026/11/bank-of-canada-raises-the-policy-rate-by-25-basis-points-to",
@@ -84,13 +58,9 @@
       "tier": 1,
       "page_type": "policy",
       "published_at": "2026-11-17T17:00:00Z",
-      "categories": [
-        "economy/monetary-policy"
-      ],
+      "categories": ["economy/monetary-policy"],
       "region": "north-america",
-      "entities": [
-        "institution:boc"
-      ],
+      "entities": ["institution:boc"],
       "figures": []
     },
     {
@@ -100,13 +70,9 @@
       "tier": 1,
       "page_type": "macro",
       "published_at": "2026-11-17T05:00:00Z",
-      "categories": [
-        "economy/inflation"
-      ],
+      "categories": ["economy/inflation"],
       "region": "europe",
-      "entities": [
-        "institution:eurostat"
-      ],
+      "entities": ["institution:eurostat"],
       "figures": []
     },
     {
@@ -116,13 +82,9 @@
       "tier": 2,
       "page_type": "macro",
       "published_at": "2026-11-16T17:00:00Z",
-      "categories": [
-        "economy/growth"
-      ],
+      "categories": ["economy/growth"],
       "region": "europe",
-      "entities": [
-        "institution:ecb"
-      ],
+      "entities": ["institution:ecb"],
       "figures": []
     },
     {
@@ -132,17 +94,10 @@
       "tier": 2,
       "page_type": "report",
       "published_at": "2026-11-16T09:00:00Z",
-      "categories": [
-        "economy/growth"
-      ],
+      "categories": ["economy/growth"],
       "region": "north-america",
-      "entities": [
-        "country:US"
-      ],
-      "figures": [
-        "dp_4stpfufc74tc24cy",
-        "dp_2kkf6eorryn4eygg"
-      ]
+      "entities": ["country:US"],
+      "figures": ["dp_4stpfufc74tc24cy", "dp_2kkf6eorryn4eygg"]
     },
     {
       "page_id": "2026/11/artemis-ii-launch",
@@ -151,13 +106,9 @@
       "tier": 2,
       "page_type": "science",
       "published_at": "2026-11-16T01:00:00Z",
-      "categories": [
-        "science"
-      ],
+      "categories": ["science"],
       "region": "north-america",
-      "entities": [
-        "institution:nasa"
-      ],
+      "entities": ["institution:nasa"],
       "figures": []
     },
     {
@@ -167,13 +118,9 @@
       "tier": 2,
       "page_type": "macro",
       "published_at": "2026-11-15T17:00:00Z",
-      "categories": [
-        "economy/inflation"
-      ],
+      "categories": ["economy/inflation"],
       "region": "uk",
-      "entities": [
-        "institution:ons"
-      ],
+      "entities": ["institution:ons"],
       "figures": []
     },
     {
@@ -183,13 +130,9 @@
       "tier": 2,
       "page_type": "macro",
       "published_at": "2026-11-15T09:00:00Z",
-      "categories": [
-        "economy/inflation"
-      ],
+      "categories": ["economy/inflation"],
       "region": "australia",
-      "entities": [
-        "institution:abs"
-      ],
+      "entities": ["institution:abs"],
       "figures": []
     },
     {
@@ -199,14 +142,9 @@
       "tier": 3,
       "page_type": "news",
       "published_at": "2026-11-14T23:00:00Z",
-      "categories": [
-        "finance"
-      ],
+      "categories": ["finance"],
       "region": "uk",
-      "entities": [
-        "institution:pra",
-        "company:hdi-global"
-      ],
+      "entities": ["institution:pra", "company:hdi-global"],
       "figures": []
     },
     {
@@ -216,13 +154,9 @@
       "tier": 2,
       "page_type": "report",
       "published_at": "2026-11-14T13:00:00Z",
-      "categories": [
-        "economy/growth"
-      ],
+      "categories": ["economy/growth"],
       "region": "north-america",
-      "entities": [
-        "institution:fed"
-      ],
+      "entities": ["institution:fed"],
       "figures": []
     },
     {
@@ -232,9 +166,7 @@
       "tier": 3,
       "page_type": "science",
       "published_at": "2026-11-14T03:00:00Z",
-      "categories": [
-        "science"
-      ],
+      "categories": ["science"],
       "region": "global",
       "entities": [],
       "figures": []
@@ -246,14 +178,9 @@
       "tier": 3,
       "page_type": "news",
       "published_at": "2026-11-17T11:00:00Z",
-      "categories": [
-        "economy"
-      ],
+      "categories": ["economy"],
       "region": "europe",
-      "entities": [
-        "institution:ecb",
-        "person:philip-r-lane"
-      ],
+      "entities": ["institution:ecb", "person:philip-r-lane"],
       "figures": []
     },
     {
@@ -263,22 +190,14 @@
       "tier": 3,
       "page_type": "news",
       "published_at": "2026-11-13T17:00:00Z",
-      "categories": [
-        "finance"
-      ],
+      "categories": ["finance"],
       "region": "global",
-      "entities": [
-        "institution:boe",
-        "institution:mas",
-        "institution:bot"
-      ],
+      "entities": ["institution:boe", "institution:mas", "institution:bot"],
       "figures": []
     }
   ],
   "expect": {
-    "excluded": [
-      "2026/11/bank-rate-increased-to-4-november-2026-monetary-policy-summa"
-    ],
+    "excluded": ["2026/11/bank-rate-increased-to-4-november-2026-monetary-policy-summa"],
     "notes": "The newest Tier 1 page, the Bank of England rate decision, has been withdrawn and must not lead or appear anywhere; the lead must be another fresh page (for example the ECB rate or US CPI page)."
   },
   "provenance": {

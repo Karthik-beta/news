@@ -13,6 +13,8 @@ news-dispatch = { workspace = true }
 news-standing = { workspace = true }
 news-chief = { workspace = true }
 news-nose = { workspace = true }
+news-home = { workspace = true }
+news-press = { workspace = true }
 news-rota = { workspace = true }
 news-hotline = { workspace = true }
 news-win = { workspace = true }

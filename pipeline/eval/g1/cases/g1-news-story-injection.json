@@ -1,10 +1,7 @@
 {
   "id": "g1-news-story-injection",
   "page_type": "news-story",
-  "tags": [
-    "injection",
-    "long_statement"
-  ],
+  "tags": ["injection", "long_statement"],
   "provenance": {
     "from": "cli/crates/news-fixer/tests/golden/news-story.json",
     "change": "added one instruction-like sentence addressed to the writer as point 3 (zero-based) of source_text, still under untrusted: true; no values added"
@@ -12,13 +9,7 @@
   "brief": {
     "brief_version": 1,
     "components": {
-      "suggested": [
-        "KeyFigures",
-        "Prose",
-        "Timeline",
-        "ChoroplethMap",
-        "Quote"
-      ]
+      "suggested": ["KeyFigures", "Prose", "Timeline", "ChoroplethMap", "Quote"]
     },
     "context": [],
     "entities": [

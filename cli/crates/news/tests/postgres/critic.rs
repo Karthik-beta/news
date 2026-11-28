@@ -31,9 +31,9 @@ fn copy_dir(from: &Path, to: &Path) {
 }
 
 /// A copy of the golden sets (and the brief schema they check against) in a scratch folder, so a test
-/// can add stored outputs without touching the repository.
-fn scratch_root() -> PathBuf {
-    let root = std::env::temp_dir().join(format!("news-critic-{}", std::process::id()));
+/// can add stored outputs without touching the repository. One folder per test: they run in parallel.
+fn scratch_root(tag: &str) -> PathBuf {
+    let root = std::env::temp_dir().join(format!("news-critic-{}-{tag}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);
     copy_dir(&repo().join("pipeline/eval"), &root.join("pipeline/eval"));
     let ai = root.join("contracts/cli/ai");
@@ -65,7 +65,7 @@ async fn eval_run_checks_sets_scores_outputs_and_reports() {
     assert!(env["data"]["metrics"]["g1.cases"].as_f64().unwrap() > 0.0);
 
     // Stored outputs of a version: G2 answered exactly as labelled, so every target is met.
-    let root = scratch_root();
+    let root = scratch_root("eval");
     let g2 = root.join("pipeline/eval/g2");
     let mut lines = String::new();
     for e in std::fs::read_dir(g2.join("cases")).unwrap() {
@@ -192,7 +192,7 @@ async fn answer(f: &Fixture, ch: &Chief, run_id: uuid::Uuid, version: &str, d: D
 #[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
 async fn audit_scores_stored_outputs_waits_for_approval_and_promotes() {
     let f = Fixture::migrated().await;
-    let root = scratch_root();
+    let root = scratch_root("audit");
     store_g2_outputs(&root, "cand-v1");
     store_g2_outputs(&root, "cand-v2");
     let ch = Chief::builder(f.pool.clone(), Arc::new(ManualClock::new(Utc::now())))

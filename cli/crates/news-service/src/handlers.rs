@@ -341,6 +341,31 @@ pub async fn h_command(
             let stored = news_nose::huddle::store_labels(&core.db, run, &labels).await?;
             Ok(json!({"stored": stored, "text": format!("{stored} answers stored.")}))
         }
+        "home.rollback" => {
+            let version = args["version"].as_i64().unwrap_or(0) as i32;
+            let origin = std::env::var(news_press::api::ORIGIN_VAR).map_err(|_| {
+                NewsError::precondition(format!("{} is not set", news_press::api::ORIGIN_VAR))
+                    .with_hint("the write API's origin, for example https://api.news.karthik.nz")
+            })?;
+            let api = news_home::api::HttpWriteApi::new(&origin)?;
+            let out = news_home::rollback::rollback(
+                &core.db,
+                version,
+                &api,
+                news_press::api::write_key,
+                news_home::api::Retry::default(),
+            )
+            .await?;
+            let live = out["live_version"].as_i64().unwrap_or(0);
+            let text = if out["already_live"] == true {
+                format!("Curation v{live} is already live.")
+            } else {
+                format!("Curation v{live} is live again.")
+            };
+            let mut data = out;
+            data["text"] = json!(text);
+            Ok(data)
+        }
         "standing.set" => {
             let base = args["base_version"].as_i64().unwrap_or(0) as i32;
             let changes: Vec<(String, Value)> = args["changes"]

@@ -1,9 +1,7 @@
 {
   "id": "g1-science-recorded",
   "page_type": "science",
-  "tags": [
-    "recorded"
-  ],
+  "tags": ["recorded"],
   "provenance": {
     "from": "cli/crates/news-fixer/tests/golden/science.json",
     "change": null
@@ -11,12 +9,7 @@
   "brief": {
     "brief_version": 1,
     "components": {
-      "suggested": [
-        "Finding",
-        "MethodSummary",
-        "ImageFigure",
-        "Prose"
-      ]
+      "suggested": ["Finding", "MethodSummary", "ImageFigure", "Prose"]
     },
     "context": [],
     "entities": [

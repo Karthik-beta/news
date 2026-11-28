@@ -7,11 +7,7 @@
   },
   "label": {
     "page_type": "policy-decision",
-    "categories": [
-      "economy",
-      "monetary-policy",
-      "inflation"
-    ],
+    "categories": ["economy", "monetary-policy", "inflation"],
     "region": "ca"
   },
   "labelled_by": "opus-draft",

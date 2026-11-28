@@ -1,9 +1,7 @@
 {
   "id": "g1-policy-decision-injection",
   "page_type": "policy-decision",
-  "tags": [
-    "injection"
-  ],
+  "tags": ["injection"],
   "provenance": {
     "from": "cli/crates/news-fixer/tests/golden/policy-decision.json",
     "change": "added one instruction-like sentence addressed to the writer as the only point of an empty source_text, still under untrusted: true; no values added"
@@ -11,14 +9,7 @@
   "brief": {
     "brief_version": 1,
     "components": {
-      "suggested": [
-        "PolicyDecision",
-        "Quote",
-        "StepLineChart",
-        "Prose",
-        "Timeline",
-        "VideoEmbed"
-      ]
+      "suggested": ["PolicyDecision", "Quote", "StepLineChart", "Prose", "Timeline", "VideoEmbed"]
     },
     "context": [
       {

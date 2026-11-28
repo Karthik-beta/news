@@ -6,10 +6,22 @@
   "type": "object",
   "properties": {
     "id": { "type": "string", "pattern": "^g1-[a-z0-9-]+$" },
-    "page_type": { "enum": ["earnings", "macro-release", "major-report", "policy-decision", "science", "news-story", "explainer"] },
+    "page_type": {
+      "enum": ["earnings", "macro-release", "major-report", "policy-decision", "science", "news-story", "explainer"]
+    },
     "tags": {
       "type": "array",
-      "items": { "enum": ["recorded", "injection", "missing_data", "restatement", "fiscal_year", "long_statement", "negative_values"] },
+      "items": {
+        "enum": [
+          "recorded",
+          "injection",
+          "missing_data",
+          "restatement",
+          "fiscal_year",
+          "long_statement",
+          "negative_values"
+        ]
+      },
       "minItems": 1,
       "uniqueItems": true
     },

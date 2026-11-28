@@ -7,10 +7,7 @@
   },
   "label": {
     "page_type": "major-report",
-    "categories": [
-      "economy",
-      "growth"
-    ],
+    "categories": ["economy", "growth"],
     "region": "us"
   },
   "labelled_by": "opus-draft",

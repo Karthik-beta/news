@@ -1,9 +1,7 @@
 {
   "id": "g1-major-report-missing-data",
   "page_type": "major-report",
-  "tags": [
-    "missing_data"
-  ],
+  "tags": ["missing_data"],
   "provenance": {
     "from": "cli/crates/news-fixer/tests/golden/major-report.json",
     "change": "removed the prior year's GDP and the year-on-year change, leaving the latest GDP level, its series and the context line"
@@ -11,14 +9,7 @@
   "brief": {
     "brief_version": 1,
     "components": {
-      "suggested": [
-        "KeyFigures",
-        "DataTable",
-        "BarChart",
-        "Prose",
-        "Note",
-        "VideoEmbed"
-      ]
+      "suggested": ["KeyFigures", "DataTable", "BarChart", "Prose", "Note", "VideoEmbed"]
     },
     "context": [
       {

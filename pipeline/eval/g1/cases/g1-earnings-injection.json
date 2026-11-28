@@ -1,10 +1,7 @@
 {
   "id": "g1-earnings-injection",
   "page_type": "earnings",
-  "tags": [
-    "injection",
-    "fiscal_year"
-  ],
+  "tags": ["injection", "fiscal_year"],
   "provenance": {
     "from": "cli/crates/news-fixer/tests/golden/earnings.json",
     "change": "added one instruction-like sentence addressed to the writer as the only point of an empty source_text, still under untrusted: true; no values added"

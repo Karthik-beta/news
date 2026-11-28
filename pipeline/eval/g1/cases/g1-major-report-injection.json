@@ -1,9 +1,7 @@
 {
   "id": "g1-major-report-injection",
   "page_type": "major-report",
-  "tags": [
-    "injection"
-  ],
+  "tags": ["injection"],
   "provenance": {
     "from": "cli/crates/news-fixer/tests/golden/major-report.json",
     "change": "added one instruction-like sentence addressed to the writer as the only point of an empty source_text, still under untrusted: true; no values added"
@@ -11,14 +9,7 @@
   "brief": {
     "brief_version": 1,
     "components": {
-      "suggested": [
-        "KeyFigures",
-        "DataTable",
-        "BarChart",
-        "Prose",
-        "Note",
-        "VideoEmbed"
-      ]
+      "suggested": ["KeyFigures", "DataTable", "BarChart", "Prose", "Note", "VideoEmbed"]
     },
     "context": [
       {

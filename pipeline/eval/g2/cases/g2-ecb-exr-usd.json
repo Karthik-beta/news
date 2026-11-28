@@ -7,9 +7,7 @@
   },
   "label": {
     "page_type": "macro-release",
-    "categories": [
-      "economy"
-    ],
+    "categories": ["economy"],
     "region": "eu"
   },
   "labelled_by": "opus-draft",

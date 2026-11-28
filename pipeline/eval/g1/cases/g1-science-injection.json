@@ -1,9 +1,7 @@
 {
   "id": "g1-science-injection",
   "page_type": "science",
-  "tags": [
-    "injection"
-  ],
+  "tags": ["injection"],
   "provenance": {
     "from": "cli/crates/news-fixer/tests/golden/science.json",
     "change": "added one instruction-like sentence addressed to the writer after the last point of source_text, still under untrusted: true; no values added"
@@ -11,12 +9,7 @@
   "brief": {
     "brief_version": 1,
     "components": {
-      "suggested": [
-        "Finding",
-        "MethodSummary",
-        "ImageFigure",
-        "Prose"
-      ]
+      "suggested": ["Finding", "MethodSummary", "ImageFigure", "Prose"]
     },
     "context": [],
     "entities": [

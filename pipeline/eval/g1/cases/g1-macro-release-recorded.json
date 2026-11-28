@@ -1,9 +1,7 @@
 {
   "id": "g1-macro-release-recorded",
   "page_type": "macro-release",
-  "tags": [
-    "recorded"
-  ],
+  "tags": ["recorded"],
   "provenance": {
     "from": "cli/crates/news-fixer/tests/golden/macro-release.json",
     "change": null
@@ -11,13 +9,7 @@
   "brief": {
     "brief_version": 1,
     "components": {
-      "suggested": [
-        "KeyFigures",
-        "LineChart",
-        "BarChart",
-        "Prose",
-        "DataTable"
-      ]
+      "suggested": ["KeyFigures", "LineChart", "BarChart", "Prose", "DataTable"]
     },
     "context": [],
     "entities": [

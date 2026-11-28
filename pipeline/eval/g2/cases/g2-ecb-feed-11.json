@@ -7,10 +7,7 @@
   },
   "label": {
     "page_type": "macro-release",
-    "categories": [
-      "economy",
-      "jobs"
-    ],
+    "categories": ["economy", "jobs"],
     "region": "eu"
   },
   "labelled_by": "opus-draft",

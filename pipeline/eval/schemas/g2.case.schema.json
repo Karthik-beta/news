@@ -19,7 +19,9 @@
     "label": {
       "type": "object",
       "properties": {
-        "page_type": { "enum": ["earnings", "macro-release", "major-report", "policy-decision", "science", "news-story", "explainer"] },
+        "page_type": {
+          "enum": ["earnings", "macro-release", "major-report", "policy-decision", "science", "news-story", "explainer"]
+        },
         "categories": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1, "maxItems": 3 },
         "region": { "type": "string", "minLength": 1 }
       },

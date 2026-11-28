@@ -1,9 +1,7 @@
 {
   "id": "g1-policy-decision-recorded",
   "page_type": "policy-decision",
-  "tags": [
-    "recorded"
-  ],
+  "tags": ["recorded"],
   "provenance": {
     "from": "cli/crates/news-fixer/tests/golden/policy-decision.json",
     "change": null
@@ -11,14 +9,7 @@
   "brief": {
     "brief_version": 1,
     "components": {
-      "suggested": [
-        "PolicyDecision",
-        "Quote",
-        "StepLineChart",
-        "Prose",
-        "Timeline",
-        "VideoEmbed"
-      ]
+      "suggested": ["PolicyDecision", "Quote", "StepLineChart", "Prose", "Timeline", "VideoEmbed"]
     },
     "context": [
       {

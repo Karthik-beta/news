@@ -1,9 +1,7 @@
 {
   "id": "g1-macro-release-missing-data",
   "page_type": "macro-release",
-  "tags": [
-    "missing_data"
-  ],
+  "tags": ["missing_data"],
   "provenance": {
     "from": "cli/crates/news-fixer/tests/golden/macro-release.json",
     "change": "removed the previous month's index level and the month-on-month change, leaving only the latest index level, so the brief no longer gives a direction"
@@ -11,13 +9,7 @@
   "brief": {
     "brief_version": 1,
     "components": {
-      "suggested": [
-        "KeyFigures",
-        "LineChart",
-        "BarChart",
-        "Prose",
-        "DataTable"
-      ]
+      "suggested": ["KeyFigures", "LineChart", "BarChart", "Prose", "DataTable"]
     },
     "context": [],
     "entities": [

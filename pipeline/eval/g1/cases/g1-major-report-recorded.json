@@ -1,9 +1,7 @@
 {
   "id": "g1-major-report-recorded",
   "page_type": "major-report",
-  "tags": [
-    "recorded"
-  ],
+  "tags": ["recorded"],
   "provenance": {
     "from": "cli/crates/news-fixer/tests/golden/major-report.json",
     "change": null
@@ -11,14 +9,7 @@
   "brief": {
     "brief_version": 1,
     "components": {
-      "suggested": [
-        "KeyFigures",
-        "DataTable",
-        "BarChart",
-        "Prose",
-        "Note",
-        "VideoEmbed"
-      ]
+      "suggested": ["KeyFigures", "DataTable", "BarChart", "Prose", "Note", "VideoEmbed"]
     },
     "context": [
       {

@@ -25,7 +25,18 @@
           "entities": { "type": "array", "items": { "type": "string" } },
           "figures": { "type": "array", "items": { "type": "string", "pattern": "^d[pv]_[a-z0-9_]+$" } }
         },
-        "required": ["page_id", "status", "title", "tier", "page_type", "published_at", "categories", "region", "entities", "figures"],
+        "required": [
+          "page_id",
+          "status",
+          "title",
+          "tier",
+          "page_type",
+          "published_at",
+          "categories",
+          "region",
+          "entities",
+          "figures"
+        ],
         "additionalProperties": false
       }
     },

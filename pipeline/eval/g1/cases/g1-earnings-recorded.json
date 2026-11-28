@@ -1,10 +1,7 @@
 {
   "id": "g1-earnings-recorded",
   "page_type": "earnings",
-  "tags": [
-    "recorded",
-    "fiscal_year"
-  ],
+  "tags": ["recorded", "fiscal_year"],
   "provenance": {
     "from": "cli/crates/news-fixer/tests/golden/earnings.json",
     "change": null

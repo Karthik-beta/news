@@ -7,10 +7,7 @@
   },
   "label": {
     "page_type": "science",
-    "categories": [
-      "science",
-      "finance"
-    ],
+    "categories": ["science", "finance"],
     "region": "uk"
   },
   "labelled_by": "opus-draft",

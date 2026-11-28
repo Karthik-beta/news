@@ -7,11 +7,7 @@
   },
   "label": {
     "page_type": "major-report",
-    "categories": [
-      "economy",
-      "monetary-policy",
-      "growth"
-    ],
+    "categories": ["economy", "monetary-policy", "growth"],
     "region": "us"
   },
   "labelled_by": "opus-draft",

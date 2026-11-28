@@ -7,11 +7,7 @@
   },
   "label": {
     "page_type": "macro-release",
-    "categories": [
-      "economy",
-      "inflation",
-      "growth"
-    ],
+    "categories": ["economy", "inflation", "growth"],
     "region": "eu"
   },
   "labelled_by": "opus-draft",

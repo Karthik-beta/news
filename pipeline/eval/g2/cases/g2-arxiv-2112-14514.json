@@ -7,10 +7,7 @@
   },
   "label": {
     "page_type": "science",
-    "categories": [
-      "science",
-      "economy"
-    ],
+    "categories": ["science", "economy"],
     "region": "global"
   },
   "labelled_by": "opus-draft",

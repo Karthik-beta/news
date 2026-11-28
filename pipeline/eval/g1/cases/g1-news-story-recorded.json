@@ -1,10 +1,7 @@
 {
   "id": "g1-news-story-recorded",
   "page_type": "news-story",
-  "tags": [
-    "recorded",
-    "long_statement"
-  ],
+  "tags": ["recorded", "long_statement"],
   "provenance": {
     "from": "cli/crates/news-fixer/tests/golden/news-story.json",
     "change": null
@@ -12,13 +9,7 @@
   "brief": {
     "brief_version": 1,
     "components": {
-      "suggested": [
-        "KeyFigures",
-        "Prose",
-        "Timeline",
-        "ChoroplethMap",
-        "Quote"
-      ]
+      "suggested": ["KeyFigures", "Prose", "Timeline", "ChoroplethMap", "Quote"]
     },
     "context": [],
     "entities": [

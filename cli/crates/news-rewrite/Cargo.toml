@@ -1,6 +1,6 @@
 [package]
 name = "news-rewrite"
-description = "Rewrite, revision handling. Skeleton with handler stubs; built in #20."
+description = "Rewrite, revision handling (Bureau §3.11): find superseded refs, classify, re-render by code, queue update jobs."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,6 +8,15 @@ publish.workspace = true
 
 [dependencies]
 news-core = { workspace = true }
+news-store = { workspace = true }
+news-dispatch = { workspace = true }
+news-ledger = { workspace = true }
+news-proof = { workspace = true }
+chrono = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+sqlx = { workspace = true }
 
 [lints]
 workspace = true

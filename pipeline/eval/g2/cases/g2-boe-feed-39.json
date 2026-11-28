@@ -7,10 +7,7 @@
   },
   "label": {
     "page_type": "news-story",
-    "categories": [
-      "economy",
-      "monetary-policy"
-    ],
+    "categories": ["economy", "monetary-policy"],
     "region": "uk"
   },
   "labelled_by": "opus-draft",

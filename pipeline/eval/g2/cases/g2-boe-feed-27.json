@@ -7,9 +7,7 @@
   },
   "label": {
     "page_type": "news-story",
-    "categories": [
-      "economy"
-    ],
+    "categories": ["economy"],
     "region": "uk"
   },
   "labelled_by": "opus-draft",

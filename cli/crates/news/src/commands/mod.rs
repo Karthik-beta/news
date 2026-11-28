@@ -18,6 +18,7 @@ mod run;
 mod schema;
 mod sources;
 mod stories;
+mod update;
 
 use crate::cli::*;
 use news_core::shape::DEFAULT_LIMIT;
@@ -103,7 +104,7 @@ pub async fn run(cli: Cli, path: &str, shape: &Shape) -> NewsResult<Reply> {
             prompt_version,
         }) => eval::run(&suite, prompt_version.as_deref()).await,
         C::Eval(EvalCmd::Report { eval_run }) => eval::report(&eval_run).await,
-        C::Update { .. } => stub(path, news_rewrite::ISSUE),
+        C::Update { page } => update::run(&page).await,
         C::Home(cmd) => home::run(cmd).await,
         C::Corrections(_) => stub(path, "#21"),
     }
@@ -181,6 +182,7 @@ pub const BUILT: &[&str] = &[
     "check",
     "brief",
     "related",
+    "update",
 ];
 
 /// Dotted names of the commands that have a contract file.

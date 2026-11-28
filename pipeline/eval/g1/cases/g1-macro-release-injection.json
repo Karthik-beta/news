@@ -1,9 +1,7 @@
 {
   "id": "g1-macro-release-injection",
   "page_type": "macro-release",
-  "tags": [
-    "injection"
-  ],
+  "tags": ["injection"],
   "provenance": {
     "from": "cli/crates/news-fixer/tests/golden/macro-release.json",
     "change": "added one instruction-like sentence addressed to the writer as the only point of an empty source_text, still under untrusted: true; no values added"
@@ -11,13 +9,7 @@
   "brief": {
     "brief_version": 1,
     "components": {
-      "suggested": [
-        "KeyFigures",
-        "LineChart",
-        "BarChart",
-        "Prose",
-        "DataTable"
-      ]
+      "suggested": ["KeyFigures", "LineChart", "BarChart", "Prose", "DataTable"]
     },
     "context": [],
     "entities": [

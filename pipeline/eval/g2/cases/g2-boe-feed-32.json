@@ -7,11 +7,7 @@
   },
   "label": {
     "page_type": "news-story",
-    "categories": [
-      "economy",
-      "inflation",
-      "monetary-policy"
-    ],
+    "categories": ["economy", "inflation", "monetary-policy"],
     "region": "uk"
   },
   "labelled_by": "opus-draft",

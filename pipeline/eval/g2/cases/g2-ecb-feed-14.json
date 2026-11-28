@@ -7,10 +7,7 @@
   },
   "label": {
     "page_type": "policy-decision",
-    "categories": [
-      "finance",
-      "economy"
-    ],
+    "categories": ["finance", "economy"],
     "region": "eu"
   },
   "labelled_by": "opus-draft",

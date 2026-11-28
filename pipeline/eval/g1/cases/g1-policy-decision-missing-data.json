@@ -1,9 +1,7 @@
 {
   "id": "g1-policy-decision-missing-data",
   "page_type": "policy-decision",
-  "tags": [
-    "missing_data"
-  ],
+  "tags": ["missing_data"],
   "provenance": {
     "from": "cli/crates/news-fixer/tests/golden/policy-decision.json",
     "change": "removed the previous rate (the decision before), leaving the current rate, its series and the context line"
@@ -11,14 +9,7 @@
   "brief": {
     "brief_version": 1,
     "components": {
-      "suggested": [
-        "PolicyDecision",
-        "Quote",
-        "StepLineChart",
-        "Prose",
-        "Timeline",
-        "VideoEmbed"
-      ]
+      "suggested": ["PolicyDecision", "Quote", "StepLineChart", "Prose", "Timeline", "VideoEmbed"]
     },
     "context": [
       {

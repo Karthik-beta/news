@@ -7,9 +7,7 @@
   },
   "label": {
     "page_type": "news-story",
-    "categories": [
-      "finance"
-    ],
+    "categories": ["finance"],
     "region": "global"
   },
   "labelled_by": "opus-draft",

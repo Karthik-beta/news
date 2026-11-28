@@ -1,10 +1,7 @@
 {
   "id": "g1-earnings-missing-data",
   "page_type": "earnings",
-  "tags": [
-    "missing_data",
-    "fiscal_year"
-  ],
+  "tags": ["missing_data", "fiscal_year"],
   "provenance": {
     "from": "cli/crates/news-fixer/tests/golden/earnings.json",
     "change": "removed every revenue fact (the current and prior fiscal year, the change between them and the quarter) and the revenue series sr_5n6kwkwjqlfc; net income, diluted EPS and shares outstanding remain"

@@ -10,13 +10,9 @@
       "tier": 1,
       "page_type": "policy",
       "published_at": "2026-11-19T15:00:00Z",
-      "categories": [
-        "economy/monetary-policy"
-      ],
+      "categories": ["economy/monetary-policy"],
       "region": "north-america",
-      "entities": [
-        "institution:fed"
-      ],
+      "entities": ["institution:fed"],
       "figures": []
     },
     {
@@ -26,17 +22,10 @@
       "tier": 1,
       "page_type": "macro",
       "published_at": "2026-11-19T07:00:00Z",
-      "categories": [
-        "economy/inflation"
-      ],
+      "categories": ["economy/inflation"],
       "region": "north-america",
-      "entities": [
-        "institution:bls"
-      ],
-      "figures": [
-        "dp_4yog6v5qhiqchdrb",
-        "dp_4gbuxf2ixs5amiee"
-      ]
+      "entities": ["institution:bls"],
+      "figures": ["dp_4yog6v5qhiqchdrb", "dp_4gbuxf2ixs5amiee"]
     },
     {
       "page_id": "2026/11/apple-inc-10-k",
@@ -45,18 +34,10 @@
       "tier": 1,
       "page_type": "earnings",
       "published_at": "2026-11-18T17:00:00Z",
-      "categories": [
-        "finance/earnings"
-      ],
+      "categories": ["finance/earnings"],
       "region": "north-america",
-      "entities": [
-        "company:apple"
-      ],
-      "figures": [
-        "dp_kjfhexdo774vzbdy",
-        "dp_rurnaplntzkg2tzo",
-        "dp_3khm4dm4sqqxqm66"
-      ]
+      "entities": ["company:apple"],
+      "figures": ["dp_kjfhexdo774vzbdy", "dp_rurnaplntzkg2tzo", "dp_3khm4dm4sqqxqm66"]
     },
     {
       "page_id": "2026/11/gdp-current-us",
@@ -65,17 +46,10 @@
       "tier": 2,
       "page_type": "report",
       "published_at": "2026-11-18T07:00:00Z",
-      "categories": [
-        "economy/growth"
-      ],
+      "categories": ["economy/growth"],
       "region": "north-america",
-      "entities": [
-        "country:US"
-      ],
-      "figures": [
-        "dp_4stpfufc74tc24cy",
-        "dp_2kkf6eorryn4eygg"
-      ]
+      "entities": ["country:US"],
+      "figures": ["dp_4stpfufc74tc24cy", "dp_2kkf6eorryn4eygg"]
     },
     {
       "page_id": "2026/11/federal-reserve-board-and-federal-open-market-committee-rele",
@@ -84,13 +58,9 @@
       "tier": 2,
       "page_type": "report",
       "published_at": "2026-11-17T21:00:00Z",
-      "categories": [
-        "economy/growth"
-      ],
+      "categories": ["economy/growth"],
       "region": "north-america",
-      "entities": [
-        "institution:fed"
-      ],
+      "entities": ["institution:fed"],
       "figures": []
     },
     {
@@ -100,13 +70,9 @@
       "tier": 3,
       "page_type": "news",
       "published_at": "2026-11-17T11:00:00Z",
-      "categories": [
-        "economy/monetary-policy"
-      ],
+      "categories": ["economy/monetary-policy"],
       "region": "north-america",
-      "entities": [
-        "institution:fed"
-      ],
+      "entities": ["institution:fed"],
       "figures": []
     },
     {
@@ -116,13 +82,9 @@
       "tier": 3,
       "page_type": "news",
       "published_at": "2026-11-16T21:00:00Z",
-      "categories": [
-        "economy/monetary-policy"
-      ],
+      "categories": ["economy/monetary-policy"],
       "region": "north-america",
-      "entities": [
-        "institution:fed"
-      ],
+      "entities": ["institution:fed"],
       "figures": []
     },
     {
@@ -132,13 +94,9 @@
       "tier": 1,
       "page_type": "policy",
       "published_at": "2026-11-19T03:00:00Z",
-      "categories": [
-        "economy/monetary-policy"
-      ],
+      "categories": ["economy/monetary-policy"],
       "region": "north-america",
-      "entities": [
-        "institution:boc"
-      ],
+      "entities": ["institution:boc"],
       "figures": []
     },
     {
@@ -148,14 +106,9 @@
       "tier": 2,
       "page_type": "news",
       "published_at": "2026-11-16T15:00:00Z",
-      "categories": [
-        "economy/monetary-policy"
-      ],
+      "categories": ["economy/monetary-policy"],
       "region": "north-america",
-      "entities": [
-        "institution:boc",
-        "person:tiff-macklem"
-      ],
+      "entities": ["institution:boc", "person:tiff-macklem"],
       "figures": []
     },
     {
@@ -165,14 +118,9 @@
       "tier": 2,
       "page_type": "policy",
       "published_at": "2026-11-15T19:00:00Z",
-      "categories": [
-        "economy/monetary-policy"
-      ],
+      "categories": ["economy/monetary-policy"],
       "region": "north-america",
-      "entities": [
-        "institution:boc",
-        "country:CA"
-      ],
+      "entities": ["institution:boc", "country:CA"],
       "figures": []
     },
     {
@@ -182,13 +130,9 @@
       "tier": 2,
       "page_type": "science",
       "published_at": "2026-11-15T09:00:00Z",
-      "categories": [
-        "science"
-      ],
+      "categories": ["science"],
       "region": "north-america",
-      "entities": [
-        "institution:nasa"
-      ],
+      "entities": ["institution:nasa"],
       "figures": []
     },
     {
@@ -198,13 +142,9 @@
       "tier": 3,
       "page_type": "macro",
       "published_at": "2026-11-14T23:00:00Z",
-      "categories": [
-        "economy/inflation"
-      ],
+      "categories": ["economy/inflation"],
       "region": "north-america",
-      "entities": [
-        "institution:oecd"
-      ],
+      "entities": ["institution:oecd"],
       "figures": []
     },
     {
@@ -214,17 +154,10 @@
       "tier": 1,
       "page_type": "policy",
       "published_at": "2026-11-18T21:00:00Z",
-      "categories": [
-        "economy/monetary-policy"
-      ],
+      "categories": ["economy/monetary-policy"],
       "region": "europe",
-      "entities": [
-        "institution:ecb"
-      ],
-      "figures": [
-        "dp_ayvmv67k6qwi2tu5",
-        "dp_zqmtgkcrnjro6jq4"
-      ]
+      "entities": ["institution:ecb"],
+      "figures": ["dp_ayvmv67k6qwi2tu5", "dp_zqmtgkcrnjro6jq4"]
     },
     {
       "page_id": "2026/11/bank-rate-increased-to-4-november-2026-monetary-policy-summa",
@@ -233,13 +166,9 @@
       "tier": 1,
       "page_type": "policy",
       "published_at": "2026-11-18T11:00:00Z",
-      "categories": [
-        "economy/monetary-policy"
-      ],
+      "categories": ["economy/monetary-policy"],
       "region": "uk",
-      "entities": [
-        "institution:boe"
-      ],
+      "entities": ["institution:boe"],
       "figures": []
     },
     {
@@ -249,9 +178,7 @@
       "tier": 3,
       "page_type": "science",
       "published_at": "2026-11-16T05:00:00Z",
-      "categories": [
-        "science"
-      ],
+      "categories": ["science"],
       "region": "global",
       "entities": [],
       "figures": []
@@ -263,20 +190,14 @@
       "tier": 1,
       "page_type": "macro",
       "published_at": null,
-      "categories": [
-        "economy/inflation"
-      ],
+      "categories": ["economy/inflation"],
       "region": "europe",
-      "entities": [
-        "institution:eurostat"
-      ],
+      "entities": ["institution:eurostat"],
       "figures": []
     }
   ],
   "expect": {
-    "excluded": [
-      "2026/11/hicp-monthly-data-annual-rate-of-change"
-    ],
+    "excluded": ["2026/11/hicp-monthly-data-annual-rate-of-change"],
     "notes": "Twelve of the fifteen published pages are North American; exactly one each from Europe, the UK and global, so all three must be placed to reach three regions. Four Fed pages and three Bank of Canada pages: at most two of each. The draft must not be placed."
   },
   "provenance": {
