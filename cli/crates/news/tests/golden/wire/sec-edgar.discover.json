@@ -1,0 +1,35 @@
+{
+  "by_source": {
+    "sec-edgar": 3
+  },
+  "calendar_entries": 0,
+  "items": [
+    {
+      "event_key": null,
+      "key": "0000320193-26-000104",
+      "kind": "sec.filing",
+      "published_at": "2026-10-30T20:30:28Z",
+      "source_id": "sec-edgar",
+      "title": "Apple Inc. 8-K (2026-10-30)",
+      "url": "https://www.sec.gov/Archives/edgar/data/320193/000032019326000104/aapl-20261030.htm"
+    },
+    {
+      "event_key": null,
+      "key": "0000320193-26-000105",
+      "kind": "sec.filing",
+      "published_at": "2026-10-31T06:01:36Z",
+      "source_id": "sec-edgar",
+      "title": "Apple Inc. 10-K (2026-09-26)",
+      "url": "https://www.sec.gov/Archives/edgar/data/320193/000032019326000105/aapl-20260926.htm"
+    },
+    {
+      "event_key": null,
+      "key": "0001193125-26-245117",
+      "kind": "sec.filing",
+      "published_at": "2026-10-31T13:15:02Z",
+      "source_id": "sec-edgar",
+      "title": "Apple Inc. 8-K/A (2026-10-30)",
+      "url": "https://www.sec.gov/Archives/edgar/data/320193/000119312526245117/d812345d8ka.htm"
+    }
+  ]
+}

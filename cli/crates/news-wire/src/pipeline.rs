@@ -92,13 +92,18 @@ enum Got {
 }
 
 impl Wire<'_> {
-    async fn get(&self, policy: &SourcePolicy, req: &Request) -> Result<Got, WireError> {
+    async fn get(
+        &self,
+        policy: &SourcePolicy,
+        req: &Request,
+        conditional: bool,
+    ) -> Result<Got, WireError> {
         let prior = self.state.prior(&req.url).await?;
-        match self
-            .runner
-            .fetch(policy, req, prior.as_ref().map(|p| &p.validators))
-            .await?
-        {
+        let validators = prior
+            .as_ref()
+            .filter(|_| conditional)
+            .map(|p| &p.validators);
+        match self.runner.fetch(policy, req, validators).await? {
             Outcome::NotModified => {
                 self.state
                     .not_modified(&policy.source_id, &req.url, self.runner.now())
@@ -133,9 +138,32 @@ impl Wire<'_> {
         cx: &Cx,
         cursor: Option<&str>,
     ) -> Result<Discovery, WireError> {
+        self.discover_with(policy, conn, cx, cursor, true).await
+    }
+
+    /// [`Self::discover`] that always reads the listings again (no validators sent). A terminal run
+    /// keeps no cursor, so a 304 would leave `news discover` and `news fetch` with nothing to show.
+    pub async fn discover_fresh(
+        &self,
+        policy: &SourcePolicy,
+        conn: &dyn Connector,
+        cx: &Cx,
+        cursor: Option<&str>,
+    ) -> Result<Discovery, WireError> {
+        self.discover_with(policy, conn, cx, cursor, false).await
+    }
+
+    async fn discover_with(
+        &self,
+        policy: &SourcePolicy,
+        conn: &dyn Connector,
+        cx: &Cx,
+        cursor: Option<&str>,
+        conditional: bool,
+    ) -> Result<Discovery, WireError> {
         let mut snaps = Vec::new();
         for req in conn.discovery_requests(cx, cursor) {
-            if let Got::Fresh(s) = self.get(policy, &req).await? {
+            if let Got::Fresh(s) = self.get(policy, &req, conditional).await? {
                 snaps.push(s);
             }
         }
@@ -152,7 +180,7 @@ impl Wire<'_> {
         let mut snapshots = Vec::new();
         let mut changed = false;
         for req in conn.fetch_requests(item) {
-            match self.get(policy, &req).await? {
+            match self.get(policy, &req, true).await? {
                 Got::Fresh(s) => {
                     changed = true;
                     snapshots.push(s);

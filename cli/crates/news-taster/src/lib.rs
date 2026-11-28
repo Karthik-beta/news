@@ -8,8 +8,8 @@
 //! * [`edit`]: H-tier `merge` and `split`. Board calls them over the Hotline; no shell command does.
 //! * [`read`]: what `news stories show|members|similar` print.
 //!
-//! The `story.detect` job handler still fails with class `bug` ("not built yet"): like Clerk's it needs
-//! the service context (database pool, the embedder), which lands with the step handlers.
+//! The `story.detect` job handler is `news::ingest` (it needs the service context: the database pool);
+//! it runs [`detect::detect`] with no embedder until the `embed` feature is wired in.
 
 pub mod config;
 pub mod detect;

@@ -2,35 +2,68 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://news.karthik.nz/contracts/cli/commands/fetch.schema.json",
   "title": "news fetch",
-  "description": "Download a story's source files and API data. Input is the command's arguments as an object; output is the envelope's data.",
+  "description": "Discover a source's items, then download each item's files through the Runner into the Morgue (exact bytes, `snapshots` and `fetch_state`). A file that has not changed (304) costs no download. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "W",
-  "x-news-status": "stub until #9",
-  "x-news-errors": ["rate_limited", "validation_failed", "not_found"],
+  "x-news-status": "built",
+  "x-news-errors": [
+    "not_found",
+    "precondition",
+    "rate_limited",
+    "licence_blocked",
+    "upstream_unavailable",
+    "internal"
+  ],
   "$defs": {
     "input": {
       "type": "object",
       "properties": {
-        "story": {
+        "source": {
           "type": "string"
         }
       },
-      "required": ["story"],
+      "required": ["source"],
       "additionalProperties": false
     },
     "output": {
       "type": "object",
       "properties": {
-        "status": {
-          "type": "string"
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "source_id": { "type": "string" },
+              "key": { "type": "string" },
+              "event_key": { "type": ["string", "null"] },
+              "changed": { "type": "boolean" },
+              "snapshots": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "url": { "type": "string" },
+                    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+                    "bytes": { "type": "integer" },
+                    "content_type": { "type": ["string", "null"] }
+                  },
+                  "required": ["url", "sha256", "bytes", "content_type"],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": ["source_id", "key", "event_key", "changed", "snapshots"],
+            "additionalProperties": false
+          }
         },
         "snapshots": {
           "type": "integer"
         },
-        "data_points": {
-          "type": "integer"
+        "changed": {
+          "type": "integer",
+          "description": "Items with at least one file that was not a 304."
         }
       },
-      "required": ["status", "snapshots", "data_points"],
+      "required": ["items", "snapshots", "changed"],
       "additionalProperties": false
     }
   }

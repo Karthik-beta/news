@@ -29,15 +29,14 @@ pub const ISSUE: &str = "#12";
 /// Job kinds this subsystem handles (see `news_dispatch::KINDS`).
 pub const KINDS: &[&str] = &["calendar.sync", "calendar.capture"];
 
-/// Run one job.
+/// Run one job: the stub for the kinds the `news` crate does not handle.
 ///
-/// TODO(#10, #29): both kinds need the Bureau service context. `calendar.sync` fetches each
-/// calendar source through the shared Runner (BLS and BEA ICS, the FOMC page, FRED `release/dates`
-/// via discovery), maps them with [`rules`] / [`fomc`], adds [`seed`] and [`earnings`] entries and
-/// calls [`store::upsert`]; `calendar.capture` runs the connector's discovery for the event's source
-/// on the [`schedule`] and calls [`store::mark_captured`] when the event key appears. Until the
-/// service exists the handlers refuse with class `bug`, like Wire's and Clerk's; `news calendar
-/// sync` does the offline part (seed file and derived windows) by hand.
+/// `calendar.capture` is handled by `news::ingest`: a pass over the event's source, then
+/// [`store::mark_captured`] when the event key appears. `calendar.sync` (#12) still refuses with class
+/// `bug`: it would fetch each calendar source through the shared Runner (BLS and BEA ICS, the FOMC
+/// page, FRED `release/dates` via discovery), map them with [`rules`] / [`fomc`], add [`seed`] and
+/// [`earnings`] entries and call [`store::upsert`]. `news calendar sync` does the offline part (seed
+/// file and derived windows) by hand.
 pub fn handle(input: JobInput) -> JobFuture {
     Box::pin(async move {
         Err(JobFailure::new(

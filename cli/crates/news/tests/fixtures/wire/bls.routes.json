@@ -1,0 +1,10 @@
+{
+  "now": "2026-11-16T08:00:00Z",
+  "routes": [
+    {
+      "prefix": "https://api.bls.gov/publicAPI/v2/timeseries/data/CUUR0000SA0",
+      "content_type": "application/json",
+      "file": "../../../../news-connectors/tests/fixtures/bls/CUUR0000SA0.json"
+    }
+  ]
+}

@@ -45,10 +45,9 @@ pub enum Command {
     Db(DbCmd),
 
     // --- Technical Design commands -----------------------------------------------------------
-    /// Run source connectors; store new candidates
+    /// List what a source has published; keep its calendar entries
     Discover {
-        /// Only this source
-        #[arg(long)]
+        /// A source id (`news sources list`); every enabled source when left out
         source: Option<String>,
     },
     /// Score, cluster and select stories for a run (the Budget)
@@ -56,10 +55,16 @@ pub enum Command {
         #[arg(long)]
         run: String,
     },
-    /// Download a story's source files and API data
-    Fetch { story: String },
-    /// Parse a story's snapshots into data points and text blocks
-    Parse { story: String },
+    /// Download a source's items into the Morgue
+    Fetch {
+        /// A source id (`news sources list`)
+        source: String,
+    },
+    /// Parse a source's items into data points and candidates
+    Parse {
+        /// A source id (`news sources list`)
+        source: String,
+    },
     /// Build the brief for a story
     Brief { story: String },
     /// List the component index, one line per component

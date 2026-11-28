@@ -24,14 +24,12 @@ pub const ISSUE: &str = "#9";
 /// Job kinds this subsystem handles (see `news_dispatch::KINDS`).
 pub const KINDS: &[&str] = &["source.discover", "doc.fetch", "work.prune"];
 
-/// Run one job.
+/// Run one job: the stub for the kinds the `news` crate does not handle.
 ///
-/// TODO(#10, #29): the handlers need a long-lived context (database pool, one shared [`runner::Runner`]
-/// so per-host buckets and robots caches are shared, the [`morgue::Morgue`] root) that the Bureau
-/// service provides. Until it exists the registered handler refuses with class `bug`, and the work is
-/// done by [`pipeline::Wire::discover`] / [`pipeline::Wire::fetch`], which the service will call:
-/// `source.discover` → `discover`, enqueue `doc.fetch` per new ref; `doc.fetch` → `fetch`, enqueue
-/// `doc.parse` only when `changed`; `work.prune` → delete Morgue files past `retain_until`.
+/// `source.discover` and `doc.fetch` are handled by `news::ingest` (it owns the context they need: the
+/// database pool, one shared [`runner::Runner`] so per-host buckets and robots caches are shared, and
+/// the [`morgue::Morgue`] root), which calls [`pipeline::Wire`]. What is left here is `work.prune`
+/// (delete Morgue files past `retain_until`), which still refuses with class `bug`.
 pub fn handle(input: JobInput) -> JobFuture {
     Box::pin(async move {
         Err(JobFailure::new(

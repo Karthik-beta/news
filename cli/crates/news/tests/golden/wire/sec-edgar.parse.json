@@ -1,0 +1,62 @@
+{
+  "items": [
+    {
+      "categories": [
+        "finance",
+        "earnings"
+      ],
+      "data_points": 0,
+      "event_key": null,
+      "key": "0000320193-26-000104",
+      "page_type": "earnings",
+      "page_type_by": "rule",
+      "published_at": "2026-10-30T20:30:28Z",
+      "region": "us",
+      "source_id": "sec-edgar",
+      "title": "Apple Inc. 8-K (2026-10-30)",
+      "url": "https://www.sec.gov/Archives/edgar/data/320193/000032019326000104/aapl-20261030.htm"
+    },
+    {
+      "categories": [
+        "finance",
+        "earnings"
+      ],
+      "data_points": 8,
+      "event_key": "earnings:0000320193:2026FY",
+      "key": "0000320193-26-000105",
+      "page_type": "earnings",
+      "page_type_by": "rule",
+      "published_at": "2026-10-31T06:01:36Z",
+      "region": "us",
+      "source_id": "sec-edgar",
+      "title": "Apple Inc. 10-K (2026-09-26)",
+      "url": "https://www.sec.gov/Archives/edgar/data/320193/000032019326000105/aapl-20260926.htm"
+    },
+    {
+      "categories": [
+        "finance",
+        "earnings"
+      ],
+      "data_points": 0,
+      "event_key": null,
+      "key": "0001193125-26-245117",
+      "page_type": "earnings",
+      "page_type_by": "rule",
+      "published_at": "2026-10-31T13:15:02Z",
+      "region": "us",
+      "source_id": "sec-edgar",
+      "title": "Apple Inc. 8-K/A (2026-10-30)",
+      "url": "https://www.sec.gov/Archives/edgar/data/320193/000119312526245117/d812345d8ka.htm"
+    }
+  ],
+  "parsed": 3,
+  "points": 16,
+  "stored": {
+    "candidates_inserted": 3,
+    "missing": 0,
+    "needs_human": 1,
+    "points_inserted": 16,
+    "points_unchanged": 0,
+    "revisions": 1
+  }
+}

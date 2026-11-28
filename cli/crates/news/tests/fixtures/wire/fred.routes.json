@@ -1,0 +1,30 @@
+{
+  "now": "2026-11-16T08:00:00Z",
+  "routes": [
+    {
+      "prefix": "https://api.stlouisfed.org/robots.txt",
+      "content_type": "text/plain",
+      "file": "../../../../news-connectors/tests/fixtures/fred/api-robots.txt"
+    },
+    {
+      "prefix": "https://api.stlouisfed.org/fred/series/vintagedates",
+      "content_type": "application/json",
+      "file": "../../../../news-connectors/tests/fixtures/fred/vintagedates-CPIAUCSL.json"
+    },
+    {
+      "prefix": "https://api.stlouisfed.org/fred/release/dates",
+      "content_type": "application/json",
+      "file": "../../../../news-connectors/tests/fixtures/fred/release-dates-10.json"
+    },
+    {
+      "prefix": "https://api.stlouisfed.org/fred/series/observations",
+      "content_type": "application/json",
+      "file": "../../../../news-connectors/tests/fixtures/fred/observations-CPIAUCSL.json"
+    },
+    {
+      "prefix": "https://api.stlouisfed.org/fred/series?",
+      "content_type": "application/json",
+      "file": "../../../../news-connectors/tests/fixtures/fred/series-CPIAUCSL.json"
+    }
+  ]
+}

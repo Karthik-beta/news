@@ -1,0 +1,17 @@
+{
+  "by_source": {
+    "fred": 1
+  },
+  "calendar_entries": 2,
+  "items": [
+    {
+      "event_key": null,
+      "key": "CPIAUCSL",
+      "kind": "fred.series",
+      "published_at": "2026-11-13T00:00:00Z",
+      "source_id": "fred",
+      "title": null,
+      "url": "https://fred.stlouisfed.org/series/CPIAUCSL"
+    }
+  ]
+}

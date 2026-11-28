@@ -159,10 +159,10 @@ Every command follows the same conventions ([Bureau design §6](News%20—%20Bur
 
 | Command | Does (code, no tokens) | Returns to the AI |
 | --- | --- | --- |
-| `news discover` | Runs source connectors; stores new candidates | Count of new candidates |
+| `news discover [<source>]` | Lists what a source has published (every enabled source with no argument) and keeps the calendar entries it announces | Items with event keys, per source |
 | `news plan` | Scores, clusters and selects items breadth-first against `NEWS_TARGET_PAGES` | Batches of item IDs |
-| `news fetch <id>` | Downloads source files and API data | Status only |
-| `news parse <id>` | XBRL, JSON, CSV, PDF text and tables, embeds and images | Status only |
+| `news fetch <source>` | Downloads the source's items (files and API data) into the Morgue | Snapshots per item |
+| `news parse <source>` | XBRL, JSON, CSV, PDF text and tables, embeds and images: stores data points and candidates (event key, rule-based page type and categories) | Candidates, counts stored |
 | `news brief <id>` | Builds the compact research pack | The brief (about 1–3k tokens) |
 | `news components` | Lists the component index | One line per component |
 | `news component <type>` | Full spec of one component (props, data shape, example) | Spec |
