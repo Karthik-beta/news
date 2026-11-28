@@ -416,7 +416,8 @@
           "$ref": "#/$defs/timestamp"
         },
         "subject_sha": {
-          "$ref": "#/$defs/sha256"
+          "$ref": "#/$defs/sha256",
+          "description": "SHA-256 of the canonical JSON (keys sorted, no spaces) of {\"preview\": preview, \"summary\": summary}, a null preview as null. The summary carries subject_hash (the subject's own SHA-256), subject_items and whole_subject, so this binds the subject too. Board recomputes it from what it displays and sends that in gate.approve, gate.changes and gate.reject."
         },
         "summary": {
           "$ref": "#/$defs/summary"

@@ -167,6 +167,8 @@ impl StepHandler for Audit {
                         summary: json!({"text": r["text"], "passed": r["passed"],
                                         "failed": r["failed"], "regressions": r["regressions"]}),
                         preview: None,
+                        // Promotion acts on the whole suite, not on items.
+                        whole_subject: true,
                     }]))
                 }
                 Step::Promote => promote(cx, &version).await,

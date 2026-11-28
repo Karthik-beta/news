@@ -597,6 +597,7 @@ async fn a_gated_run_waits_for_board_binds_the_hash_and_authorises_once() {
                         subject: s2.clone(),
                         summary: json!({"text": "Curation v42"}),
                         preview: None,
+                        whole_subject: true,
                     }])
                 }),
             }),
@@ -654,7 +655,14 @@ async fn a_gated_run_waits_for_board_binds_the_hash_and_authorises_once() {
     .execute(&f.pool)
     .await;
     assert!(fk.is_err());
-    let right = gates::hex(&gates::subject_sha(&subject));
+    // The hash binds the subject, the summary and the preview Board shows.
+    let right = gates::hex(&gates::gate_sha(&GateOpen {
+        gate: "publish".into(),
+        subject: subject.clone(),
+        summary: json!({"text": "Curation v42"}),
+        preview: None,
+        whole_subject: true,
+    }));
     let (_, st) = ch
         .answer(Answer {
             run: &run.short_id,

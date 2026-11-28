@@ -29,6 +29,28 @@ pub const PROTOCOL: i64 = 1;
 pub const IDLE: Duration = Duration::from_secs(60);
 /// A subscriber this far behind gets one `lagged` event.
 pub const LAG: usize = 1024;
+/// A subscriber that does not take an event frame within this long is dropped, so it cannot hold its
+/// pipe instance forever (security review on #10, finding 3).
+pub const EVENT_WRITE: Duration = Duration::from_secs(10);
+/// The longest wait between attempts to open another pipe instance.
+const RETRY_MAX: Duration = Duration::from_secs(5);
+
+/// Call `create` until it succeeds, backing off from 100 ms to [`RETRY_MAX`]: the accept loop's next
+/// pipe instance, which fails while every instance is connected (ERROR_PIPE_BUSY). The loop must not
+/// end, or the pipe name disappears and Board reads the service as stopped.
+pub async fn retry_create<T, E: std::fmt::Display>(mut create: impl FnMut() -> Result<T, E>) -> T {
+    let mut wait = Duration::from_millis(100);
+    loop {
+        match create() {
+            Ok(t) => return t,
+            Err(e) => {
+                tracing::warn!(error = %e, wait_ms = wait.as_millis() as u64, "cannot open another Hotline instance; retrying");
+                tokio::time::sleep(wait).await;
+                wait = (wait * 2).min(RETRY_MAX);
+            }
+        }
+    }
+}
 
 const BASE: &str = "https://news.karthik.nz/contracts/";
 
@@ -507,7 +529,10 @@ where
                 if ev.topic != "lagged" && !topics.contains(&ev.topic) {
                     continue;
                 }
-                if write_frame(&mut stream, &ev.frame()).await.is_err() {
+                let frame = ev.frame();
+                let write = tokio::time::timeout(EVENT_WRITE, write_frame(&mut stream, &frame));
+                if !matches!(write.await, Ok(Ok(()))) {
+                    tracing::warn!(pid = peer.pid, "dropping a subscriber that stopped reading");
                     return;
                 }
             }
@@ -732,6 +757,53 @@ mod tests {
         assert_eq!(env["error"]["code"], "usage");
         let reply = json!({"v": 1, "id": "t-1", "envelope": env});
         contracts().check_frame("reply", &reply).unwrap();
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_busy_pipe_is_retried_with_backoff_not_given_up() {
+        let mut tries = 0;
+        let start = tokio::time::Instant::now();
+        let got = retry_create(|| {
+            tries += 1;
+            if tries < 4 {
+                Err("ERROR_PIPE_BUSY")
+            } else {
+                Ok(tries)
+            }
+        })
+        .await;
+        assert_eq!(got, 4);
+        assert_eq!(start.elapsed(), Duration::from_millis(100 + 200 + 400));
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_subscriber_that_stops_reading_is_dropped() {
+        // A small buffer the client never drains: event writes block once it is full.
+        let (mut client, server) = tokio::io::duplex(512);
+        let fake = Arc::new(Fake(Bus::default()));
+        let svc: Arc<dyn Service> = fake.clone();
+        let h = tokio::spawn(serve_conn(server, Peer::board(), svc));
+        let env = call(
+            &mut client,
+            "t-1",
+            "subscribe",
+            json!({"topics": ["service"]}),
+        )
+        .await
+        .unwrap();
+        assert_eq!(env["ok"], true);
+        for i in 0..50 {
+            fake.0.emit(
+                "service",
+                json!({"text": format!("line {i} {}", "x".repeat(64))}),
+            );
+        }
+        // Paused time runs ahead while everything waits, so the write timeout fires at once.
+        tokio::time::timeout(EVENT_WRITE * 2, h)
+            .await
+            .expect("the stalled subscriber still holds its connection")
+            .unwrap();
+        drop(client);
     }
 
     #[tokio::test]

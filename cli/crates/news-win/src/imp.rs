@@ -440,15 +440,18 @@ impl Job {
 
 // ---- Low-integrity processes (ADR 0008 §8.2) -------------------------------------------------------
 
-/// A process created suspended with a restricted, Low-integrity copy of this process's token. It runs
-/// nothing until a job adopts it ([`Job::adopt_suspended`]).
+/// A process started with a restricted copy of this process's token: a Low-integrity `claude -p`
+/// ([`spawn_low_suspended`], which runs nothing until a job adopts it) or a Medium-integrity tool
+/// ([`spawn_medium`]).
 #[derive(Debug)]
-pub struct LowChild {
+pub struct RestrictedChild {
     process: Handle,
     pub pid: u32,
 }
 
-impl LowChild {
+pub type LowChild = RestrictedChild;
+
+impl RestrictedChild {
     /// Block until the process exits; its exit code.
     #[allow(unsafe_code)]
     pub fn wait(&self) -> io::Result<u32> {
@@ -564,7 +567,6 @@ fn env_block(env: &[(String, String)]) -> Vec<u16> {
 /// three handles: inheritable copies passed only through `PROC_THREAD_ATTRIBUTE_HANDLE_LIST` and
 /// closed straight after, so the caller's own handles are never inheritable. The caller puts it in a
 /// job, which resumes it ([`Job::adopt_suspended`]), or kills it.
-#[allow(unsafe_code)]
 pub fn spawn_low_suspended(
     exe: &std::path::Path,
     args: &[String],
@@ -574,6 +576,38 @@ pub fn spawn_low_suspended(
     stdout: &std::fs::File,
     stderr: &std::fs::File,
 ) -> io::Result<LowChild> {
+    let stdio = [stdin, stdout, stderr];
+    spawn_restricted(exe, args, env, Some(cwd), stdio, LOW, SPAWN_SUSPENDED)
+}
+
+/// Start a tool (docker, bun) with the same restricted token as [`spawn_low_suspended`] but at
+/// Medium integrity, running at once (security review on #10, finding 1): the service runs from the
+/// SCM with Karthik's unfiltered admin token, and no program it starts may hold that token. `cwd`
+/// `None` keeps this process's working folder.
+pub fn spawn_medium(
+    exe: &std::path::Path,
+    args: &[String],
+    env: &[(String, String)],
+    cwd: Option<&std::path::Path>,
+    stdio: [&std::fs::File; 3],
+) -> io::Result<RestrictedChild> {
+    spawn_restricted(exe, args, env, cwd, stdio, MEDIUM, CREATE_NO_WINDOW)
+}
+
+/// Mandatory integrity SIDs.
+const LOW: &str = "S-1-16-4096";
+const MEDIUM: &str = "S-1-16-8192";
+
+#[allow(unsafe_code)]
+fn spawn_restricted(
+    exe: &std::path::Path,
+    args: &[String],
+    env: &[(String, String)],
+    cwd: Option<&std::path::Path>,
+    stdio: [&std::fs::File; 3],
+    integrity: &'static str,
+    flags: u32,
+) -> io::Result<RestrictedChild> {
     use std::os::windows::ffi::OsStrExt;
     use windows_sys::Win32::Foundation::{DUPLICATE_SAME_ACCESS, DuplicateHandle};
     use windows_sys::Win32::Security::{
@@ -626,7 +660,7 @@ pub fn spawn_low_suspended(
         return Err(last());
     }
     let low = Handle(low);
-    let low_sid = LocalSid::parse("S-1-16-4096")?;
+    let low_sid = LocalSid::parse(integrity)?;
     let label = TOKEN_MANDATORY_LABEL {
         Label: SID_AND_ATTRIBUTES {
             Sid: low_sid.0,
@@ -647,7 +681,7 @@ pub fn spawn_low_suspended(
     }
 
     let mut copies = Vec::with_capacity(3);
-    for f in [stdin, stdout, stderr] {
+    for f in stdio {
         let mut h = null_mut();
         // SAFETY: duplicates a valid handle of this process into an inheritable copy we own.
         if unsafe {
@@ -687,7 +721,7 @@ pub fn spawn_low_suspended(
     si.lpAttributeList = list;
     let mut line = wide(&command_line(&exe.to_string_lossy(), args));
     let app: Vec<u16> = exe.as_os_str().encode_wide().chain(Some(0)).collect();
-    let dir: Vec<u16> = cwd.as_os_str().encode_wide().chain(Some(0)).collect();
+    let dir: Option<Vec<u16>> = cwd.map(|c| c.as_os_str().encode_wide().chain(Some(0)).collect());
     let block = env_block(env);
     // SAFETY: a zeroed PROCESS_INFORMATION is valid output space.
     let mut pi: PROCESS_INFORMATION = unsafe { std::mem::zeroed() };
@@ -710,9 +744,9 @@ pub fn spawn_low_suspended(
                 null(),
                 null(),
                 1,
-                SPAWN_SUSPENDED | CREATE_UNICODE_ENVIRONMENT | EXTENDED_STARTUPINFO_PRESENT,
+                flags | CREATE_UNICODE_ENVIRONMENT | EXTENDED_STARTUPINFO_PRESENT,
                 block.as_ptr().cast(),
-                dir.as_ptr(),
+                dir.as_ref().map_or(null(), |d| d.as_ptr()),
                 &si.StartupInfo,
                 &mut pi,
             ) != 0
@@ -727,7 +761,7 @@ pub fn spawn_low_suspended(
     }
     // Resumed through the process handle (NtResumeProcess), so the thread handle is closed now.
     drop(Handle(pi.hThread));
-    Ok(LowChild {
+    Ok(RestrictedChild {
         process: Handle(pi.hProcess),
         pid: pi.dwProcessId,
     })

@@ -28,12 +28,37 @@ pub struct GateOpen {
     /// `{"text": …, …figures}`, code-rendered.
     pub summary: Value,
     pub preview: Option<Value>,
+    /// The approval covers the whole subject, whatever item a G-tier command names. Without it a
+    /// gate covers only the subject's `items`, and a subject without `items` covers nothing.
+    pub whole_subject: bool,
 }
 
 /// SHA-256 of the subject's JSON bytes (keys sorted, as serde_json's map is).
 pub fn subject_sha(subject: &Value) -> [u8; 32] {
     let bytes = serde_json::to_vec(subject).unwrap_or_default();
     Sha256::digest(&bytes).into()
+}
+
+/// The summary as stored and shown: the producer's, plus the subject's hash (`subject_hash`), its
+/// `items` (`subject_items`) and `whole_subject`, so the gate's hash binds the subject as well.
+pub fn shown_summary(g: &GateOpen) -> Value {
+    let mut summary = g.summary.clone();
+    if let Some(m) = summary.as_object_mut() {
+        // Set, never taken from the producer's summary: these decide what the approval covers.
+        m.insert("subject_hash".into(), json!(hex(&subject_sha(&g.subject))));
+        m.remove("subject_items");
+        if let Some(items) = g.subject.get("items") {
+            m.insert("subject_items".into(), items.clone());
+        }
+        m.insert("whole_subject".into(), json!(g.whole_subject));
+    }
+    summary
+}
+
+/// The gate's `subject_sha`: [`news_core::tier::gate_sha`] of the shown summary and the preview, the
+/// hash Board recomputes from what it displays.
+pub fn gate_sha(g: &GateOpen) -> [u8; 32] {
+    news_core::tier::gate_sha(&shown_summary(g), g.preview.as_ref())
 }
 
 pub fn hex(b: &[u8]) -> String {
@@ -75,10 +100,6 @@ pub(crate) async fn open(
     now: DateTime<Utc>,
 ) -> Result<(), NewsError> {
     for g in gates {
-        let mut summary = g.summary.clone();
-        if let (Some(m), Some(items)) = (summary.as_object_mut(), g.subject.get("items")) {
-            m.insert("subject_items".into(), items.clone());
-        }
         sqlx::query(
             "insert into gates (run_id, gate, round, step_seq, subject_sha, summary, preview, opened_at)
              values ($1, $2, $3, $4, $5, $6, $7, $8) on conflict do nothing",
@@ -87,8 +108,8 @@ pub(crate) async fn open(
         .bind(&g.gate)
         .bind(round)
         .bind(step_seq)
-        .bind(subject_sha(&g.subject).to_vec())
-        .bind(summary)
+        .bind(gate_sha(g).to_vec())
+        .bind(shown_summary(g))
         .bind(&g.preview)
         .bind(now)
         .execute(&mut *conn)
@@ -279,6 +300,9 @@ pub struct Authorized<'t> {
     pub command: GCommand,
     /// The item this authorisation was checked for (`GRequest::item`); `None` means a step-wide check.
     pub item: Option<String>,
+    /// The approval it rests on, `(round, subject_sha)`, for a gate cover; `None` for the start's.
+    /// A publisher can check that what it publishes is what was approved.
+    pub approved: Option<(i16, [u8; 32])>,
 }
 
 impl Authorized<'_> {
@@ -340,13 +364,7 @@ pub async fn authorize<'t>(
             })
         })
     };
-    let covered_by_subject =
-        |summary: &Value, item: Option<&str>| match (item, summary.get("subject_items")) {
-            (Some(i), Some(Value::Array(l))) => l
-                .iter()
-                .any(|x| x.as_str() == Some(i) || x.as_i64().is_some_and(|n| n.to_string() == i)),
-            _ => true,
-        };
+    let mut approved = None;
     match step.cover {
         Cover::None => return Err(gated("the step has no cover")),
         Cover::Start => {
@@ -358,12 +376,12 @@ pub async fn authorize<'t>(
             }
         }
         Cover::Gate(g) => match approved_summary(&mut *conn, req.run_id, g).await? {
-            Some(s) if covered_by_subject(&s, req.item) => {}
+            Some((s, a)) if covered_by_subject(&s, req.item) => approved = Some(a),
             Some(_) => return Err(gated("the item is not in the approved subject")),
             None => return Err(gated(&format!("no unused approval of gate {g}"))),
         },
         Cover::GateOrStart(g) => match approved_summary(&mut *conn, req.run_id, g).await? {
-            Some(s) if covered_by_subject(&s, req.item) => {}
+            Some((s, a)) if covered_by_subject(&s, req.item) => approved = Some(a),
             Some(_) => return Err(gated("the item is not in the approved subject")),
             None => {
                 // The approval step recorded Skip (e.g. review_plan off): the start covers it.
@@ -388,11 +406,9 @@ pub async fn authorize<'t>(
             let item = req
                 .item
                 .ok_or_else(|| gated("a per-item gate needs the item"))?;
-            if approved_summary(&mut *conn, req.run_id, &format!("{f}:{item}"))
-                .await?
-                .is_none()
-            {
-                return Err(gated(&format!("no unused approval of gate {f}:{item}")));
+            match approved_summary(&mut *conn, req.run_id, &format!("{f}:{item}")).await? {
+                Some((_, a)) => approved = Some(a),
+                None => return Err(gated(&format!("no unused approval of gate {f}:{item}"))),
             }
         }
     }
@@ -402,17 +418,35 @@ pub async fn authorize<'t>(
         step_seq: req.step_seq,
         command: req.command,
         item: req.item.map(str::to_owned),
+        approved,
     })
 }
 
-/// The summary of the gate's latest round when it has an unused approval from Board for its hash.
+/// Whether an approved gate's stored summary covers `item`. Fails closed: a gate covers every item
+/// only when it was opened `whole_subject`; otherwise only its `subject_items` (an item-less,
+/// step-wide request passes when the gate lists items), and a gate with neither covers nothing.
+pub fn covered_by_subject(summary: &Value, item: Option<&str>) -> bool {
+    if summary["whole_subject"] == true {
+        return true;
+    }
+    match (item, summary.get("subject_items")) {
+        (Some(i), Some(Value::Array(l))) => l
+            .iter()
+            .any(|x| x.as_str() == Some(i) || x.as_i64().is_some_and(|n| n.to_string() == i)),
+        (None, Some(Value::Array(_))) => true,
+        _ => false,
+    }
+}
+
+/// The summary of the gate's latest round, with that round and its hash, when it has an unused
+/// approval from Board for its hash.
 async fn approved_summary(
     conn: &mut PgConnection,
     run_id: Uuid,
     gate: &str,
-) -> Result<Option<Value>, NewsError> {
+) -> Result<Option<(Value, (i16, [u8; 32]))>, NewsError> {
     let row = sqlx::query(
-        "select g.summary from gates g
+        "select g.summary, g.round, g.subject_sha from gates g
            join approvals a on a.run_id = g.run_id and a.gate = g.gate and a.round = g.round
                            and a.subject_sha = g.subject_sha
           where g.run_id = $1 and g.gate = $2 and a.decision = 'approved' and a.origin = 'board'
@@ -424,7 +458,12 @@ async fn approved_summary(
     .fetch_optional(&mut *conn)
     .await
     .map_err(map_err)?;
-    Ok(row.map(|r| r.get::<Value, _>("summary")))
+    Ok(row.map(|r| {
+        let sha: Vec<u8> = r.get("subject_sha");
+        // The column's check constraint holds it at 32 bytes.
+        let sha: [u8; 32] = sha.as_slice().try_into().unwrap_or([0; 32]);
+        (r.get("summary"), (r.get("round"), sha))
+    }))
 }
 
 /// Mark the approvals a finished step used as consumed (in the transaction that marks it done).
@@ -466,5 +505,59 @@ mod tests {
         assert_eq!(h.len(), 64);
         assert_eq!(unhex(&h).as_deref(), Some(&subject_sha(&a)[..]));
         assert!(unhex("zz").is_none());
+    }
+
+    fn open(subject: Value, preview: Option<Value>, whole_subject: bool) -> GateOpen {
+        GateOpen {
+            gate: "plan".into(),
+            subject,
+            summary: json!({"text": "Plan"}),
+            preview,
+            whole_subject,
+        }
+    }
+
+    #[test]
+    fn the_gate_hash_binds_subject_summary_and_preview() {
+        let g = open(json!({"items": ["a"]}), Some(json!({"draft": 1})), false);
+        let base = gate_sha(&g);
+        // What Board recomputes from the stored summary and preview is the stored hash.
+        assert_eq!(
+            news_core::tier::gate_sha(&shown_summary(&g), g.preview.as_ref()),
+            base
+        );
+        let mut other = g.clone();
+        other.subject = json!({"items": ["a"], "v": 2});
+        assert_ne!(
+            gate_sha(&other),
+            base,
+            "a new subject behind the same summary"
+        );
+        other = g.clone();
+        other.summary = json!({"text": "Plan v2"});
+        assert_ne!(gate_sha(&other), base, "a new summary");
+        other = g.clone();
+        other.preview = Some(json!({"draft": 2}));
+        assert_ne!(gate_sha(&other), base, "a new preview");
+    }
+
+    #[test]
+    fn only_a_whole_subject_gate_covers_items_it_does_not_list() {
+        let listed = shown_summary(&open(json!({"items": ["a", 81]}), None, false));
+        assert!(covered_by_subject(&listed, Some("a")));
+        assert!(covered_by_subject(&listed, Some("81")));
+        assert!(!covered_by_subject(&listed, Some("b")));
+        assert!(covered_by_subject(&listed, None), "a step-wide request");
+        // No items and not declared whole-subject: refused, not passed.
+        let bare = shown_summary(&open(json!({"draft": 7}), None, false));
+        assert!(!covered_by_subject(&bare, Some("a")));
+        assert!(!covered_by_subject(&bare, None));
+        // A producer's summary cannot widen the cover itself.
+        let mut g = open(json!({"draft": 7}), None, false);
+        g.summary = json!({"text": "Plan", "whole_subject": true, "subject_items": ["a"]});
+        assert!(!covered_by_subject(&shown_summary(&g), Some("a")));
+        let whole = shown_summary(&open(json!({"draft": 7}), None, true));
+        assert!(covered_by_subject(&whole, Some("a")));
+        assert!(covered_by_subject(&whole, None));
     }
 }

@@ -21,14 +21,24 @@ pub trait Runner: Send + Sync {
     fn run(&self, args: &[&str]) -> Result<String, String>;
 }
 
-/// The real Docker command line.
+/// What `docker` needs beyond the tool allow-list: where the engine is (Kiri is the default context,
+/// kept under the user profile).
+const DOCKER_ENV: &[&str] = &[
+    "DOCKER_HOST",
+    "DOCKER_CONTEXT",
+    "DOCKER_CONFIG",
+    "DOCKER_CERT_PATH",
+    "DOCKER_TLS_VERIFY",
+];
+
+/// The real Docker command line: the recorded `docker`, as a restricted tool child.
 pub struct DockerCli;
 
 impl Runner for DockerCli {
     fn run(&self, args: &[&str]) -> Result<String, String> {
-        let out = std::process::Command::new("docker")
-            .args(args)
-            .output()
+        let exe = news_win::tool_path("docker").map_err(|e| format!("cannot find docker: {e}"))?;
+        let args: Vec<String> = args.iter().map(|a| (*a).to_owned()).collect();
+        let out = news_win::run_tool(&exe, &args, None, &news_win::tool_env(DOCKER_ENV, &[]))
             .map_err(|e| format!("cannot run docker: {e}"))?;
         if out.status.success() {
             Ok(String::from_utf8_lossy(&out.stdout).into_owned())

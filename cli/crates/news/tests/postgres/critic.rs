@@ -174,7 +174,19 @@ async fn answer(f: &Fixture, ch: &Chief, run_id: uuid::Uuid, version: &str, d: D
     .unwrap();
     let subject = json!({"suite": "classify", "prompt_version": version,
                          "eval_run": format!("e{eval_run}"), "steps": ["A3"]});
-    let sha = gates::hex(&gates::subject_sha(&subject));
+    // Board's hash: of the summary and preview it shows; the summary carries the subject's own hash.
+    let (summary, preview): (Value, Option<Value>) = sqlx::query_as(
+        "select summary, preview from gates where run_id = $1 and gate = 'promote' and round = 1",
+    )
+    .bind(run_id)
+    .fetch_one(&f.pool)
+    .await
+    .unwrap();
+    assert_eq!(
+        summary["subject_hash"],
+        gates::hex(&gates::subject_sha(&subject))
+    );
+    let sha = gates::hex(&news_core::tier::gate_sha(&summary, preview.as_ref()));
     ch.answer(Answer {
         run: &short,
         gate: "promote",

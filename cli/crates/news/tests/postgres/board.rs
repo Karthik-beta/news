@@ -43,6 +43,7 @@ fn review(reviews: Arc<AtomicUsize>) -> Arc<dyn StepHandler> {
             subject: json!({"draft": n}),
             summary: json!({"text": format!("Curation draft {n}")}),
             preview: Some(json!({"draft": n})),
+            whole_subject: true,
         }])
     })))
 }
@@ -201,10 +202,10 @@ async fn board_starts_asks_for_changes_approves_and_cancels_runs_through_the_ser
     assert_eq!(b.selected_run.as_deref(), Some(short.as_str()));
     until(&mut b, "the run detail", |b| b.detail.is_some()).await;
 
-    // A stale answer is refused: the hash must be the one the gate holds now.
+    // A stale answer is refused: Board hashes what it shows, and that must be what the gate holds now.
     let stale = {
         let mut g = gate.clone();
-        g["subject_sha"] = json!("00".repeat(32));
+        g["preview"] = json!({"draft": 999});
         g
     };
     b.answer_gate(&stale, "approve");
