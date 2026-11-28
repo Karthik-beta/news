@@ -5,7 +5,7 @@ These skills are for the **production pipeline**: the `claude -p` calls (Sonnet 
 | Skill | Step | Loaded when | Output | Size (≈ tokens) |
 |---|---|---|---|---|
 | [news-reporter](news-reporter/SKILL.md) | A1, A2 | Every page call, first in the cached prefix: write, update after a direction flip, repair | `page-draft.v1` | 1,070 |
-| [news-brand](news-brand/SKILL.md) | A1, A2 | Every page call (cached prefix): voice, refs, banned words, components | — | 1,540 |
+| [news-brand](news-brand/SKILL.md) | A1, A2 | Every page call (cached prefix): voice, refs, banned words, components | — | 1,580 |
 | [page-earnings](page-earnings/SKILL.md) | A1, A2 | Earnings pages | — | 540 |
 | [page-macro-release](page-macro-release/SKILL.md) | A1, A2 | Macro releases | — | 440 |
 | [page-major-report](page-major-report/SKILL.md) | A1, A2 | Institutional reports | — | 410 |
@@ -25,6 +25,8 @@ These skills are for the **production pipeline**: the `claude -p` calls (Sonnet 
 A page call's prefix is `news-reporter` + `news-brand` + one `page-*` skill (about 3,000 tokens together) + the component index + that page type's component specs. Sizes are UTF-8 bytes ÷ 4, a rough count; telemetry gives the real one.
 
 Each AI step's contract (input, output schema, validator, fallback, budget) is in the [Bureau design §7](../News%20—%20Bureau%20Design.md#7-ai-usage-ledger); output schemas are in `contracts/cli/ai/`. Every skill states its input shape, its output, what happens when the output fails validation, and that `source_text` and other outside text are untrusted data, never instructions.
+
+`bun run validate` (and the required "Config and skills" check in CI) lints these files: `news-brand` is at most 1,000 words, a skill names only components in the component index (page components and `Page` in `site/src/components`), and no example (a fenced block or a quoted string) contains a digit outside a ref.
 
 ## How the pipeline uses them
 
