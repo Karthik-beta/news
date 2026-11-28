@@ -337,7 +337,14 @@ async fn story_pairs_near_the_join_threshold_are_labelled_in_board_and_exported_
         (case["label"]["same"].clone(), case["label"]["by"].clone()),
         (json!(true), json!("karthik"))
     );
-    assert_eq!(case["sides"]["a"]["kind"], "candidate");
+    // A case holds ids, the source id and the label: none of the outlet's titles or text.
+    assert_eq!(case["candidate"]["source_id"], "wire-a");
+    assert!(case["candidate"]["id"].is_i64() && case["story"]["id"].is_i64());
+    assert!(case.get("sides").is_none());
+    assert!(
+        !text.contains("Candidate ") && !text.contains("Story "),
+        "{text}"
+    );
     let (env, code) = in_root(&f, &root, &["eval", "run", "storymatch"]);
     assert_eq!(
         (code, env["data"]["failed"].as_i64()),
@@ -386,5 +393,171 @@ async fn story_pairs_near_the_join_threshold_are_labelled_in_board_and_exported_
     );
     // The repository's own G3 set is untouched.
     assert_eq!(cases_in(&repo().join("pipeline/eval/g3/cases")), 0);
+
+    // A pair id names a file: the table refuses any id that is not ours, and if one got in anyway (the
+    // constraint dropped here) export refuses it before it writes a single file.
+    let hostile = sqlx::query(
+        "insert into story_pairs (pair_id, sides, cos, shared_entity, model) values ('../../evil', '{}', 0.8, true, 'm')",
+    )
+    .execute(p)
+    .await;
+    assert!(hostile.is_err(), "the pair id is checked in the table");
+    sqlx::query("alter table story_pairs drop constraint story_pairs_pair_id_form")
+        .execute(p)
+        .await
+        .unwrap();
+    for id in ["../../evil", "g3-c007-s1", "g3-c1-s2/../x"] {
+        sqlx::query(
+            "insert into story_pairs (pair_id, sides, cos, shared_entity, model) values ($1, '{}', 0.8, true, 'm')",
+        )
+        .bind(id)
+        .execute(p)
+        .await
+        .unwrap();
+        sqlx::query("insert into pair_labels (pair_id, same) values ($1, true)")
+            .bind(id)
+            .execute(p)
+            .await
+            .unwrap();
+        // Change a label so a real case would be rewritten too: nothing may be written at all.
+        sqlx::query("update pair_labels set same = not same where pair_id = $1")
+            .bind(&want[1])
+            .execute(p)
+            .await
+            .unwrap();
+        let before = cases_in(&root.join("pipeline/eval/g3/cases"));
+        let (env, code) = in_root(&f, &root, &["eval", "export"]);
+        assert_ne!(code, 0, "{id}: {env}");
+        assert_eq!(env["error"]["code"], "validation_failed", "{id}: {env}");
+        assert_eq!(
+            cases_in(&root.join("pipeline/eval/g3/cases")),
+            before,
+            "{id}"
+        );
+        assert!(
+            !root.join("pipeline/evil.json").exists()
+                && !root.join("pipeline/eval/g3/evil.json").exists()
+        );
+        sqlx::query("delete from pair_labels where pair_id = $1")
+            .bind(id)
+            .execute(p)
+            .await
+            .unwrap();
+    }
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[tokio::test]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn pairs_include_the_story_a_candidate_was_joined_to_and_follow_detections_window() {
+    let f = Fixture::migrated().await;
+    let p = &f.pool;
+    source(p, "wire-a", 2).await;
+    let story = |title: &'static str, last_seen: chrono::DateTime<chrono::Utc>| {
+        sqlx::query_scalar::<_, i64>(
+            "insert into stories (title, first_seen, last_seen, entity_ids) values ($1, $2, $2, '{1}') returning story_id",
+        )
+        .bind(title)
+        .bind(last_seen)
+        .fetch_one(p)
+    };
+    // Story X holds two candidates 0.85 apart on axis 10: each is 0.85 from the story without it (the
+    // leave-one-out centroid), above the 0.82 join threshold, though each was joined to X.
+    let x = story("Fed decision", t0()).await.unwrap();
+    let mut members = Vec::new();
+    for (title, v) in [
+        ("Fed holds rates", mix(10, 200, 1.0)),
+        ("Fed leaves rates", mix(10, 201, 0.85)),
+    ] {
+        let c = cand(p, "wire-a", title, None, None, t0()).await;
+        sqlx::query("update candidates set story_id = $2, entity_ids = '{1}' where cand_id = $1")
+            .bind(c)
+            .bind(x)
+            .execute(p)
+            .await
+            .unwrap();
+        embed(&f, "candidate", c, &v).await;
+        members.push(c);
+    }
+    // A story last seen ten days before its neighbour candidate arrived is outside the 72 h window, so a
+    // candidate 0.84 from its centroid is not a pair; a story seen an hour before is.
+    let old = story("Old story", t0() - chrono::TimeDelta::days(10))
+        .await
+        .unwrap();
+    let fresh = story("Fresh story", t0() - chrono::TimeDelta::hours(1))
+        .await
+        .unwrap();
+    let stray_old = cand(p, "wire-a", "Stray one", None, None, t0()).await;
+    let stray_fresh = cand(p, "wire-a", "Stray two", None, None, t0()).await;
+    for (c, axis, s) in [(stray_old, 20, old), (stray_fresh, 21, fresh)] {
+        let mut unit = vec![0.0f64; DIM];
+        unit[axis] = 1.0;
+        let unit = format!(
+            "[{}]",
+            unit.iter()
+                .map(f64::to_string)
+                .collect::<Vec<_>>()
+                .join(",")
+        );
+        embed(&f, "candidate", c, &unit).await;
+        embed(&f, "story", s, &mix(axis, 300 + axis, 0.84)).await;
+    }
+    // A candidate with an event key is never matched by similarity, so it is not drafted either.
+    let keyed = cand(
+        p,
+        "wire-a",
+        "Keyed",
+        Some("macro:us.cpi:2026-10"),
+        None,
+        t0(),
+    )
+    .await;
+    let mut unit = vec![0.0f64; DIM];
+    unit[22] = 1.0;
+    let unit = format!(
+        "[{}]",
+        unit.iter()
+            .map(f64::to_string)
+            .collect::<Vec<_>>()
+            .join(",")
+    );
+    embed(&f, "candidate", keyed, &unit).await;
+    let s = story("Keyed story", t0()).await.unwrap();
+    embed(&f, "story", s, &mix(22, 322, 0.84)).await;
+
+    let root = scratch_root("labels-own");
+    let (env, code) = in_root(&f, &root, &["eval", "draft"]);
+    assert_eq!(code, 0, "{env}");
+    let drafted: Vec<String> =
+        sqlx::query_scalar("select pair_id from story_pairs order by pair_id")
+            .fetch_all(p)
+            .await
+            .unwrap();
+    let mut want = vec![
+        format!("g3-c{}-s{x}", members[0]),
+        format!("g3-c{}-s{x}", members[1]),
+        format!("g3-c{stray_fresh}-s{fresh}"),
+    ];
+    want.sort();
+    assert_eq!(
+        drafted, want,
+        "own-story pairs, the window and the event key"
+    );
+    // The own-story pair shows the other members, never the candidate itself, and keeps its shared entity.
+    let (members_shown, shared): (Value, bool) = sqlx::query_as(
+        "select sides->'b'->'members', shared_entity from story_pairs where pair_id = $1",
+    )
+    .bind(format!("g3-c{}-s{x}", members[0]))
+    .fetch_one(p)
+    .await
+    .unwrap();
+    assert_eq!(members_shown, json!(["Fed leaves rates"]));
+    assert!(shared);
+    let cos: f64 = sqlx::query_scalar("select cos from story_pairs where pair_id = $1")
+        .bind(format!("g3-c{}-s{x}", members[0]))
+        .fetch_one(p)
+        .await
+        .unwrap();
+    assert!((cos - 0.85).abs() < 0.005, "{cos}");
     let _ = std::fs::remove_dir_all(&root);
 }

@@ -122,13 +122,27 @@ fn write_value(out: &mut String, v: &Value, indent: usize, prefix: usize) {
 
 type Row = (
     String,
-    Value,
     f64,
     bool,
     String,
     chrono::DateTime<chrono::Utc>,
     bool,
+    Option<String>,
 );
+
+/// `(candidate, story)` of a pair id, only when the id is exactly `g3-c<n>-s<n>` as Taster writes it.
+/// The id names a file, so anything else is refused before a path is made from it.
+pub fn parse_pair_id(id: &str) -> Option<(i64, i64)> {
+    let (c, s) = id.strip_prefix("g3-c")?.split_once("-s")?;
+    if ![c, s]
+        .iter()
+        .all(|n| !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit()))
+    {
+        return None;
+    }
+    let (c, s) = (c.parse::<i64>().ok()?, s.parse::<i64>().ok()?);
+    (format!("g3-c{c}-s{s}") == id).then_some((c, s))
+}
 
 /// What [`export`] did.
 #[derive(Debug, Clone, PartialEq)]
@@ -145,7 +159,7 @@ pub struct Exported {
 /// a file that breaks its schema fails here.
 pub async fn export(db: &PgPool, root: &Path) -> NewsResult<Exported> {
     let rows: Vec<Row> = sqlx::query_as(
-        "select p.pair_id, p.sides, p.cos, p.shared_entity, p.model, p.drafted_at, l.same
+        "select p.pair_id, p.cos, p.shared_entity, p.model, p.drafted_at, l.same, p.sides->'a'->>'source'
                from story_pairs p join pair_labels l using (pair_id) order by p.pair_id",
     )
     .fetch_all(db)
@@ -158,13 +172,22 @@ pub async fn export(db: &PgPool, root: &Path) -> NewsResult<Exported> {
     for e in std::fs::read_dir(&cases).map_err(io(&cases))?.flatten() {
         had_cases |= e.path().extension().is_some_and(|x| x == "json");
     }
-    let mut written = Vec::new();
-    for (id, sides, cos, shared, model, drafted, same) in &rows {
+    // Every id is checked before any file is written. A case holds ids, the source id, the cosine and the
+    // label, never the outlet's title or text: the repository is public, and that text stays in PostgreSQL.
+    let mut files = Vec::new();
+    for (id, cos, shared, model, drafted, same, source) in &rows {
+        let (cand, story) = parse_pair_id(id).ok_or_else(|| {
+            NewsError::validation(format!("{id:?} is not a G3 pair id (g3-c<n>-s<n>)"))
+        })?;
         let text = format_json(&json!({
-            "id": id, "sides": sides, "cos": cos, "shared_entity": shared,
-            "label": {"same": same, "by": "karthik"},
+            "id": id, "candidate": {"id": cand, "source_id": source}, "story": {"id": story},
+            "cos": cos, "shared_entity": shared, "label": {"same": same, "by": "karthik"},
             "provenance": {"source": "Taster embeddings", "model": model, "drafted_at": drafted},
         }));
+        files.push((id, text));
+    }
+    let mut written = Vec::new();
+    for (id, text) in files {
         let path = cases.join(format!("{id}.json"));
         if std::fs::read_to_string(&path).ok().as_deref() != Some(&text) {
             std::fs::write(&path, text).map_err(io(&path))?;
@@ -299,6 +322,28 @@ mod tests {
             json!({"cos": 0.8, "shared_entity": false}),
         ];
         assert_eq!(pairs_of(&cases), vec![p(0.9, true, true)]);
+    }
+
+    #[test]
+    fn only_an_id_taster_writes_becomes_a_file_name() {
+        assert_eq!(parse_pair_id("g3-c7-s12"), Some((7, 12)));
+        for bad in [
+            "",
+            "g3-c7",
+            "g3-c7-s",
+            "g3-c-s1",
+            "g3-c007-s12",
+            "g3-c7-s12/",
+            "g3-c7-s12.json",
+            "../g3-c7-s12",
+            "g3-c7-s1/../../evil",
+            "g3-c7-s-1",
+            "g3-c+7-s1",
+            "g3-c99999999999999999999-s1",
+            "g3-c1-s2\\x",
+        ] {
+            assert_eq!(parse_pair_id(bad), None, "{bad:?}");
+        }
     }
 
     #[test]

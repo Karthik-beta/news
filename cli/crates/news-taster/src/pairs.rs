@@ -77,23 +77,56 @@ pub struct Drafted {
 pub async fn draft(db: &PgPool, t: &Thresholds, count: usize) -> NewsResult<Drafted> {
     // shortcut: every candidate against every story centroid, then the band; fine while there are
     // thousands of each, so move the band into an index scan when there are many more.
+    //
+    // Detection decides only for candidates without an event key, against stories active in the 72 h
+    // window (or with a page in the last 30 days), so the pairs are drawn the same way. A candidate is
+    // also paired with the story Taster put it in, against that story's centroid without the candidate
+    // (leave-one-out): otherwise only the pairs it was not joined to would be labelled, and the join
+    // precision and recall would be biased.
     let rows: Vec<(i64, i64, f64, bool)> = sqlx::query_as(
-        "select c.cand_id, s.story_id, (1 - (ec.v <=> es.v))::float8, c.entity_ids && s.entity_ids
-           from candidates c
-           join embeddings ec on ec.owner_kind = 'candidate' and ec.owner_id = c.cand_id::text and ec.model = $1
-           join embeddings es on es.owner_kind = 'story' and es.model = $1
-           join stories s on s.story_id::text = es.owner_id
-          where c.story_id is distinct from s.story_id
-            and s.status <> 'closed'
-            and not exists (select 1 from story_redirects r where r.from_story = s.story_id)
-            and abs((1 - (ec.v <=> es.v)) - $2) <= $3
-          order by abs((1 - (ec.v <=> es.v)) - $2), c.cand_id, s.story_id
+        "select * from (
+           select c.cand_id, s.story_id, (1 - (ec.v <=> es.v))::float8 as cos, c.entity_ids && s.entity_ids as shared
+             from candidates c
+             join embeddings ec on ec.owner_kind = 'candidate' and ec.owner_id = c.cand_id::text and ec.model = $1
+             join embeddings es on es.owner_kind = 'story' and es.model = $1
+             join stories s on s.story_id::text = es.owner_id
+            where c.event_key is null
+              and c.story_id is distinct from s.story_id
+              and s.status <> 'closed'
+              and not exists (select 1 from story_redirects r where r.from_story = s.story_id)
+              and (s.last_seen >= c.first_seen - make_interval(hours => $5)
+                   or exists (select 1 from pages p where p.story_id = s.story_id and p.status = 'published'
+                                 and p.published_at >= c.first_seen - make_interval(days => $6)))
+           union all
+           select c.cand_id, s.story_id, (1 - (ec.v <=> loo.v))::float8,
+                  exists (select 1 from candidates c2
+                           where c2.story_id = s.story_id and c2.cand_id <> c.cand_id and c2.entity_ids && c.entity_ids)
+             from candidates c
+             join stories s on s.story_id = c.story_id
+             join embeddings ec on ec.owner_kind = 'candidate' and ec.owner_id = c.cand_id::text and ec.model = $1
+             cross join lateral (
+               select avg(e2.v) as v
+                 from candidates c2
+                 join embeddings e2 on e2.owner_kind = 'candidate' and e2.owner_id = c2.cand_id::text and e2.model = $1
+                where c2.story_id = c.story_id and c2.cand_id <> c.cand_id) loo
+            where c.event_key is null
+              and loo.v is not null
+              and s.status <> 'closed'
+              and not exists (select 1 from story_redirects r where r.from_story = s.story_id)
+              and (s.last_seen >= c.first_seen - make_interval(hours => $5)
+                   or exists (select 1 from pages p where p.story_id = s.story_id and p.status = 'published'
+                                 and p.published_at >= c.first_seen - make_interval(days => $6)))
+         ) q
+          where abs(cos - $2) <= $3
+          order by abs(cos - $2), cand_id, story_id
           limit $4",
     )
     .bind(MODEL)
     .bind(t.join)
     .bind(BAND)
     .bind(i64::try_from(count.saturating_mul(20)).unwrap_or(i64::MAX))
+    .bind(t.window_hours)
+    .bind(t.page_days)
     .fetch_all(db)
     .await
     .map_err(map_err)?;
@@ -136,7 +169,8 @@ pub async fn draft(db: &PgPool, t: &Thresholds, count: usize) -> NewsResult<Draf
 }
 
 /// What Board shows for a pair: the candidate (source, title, the start of its text) and the story
-/// (title and up to three member titles).
+/// (title and up to three member titles, not the candidate itself). It stays in PostgreSQL: it is
+/// outlet text, so it is never written into the repository (`news_critic::g3::export` leaves it out).
 async fn sides(db: &PgPool, n: &Near) -> NewsResult<Value> {
     let cand: (String, Option<String>, Option<String>) = sqlx::query_as(
         "select c.source_id, c.title,
@@ -155,9 +189,11 @@ async fn sides(db: &PgPool, n: &Near) -> NewsResult<Value> {
         .await
         .map_err(map_err)?;
     let members: Vec<(Option<String>,)> = sqlx::query_as(
-        "select title from candidates where story_id = $1 and title is not null order by cand_id limit 3",
+        "select title from candidates where story_id = $1 and cand_id <> $2 and title is not null
+          order by cand_id limit 3",
     )
     .bind(n.story_id)
+    .bind(n.cand_id)
     .fetch_all(db)
     .await
     .map_err(map_err)?;

@@ -6,7 +6,7 @@ The golden sets Critic runs (Bureau Design §9.1, §8.11). `news eval run <suite
 | --- | --- | --- | --- | --- | --- |
 | `g1` | writer | A1 | 16 | 35 | The six recorded Fixer golden briefs (`cli/crates/news-fixer/tests/golden/`), plus injection and missing-data variants of them |
 | `g2` | classify | A3 | 106 | 200 | Every distinct recorded item in the connector and Taster fixtures, with labels drafted by Opus (`labelled_by: opus-draft`) for Karthik to confirm |
-| `g3` | storymatch | A4 | 0 | 200 | Pairs of a candidate and a story either side of Taster's join threshold, drafted from the stored embeddings and labelled same or different by Karthik in Board (`label.by` is `karthik`; nothing is written by hand) |
+| `g3` | storymatch | A4 | 0 | 200 | Pairs of a candidate and a story either side of Taster's join threshold (candidates without an event key, stories in detection's 72 h window, and the story a candidate was joined to against its centroid without it), drafted from the stored embeddings and labelled same or different by Karthik in Board (`label.by` is `karthik`; nothing is written by hand) |
 | `g5` | curator | A8 | 4 | 4 | Busy week, quiet week, one region dominating, withdrawn lead, assembled from recorded titles |
 | `g6` | spotcheck | A7 | 52 | 50 | Pages written in ref tokens over G1 briefs, each with one seeded fault, and 11 clean controls |
 
@@ -15,7 +15,7 @@ The golden sets Critic runs (Bureau Design §9.1, §8.11). `news eval run <suite
 - `schemas/`: JSON Schemas for `set.json`, each set's cases and the stored outputs. CI checks every case on load (`news-critic` tests); a G1 brief must also validate against `contracts/cli/ai/brief.v1.schema.json`.
 - `<set>/set.json`: the manifest, with the suite, the step, the target case count and the starting metric targets.
 - `<set>/cases/<id>.json`: one case per file, named by its id. Every case has `provenance`: the recorded file it comes from and the edit made, if any.
-- `g3/cases/<id>.json`: written only by `news eval export`, from Karthik's labels in the database. Its `set.json` `version` rises when exported cases change from ones already there.
+- `g3/cases/<id>.json`: written only by `news eval export`, from Karthik's labels in the database. Its `set.json` `version` rises when exported cases change from ones already there. A case holds ids (candidate, source, story), the cosine, whether they share an entity and the label, and never the outlet's titles or text: the repository is public, so that text stays in PostgreSQL, where Board reads it.
 - `<set>/outputs/<prompt_version>.jsonl`: recorded AI outputs for a version, one case per line (`schemas/output.schema.json`). Only Audit writes them; they are never hand-written.
 
 ## Rules

@@ -39,9 +39,10 @@ create table if not exists judge_verdicts (
 
 -- G3 candidates drafted by `news eval draft` (Taster's neighbours either side of the join threshold):
 -- a candidate and a story, with the cosine and the shared-entity fact the join decision used. `sides`
--- is what Board shows; `cos` and the rest are never shown, so a label is not anchored on them.
+-- is what Board shows (outlet text: it stays here and is never exported); `cos` and the rest are never
+-- shown, so a label is not anchored on them. The id names a file, so it can only be `g3-c<n>-s<n>`.
 create table if not exists story_pairs (
-  pair_id       text primary key,
+  pair_id       text primary key constraint story_pairs_pair_id_form check (pair_id ~ '^g3-c[0-9]+-s[0-9]+$'),
   sides         jsonb not null,
   cos           double precision not null,
   shared_entity boolean not null,
