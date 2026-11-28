@@ -62,6 +62,12 @@ pub fn step_handlers() -> news_chief::driver::Handlers {
                 preview_base: std::env::var("NEWS_PREVIEW_URL")
                     .unwrap_or_else(|_| news_home::preview::DEFAULT_URL.to_owned()),
                 home: std::sync::Arc::new(crate::steps::HttpHome),
+                tools: std::sync::Arc::new(crate::steps::tools::LocalTools {
+                    site: std::env::var_os("NEWS_SITE_DIR")
+                        .filter(|v| !v.is_empty())
+                        .map_or_else(|| root.join("site"), PathBuf::from),
+                }),
+                press: std::sync::Arc::new(crate::steps::tools::HttpPress),
             };
             crate::steps::register(news_critic::audit::register(h, root), ctx)
         }

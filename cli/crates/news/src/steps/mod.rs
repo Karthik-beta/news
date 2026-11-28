@@ -2,13 +2,22 @@
 //! keyed (ADR 0008 §6.4): a step re-entered after a restart finds its own earlier work in PostgreSQL and
 //! goes on from there.
 //!
-//! Built here (#20): Edition's `review` stop (`review_plan`), the Frontpage steps, and Followup's find,
-//! classify and bulk-approval steps. Every other step of every preset is still [`NotBuilt`]
-//! (`news_chief::driver::NotBuilt`), so such a run ends `failed` at that step and says so.
+//! Built here (#20): Edition (all steps), Frontpage, Followup, Flash, Catchup, Salvage and Reprint. Whatever a
+//! preset still lacks is [`NotBuilt`] (`news_chief::driver::NotBuilt`), so such a run ends `failed` at that
+//! step and says so.
 
+pub mod accept;
+pub mod catchup;
 pub mod edition;
+pub mod flash;
 pub mod followup;
 pub mod frontpage;
+pub mod inputs;
+pub mod pipeline;
+pub mod plan;
+pub mod reprint;
+pub mod revise;
+pub mod tools;
 
 use chrono::{DateTime, Utc};
 use news_chief::BoxFut;
@@ -68,13 +77,20 @@ pub struct Ctx {
     /// The home page preview server (`NEWS_PREVIEW_URL`).
     pub preview_base: String,
     pub home: Arc<dyn HomePublisher>,
+    /// Rendering and checking a page folder (Plate and Proof in production).
+    pub tools: Arc<dyn tools::PageTools>,
+    /// Sending the outbox (the write API in production).
+    pub press: Arc<dyn tools::PagePublisher>,
 }
 
 /// Bind the steps built so far.
 pub fn register(h: Handlers, ctx: Ctx) -> Handlers {
     let ctx = Arc::new(ctx);
-    let h = edition::register(h);
-    let h = followup::register(h);
+    let h = edition::register(h, ctx.clone());
+    let h = followup::register(h, ctx.clone());
+    let h = flash::register(h, ctx.clone());
+    let h = catchup::register(h, ctx.clone());
+    let h = reprint::register(h, ctx.clone());
     frontpage::register(h, ctx)
 }
 
@@ -95,9 +111,13 @@ impl StepHandler for Unset {
 
 /// Bind the steps that need [`Ctx`] to fail with `message`; the steps that do not are bound as usual.
 pub fn register_unset(h: Handlers, message: String) -> Handlers {
-    let h = edition::register(h);
-    let h = followup::register(h);
-    frontpage::register_unset(h, Arc::new(Unset(message)))
+    let unset = Arc::new(Unset(message));
+    let h = edition::register_unset(h, unset.clone());
+    let h = followup::register_unset(h, unset.clone());
+    let h = flash::register_unset(h, unset.clone());
+    let h = catchup::register_unset(h, unset.clone());
+    let h = reprint::register_unset(h, unset.clone());
+    frontpage::register_unset(h, unset)
 }
 
 /// A retryable error (a busy database) is re-entered; anything else fails the run, because re-entering

@@ -110,9 +110,10 @@ pub async fn stage_put(
         .map_err(map_err)?;
         return Ok(id);
     }
-    let ready = sqlx::query(
-        "update pages set status = 'ready', updated_at = $4
-          where page_id = $1 and version = $2 and bundle_sha = $3 and status in ('draft', 'ready')",
+    // The next version of a live page waits in `page_drafts`; the page itself stays published.
+    let pending = sqlx::query(
+        "update page_drafts set state = 'ready', updated_at = $4
+          where page_id = $1 and version = $2 and bundle_sha = $3 and state in ('draft', 'ready')",
     )
     .bind(page_id)
     .bind(version)
@@ -121,6 +122,21 @@ pub async fn stage_put(
     .execute(&mut *conn)
     .await
     .map_err(map_err)?;
+    let ready = if pending.rows_affected() > 0 {
+        pending
+    } else {
+        sqlx::query(
+            "update pages set status = 'ready', updated_at = $4
+              where page_id = $1 and version = $2 and bundle_sha = $3 and status in ('draft', 'ready')",
+        )
+        .bind(page_id)
+        .bind(version)
+        .bind(&sha[..])
+        .bind(now)
+        .execute(&mut *conn)
+        .await
+        .map_err(map_err)?
+    };
     if ready.rows_affected() == 0 {
         return Err(NewsError::conflict(format!(
             "page {page_id} is not a draft at version {version} with that bundle"
@@ -373,14 +389,31 @@ async fn mark_dead(
     why: &str,
     now: DateTime<Utc>,
 ) -> NewsResult<()> {
-    sqlx::query("update publish_outbox set dead_at = $2, last_error = $3, attempts = attempts + $4 where outbox_id = $1")
+    let row = sqlx::query("update publish_outbox set dead_at = $2, last_error = $3, attempts = attempts + $4 where outbox_id = $1 returning page_id, version, op")
         .bind(id)
         .bind(now)
         .bind(why)
         .bind(i32::try_from(attempts).unwrap_or(i32::MAX))
-        .execute(db)
+        .fetch_one(db)
         .await
         .map_err(map_err)?;
+    // A dead put leaves the live page as it was: its pending next version goes.
+    if row.get::<String, _>("op") == "put_page" {
+        let page: String = row.get("page_id");
+        let v: i32 = row.get("version");
+        sqlx::query("delete from page_refs where page_id = $1 and version = $2 and exists (select 1 from page_drafts d where d.page_id = $1 and d.version = $2)")
+            .bind(&page)
+            .bind(v)
+            .execute(db)
+            .await
+            .map_err(map_err)?;
+        sqlx::query("delete from page_drafts where page_id = $1 and version = $2")
+            .bind(&page)
+            .bind(v)
+            .execute(db)
+            .await
+            .map_err(map_err)?;
+    }
     Ok(())
 }
 
@@ -404,6 +437,34 @@ async fn mark_sent(
     .execute(&mut *tx)
     .await
     .map_err(map_err)?;
+    let promoted = if row.op == "put_page" {
+        sqlx::query(
+            "update pages p set version = d.version, bundle_sha = d.bundle_sha, oui_sha = d.oui_sha,
+                    renderer_version = d.renderer_version, flags = d.flags, tier = coalesce(d.tier, p.tier),
+                    page_type = coalesce(d.page_type, p.page_type), status = 'published',
+                    published_at = coalesce(p.published_at, $3), updated_at = $3
+               from page_drafts d
+              where p.page_id = $1 and d.page_id = p.page_id and d.version = $2",
+        )
+        .bind(&row.page_id)
+        .bind(row.version)
+        .bind(now)
+        .execute(&mut *tx)
+        .await
+        .map_err(map_err)?
+        .rows_affected()
+    } else {
+        0
+    };
+    if promoted > 0 {
+        sqlx::query("delete from page_drafts where page_id = $1 and version = $2")
+            .bind(&row.page_id)
+            .bind(row.version)
+            .execute(&mut *tx)
+            .await
+            .map_err(map_err)?;
+        return tx.commit().await.map_err(map_err);
+    }
     let page = match row.op.as_str() {
         "put_page" => sqlx::query(
             "update pages set status = 'published', published_at = coalesce(published_at, $3), updated_at = $3

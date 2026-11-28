@@ -420,7 +420,8 @@ pub async fn authorize<'t>(
     let Some((status, preset, current, budget, origin)) = run else {
         return Err(gated("no such run"));
     };
-    if status != "running" {
+    // A step that waits on AI jobs (Catchup's chunks) holds the run in `waiting_ai` while it publishes.
+    if !matches!(status.as_str(), "running" | "waiting_ai") {
         return Err(gated(&format!("the run is {status}, not running")));
     }
     let p = presets::preset(&preset).ok_or_else(|| gated("unknown preset"))?;

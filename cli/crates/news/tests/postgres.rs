@@ -50,6 +50,8 @@ mod huddle;
 mod migrations;
 #[path = "postgres/nose.rs"]
 mod nose;
+#[path = "postgres/pages.rs"]
+mod pages;
 #[path = "postgres/presets.rs"]
 mod presets;
 #[path = "postgres/press.rs"]
