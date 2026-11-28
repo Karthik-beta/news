@@ -78,7 +78,7 @@
       "items": { "$ref": "../cloud/common.schema.json#/$defs/dataId" }
     },
     "chart_ids": {
-      "description": "IDs of the page's charts; each has charts/<id>.csv in the bundle when it has tabular data.",
+      "description": "IDs of the page's charts; each has charts/<id>.csv and charts/<id>.json in the bundle when it has tabular data.",
       "type": "array",
       "maxItems": 200,
       "uniqueItems": true,

@@ -83,6 +83,8 @@ jobs:
       # JSON, YAML and TOML syntax: tsconfig, wrangler configs, issue forms, tokens.json, Cargo, Compose, ...
       - run: bun scripts/validate-config.ts
       # Every SKILL.md and .claude/agents/*.md has `name` and `description`; a skill's name matches its folder.
+      # Runtime skills (skills/) also pass the page-writer lint: news-brand at most 1,000 words, only indexed
+      # components, no digit in an example outside a ref (#19).
       - run: bun scripts/validate-skills.ts
 
   # The two advisory jobs below are signals, not merge gates: the advisory feeds change without any commit, so a

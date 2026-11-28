@@ -864,6 +864,24 @@ fn the_committed_bundles_pass_c1_to_c14() {
             f.name
         );
         assert_passes(f.name, &proof(&f, &dir));
+        // Every download the page links (charts/<id>.csv and .json) is a file of the bundle Press sends.
+        let manifest: Value =
+            serde_json::from_str(&committed(&format!("pages/{}/manifest.json", f.name))).unwrap();
+        let listed: Vec<&str> = manifest["files"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|e| e["path"].as_str())
+            .collect();
+        let html = committed(&format!("pages/{}/index.html", f.name));
+        for link in html.split("href=\"charts/").skip(1) {
+            let path = format!("charts/{}", &link[..link.find('"').unwrap()]);
+            assert!(
+                listed.contains(&path.as_str()),
+                "{}: links {path}, which is not in the bundle",
+                f.name
+            );
+        }
     }
 }
 

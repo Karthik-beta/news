@@ -11,7 +11,7 @@ A page with a blocking failure is a `validation_failed` error (exit 6) whose `de
 
 ## The bundle
 
-`page.oui`, `data.json`, `sources.json`, `meta.json`, `index.html`, `index.md`, `charts/<id>.csv` (`contracts/bundle/`, the renderer's contract). The Copy is the string literals of `page.oui` plus `meta.json`'s `fly_title`, `title` and `summary`, which must hold the page writer's text with `{ref}` tokens (the renderer fills the values into `index.html`). A quote's `locator` is `{"kind": "text_block", "doc": <id>, "block": <n>}`.
+`page.oui`, `data.json`, `sources.json`, `meta.json`, `index.html`, `index.md`, `charts/<id>.csv` and `.json` (`contracts/bundle/`, the renderer's contract). The Copy is the string literals of `page.oui` plus `meta.json`'s `fly_title`, `title` and `summary`, which must hold the page writer's text with `{ref}` tokens (the renderer fills the values into `index.html`). A quote's `locator` is `{"kind": "text_block", "doc": <id>, "block": <n>}`.
 
 ## Checks
 

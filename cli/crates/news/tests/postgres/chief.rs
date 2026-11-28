@@ -322,6 +322,65 @@ async fn a_queued_rank_0_run_blocks_a_free_slot_with_a_queue_only_offer() {
 
 #[tokio::test(flavor = "multi_thread")]
 #[ignore = "needs Postgres"]
+async fn an_approval_does_not_overtake_a_queued_rank_0_run() {
+    // Review note 1, the third way into the slot: the last gate of a heavy run answered while the slot
+    // is free but reserved for a rank-0 run.
+    let f = Fixture::migrated().await;
+    let c = clock();
+    let ch = chief(&f, &c);
+    // An Edition waiting at its plan gate (set up directly: no step handlers run here).
+    let waiting = board_start(&ch, "edition", IfBusy::Offer)
+        .await
+        .unwrap()
+        .run()
+        .clone();
+    let subject = json!({"plan": 1});
+    sqlx::query("update runs set status = 'waiting_approval' where run_id = $1")
+        .bind(waiting.run_id)
+        .execute(&f.pool)
+        .await
+        .unwrap();
+    sqlx::query(
+        "insert into gates (run_id, gate, round, step_seq, subject_sha, summary, opened_at)
+         values ($1, 'plan', 1, 1, $2, '{}', now())",
+    )
+    .bind(waiting.run_id)
+    .bind(gates::subject_sha(&subject).to_vec())
+    .execute(&f.pool)
+    .await
+    .unwrap();
+    // A Catchup takes the slot; "pause it and start this" reserves the slot for a Reprint at rank 0.
+    let holder = board_start(&ch, "catchup", IfBusy::Offer)
+        .await
+        .unwrap()
+        .run()
+        .clone();
+    let (_, reserved, _) = ch
+        .start_after_pause("reprint", reprint_args(), &holder.short_id)
+        .await
+        .unwrap();
+    ch.finish_pause(holder.run_id).await.unwrap();
+    assert_eq!(status(&f, reserved.run_id).await, "queued");
+    // The slot is free, but the approved Edition joins the Lineup behind the rank-0 run.
+    let (_, to) = ch
+        .answer(Answer {
+            run: &waiting.short_id,
+            gate: "plan",
+            round: 1,
+            subject_sha: &gates::hex(&gates::subject_sha(&subject)),
+            decision: Decision::Approved,
+            note: None,
+        })
+        .await
+        .unwrap();
+    assert_eq!(to, Status::Queued);
+    settle(&ch).await;
+    assert_eq!(status(&f, reserved.run_id).await, "running");
+    assert_eq!(status(&f, waiting.run_id).await, "queued");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres"]
 async fn a_claim_and_a_pause_race_both_ways_with_real_transactions() {
     let f = Fixture::migrated().await;
     let c = clock();

@@ -92,11 +92,13 @@ impl Fixture {
             .unwrap_or_else(|e| panic!("{sql}: {e}"))
     }
 
+    /// A text scalar; SQL NULL (an empty `string_agg`, say) reads as "".
     pub async fn scalar_str(&self, sql: &str) -> String {
-        sqlx::query_scalar::<_, String>(sqlx::AssertSqlSafe(sql.to_owned()))
+        sqlx::query_scalar::<_, Option<String>>(sqlx::AssertSqlSafe(sql.to_owned()))
             .fetch_one(&self.pool)
             .await
             .unwrap_or_else(|e| panic!("{sql}: {e}"))
+            .unwrap_or_default()
     }
 }
 
