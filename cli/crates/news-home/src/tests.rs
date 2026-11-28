@@ -463,7 +463,7 @@ async fn a_retryable_answer_is_sent_again_and_a_rejection_is_not() {
 #[tokio::test]
 async fn a_rollback_uses_the_rollback_route_and_maps_a_missing_version_to_not_found() {
     use crate::api::send_to;
-    use crate::rollback::{body, idempotency_key};
+    use crate::rollback::body;
     let api = Fake::new(vec![Ok(live(3))]);
     assert_eq!(
         send_to(&api, true, "k", "b", &body(3), FAST)
@@ -489,10 +489,5 @@ async fn a_rollback_uses_the_rollback_route_and_maps_a_missing_version_to_not_fo
     .await
     .unwrap_err();
     assert_eq!(err.code, ErrorCode::NotFound);
-    // The key names the version and the live draft: a resend is the same request, a later rollback to
-    // the same version after another publish is not.
-    assert_eq!(idempotency_key(3, 7), idempotency_key(3, 7));
-    assert_ne!(idempotency_key(3, 7), idempotency_key(3, 8));
-    assert_ne!(idempotency_key(3, 7), idempotency_key(2, 7));
     assert_eq!(body(3), br#"{"version":3}"#);
 }

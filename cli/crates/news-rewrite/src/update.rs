@@ -92,6 +92,7 @@ mod tests {
                 new_numeric: Some("0.1".into()),
                 new_locator: json!({"kind": "json"}),
                 restated: false,
+                ..Default::default()
             }],
             derived: vec![],
         }])

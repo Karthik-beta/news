@@ -2,7 +2,8 @@
 //!
 //! * **Direction flip**: a referenced value, or a derived change, crosses zero (negative, zero and
 //!   positive are three different directions), or a derived change can no longer be computed (a guard
-//!   refuses it), so a sentence about it may no longer be true.
+//!   refuses it), or a new vintage or derived point has another unit, currency, scale or seasonal
+//!   adjustment, so a sentence about it may no longer be true.
 //! * **Restatement**: a value that was an earnings fact (it carries a fiscal period) now has a later
 //!   vintage with a different value.
 //! * **Value only**: everything else; the prose holds no numbers, so only the data changes.
@@ -50,29 +51,18 @@ pub fn crosses_zero(old: &str, new: &str) -> bool {
     matches!((sign(old), sign(new)), (Some(a), Some(b)) if a != b)
 }
 
-/// The derived value for `formula` over `a` and `b`, exactly as the Ledger's guard computes it
-/// (`(a - b) / b × 100`, `a - b`, `a / total × 100`), rounded half away from zero to `rounding` places.
-/// `None` when an input is not a number or the arithmetic is refused (division by zero).
-pub fn recompute(formula: &str, rounding: u32, a: &str, b: &str) -> Option<String> {
-    let (a, b) = (dec(a)?, dec(b)?);
-    let v = match formula {
-        "pct_change(a,b)" => a.checked_sub(b)?.ratio_pct(b, rounding)?,
-        "pp_change(a,b)" | "diff(a,b)" => a.checked_sub(b)?.round(rounding)?,
-        "share(a,total)" => a.ratio_pct(b, rounding)?,
-        _ => return None,
-    };
-    Some(v.to_numeric())
-}
-
 /// What one page's revisions add up to.
 pub fn classify(page: &crate::find::PageChange) -> Kind {
     let flip = page
         .points
         .iter()
-        .any(|p| crosses_zero(&p.old_text, &p.new_text))
-        || page.derived.iter().any(|d| match &d.new_value {
-            Some(new) => crosses_zero(&d.old_value, new),
-            None => true,
+        .any(|p| p.incompatible || crosses_zero(&p.old_text, &p.new_text))
+        || page.derived.iter().any(|d| {
+            d.incompatible
+                || match &d.new_value {
+                    Some(new) => crosses_zero(&d.old_value, new),
+                    None => true,
+                }
         });
     if flip {
         Kind::DirectionFlip
@@ -102,24 +92,5 @@ mod tests {
         ] {
             assert_eq!(crosses_zero(old, new), flip, "{old} -> {new}");
         }
-    }
-
-    #[test]
-    fn derived_values_are_exact_and_rounded_half_away_from_zero() {
-        assert_eq!(
-            recompute("pp_change(a,b)", 1, "2.4", "2.7").as_deref(),
-            Some("-0.3")
-        );
-        assert_eq!(
-            recompute("pct_change(a,b)", 2, "110", "100").as_deref(),
-            Some("10.00")
-        );
-        assert_eq!(
-            recompute("share(a,total)", 1, "1", "3").as_deref(),
-            Some("33.3")
-        );
-        assert_eq!(recompute("pct_change(a,b)", 1, "1", "0"), None);
-        assert_eq!(recompute("diff(a,b)", 1, "x", "1"), None);
-        assert_eq!(recompute("nope", 1, "1", "1"), None);
     }
 }

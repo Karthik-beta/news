@@ -401,7 +401,7 @@ async fn rollback_makes_an_earlier_curation_live_and_names_only_known_versions()
     let calls = api.calls.lock().unwrap().clone();
     assert_eq!(calls.len(), 2);
     assert_eq!(calls[0], calls[1], "a resend is the same request");
-    assert!(calls[0].0.starts_with("home-rollback:1:"));
+    assert!(calls[0].0.starts_with("home-rollback:"));
     assert_eq!(
         serde_json::from_slice::<Value>(&calls[0].2).unwrap(),
         json!({"version": 1})
@@ -472,4 +472,152 @@ async fn home_rollback_is_accepted_only_from_board() {
     // Board's request reaches the handler: with no write-API origin set it stops there.
     let env = call(Peer::board(), json!({"version": 1})).await;
     assert_eq!(env["error"]["code"], "precondition", "{env}");
+}
+
+/// The write API's idempotency: a key it has seen gets the stored reply, whatever is asked now.
+struct Replay {
+    seen: Mutex<std::collections::HashMap<String, CurationReply>>,
+    keys: Mutex<Vec<String>>,
+}
+
+impl Replay {
+    fn new() -> Self {
+        Self {
+            seen: Mutex::new(Default::default()),
+            keys: Mutex::new(Vec::new()),
+        }
+    }
+}
+
+impl WriteApi for Replay {
+    async fn put_curation(&self, _: &str, _: &str, _: Vec<u8>) -> Result<CurationReply, ApiError> {
+        unreachable!("rollback never publishes")
+    }
+
+    async fn post_rollback(
+        &self,
+        key: &str,
+        _: &str,
+        body: Vec<u8>,
+    ) -> Result<CurationReply, ApiError> {
+        self.keys.lock().unwrap().push(key.into());
+        let asked = serde_json::from_slice::<Value>(&body).unwrap()["version"]
+            .as_i64()
+            .unwrap() as i32;
+        Ok(self
+            .seen
+            .lock()
+            .unwrap()
+            .entry(key.into())
+            .or_insert(CurationReply {
+                version: 2,
+                live_version: asked,
+                purged: vec![],
+            })
+            .clone())
+    }
+}
+
+async fn two_curations(f: &Fixture) {
+    for (version, status) in [(1, "superseded"), (2, "published")] {
+        sqlx::query(
+            "insert into home_curations (status, version, slots, published_at)
+             values ($1, $2, '{\"lead\": {\"page_id\": \"home-p0\"}, \"side\": [], \"sections\": []}'::jsonb, $3)",
+        )
+        .bind(status)
+        .bind(version)
+        .bind(now())
+        .execute(&f.pool)
+        .await
+        .unwrap();
+    }
+}
+
+async fn live_version(f: &Fixture) -> i32 {
+    sqlx::query_scalar("select version from home_curations where status = 'published'")
+        .fetch_one(&f.pool)
+        .await
+        .unwrap()
+}
+
+#[tokio::test]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn v1_then_v2_then_v1_again_sends_a_new_key_each_time() {
+    use news_home::rollback::rollback;
+    let f = Fixture::migrated().await;
+    two_curations(&f).await;
+    let api = Replay::new();
+    for (to, live_after) in [(1, 1), (2, 2), (1, 1)] {
+        let out = rollback(&f.pool, to, &api, || Ok("the-key".into()), FAST)
+            .await
+            .unwrap();
+        assert_eq!(out["live_version"], live_after);
+        assert_eq!(
+            live_version(&f).await,
+            live_after,
+            "the local record agrees"
+        );
+    }
+    let keys = api.keys.lock().unwrap().clone();
+    assert_eq!(keys.len(), 3);
+    let distinct: std::collections::HashSet<_> = keys.iter().collect();
+    assert_eq!(distinct.len(), 3, "a key names one attempt: {keys:?}");
+    let open: i64 = sqlx::query_scalar("select count(*) from home_rollbacks where done_at is null")
+        .fetch_one(&f.pool)
+        .await
+        .unwrap();
+    assert_eq!(open, 0);
+}
+
+#[tokio::test]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn a_crash_between_the_api_call_and_the_local_record_resends_the_same_key() {
+    use news_home::rollback::{Begun, begin, rollback};
+    let f = Fixture::migrated().await;
+    two_curations(&f).await;
+    let api = Replay::new();
+    // The process dies after the API took the rollback and before `mark_live`.
+    let Begun::Send { key, .. } = begin(&f.pool, 1).await.unwrap() else {
+        panic!("v1 is not live");
+    };
+    api.post_rollback(&key, "b", br#"{"version":1}"#.to_vec())
+        .await
+        .unwrap();
+    assert_eq!(live_version(&f).await, 2, "the local record is behind");
+    // Board asks again: the same attempt, so the same key, and the stored reply finishes the record.
+    let out = rollback(&f.pool, 1, &api, || Ok("the-key".into()), FAST)
+        .await
+        .unwrap();
+    assert_eq!(out["live_version"], 1);
+    assert_eq!(live_version(&f).await, 1);
+    let keys = api.keys.lock().unwrap().clone();
+    assert_eq!(keys, [key.clone(), key]);
+    let rows: i64 =
+        sqlx::query_scalar("select count(*) from home_rollbacks where done_at is not null")
+            .fetch_one(&f.pool)
+            .await
+            .unwrap();
+    assert_eq!(rows, 1);
+}
+
+#[tokio::test]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn a_reply_for_another_version_is_a_conflict_and_changes_nothing_locally() {
+    use news_home::rollback::rollback;
+    let f = Fixture::migrated().await;
+    two_curations(&f).await;
+    // A replayed reply from an earlier attempt: the API says v2 is live though v1 was asked for.
+    let api = FakeApi::new(vec![live(2), live(1)]);
+    let err = rollback(&f.pool, 1, &api, || Ok("k".into()), FAST)
+        .await
+        .unwrap_err();
+    assert_eq!(err.code, ErrorCode::Conflict);
+    assert_eq!(live_version(&f).await, 2);
+    // The attempt is over: asking again is a new request with a new key.
+    rollback(&f.pool, 1, &api, || Ok("k".into()), FAST)
+        .await
+        .unwrap();
+    assert_eq!(live_version(&f).await, 1);
+    let calls = api.calls.lock().unwrap().clone();
+    assert_ne!(calls[0].0, calls[1].0);
 }

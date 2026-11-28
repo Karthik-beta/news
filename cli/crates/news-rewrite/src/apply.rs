@@ -2,11 +2,13 @@
 //! `data.json`, the stored Copy and `page.json` (version and first publication), ready for
 //! `news render` (Plate) and `news check`. Idempotent: running it again leaves the folder as it is.
 
+use crate::find::PageChange;
 use crate::patch::{add_restated_note, patch_data, rename_in};
 use crate::plan::PagePlan;
 use chrono::{DateTime, Utc};
 use news_core::{NewsError, NewsResult};
 use news_proof::work::{self, Work, check_story, pretty, read_json, timestamp, write_atomic};
+use news_store::{PgPool, map_err};
 use serde::Serialize;
 use serde_json::json;
 
@@ -21,6 +23,36 @@ pub struct Applied {
     pub restated_note: bool,
     /// A restatement that could not get its note (the page already has two notes).
     pub note_skipped: bool,
+}
+
+/// Store the derived points the revision re-keys to (`derived_points`, kept once, as Fixer's `save`
+/// does), so the page's new `dv_` refs resolve. Run before [`apply`]. Only values the Ledger's guards
+/// produced are stored; a refused or incompatible one makes the page a direction flip, which never
+/// reaches here. Returns the number of rows written.
+pub async fn store_derived(db: &PgPool, change: &PageChange) -> NewsResult<u64> {
+    let mut written = 0;
+    for d in &change.derived {
+        let Some(n) = d.new_derived.as_ref().filter(|_| !d.incompatible) else {
+            continue;
+        };
+        written += sqlx::query(
+            "insert into derived_points (dp_id, formula, inputs, value, unit, rounding, guard)
+             values ($1, $2, $3, $4::numeric, $5, $6, $7)
+             on conflict (dp_id) do nothing",
+        )
+        .bind(&n.dp_id)
+        .bind(n.formula)
+        .bind(&n.inputs)
+        .bind(&n.value)
+        .bind(&n.unit)
+        .bind(i16::try_from(n.rounding).unwrap_or(i16::MAX))
+        .bind(&n.guard)
+        .execute(db)
+        .await
+        .map_err(map_err)?
+        .rows_affected();
+    }
+    Ok(written)
 }
 
 /// Write the revised inputs. `published_at` is the page's first publication, which stays; `now` is the
@@ -143,6 +175,7 @@ mod tests {
                 new_numeric: Some(new.into()),
                 new_locator: json!({"kind": "xbrl", "tag": "Revenues"}),
                 restated,
+                ..Default::default()
             }],
             derived: vec![],
         }])

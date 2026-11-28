@@ -18,9 +18,9 @@ async fn point(
 ) {
     sqlx::query(
         "insert into data_points (dp_id, context_key, series_key, concept, label, value_text, value, unit,
-                                  period_label, period_type, vintage, snapshot_sha, locator, parser,
+                                  period_label, period_start, period_end, period_type, vintage, snapshot_sha, locator, parser,
                                   retrieved_at, fiscal_period, supersedes)
-         values ($1, '', $5, 'CPI', 'CPI', $2, $2::numeric, 'Percent', 'October 2026', 'duration',
+         values ($1, '', $5, 'CPI', 'CPI', $2, $2::numeric, 'Percent', 'October 2026', '2026-10-01', '2026-10-31', 'duration',
                  ('2026-11-' || lpad($6::text, 2, '0') || 'T00:00:00Z')::timestamptz,
                  decode(repeat('ab', 32), 'hex'), '{\"kind\": \"json\"}', 'bls@1', now(), $3, $4)",
     )
@@ -73,29 +73,30 @@ async fn seed(f: &Fixture) {
     point(p, "dp_base", "2.4", None, None, 1).await;
     sqlx::query(
         "insert into derived_points (dp_id, formula, inputs, value, unit, rounding, guard)
-         values ('dv_old', 'pp_change(a,b)', '{dp_old,dp_base}', 0.3, 'Percentage points', 1, '{}')",
+         values ('dv_old', 'pp_change(a,b)', '{dp_old,dp_base}', 0.3, 'Percentage points', 1,
+                 '{\"unit\": \"Percent\", \"currency\": null, \"scale\": null, \"seasonal_adj\": null, \"comparison\": \"same_period\"}')",
     )
     .execute(p)
     .await
     .unwrap();
     // A direction flip: -0.2 becomes 0.1.
-    point(p, "dp_flip_old", "-0.2", None, None, 1).await;
-    point(p, "dp_flip_new", "0.1", None, Some("dp_flip_old"), 5).await;
+    point(p, "dp_flipold", "-0.2", None, None, 1).await;
+    point(p, "dp_flipnew", "0.1", None, Some("dp_flipold"), 5).await;
     // A restatement: an earnings fact (it has a fiscal period) is revised.
-    point(p, "dp_fact_old", "10.0", Some("Q3"), None, 1).await;
-    point(p, "dp_fact_new", "9.5", Some("Q3"), Some("dp_fact_old"), 5).await;
+    point(p, "dp_factold", "10.0", Some("Q3"), None, 1).await;
+    point(p, "dp_factnew", "9.5", Some("Q3"), Some("dp_factold"), 5).await;
     // A new vintage with the same text needs nothing; a chain resolves to its newest vintage.
-    point(p, "dp_same_old", "5.0", None, None, 1).await;
-    point(p, "dp_same_new", "5.0", None, Some("dp_same_old"), 5).await;
-    point(p, "dp_chain_a", "1.0", None, None, 1).await;
-    point(p, "dp_chain_b", "1.1", None, Some("dp_chain_a"), 3).await;
-    point(p, "dp_chain_c", "1.2", None, Some("dp_chain_b"), 6).await;
+    point(p, "dp_sameold", "5.0", None, None, 1).await;
+    point(p, "dp_samenew", "5.0", None, Some("dp_sameold"), 5).await;
+    point(p, "dp_chaina", "1.0", None, None, 1).await;
+    point(p, "dp_chainb", "1.1", None, Some("dp_chaina"), 3).await;
+    point(p, "dp_chainc", "1.2", None, Some("dp_chainb"), 6).await;
 
     page(p, "p-value", "published", &["dp_old", "dv_old", "dp_base"]).await;
-    page(p, "p-flip", "published", &["dp_flip_old"]).await;
-    page(p, "p-fact", "published", &["dp_fact_old"]).await;
-    page(p, "p-same", "published", &["dp_same_old"]).await;
-    page(p, "p-chain", "published", &["dp_chain_a"]).await;
+    page(p, "p-flip", "published", &["dp_flipold"]).await;
+    page(p, "p-fact", "published", &["dp_factold"]).await;
+    page(p, "p-same", "published", &["dp_sameold"]).await;
+    page(p, "p-chain", "published", &["dp_chaina"]).await;
     // Not published: never revised by Rewrite.
     page(p, "p-draft", "draft", &["dp_old"]).await;
 }
@@ -123,7 +124,7 @@ async fn revisions_are_found_through_page_refs_and_classified() {
     let chain = &plans[0].change.points[0];
     assert_eq!(
         (chain.new_id.as_str(), chain.new_text.as_str()),
-        ("dp_chain_c", "1.2")
+        ("dp_chainc", "1.2")
     );
     // The derived change is recomputed exactly: 2.6 - 2.4.
     let value = &plans[3].change;
@@ -152,10 +153,10 @@ async fn news_update_shows_a_published_page_and_its_changed_refs() {
     assert_eq!(code, 0, "{env}");
     assert_eq!(env["data"]["page"]["revision"], "direction_flip");
     assert_eq!(env["data"]["page"]["by_code"], false);
-    assert_eq!(env["data"]["changed_refs"], json!(["dp_flip_old"]));
+    assert_eq!(env["data"]["changed_refs"], json!(["dp_flipold"]));
     assert_eq!(
         env["data"]["page"]["changes"],
-        json!([{"ref": "dp_flip_new", "old": "-0.2", "new": "0.1"}])
+        json!([{"ref": "dp_flipnew", "old": "-0.2", "new": "0.1"}])
     );
     // A page path names the page too, and a page with current data has nothing changed.
     let (env, code, _, _) = run("/2026/11/p-fact");
@@ -193,7 +194,7 @@ async fn an_update_job_gives_a1_the_brief_the_previous_copy_and_the_diff() {
     news_proof::work::save(
         &work,
         "81234",
-        json!({"headline": "Rates {dp_flip_old}"}),
+        json!({"headline": "Rates {dp_flipold}"}),
         vec![],
         "save",
         None,
@@ -224,9 +225,59 @@ async fn an_update_job_gives_a1_the_brief_the_previous_copy_and_the_diff() {
     .unwrap();
     assert_eq!(input["mode"], "update");
     assert_eq!(input["brief"]["item"]["story_id"], 81234);
-    assert_eq!(input["previous_copy"]["headline"], "Rates {dp_flip_old}");
+    assert_eq!(input["previous_copy"]["headline"], "Rates {dp_flipold}");
     assert_eq!(
         input["diff"],
-        json!([{"ref": "dp_flip_new", "old": "-0.2", "new": "0.1"}])
+        json!([{"ref": "dp_flipnew", "old": "-0.2", "new": "0.1"}])
     );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn a_new_vintage_in_another_scale_goes_to_the_ai_and_a_derived_point_is_stored_by_the_ledger()
+{
+    let f = Fixture::migrated().await;
+    seed(&f).await;
+    let p = &f.pool;
+    // The same figure, now published in billions where the page has millions.
+    point(p, "dp_scaleold", "11", None, None, 1).await;
+    point(p, "dp_scalenew", "0.011", None, Some("dp_scaleold"), 5).await;
+    sqlx::query("update data_points set scale = 'millions' where dp_id = 'dp_scaleold'")
+        .execute(p)
+        .await
+        .unwrap();
+    sqlx::query("update data_points set scale = 'billions' where dp_id = 'dp_scalenew'")
+        .execute(p)
+        .await
+        .unwrap();
+    page(p, "p-scale", "published", &["dp_scaleold"]).await;
+    let plans = plan::plan(find::find(p, None).await.unwrap());
+    let scale = plans
+        .iter()
+        .find(|x| x.change.page_id == "p-scale")
+        .unwrap();
+    assert_eq!(scale.kind, Kind::DirectionFlip);
+    assert!(!scale.by_code());
+    // The value-only page's new derived point is the Ledger's, and is stored once under its new id.
+    let value = &plans
+        .iter()
+        .find(|x| x.change.page_id == "p-value")
+        .unwrap()
+        .change;
+    let new_id = value.derived[0].new_id.clone();
+    assert_eq!(
+        news_rewrite::apply::store_derived(p, value).await.unwrap(),
+        1
+    );
+    assert_eq!(
+        news_rewrite::apply::store_derived(p, value).await.unwrap(),
+        0
+    );
+    let stored: (String, String) =
+        sqlx::query_as("select value::text, unit from derived_points where dp_id = $1")
+            .bind(&new_id)
+            .fetch_one(p)
+            .await
+            .unwrap();
+    assert_eq!(stored, ("0.2".to_owned(), "Percentage points".to_owned()));
 }

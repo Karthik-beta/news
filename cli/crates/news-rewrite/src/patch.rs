@@ -1,6 +1,6 @@
 //! Re-rendering by code (Bureau §3.11, step 3): the stored Copy and `data.json` with the new vintages'
 //! refs and values. Pure JSON and text edits. No number is typed by a model or by this code: values are
-//! the Ledger's own text, and derived values are the Ledger's arithmetic ([`crate::classify::recompute`]).
+//! the Ledger's own text, and derived values are the Ledger's guarded arithmetic ([`crate::find::rederive`]).
 
 use crate::find::PageChange;
 use serde_json::{Value, json};
@@ -139,6 +139,7 @@ mod tests {
                 new_numeric: Some("2.6".into()),
                 new_locator: json!({"kind": "json", "path": "$.v2"}),
                 restated: false,
+                ..Default::default()
             }],
             derived: vec![DvMove {
                 old_id: "dv_old".into(),
@@ -147,6 +148,7 @@ mod tests {
                 old_value: "-0.3".into(),
                 new_value: Some("-0.4".into()),
                 new_inputs: vec!["dp_new".into(), "dp_keep".into()],
+                ..Default::default()
             }],
         }
     }

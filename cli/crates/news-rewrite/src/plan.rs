@@ -80,6 +80,7 @@ mod tests {
             new_numeric: Some(new.into()),
             new_locator: json!({"kind": "json"}),
             restated,
+            ..Default::default()
         }
     }
 
@@ -101,7 +102,22 @@ mod tests {
             old_value: old.into(),
             new_value: new.map(str::to_owned),
             new_inputs: vec![],
+            ..Default::default()
         }
+    }
+
+    #[test]
+    fn a_change_of_unit_currency_or_scale_is_a_flip_for_the_ai() {
+        let mut moved = point("2.4", "2.6", false);
+        moved.incompatible = true;
+        let mut shifted = dv("-0.3", Some("-0.2"));
+        shifted.incompatible = true;
+        let plans = plan(vec![
+            page("p1", vec![moved], vec![]),
+            page("p2", vec![point("2.4", "2.6", false)], vec![shifted]),
+        ]);
+        assert!(plans.iter().all(|p| p.kind == Kind::DirectionFlip));
+        assert!(plans.iter().all(|p| !p.by_code()));
     }
 
     #[test]
