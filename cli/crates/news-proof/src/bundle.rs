@@ -1,5 +1,5 @@
 //! A rendered page bundle on disk (Technical Design, "Page bundle"; `contracts/bundle/`): `page.oui`,
-//! `data.json`, `sources.json`, `meta.json`, `index.html`, `index.md` and `charts/<id>.csv`.
+//! `data.json`, `sources.json`, `meta.json`, `index.html`, `index.md` and `charts/<id>.csv` and `.json`.
 //!
 //! Loading never fails: a missing or unreadable file is recorded in `problems`, and check C1 reports it.
 
@@ -28,8 +28,8 @@ pub struct Bundle {
     pub data: Value,
     pub sources: Value,
     pub meta: Value,
-    /// `charts/<id>.csv` contents by path.
-    pub csv: BTreeMap<String, String>,
+    /// The chart downloads, `charts/<id>.csv` and `.json`, by path.
+    pub downloads: BTreeMap<String, String>,
     /// (file, what is wrong): missing, unreadable, or not JSON.
     pub problems: Vec<(String, String)>,
 }
@@ -57,15 +57,15 @@ impl Bundle {
         b.data = b.json("data.json");
         b.sources = b.json("sources.json");
         b.meta = b.json("meta.json");
-        let csvs: Vec<String> = b
+        let downloads: Vec<String> = b
             .files
             .keys()
-            .filter(|p| p.starts_with("charts/") && p.ends_with(".csv"))
+            .filter(|p| p.starts_with("charts/") && (p.ends_with(".csv") || p.ends_with(".json")))
             .cloned()
             .collect();
-        for p in csvs {
+        for p in downloads {
             let t = b.text(&p);
-            b.csv.insert(p, t);
+            b.downloads.insert(p, t);
         }
         b
     }

@@ -34,7 +34,7 @@ pub fn invalid(errors: &[RuleError]) -> NewsError {
 }
 
 /// `news save <story> <file>`: the code validators (schema, refs against the brief when there is one, C4, banned
-/// words, lengths), then store. OpenUI parse and props run in `news render` (C1) and `news ai accept`.
+/// words, typed image credits, lengths), then store. OpenUI parse and props run in `news render` (C1) and `news ai accept`.
 pub fn save(story: &str, file: &str) -> NewsResult<Reply> {
     check_story(story)?;
     let copy = read_json(file)?;

@@ -16,7 +16,7 @@
           "minProperties": 6,
           "maxProperties": 64,
           "propertyNames": {
-            "pattern": "^(?:index\\.html|index\\.md|data\\.json|sources\\.json|meta\\.json|page\\.oui|charts/[a-z0-9][a-z0-9-]{0,63}\\.csv)$"
+            "pattern": "^(?:index\\.html|index\\.md|data\\.json|sources\\.json|meta\\.json|page\\.oui|charts/[a-z0-9][a-z0-9-]{0,63}\\.(?:csv|json))$"
           },
           "additionalProperties": { "type": "string" }
         }

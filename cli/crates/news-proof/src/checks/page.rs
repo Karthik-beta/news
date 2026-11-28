@@ -141,11 +141,12 @@ pub(super) fn c8(cx: &Ctx) -> Vec<Finding> {
                 .filter(|(_, p)| p["source"].as_str().is_some_and(|s| restricted.contains(s)))
                 .filter_map(|(_, p)| p["value"].as_str())
                 .collect();
-        for (path, csv) in &cx.b.csv {
-            let hit = csv
-                .lines()
-                .flat_map(|l| l.split(','))
-                .map(|f| f.trim_matches('"'))
+        for (path, text) in &cx.b.downloads {
+            // CSV fields and JSON strings alike: split on the separators and quotes of both.
+            let hit = text
+                .split(|c: char| {
+                    matches!(c, ',' | '"' | ':' | '[' | ']' | '{' | '}') || c.is_whitespace()
+                })
                 .find(|f| values.contains(f));
             if let Some(v) = hit {
                 out.push(Finding::block(

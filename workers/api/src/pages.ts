@@ -174,9 +174,8 @@ export async function checkBundle(pageId: string, body: unknown): Promise<Checke
   if (publishedAt && updatedAt && updatedAt < publishedAt)
     bad("meta.updated_at", "updated_at is before published_at", "/updated_at");
   for (const name of Object.keys(files)) {
-    const chart = /^charts\/(.+)\.csv$/.exec(name)?.[1];
-    if (chart && !meta.chart_ids.includes(chart))
-      bad("meta.chart_ids", `charts/${chart}.csv is not in chart_ids`, "/chart_ids");
+    const chart = /^charts\/(.+)\.(?:csv|json)$/.exec(name)?.[1];
+    if (chart && !meta.chart_ids.includes(chart)) bad("meta.chart_ids", `${name} is not in chart_ids`, "/chart_ids");
   }
   if (issues.length > 0) throw new ApiError("invalid_meta", "meta.json does not fit the bundle", issues);
   return { meta, manifest, files };

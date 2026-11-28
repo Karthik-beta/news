@@ -13,7 +13,7 @@ A page writer's Copy holds words and references only; code fills in every figure
 
 ### Two gates, one word list
 
-- **Before render (validators, `news_proof::validate`).** `news save` and `news ai accept` check the Copy alone: `page-draft.v1` schema, every reference in the brief, the C4 numeric-literal lint, banned words, lengths, and (through Plate's `/check`) the OpenUI parse and props against the component specs. A refused Copy is written to `rejected.json` with its errors, which is the input to the A2 repair call. `news save` skips the parse and props so it runs without Bun.
+- **Before render (validators, `news_proof::validate`).** `news save` and `news ai accept` check the Copy alone: `page-draft.v1` schema, every reference in the brief, the C4 numeric-literal lint, banned words, lengths, and (through Plate's `/check`) the OpenUI parse and props against the component specs. A refused Copy is written to `rejected.json` with its errors, which is the input to the A2 repair call. `news save` skips the parse and props so it runs without Bun; it still refuses an image credit or licence typed in `page.oui` (the renderer takes them from the image record).
 - **After render (Proof, `news check`).** C1–C14 run on the bundle in `work/pages/<story>/`, the files Press would send. A blocking failure is `validation_failed` (exit 6) with the Markup in `details`; C12 only warns. One row per check per page goes to ClickHouse `news.check_results`.
 - The word lists live once, in `data/seeds/proof-v1.toml` (C4 quantities and units, C5 direction words, disclaimers, image hosts, size and component ranges) and `data/seeds/banned-words.toml` (the list the `news-brand` skill gives the writer). The validators' C4 lint and Proof's C4 should read the same list; `news_proof::lint` still holds its own copy (open, below).
 
@@ -49,4 +49,4 @@ The byline, "Data as of", the sources list and the disclaimer are code's (the `n
 - A change to a component, a formatter or the renderer that alters a fixture page shows up as a bundle diff in review; `NEWS_UPDATE_GOLDEN=1` rewrites them deliberately.
 - `data.json` is Fixer's to write; Press and Rewrite write `page.json` for updates (version, first publication).
 - Open: `news_proof::lint` (the validators) and `proof-v1.toml` (Proof) each hold a C4 word list; the lint should read the seed file.
-- Open: chart JSON downloads are rendered but `manifest.v1` lists only `charts/<id>.csv`; the contract decides whether the JSON joins the bundle.
+- Chart JSON downloads join the bundle: `manifest.v1` accepts `charts/<id>.json` beside `charts/<id>.csv`, so the JSON link every chart shows resolves once published (ADR 0010 already reads `charts/<id>.json` from R2). C8 checks both for values of a source that does not allow redistribution.

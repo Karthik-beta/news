@@ -1,0 +1,78 @@
+{
+  "title": "The target is above the rate it replaced",
+  "subtitle": "Target for the overnight rate, %, 2023-06-08 to 2026-10-29",
+  "unit": "Percent",
+  "currency": null,
+  "scale": null,
+  "columns": [
+    {
+      "key": "label",
+      "label": "Period"
+    },
+    {
+      "key": "sr_k5xc5nfhvghh",
+      "label": "Target for the overnight rate, 2023-06-08 to 2026-10-29 (%)"
+    }
+  ],
+  "rows": [
+    {
+      "label": "2023-06-08",
+      "sr_k5xc5nfhvghh": "4.75"
+    },
+    {
+      "label": "2023-07-13",
+      "sr_k5xc5nfhvghh": "5.00"
+    },
+    {
+      "label": "2024-06-06",
+      "sr_k5xc5nfhvghh": "4.75"
+    },
+    {
+      "label": "2024-07-25",
+      "sr_k5xc5nfhvghh": "4.50"
+    },
+    {
+      "label": "2024-09-05",
+      "sr_k5xc5nfhvghh": "4.25"
+    },
+    {
+      "label": "2024-10-24",
+      "sr_k5xc5nfhvghh": "3.75"
+    },
+    {
+      "label": "2024-12-12",
+      "sr_k5xc5nfhvghh": "3.25"
+    },
+    {
+      "label": "2025-01-30",
+      "sr_k5xc5nfhvghh": "3.00"
+    },
+    {
+      "label": "2025-03-13",
+      "sr_k5xc5nfhvghh": "2.75"
+    },
+    {
+      "label": "2025-09-18",
+      "sr_k5xc5nfhvghh": "2.50"
+    },
+    {
+      "label": "2025-10-30",
+      "sr_k5xc5nfhvghh": "2.25"
+    },
+    {
+      "label": "2026-10-29",
+      "sr_k5xc5nfhvghh": "2.50"
+    }
+  ],
+  "sources": [
+    {
+      "id": "src_boc_rate",
+      "title": "Bank of Canada: policy interest rate (Valet)",
+      "publisher": "Bank of Canada",
+      "url": "https://www.bankofcanada.ca/rates/interest-rates/key-interest-rate/",
+      "licence": "Bank of Canada terms of use",
+      "retrieved_at": "2026-11-28"
+    }
+  ],
+  "generator": "news-renderer 1.1.0"
+}
