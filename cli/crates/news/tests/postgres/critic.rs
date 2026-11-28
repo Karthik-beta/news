@@ -1,9 +1,17 @@
 //! Critic against a real database (#19): `news eval run` checks the golden sets or scores stored
-//! outputs, stores an `eval_runs` row, and `news eval report` prints it back.
+//! outputs, stores an `eval_runs` row, and `news eval report` prints it back; the Audit preset runs end
+//! to end through Chief and promotes only after its approval.
 
 use super::fixture::{Fixture, call};
-use serde_json::{Value, json};
+use chrono::Utc;
+use news_chief::driver::Handlers;
+use news_chief::gates::{self, Answer, Decision};
+use news_chief::{Chief, IfBusy, StartReq};
+use news_core::clock::ManualClock;
+use serde_json::{Map, Value, json};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use std::time::Duration;
 
 fn repo() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..")
@@ -104,5 +112,172 @@ async fn eval_run_checks_sets_scores_outputs_and_reports() {
     let (env, _, _, _) = f.call(&["eval", "run", "nope"]);
     assert_eq!(env["error"]["code"], "usage");
     assert_eq!(f.scalar_i64("select count(*) from eval_runs").await, 2);
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+/// Stored outputs of `version` for G2, every case answered as labelled.
+fn store_g2_outputs(root: &Path, version: &str) {
+    let g2 = root.join("pipeline/eval/g2");
+    let mut lines = String::new();
+    for e in std::fs::read_dir(g2.join("cases")).unwrap() {
+        let case: Value =
+            serde_json::from_str(&std::fs::read_to_string(e.unwrap().path()).unwrap()).unwrap();
+        let mut output = case["label"].clone();
+        output["confidence"] = json!("high");
+        lines += &format!("{}\n", json!({"case": case["id"], "output": output}));
+    }
+    std::fs::create_dir_all(g2.join("outputs")).unwrap();
+    std::fs::write(g2.join(format!("outputs/{version}.jsonl")), lines).unwrap();
+}
+
+async fn audit_run(ch: &Chief, version: &str) -> uuid::Uuid {
+    let mut args = Map::new();
+    args.insert("suite".into(), json!("classify"));
+    args.insert("prompt_version".into(), json!(version));
+    let run = ch
+        .start(StartReq::board("audit", args, IfBusy::Offer))
+        .await
+        .unwrap()
+        .run()
+        .clone();
+    ch.ensure_drivers().await.unwrap();
+    run.run_id
+}
+
+async fn wait_for(f: &Fixture, run_id: uuid::Uuid, want: &str) {
+    for _ in 0..200 {
+        let st = f
+            .scalar_str(&format!(
+                "select status from runs where run_id = '{run_id}'"
+            ))
+            .await;
+        if st == want {
+            return;
+        }
+        assert!(
+            !matches!(st.as_str(), "failed" | "succeeded" | "cancelled"),
+            "the run ended {st}, not {want}"
+        );
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    panic!("the run never became {want}");
+}
+
+/// Answer the run's promote gate; the subject is rebuilt from what the report step stored.
+async fn answer(f: &Fixture, ch: &Chief, run_id: uuid::Uuid, version: &str, d: Decision) {
+    let (short, eval_run): (String, i64) = sqlx::query_as(
+        "select r.short_id, e.eval_run_id from runs r join eval_runs e using (run_id) where r.run_id = $1",
+    )
+    .bind(run_id)
+    .fetch_one(&f.pool)
+    .await
+    .unwrap();
+    let subject = json!({"suite": "classify", "prompt_version": version,
+                         "eval_run": format!("e{eval_run}"), "steps": ["A3"]});
+    let sha = gates::hex(&gates::subject_sha(&subject));
+    ch.answer(Answer {
+        run: &short,
+        gate: "promote",
+        round: 1,
+        subject_sha: &sha,
+        decision: d,
+        note: None,
+    })
+    .await
+    .unwrap();
+    ch.ensure_drivers().await.unwrap();
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn audit_scores_stored_outputs_waits_for_approval_and_promotes() {
+    let f = Fixture::migrated().await;
+    let root = scratch_root();
+    store_g2_outputs(&root, "cand-v1");
+    store_g2_outputs(&root, "cand-v2");
+    let ch = Chief::builder(f.pool.clone(), Arc::new(ManualClock::new(Utc::now())))
+        .handlers(news_critic::audit::register(
+            Handlers::default(),
+            root.clone(),
+        ))
+        .build();
+
+    // Approved: the report is kept with the run, then A3's live version is cand-v1.
+    let run = audit_run(&ch, "cand-v1").await;
+    wait_for(&f, run, "waiting_approval").await;
+    let text = f
+        .scalar_str(&format!(
+            "select report from eval_runs where run_id = '{run}'"
+        ))
+        .await;
+    assert!(text.contains("A3: no live version yet"), "{text}");
+    assert_eq!(
+        f.scalar_str(&format!(
+            "select status from run_steps where run_id = '{run}' and step = 'judges'"
+        ))
+        .await,
+        "skipped"
+    );
+    answer(&f, &ch, run, "cand-v1", Decision::Approved).await;
+    wait_for(&f, run, "succeeded").await;
+    assert_eq!(
+        news_critic::eval::live(&f.pool, "A3")
+            .await
+            .unwrap()
+            .as_deref(),
+        Some("cand-v1")
+    );
+
+    // Rejected: compared with cand-v1 (no regression), nothing promoted.
+    let run = audit_run(&ch, "cand-v2").await;
+    wait_for(&f, run, "waiting_approval").await;
+    let text = f
+        .scalar_str(&format!(
+            "select report from eval_runs where run_id = '{run}'"
+        ))
+        .await;
+    assert!(text.contains("A3: no regression against cand-v1"), "{text}");
+    answer(&f, &ch, run, "cand-v2", Decision::Rejected).await;
+    for _ in 0..200 {
+        let st = f
+            .scalar_str(&format!("select status from runs where run_id = '{run}'"))
+            .await;
+        if matches!(st.as_str(), "succeeded" | "failed" | "cancelled") {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    assert_eq!(
+        news_critic::eval::live(&f.pool, "A3")
+            .await
+            .unwrap()
+            .as_deref(),
+        Some("cand-v1")
+    );
+    assert_eq!(
+        f.scalar_i64("select count(*) from prompt_promotions").await,
+        1
+    );
+
+    // A version with no stored outputs fails at the candidate step; the CLI form stays gated.
+    let run = audit_run(&ch, "missing").await;
+    for _ in 0..200 {
+        let st = f
+            .scalar_str(&format!("select status from runs where run_id = '{run}'"))
+            .await;
+        if st == "failed" {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    assert_eq!(
+        f.scalar_str(&format!(
+            "select status from run_steps where run_id = '{run}' and step = 'candidate'"
+        ))
+        .await,
+        "failed"
+    );
+    let (env, code, _, _) = f.call(&["eval", "promote", "A3", "cand-v2"]);
+    assert_eq!((code, env["error"]["code"].as_str()), (7, Some("gated")));
     let _ = std::fs::remove_dir_all(&root);
 }

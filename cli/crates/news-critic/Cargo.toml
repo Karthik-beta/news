@@ -1,6 +1,6 @@
 [package]
 name = "news-critic"
-description = "Critic, the evaluation harness, and the Debrief. Golden sets, deterministic metrics and news eval run|report."
+description = "Critic, the evaluation harness, and the Debrief. Golden sets, deterministic metrics, news eval run|report|promote and the Audit steps."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,6 +8,7 @@ publish.workspace = true
 
 [dependencies]
 news-core = { workspace = true }
+news-chief = { workspace = true }
 news-home = { workspace = true }
 news-nose = { workspace = true }
 news-standing = { workspace = true }
@@ -17,6 +18,7 @@ jsonschema = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sqlx = { workspace = true }
+uuid = { workspace = true }
 
 [lints]
 workspace = true

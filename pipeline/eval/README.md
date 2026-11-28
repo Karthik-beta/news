@@ -33,8 +33,12 @@ All are computed by code (`cli/crates/news-critic/src/metrics.rs`). A case with 
 | curator | `check_pass_rate` (the `news home check` rules), `excluded_violations`, `mean_categories`, `mean_regions` |
 | spotcheck | `a7_recall` (an issue whose quoted text overlaps the seeded fault), `a7_kind_match`, `false_flag_rate` (issues pointing at no seeded fault), `control_flag_rate` |
 
+## Audit and promotion
+
+The Audit preset (Bureau §8.11, `cli/crates/news-critic/src/audit.rs`) runs on stored outputs: `load` checks the suite's sets; `metrics` finds the candidate's stored outputs; `candidate` is skipped when all are stored (fresh calls are not built yet, so a missing set fails the run); `judges` is skipped (deterministic metrics only, until a judge is checked against Karthik's labels); `report` scores the outputs, keeps the `eval_runs` row with the run, and compares each set with the live version of its step, flagging a metric that moved the wrong way for its target. After the `promote` approval in Board, the `promote` step writes `prompt_promotions` in its authorised transaction; the latest row per step (A1, A3, A7, A8) is the live version. `news eval promote` from a terminal is always `gated`.
+
 ## Gaps
 
 - G1 has 16 of 35 briefs: the recorded fixtures give one brief per page type and none for explainer. No restatement or negative-value case yet, because no recorded fact has one.
 - G2 has 106 of 200 items, which is every distinct recorded item. More need recorded sources (and earnings items, which it has none of).
-- G3 (story pairs) and G7 (entities) are Phase 4 labelling. The A12 judges and their checks against Karthik's labels (`judges.md`) come with Audit's AI steps.
+- G3 (story pairs) and G7 (entities) are Phase 4 labelling. Still to build: the A12 judges and their checks against Karthik's labels (`judges.md`), `eval label` (H tier, so a Board form) and Audit's fresh candidate calls.

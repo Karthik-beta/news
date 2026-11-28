@@ -1,9 +1,11 @@
 //! Critic, the evaluation harness (Bureau Design §9.1), and Huddle's Debrief (§8.12).
 //!
-//! Built: the golden sets ([`golden`]), the deterministic metrics ([`metrics`]), `news eval run|report`
-//! ([`eval`]) and `news review weekly` ([`debrief`]). Audit's AI steps (candidate calls, A12 judges) are
-//! not built yet (#19); Critic has no job kinds of its own.
+//! Built: the golden sets ([`golden`]), the deterministic metrics ([`metrics`]), `news eval
+//! run|report|promote` ([`eval`]), the Audit preset's steps ([`audit`]) and `news review weekly`
+//! ([`debrief`]). Fresh candidate calls and the A12 judges are not built yet (#19); Critic has no job
+//! kinds of its own.
 
+pub mod audit;
 pub mod debrief;
 pub mod eval;
 pub mod golden;

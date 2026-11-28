@@ -368,6 +368,13 @@ mod tests {
             let mut ids: Vec<&str> = s.cases.iter().filter_map(|c| c["id"].as_str()).collect();
             ids.dedup();
             assert_eq!(ids.len(), s.cases.len(), "{set}: duplicate ids");
+            // Every case names recorded files that exist (G5 lists several, joined by "; ").
+            for c in &s.cases {
+                let from = c["provenance"]["from"].as_str().unwrap_or_default();
+                for f in from.split("; ") {
+                    assert!(repo().join(f).is_file(), "{}: {f} does not exist", c["id"]);
+                }
+            }
         }
     }
 

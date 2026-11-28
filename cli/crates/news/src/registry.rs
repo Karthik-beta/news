@@ -19,10 +19,15 @@ pub fn handler_for_owner(owner: &str) -> Option<Handler> {
     })
 }
 
-/// Chief's step handlers, bound to their subsystem crates as job kinds are. None has landed yet
-/// (#15–#21), so every preset step is `NotBuilt` and a real run ends `failed` at its first step.
+/// Chief's step handlers, bound to their subsystem crates as job kinds are. Only Audit's have landed
+/// (#19); every other preset step is `NotBuilt`, so such a run ends `failed` at its first step. Audit
+/// reads the golden sets of the repository the service runs in; outside one it stays unbound too.
 pub fn step_handlers() -> news_chief::driver::Handlers {
-    news_chief::driver::Handlers::default()
+    let h = news_chief::driver::Handlers::default();
+    match news_critic::golden::find_root() {
+        Ok(root) => news_critic::audit::register(h, root),
+        Err(_) => h,
+    }
 }
 
 /// The handler for a job kind, or `None` for an unknown kind.
