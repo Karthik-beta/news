@@ -23,7 +23,7 @@
           "path": {
             "description": "Bundle-relative path. Only these names are accepted; the content type is set by the server from the name.",
             "type": "string",
-            "pattern": "^(?:index\\.html|index\\.md|data\\.json|sources\\.json|meta\\.json|page\\.oui|charts/[a-z0-9][a-z0-9-]{0,63}\\.csv)$"
+            "pattern": "^(?:index\\.html|index\\.md|data\\.json|sources\\.json|meta\\.json|page\\.oui|charts/[a-z0-9][a-z0-9-]{0,63}\\.(?:csv|json))$"
           },
           "sha256": { "$ref": "../cloud/common.schema.json#/$defs/sha256" },
           "bytes": { "type": "integer", "minimum": 0, "maximum": 1048576 }

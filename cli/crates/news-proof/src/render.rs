@@ -1,7 +1,7 @@
 //! The page bundle `news render` builds (Technical Design, "Page bundle"; contracts/bundle/): page.oui, data.json,
-//! sources.json, meta.json, index.html, index.md and charts/<id>.csv, listed in manifest.json with their SHA-256 and
-//! the bundle SHA. Plate renders the HTML, Markdown and CSV; everything else is assembled here, from the stored
-//! Copy, the brief, the page facts and the page's data. Idempotent: the same inputs and renderer version give the
+//! sources.json, meta.json, index.html, index.md and charts/<id>.csv and .json, listed in manifest.json with their
+//! SHA-256 and the bundle SHA. Plate renders the HTML, Markdown, CSV and chart JSON; everything else is assembled here,
+//! from the stored Copy, the brief, the page facts and the page's data. Idempotent: the same inputs and renderer version give the
 //! same bytes, so the same bundle SHA (no clock is read; times come from the inputs).
 
 use crate::validate::Copy;
@@ -247,12 +247,13 @@ pub fn assemble(inputs: &Inputs, rendered: &Rendered) -> NewsResult<Bundle> {
                 "chart statement {id:?} cannot name charts/{id}.csv: use lower-case letters and digits"
             )));
         }
-        let name = format!("charts/{id}.csv");
-        let csv = rendered
-            .files
-            .get(&name)
-            .ok_or_else(|| NewsError::internal(format!("Plate returned no {name}")))?;
-        files.insert(name, csv.clone());
+        for name in [format!("charts/{id}.csv"), format!("charts/{id}.json")] {
+            let text = rendered
+                .files
+                .get(&name)
+                .ok_or_else(|| NewsError::internal(format!("Plate returned no {name}")))?;
+            files.insert(name, text.clone());
+        }
     }
 
     let data_ids: Vec<&String> = rendered
@@ -401,11 +402,11 @@ pub(crate) mod tests {
     fn lists_the_contract_files_and_hashes_them_like_the_write_api() {
         let b = assemble(&inputs(), &rendered()).unwrap();
         let paths: Vec<&str> = b.files.keys().map(String::as_str).collect();
-        // Chart JSON downloads are not bundle files (manifest.v1 accepts charts/<id>.csv only).
         assert_eq!(
             paths,
             [
                 "charts/cpi.csv",
+                "charts/cpi.json",
                 "data.json",
                 "index.html",
                 "index.md",

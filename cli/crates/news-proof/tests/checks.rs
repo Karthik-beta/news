@@ -436,8 +436,14 @@ fn c8_attribution_is_required_and_restricted_data_is_not_offered() {
         "\"redistribution\": false",
     );
     breaks(&f, "C8", "does not allow redistribution");
-    // Without the CSV, a restricted source is fine: cited, not redistributed.
-    f.remove("charts/sr-cpi.csv");
+    // The chart JSON offers the same values.
+    f.remove("charts/sr-cpi.csv").write(
+        "charts/sr-cpi.json",
+        "{\"rows\": [{\"period\": \"October 2026\", \"value\": \"2.4\"}]}\n",
+    );
+    breaks(&f, "C8", "does not allow redistribution");
+    // Without the downloads, a restricted source is fine: cited, not redistributed.
+    f.remove("charts/sr-cpi.json");
     let m = World::new().run(&f.0);
     assert_eq!(status(&m, "C8"), "pass", "{:#?}", m.failures);
 }

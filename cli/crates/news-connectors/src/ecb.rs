@@ -5,13 +5,15 @@
 
 use crate::sdmx::{self, Rules, split_spec};
 use crate::stat::{StatSeries, StatSource};
-use crate::{ItemRef, ParseError, Parsed, Request, Snapshot};
+use crate::{EntityRef, ItemRef, ParseError, Parsed, Request, Snapshot};
 
 pub const ID: &str = "ecb";
 pub const PARSER_VERSION: u32 = 1;
 const BASE: &str = "https://data-api.ecb.europa.eu/service/data/";
 const HISTORY: u32 = 12;
 const EA: (&str, &str, &str) = ("eurostat-geo", "EA", "Euro area");
+/// The bank as the `cb-ecb` Stringer records it (`centralbank.rs`), so both candidates share the entity.
+const BANK: (&str, &str, &str) = ("cb", "ecb", "European Central Bank");
 
 pub const SERIES: &[StatSeries] = &[
     StatSeries {
@@ -70,13 +72,29 @@ impl StatSource for Ecb {
         snaps: &[Snapshot],
         parser: &str,
     ) -> Result<Parsed, ParseError> {
-        sdmx::parse(
+        let mut out = sdmx::parse(
             s,
             item,
             crate::util::find(snaps, &url(s, HISTORY))?,
             parser,
             &RULES,
             &format!("{ID}:{}", split_spec(s.spec).0),
-        )
+        )?;
+        if s.family == "policy_rate" && !out.candidates.is_empty() {
+            // No event key: the rate is dated the day it took effect, not the decision day, so it would open a
+            // second story for one decision. As with the Bank of Canada's Valet target (`boc_valet.rs`), the
+            // bank is its entity and the `cb-ecb` statement keys the story.
+            for c in &mut out.candidates {
+                c.event_key = None;
+                c.entity = Some((BANK.0.into(), BANK.1.into()));
+            }
+            out.entities.push(EntityRef {
+                scheme: BANK.0.into(),
+                value: BANK.1.into(),
+                kind: "central_bank".into(),
+                name: BANK.2.into(),
+            });
+        }
+        Ok(out)
     }
 }

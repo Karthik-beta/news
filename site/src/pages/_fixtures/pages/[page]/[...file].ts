@@ -1,6 +1,6 @@
 // The rest of each fixture page's bundle, next to its page: index.md and charts/<id>.csv and .json, so links from the
 // page resolve and the files can be inspected. Rendered from the page's committed inputs with the production library,
-// as Plate renders them; chart JSON is not a bundle file (manifest.v1), so it exists only here. NEWS_FIXTURES=1 only.
+// as Plate renders them. NEWS_FIXTURES=1 only.
 import type { APIRoute } from "astro";
 import { fixturesEnabled } from "../../../../renderer/fixtures/routes";
 import { renderPage } from "../../../../renderer/render";

@@ -227,10 +227,8 @@ async fn ecb_golden_pass_from_the_registry_row() {
         );
     }
     let rows = prepare("ecb", licence.as_deref(), &parsed).unwrap();
-    assert_eq!(
-        rows[0].draft.event_key.as_deref(),
-        Some("macro:ea.policy_rate:2026-09-16")
-    );
+    // The `cb-ecb` statement keys the decision's story; the rate carries none.
+    assert_eq!(rows[0].draft.event_key, None);
     assert_eq!(rows[0].page_type.as_deref(), Some("macro"));
     assert_eq!(rows[0].categories, ["economy", "monetary-policy"]);
     let _ = std::fs::remove_dir_all(dir);
