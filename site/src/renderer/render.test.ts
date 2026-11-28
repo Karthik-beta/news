@@ -268,3 +268,30 @@ describe("renderer: invalid bundles", () => {
     expect(r.problems.map((p) => p.code)).toContain("broken-link");
   });
 });
+
+describe("renderer: image credits", () => {
+  // Production components; the charts bundle's sources. The Copy leaves credit and licence null.
+  const bundle = fixtureBundles.charts;
+  const src = "https://images.example.org/a.jpg";
+  const oui = `root = Page([p])
+p = ImageFigure("${src}", "The lander on the surface.", 1600, 1200, null, null, "The lander.")`;
+  const withImages = (images: unknown) => ({ ...bundle, oui, data: { ...(bundle.data as object), images } });
+
+  it("adds each image's credit from its stored record and the licence from the record's source", () => {
+    const r = renderPage(withImages({ [src]: { credit: "NASA/JPL-Caltech", source: "src_fixture_synthetic" } }));
+    expect(dom(r.html).querySelector(".image-figure__credit")?.textContent).toBe("NASA/JPL-Caltech. CC BY 4.0.");
+    expect(r.markdown).toContain("The lander. NASA/JPL-Caltech. CC BY 4.0.");
+    expect(r.problems).toEqual([]);
+  });
+
+  it("prefers the record to a credit typed into the page, and flags an image with neither", () => {
+    const typed = oui.replace("null, null", '"Someone", "Public domain"');
+    const r = renderPage({
+      ...withImages({ [src]: { credit: null, source: "src_bls_cpi" } }),
+      oui: typed,
+    });
+    expect(dom(r.html).querySelector(".image-figure__credit")?.textContent).toBe("Public domain.");
+    const missing = renderPage(withImages({}));
+    expect(missing.problems.map((p) => p.code)).toEqual(["unknown-image"]);
+  });
+});

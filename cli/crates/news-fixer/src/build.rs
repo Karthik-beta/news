@@ -475,8 +475,8 @@ fn fiscal_note(points: &[&Point]) -> Option<String> {
     })
 }
 
-/// An image as the brief shows it: where it is, its size and licence. Alt text and credit are the
-/// source's words, so they stay out (the renderer adds them from the stored record).
+/// An image as the brief shows it: where it is, its size and licence. The source's alt text and credit stay
+/// out: the writer describes the image, and the renderer adds the credit and licence from data.json's record.
 fn image(v: &Value) -> Value {
     let keep = ["url", "licence", "width", "height", "rehost"];
     match v {

@@ -8,12 +8,13 @@ use news_core::{NewsError, NewsResult};
 use serde_json::{Map, Value, json};
 use std::collections::BTreeMap;
 
-/// Where each value came from: the page-local source (`src_…`) and locator of every data point, and the
-/// source of every document a quote is cut from.
+/// Where each value came from: the page-local source (`src_…`) and locator of every data point, the
+/// source of every document a quote is cut from, and the source of every image, by URL.
 #[derive(Debug, Clone, Default)]
 pub struct Provenance {
     pub points: BTreeMap<String, (String, Value)>,
     pub docs: BTreeMap<i64, String>,
+    pub images: BTreeMap<String, String>,
 }
 
 /// The page's `data.json` for a built brief.
@@ -172,10 +173,38 @@ pub fn data(inputs: &Inputs, built: &Built, prov: &Provenance) -> NewsResult<Val
         })
         .collect();
 
-    Ok(json!({
+    // Each image the brief shows, with the credit its stored record gives: the renderer adds credit and
+    // licence from here, so the Copy never types them.
+    let images: Map<String, Value> = b
+        .media
+        .images
+        .iter()
+        .filter_map(|i| i["url"].as_str())
+        .map(|url| {
+            let record = inputs
+                .images
+                .iter()
+                .find(|i| i["url"].as_str() == Some(url))
+                .ok_or_else(|| NewsError::internal(format!("image {url} is not an input image")))?;
+            let source = prov
+                .images
+                .get(url)
+                .ok_or_else(|| NewsError::internal(format!("image {url} has no source")))?;
+            Ok((
+                url.to_owned(),
+                json!({"credit": record["credit"], "source": source}),
+            ))
+        })
+        .collect::<NewsResult<_>>()?;
+
+    let mut out = json!({
         "version": 1, "points": points, "derived": derived, "series": series,
         "periods": periods, "quotes": quotes, "context": context,
-    }))
+    });
+    if !images.is_empty() {
+        out["images"] = Value::Object(images);
+    }
+    Ok(out)
 }
 
 fn period(p: &Point) -> Value {

@@ -13,8 +13,8 @@ export default defineNewsComponent({
   description:
     "A grid of informative images, each opening full size with its caption and credit; no carousel. Set crop only when the source allows square crops.",
   dataShape:
-    "images: objects with the ImageFigure fields (src, alt, width, height, credit, licence, caption) copied from the brief's image records.",
-  example: `photos = ImageGallery([{src: "https://images.example.org/a.jpg", alt: "The lander on the surface.", width: 1600, height: 1200, credit: "NASA/JPL-Caltech", licence: "Public domain"}, {src: "https://images.example.org/b.jpg", alt: "The descent stage.", width: 1600, height: 1200, credit: "NASA/JPL-Caltech", licence: "Public domain"}], "Images returned in the first week.")`,
+    "images: objects with the ImageFigure fields (src, alt, width, height, caption) from the brief's image records; no credit or licence (the renderer adds them).",
+  example: `photos = ImageGallery([{src: "https://images.example.org/a.jpg", alt: "The lander on the surface.", width: 1600, height: 1200}, {src: "https://images.example.org/b.jpg", alt: "The descent stage.", width: 1600, height: 1200}], "Images returned in the first week.")`,
   props: z.object({
     images: z.array(z.object(imageFields)).min(2).max(GALLERY_MAX).describe("Two to twelve image records"),
     caption: z.string().nullable().optional().describe("What the images show together, one sentence"),

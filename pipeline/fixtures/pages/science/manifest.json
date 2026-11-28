@@ -1,10 +1,10 @@
 {
-  "bundle_sha256": "3239b87724ec7d8979f1ab4f1fca93a976dec334794c1d917733c3baac64d4da",
+  "bundle_sha256": "0077c017a5e45067b9111b3d0975b83648882e95b557a49a0acf9524151f89c0",
   "files": [
     {
-      "bytes": 560,
+      "bytes": 784,
       "path": "data.json",
-      "sha256": "308545922cd0c99cf139086ee8bcf5c79a8f26afe389fc3895693d1d80e8824c"
+      "sha256": "c3b56ee87b48d0ce58449e95bc40e6970f8b6611de9a6392dc750dd93ef30c55"
     },
     {
       "bytes": 3461,
@@ -22,9 +22,9 @@
       "sha256": "aa7404ed8ae34bf83fcfd37e4a3d7efc630e665616a6dd0b3ccf0b372fb270f1"
     },
     {
-      "bytes": 712,
+      "bytes": 669,
       "path": "page.oui",
-      "sha256": "b80c82e0cb72c76b0d5e385bcfb58d935f4b10ea5ec46b9d051e0097201142b7"
+      "sha256": "ac09df07833c6e0bde82a1fde6e051df0527d160d81bd670fd049179d7b118d0"
     },
     {
       "bytes": 650,

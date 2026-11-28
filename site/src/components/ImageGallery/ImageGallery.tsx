@@ -23,8 +23,8 @@ const plain = (image: ImageData): ImageData => ({
   alt: image.alt,
   width: image.width,
   height: image.height,
-  credit: image.credit,
-  licence: image.licence,
+  credit: image.credit ?? null,
+  licence: image.licence ?? null,
   caption: image.caption ?? null,
 });
 

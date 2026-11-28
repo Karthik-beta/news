@@ -417,6 +417,38 @@
         "additionalProperties": false
       },
       "description": "cx_… context lines."
+    },
+    "images": {
+      "description": "Image records by URL: the renderer adds each image's credit and licence from these.",
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "credit": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The credit line as the source gives it ('NASA/Brandon Hancock'); null when it gives none."
+          },
+          "source": {
+            "type": "string",
+            "pattern": "^src_[a-z0-9]+(_[a-z0-9]+)*$",
+            "description": "A page-local source ID, src_…."
+          }
+        },
+        "required": ["credit", "source"],
+        "additionalProperties": false
+      }
     }
   },
   "required": ["version", "points", "derived", "series", "periods", "quotes", "context"],

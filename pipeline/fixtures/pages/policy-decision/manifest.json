@@ -1,5 +1,5 @@
 {
-  "bundle_sha256": "02d5c0918f414b3972884fbea040fbbe1c644ad3458145c2c62de03ade4d8e59",
+  "bundle_sha256": "345b955a621142ecf477d9850c3d09eee6a81bf1cc265f1dda6e34c0a27f9cc7",
   "files": [
     {
       "bytes": 274,
@@ -22,9 +22,9 @@
       "sha256": "a80563f71f7ddd2fcc97c1ca94e7eccc695743aed56bb2267579f32b7a27fe75"
     },
     {
-      "bytes": 1272,
+      "bytes": 1252,
       "path": "meta.json",
-      "sha256": "2ecba5c620e1d7d4c6e8163842c896cca2daeb7302b488db628d607d7e732b91"
+      "sha256": "9e46230712e45a2f7c0372a1ff456fc8d1dced1103e6848c4cc1fce3bce89102"
     },
     {
       "bytes": 964,
@@ -37,7 +37,7 @@
       "sha256": "c4115c06f96255350ce91b3a85bca38c5e57f1437619dee6f7b41c467096fb19"
     }
   ],
-  "page_id": "macro-ca-policy-rate-2026-10-29",
+  "page_id": "policy-boc-2026-10-28",
   "schema": "manifest.v1",
   "version": 1
 }

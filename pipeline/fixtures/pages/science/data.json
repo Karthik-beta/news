@@ -1,6 +1,12 @@
 {
   "context": {},
   "derived": {},
+  "images": {
+    "https://images-assets.nasa.gov/image/KSC-04012026-Artemis%20II_Launch-1/KSC-04012026-Artemis%20II_Launch-1~large.jpg": {
+      "credit": "NASA/Brandon Hancock",
+      "source": "src_nasa_image"
+    }
+  },
   "periods": {},
   "points": {},
   "quotes": {

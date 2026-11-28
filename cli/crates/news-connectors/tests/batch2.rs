@@ -240,14 +240,19 @@ fn boc_policy_rate_keeps_the_banks_digits_dates_and_unit() {
         (previous.value_text.as_str(), previous.period_label.as_str()),
         ("2.25", "2025-10-30")
     );
+    // The rate's story is the decision's (`policy:boc:<decision_date>`, from the statement): no key of its
+    // own, and the bank as its entity, the one the `cb-boc` statement carries.
     let c = &p.candidates[0];
-    assert_eq!(
-        c.event_key.as_deref(),
-        Some("macro:ca.policy_rate:2026-10-29")
-    );
+    assert_eq!(c.event_key, None);
+    assert_eq!(c.entity, Some(("cb".into(), "boc".into())));
     assert_eq!(c.dp_ids, std::slice::from_ref(&first.dp_id));
     assert_eq!(c.rule_key, "family:policy_rate");
-    assert_eq!(p.entities[0].value, "CA");
+    let entities: Vec<(&str, &str)> = p
+        .entities
+        .iter()
+        .map(|e| (e.value.as_str(), e.kind.as_str()))
+        .collect();
+    assert_eq!(entities, [("boc", "central_bank"), ("CA", "country")]);
 }
 
 fn valet(body: &str) -> Result<Parsed, news_connectors::ParseError> {

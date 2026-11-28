@@ -365,8 +365,11 @@ fn policy_decision() -> Fixture {
         "boc-valet/B114039-history.json",
         t(2026, 11, 28, 3),
     );
-    let (statement, doc, _) = boc_statement(7002);
+    let (statement, doc, event_key) = boc_statement(7002);
     let mut inputs = from_parsed(91004, "policy-decision", 1, &[&p]);
+    // The decision's key, dated by the statement (`policy:boc:<decision_date>`); the rate's own candidate has none.
+    assert_eq!(inputs.event_key, None);
+    inputs.event_key = event_key;
     inputs.categories = vec!["economy".into(), "monetary-policy".into()];
     inputs.entities = vec![entity("ent_boc", "Bank of Canada", "central_bank")];
     inputs.documents = vec![doc];
@@ -570,6 +573,9 @@ fn science() -> Fixture {
     }];
     let mut prov = provenance(&[(&p, "src_nasa_image")]);
     prov.docs.insert(7101, "src_nasa_image".into());
+    for i in &p.images {
+        prov.images.insert(i.url.clone(), "src_nasa_image".into());
+    }
     Fixture {
         name: "science",
         inputs,

@@ -40,7 +40,8 @@ export type ProblemCode =
   | "no-value" // the data point exists, but the source published no value
   | "unknown-source" // a data point or quote cites a source missing from sources.json
   | "broken-link" // a series, derived value or context line points at a missing reference
-  | "bare-ref"; // a reference-shaped word in text without braces
+  | "bare-ref" // a reference-shaped word in text without braces
+  | "unknown-image"; // an image without credit and licence has no record in data.json
 
 export interface Problem {
   code: ProblemCode;
@@ -155,6 +156,17 @@ export class PageDataResolver {
 
   source(id: string): SourceT | null {
     return this.sources.sources[id] ?? null;
+  }
+
+  /** An image's credit and licence from its stored record (data.json `images`, by URL), citing its source. */
+  image(src: string): { credit: string; licence: string } | null {
+    const record = this.data.images?.[src];
+    if (!record) {
+      this.problem({ code: "unknown-image", ref: src, message: `${src} has no image record in data.json` });
+      return null;
+    }
+    const [cited] = this.cite([record.source]);
+    return cited ? { credit: record.credit ?? "", licence: cited.source.licence.name } : null;
   }
 
   period(ref: string): ResolvedPeriod | null {

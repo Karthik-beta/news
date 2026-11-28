@@ -17,7 +17,7 @@
 // closes, so a server started by a CLI call never outlives it.
 import type { ElementNode } from "@openuidev/react-lang";
 import { newsLibrary } from "../components/library";
-import { checkProps, type PageHead, parsePage, RenderError, renderPage } from "./render";
+import { checkProps, handSetImageCredits, type PageHead, parsePage, RenderError, renderPage } from "./render";
 import { RENDERER_VERSION } from "./version";
 
 export interface CheckError {
@@ -94,7 +94,12 @@ export function check(oui: string): { errors: CheckError[]; components: string[]
     if (e instanceof RenderError) return { errors: lines(e, "props"), components, literals };
     throw e;
   }
-  return { errors: [], components, literals };
+  const credits = handSetImageCredits(root).map((at) => ({
+    rule: "props" as const,
+    where: `oui:${at}`,
+    message: "credit and licence come from the image record: leave them null",
+  }));
+  return { errors: credits, components, literals };
 }
 
 interface RenderRequest {

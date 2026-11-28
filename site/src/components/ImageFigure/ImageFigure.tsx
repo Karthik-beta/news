@@ -17,10 +17,10 @@ export interface ImageData {
   /** Intrinsic size in pixels, from the image record. Sets the aspect ratio before the image loads. */
   width: number;
   height: number;
-  /** Who made it ("NASA/JPL-Caltech"). */
-  credit: string;
-  /** "Public domain", "CC BY 4.0". */
-  licence: string;
+  /** Who made it ("NASA/JPL-Caltech"). On a page the renderer adds it from the image record. */
+  credit?: string | null;
+  /** "Public domain", "CC BY 4.0". On a page the renderer adds it from the image record's source. */
+  licence?: string | null;
   /** One sentence. */
   caption?: string | null;
 }
@@ -28,7 +28,7 @@ export interface ImageData {
 /** "NASA/JPL-Caltech. Public domain." */
 export const creditLine = (image: Pick<ImageData, "credit" | "licence">) =>
   [image.credit, image.licence]
-    .map((s) => s.trim())
+    .map((s) => s?.trim() ?? "")
     .filter(Boolean)
     .map((s) => (/[.!?]$/.test(s) ? s : `${s}.`))
     .join(" ");

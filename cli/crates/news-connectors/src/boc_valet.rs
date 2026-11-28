@@ -12,7 +12,7 @@ use serde_json::Value;
 use std::collections::BTreeMap;
 
 use news_ledger::decimal::is_missing_marker;
-use news_ledger::{Draft, Missing, PeriodType, eventkey};
+use news_ledger::{Draft, Missing, PeriodType};
 
 use crate::stat::{StatSeries, StatSource};
 use crate::util::{period_from_label, shape, value_err};
@@ -24,6 +24,8 @@ pub const ID: &str = "boc-valet";
 pub const PARSER_VERSION: u32 = 1;
 const BASE: &str = "https://www.bankofcanada.ca/valet/observations/";
 const HISTORY: u32 = 12;
+/// The bank as the `cb-boc` Stringer records it (`centralbank.rs`), so both candidates share the entity.
+const BANK: (&str, &str, &str) = ("cb", "boc", "Bank of Canada");
 
 pub const SERIES: &[StatSeries] = &[StatSeries {
     id: "B114039",
@@ -169,14 +171,23 @@ impl StatSource for BocValet {
             out.points.push(point);
         }
         if let Some((period, dp)) = latest {
+            // No event key: the observation is dated the day the new target took effect, not the decision
+            // day, so it would open a second story for one decision. Like an 8-K, it carries the bank as its
+            // entity and Taster groups it with the `cb-boc` statement's `policy:boc:<decision_date>` story.
             out.candidates.push(CandidateDraft {
-                event_key: eventkey::macro_release(s.country, s.family, &period),
+                event_key: None,
                 url: item.url.clone(),
                 title: format!("{}, {period}", s.id),
                 published_at: item.published_at,
                 rule_key: format!("family:{}", s.family),
                 dp_ids: vec![dp],
-                entity: Some((s.entity.0.into(), s.entity.1.into())),
+                entity: Some((BANK.0.into(), BANK.1.into())),
+            });
+            out.entities.push(EntityRef {
+                scheme: BANK.0.into(),
+                value: BANK.1.into(),
+                kind: "central_bank".into(),
+                name: BANK.2.into(),
             });
         }
         out.entities.push(EntityRef {

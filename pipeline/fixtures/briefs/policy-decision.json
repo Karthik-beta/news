@@ -2,11 +2,11 @@
   "brief_version": 1,
   "item": {
     "story_id": 91004,
-    "event_key": "macro:ca.policy_rate:2026-10-29",
+    "event_key": "policy:boc:2026-10-28",
     "page_type": "policy-decision",
     "tier": 1,
     "action": "new",
-    "slug_hint": "macro-ca-policy-rate-2026-10-29",
+    "slug_hint": "policy-boc-2026-10-28",
     "data_as_of": "2026-11-28"
   },
   "entities": [
