@@ -1,0 +1,50 @@
+{
+  "title": "GDP by year, as the World Bank publishes it",
+  "subtitle": "GDP, current US$, 2021 to 2025",
+  "unit": "current US$",
+  "currency": null,
+  "scale": null,
+  "columns": [
+    {
+      "key": "label",
+      "label": "Period"
+    },
+    {
+      "key": "sr_am7mvf3ghynd",
+      "label": "GDP (current US$), 2021 to 2025 (current US$)"
+    }
+  ],
+  "rows": [
+    {
+      "label": "2021",
+      "sr_am7mvf3ghynd": "23725645000000"
+    },
+    {
+      "label": "2022",
+      "sr_am7mvf3ghynd": "26054614000000"
+    },
+    {
+      "label": "2023",
+      "sr_am7mvf3ghynd": "27811517000000"
+    },
+    {
+      "label": "2024",
+      "sr_am7mvf3ghynd": "29298013000000"
+    },
+    {
+      "label": "2025",
+      "sr_am7mvf3ghynd": "30769700000000"
+    }
+  ],
+  "sources": [
+    {
+      "id": "src_wb_wdi",
+      "title": "World Development Indicators: GDP (current US$), United States",
+      "publisher": "The World Bank",
+      "url": "https://data.worldbank.org/indicator/NY.GDP.MKTP.CD?locations=US",
+      "licence": "CC BY 4.0",
+      "retrieved_at": "2026-11-18"
+    }
+  ],
+  "generator": "news-renderer 1.1.0"
+}

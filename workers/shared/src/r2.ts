@@ -15,6 +15,7 @@ export function contentTypeFor(file: string): string {
   const known = CONTENT_TYPES[file];
   if (known) return known;
   if (/^charts\/[a-z0-9][a-z0-9-]{0,63}\.csv$/.test(file)) return "text/csv; charset=utf-8";
+  if (/^charts\/[a-z0-9][a-z0-9-]{0,63}\.json$/.test(file)) return "application/json; charset=utf-8";
   throw new Error(`no content type for bundle file ${file}`);
 }
 
