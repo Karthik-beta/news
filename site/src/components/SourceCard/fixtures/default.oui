@@ -1,0 +1,3 @@
+root = Page([filing, paper])
+filing = SourceCard("src_aapl_10k_2024")
+paper = SourceCard("src_test_trial")

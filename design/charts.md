@@ -168,6 +168,7 @@ Today neither the bar nor the column chart takes a comparison value, so for both
 ### Line charts and step lines
 - Up to 4 labelled lines; context lines thinner. End labels show the series name (bold, in its colour) and the latest value (in ink).
 - Rate paths use step lines with steps at decision dates, and event markers for decisions.
+- Line charts take up to three notes (the writer's few words at a plotted period, no digits). Each is a 1px `ink-3` line labelled with its number at the top, on every screen; a numbered list under the plot gives the period and the words in Fira 13.5, ink-2. Numbers run left to right. A note at a period the chart does not plot, or a second note at one period, is left out.
 
 ### Bar charts
 - Sorted by value unless the categories have a natural order (time, size bands).

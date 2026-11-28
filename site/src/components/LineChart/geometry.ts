@@ -112,8 +112,38 @@ export interface LinePlotOptions {
   curve: "linear" | "step";
   /** pd_… periods to mark with an event line (step lines). */
   markers?: readonly string[];
+  /** Line charts: the writer's notes, each drawn as an event line labelled with its number (`numberedNotes`). */
+  notes?: readonly ChartNote[];
   /** Small multiples: every panel's periods and values, so all panels share one x axis and one value axis. */
   shared?: { slots: PeriodSlot[]; values: string[] };
+}
+
+/** A note on a line chart: a few of the writer's words at one plotted period. */
+export interface ChartNote {
+  /** pd_… a period on the chart's axis. */
+  at: string;
+  text: string;
+}
+
+export interface NumberedNote extends ChartNote {
+  /** 1, 2, 3 from left to right: the label on the plot and in the list under it. */
+  number: number;
+  /** The period's label, as the source writes it. */
+  period: string;
+  /** The period's index on the axis. */
+  slot: number;
+}
+
+/**
+ * The notes whose period is on the axis, numbered left to right. A note at a period the chart does not plot has
+ * nowhere to point, and a second note at a period already noted would draw the same line, so both are left out.
+ */
+export function numberedNotes(notes: readonly ChartNote[], slots: readonly PeriodSlot[]): NumberedNote[] {
+  return notes
+    .map((n) => ({ n, slot: slots.findIndex((s) => s.ref === n.at) }))
+    .filter((m, i, all) => m.slot >= 0 && all.findIndex((o) => o.n.at === m.n.at) === i)
+    .sort((a, b) => a.slot - b.slot)
+    .map((m, k) => ({ ...m.n, number: k + 1, period: (slots[m.slot] as PeriodSlot).label, slot: m.slot }));
 }
 
 /**
@@ -246,6 +276,21 @@ export function linePlot(
   // A phone has room for one label: the latest decision's. The other lines stay, unlabelled.
   const lastLabelled = events.findLast((e) => e.label !== null);
   if (lastLabelled) lastLabelled.phone = true;
+
+  // Notes are labelled by number on every screen, so each line matches its line in the list under the plot. A
+  // number is about 16px wide, judged against a phone's plot (about 280px).
+  // shortcut: three notes within about 6% of the width put the third number on the second row over another; at
+  // most three notes makes that rare, and the list under the plot still reads. Upgrade if real pages hit it.
+  for (const note of numberedNotes(opts.notes ?? [], slots)) {
+    const x = xs[note.slot] ?? 0;
+    const label = String(note.number);
+    const width = ((label.length * 7.5 + 8) / 280) * 100;
+    const [from, to] = x > 70 ? [x - width, x] : [x, x + width];
+    const free = rowEnds.findIndex((end) => from > end + 1);
+    const row = free >= 0 ? free : 1;
+    rowEnds[row] = Math.max(rowEnds[row] as number, to);
+    events.push({ key: note.at, x, label, row, phone: true });
+  }
 
   // A date axis (step lines) is labelled by year, at each 1 January inside the range; otherwise by period.
   const yearLabels = (() => {

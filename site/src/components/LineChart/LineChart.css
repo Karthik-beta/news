@@ -232,3 +232,28 @@
     background: CanvasText;
   }
 }
+
+/* Notes (design/charts.md, "Annotations"): the plot labels each note's line with its number; the list under the
+   plot gives the number, the period in Fira 600 and the writer's words, all in type.label, ink-2. */
+.line-chart__notes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-label);
+  line-height: var(--font-line-height-ui);
+  color: var(--color-ink-2);
+}
+.line-chart__note {
+  display: grid;
+  grid-template-columns: 1.5em minmax(0, 1fr);
+  overflow-wrap: anywhere;
+}
+.line-chart__note-number,
+.line-chart__note-period {
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: lining-nums tabular-nums;
+}

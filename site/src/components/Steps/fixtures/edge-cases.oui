@@ -1,0 +1,4 @@
+root = Page([two, long, eight])
+two = Steps([{title: "First", text: "The shortest list has two steps and no source line, because nothing here is cited."}, {title: "Second", text: "An unknown value shows as missing: {dp_test_not_in_data}."}])
+long = Steps([{title: "A long step title that wraps onto a second line on a phone", text: "Long text with a very long word Pneumonoultramicroscopicsilicovolcanoconiosis wraps rather than pushing the page sideways, and a quote still reads: {q_test_long}"}, {title: "Then", text: "A fiscal period stays as the company labels it: {dp_aapl_net_sales_fy2024} in sales for {pd_fy2024}."}])
+eight = Steps([{title: "One", text: "Step one."}, {title: "Two", text: "Step two."}, {title: "Three", text: "Step three."}, {title: "Four", text: "Step four."}, {title: "Five", text: "Step five."}, {title: "Six", text: "Step six."}, {title: "Seven", text: "Step seven."}, {title: "Eight", text: "The most steps a list may have."}])

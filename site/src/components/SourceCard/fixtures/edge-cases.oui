@@ -1,0 +1,4 @@
+root = Page([preprint, context, unknown])
+preprint = SourceCard("src_test_preprint")
+context = SourceCard("src_test_news_outlet")
+unknown = SourceCard("src_test_not_in_sources")

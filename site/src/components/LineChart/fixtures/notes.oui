@@ -1,0 +1,4 @@
+root = Page([cpi, close, odd])
+cpi = LineChart("Inflation in America eased through the year", "Consumer prices, change on a year earlier, 2024, %", ["sr_us_cpi_2024"], "sr_us_cpi_2024", null, false, [{at: "pd_2024_09", text: "First rate cut"}, {at: "pd_2024_03", text: "Spring"}, {at: "pd_2024_12", text: "A longer note that reads at year end"}])
+close = LineChart("Three notes on neighbouring months", "Synthetic index", ["sr_fx_long"], null, null, false, [{at: "pd_fx_m_2020_01", text: "First"}, {at: "pd_fx_m_2020_02", text: "Second"}, {at: "pd_fx_m_2020_03", text: "Third"}])
+odd = LineChart("A note off the axis is left out, and so is a second note at one period", "Gross margin as a share of net sales, fiscal years, %", ["sr_aapl_gm_services", "sr_aapl_gm_products"], "sr_aapl_gm_services", "sr_aapl_gm_products", null, [{at: "pd_2024_03", text: "Not on this axis"}, {at: "pd_fy2022", text: "Noted once"}, {at: "pd_fy2022", text: "Left out"}])

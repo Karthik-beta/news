@@ -1,0 +1,82 @@
+/* Steps (design/components.md, "Steps"): the number in Fira 600 at the headline-s size, tabular, in a 2em column;
+   a 1px rule-coloured line runs down that column from under each number to the next; the title Fira 600 15px
+   (type.ui), the text in Literata at the small body size. No boxes, no circles, no colour: order is the content. */
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.steps__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.steps__step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 2em minmax(0, 1fr);
+  column-gap: var(--space-4);
+  padding-bottom: var(--space-6);
+}
+.steps__step:last-child {
+  padding-bottom: 0;
+}
+
+/* The line from under this number to the next one. */
+.steps__step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  inset-inline-start: calc(1em - var(--border-hairline) / 2);
+  top: calc(var(--font-size-headline-s) * var(--font-line-height-heading) + var(--space-2));
+  bottom: var(--space-2);
+  border-inline-start: var(--border-hairline) solid var(--color-rule);
+}
+
+.steps__number {
+  font-family: var(--font-family-sans);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-headline-s);
+  line-height: var(--font-line-height-heading);
+  font-variant-numeric: lining-nums tabular-nums;
+  text-align: center;
+  color: var(--color-ink);
+}
+
+.steps__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.steps__body > p {
+  margin: 0;
+}
+
+.steps__title {
+  font-family: var(--font-family-sans);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-ui);
+  /* Sits on the number's baseline row. */
+  line-height: calc(var(--font-size-headline-s) * var(--font-line-height-heading));
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+
+.steps__text {
+  font-family: var(--font-family-serif);
+  font-size: var(--font-size-body-s);
+  line-height: var(--font-line-height-summary);
+  color: var(--color-ink);
+  max-width: var(--layout-prose);
+  overflow-wrap: anywhere;
+}
+
+.steps__source {
+  margin: 0;
+}
+.steps__source a {
+  color: inherit;
+}

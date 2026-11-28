@@ -1,0 +1,48 @@
+/* Source card (design/components.md, "Source card"): a 1px ink rule on top, no box; badges as everywhere; the title
+   in Literata 600 at the headline-s size, an ink link; the meta line in Fira 13.5 (type.label), ink-2. */
+.source-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: var(--layout-prose);
+  min-width: 0;
+  padding-top: var(--space-4);
+  border-top: var(--border-hairline) solid var(--color-ink);
+}
+.source-card > * {
+  margin: 0;
+}
+
+.source-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.source-card__title {
+  font-family: var(--font-family-serif);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-headline-s);
+  line-height: var(--font-line-height-heading);
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
+}
+.source-card__title a {
+  color: var(--color-ink);
+}
+.source-card__title .icon {
+  vertical-align: -0.1em;
+  color: var(--color-ink-2);
+}
+
+.source-card__meta {
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-label);
+  line-height: var(--font-line-height-ui);
+  color: var(--color-ink-2);
+  overflow-wrap: anywhere;
+}
+
+.source-card--missing {
+  color: var(--color-ink-2);
+}
