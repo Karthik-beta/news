@@ -230,12 +230,21 @@ async fn run(ctx: Option<&Ctx>, step: Step, cx: &StepCx) -> Result<StepOutcome, 
                     json!({"staged": 0, "sent": 0, "wrap": {"published": 0}}),
                 ));
             }
-            let (staged, sent, dead) = pipeline::publish(cx, ctx, &stories).await?;
+            // The sample gate approved these bytes (`pages[].after`): publish nothing else.
+            let (staged, sent, dead) =
+                pipeline::publish(cx, ctx, &stories, Some(&subject(cx))).await?;
             Ok(StepOutcome::Done(
                 json!({"staged": staged, "sent": sent, "wrap": {"published": sent, "failed": dead}}),
             ))
         }
     }
+}
+
+/// What the sample gate approves: the pages checked, each with the bundle it publishes (`after`).
+fn subject(cx: &StepCx) -> Value {
+    let all = pages(cx, "check");
+    let ids: Vec<Value> = all.iter().map(|p| p["page_id"].clone()).collect();
+    json!({"items": ids, "pages": all})
 }
 
 /// The sample approval: the pages checked, with before and after for the first few.
@@ -247,7 +256,7 @@ fn review(cx: &StepCx) -> StepOutcome {
     StepOutcome::OpenGates(vec![GateOpen {
         gate: "sample".into(),
         whole_subject: false,
-        subject: json!({"items": ids, "pages": all}),
+        subject: subject(cx),
         summary: json!({"text": format!("Reprint {n} pages; before and after shown for {}", sample.len()),
                     "subject_items": ids, "count": n}),
         preview: Some(json!({"sample": sample})),

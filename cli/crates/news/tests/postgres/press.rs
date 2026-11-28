@@ -14,7 +14,7 @@ use news_press::fake::{FakeApi, Fault};
 use news_press::{bundle, store};
 use news_wire::pace::VirtualClock;
 use serde_json::{Map, json};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 use uuid::Uuid;
@@ -492,5 +492,185 @@ async fn a_refused_key_stops_the_drain_and_leaves_the_row_to_send() {
     );
     // With the key fixed, both go.
     assert_eq!(store::drain(&f.pool, &c, &dir, None).await.unwrap().sent, 2);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+// ---- unsent rows of a run that ended -----------------------------------------------------------------
+
+/// Edition's publish step in two runs. The first stages p-one and p-two, gets no answer for p-one and
+/// fails. The second stages p-one again (the same key moves to it) and drains: p-two, left by the
+/// failed run, goes too.
+struct Outbox {
+    work: PathBuf,
+    api: Arc<FakeApi>,
+}
+
+impl StepHandler for Outbox {
+    fn run<'a>(&'a self, cx: &'a mut StepCx) -> BoxFut<'a, Result<StepOutcome, StepError>> {
+        Box::pin(async move {
+            let fail = |message: String| StepError::Fail {
+                class: news_core::job::ErrorClass::Bug,
+                message,
+            };
+            let first: bool = sqlx::query_scalar(
+                "select not exists (select 1 from publish_outbox where op = 'put_page')",
+            )
+            .fetch_one(&cx.db)
+            .await
+            .unwrap();
+            let mut tx = cx.db.begin().await.unwrap();
+            sqlx::query(
+                r#"update runs set budget = '{"items": ["p-one", "p-two"]}' where run_id = $1"#,
+            )
+            .bind(cx.run_id)
+            .execute(&mut *tx)
+            .await
+            .unwrap();
+            let pages: &[&str] = if first {
+                &["p-one", "p-two"]
+            } else {
+                &["p-one"]
+            };
+            let mut ids = Vec::new();
+            for id in pages {
+                let mut auth = gates::authorize(
+                    &mut tx,
+                    GRequest {
+                        run_id: cx.run_id,
+                        step_seq: cx.seq,
+                        command: GCommand::Publish,
+                        item: Some(id),
+                    },
+                )
+                .await
+                .unwrap();
+                let sha = bundle::load(&self.work, id, 1).unwrap().bundle_sha;
+                ids.push(
+                    store::stage_put(&mut auth, id, 1, &sha, cx.now)
+                        .await
+                        .unwrap(),
+                );
+            }
+            tx.commit().await.unwrap();
+            if !first {
+                let owner: Uuid =
+                    sqlx::query_scalar("select run_id from publish_outbox where outbox_id = $1")
+                        .bind(ids[0])
+                        .fetch_one(&cx.db)
+                        .await
+                        .unwrap();
+                if owner != cx.run_id {
+                    return Err(fail("the row staged again did not move to this run".into()));
+                }
+            }
+            let (c, _) = client(&self.api);
+            let out = store::drain(&cx.db, &c, &self.work, Some(cx.run_id))
+                .await
+                .unwrap();
+            if first {
+                // The send's outcome is unknown and the run ends (a timeout, then a cancel or a failure).
+                return Err(fail(format!("no answer: {out:?}")));
+            }
+            if out.sent != 2 {
+                return Err(fail(format!("the later run sent {out:?}")));
+            }
+            Ok(StepOutcome::Done(json!({"sent": out.sent})))
+        })
+    }
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres"]
+async fn a_later_run_resends_a_failed_runs_rows_under_the_same_keys() {
+    let f = Fixture::migrated().await;
+    let dir = Path::new(env!("CARGO_TARGET_TMPDIR")).join(format!("press-orphan-{}", f.schema));
+    let _ = std::fs::remove_dir_all(&dir);
+    let one = bundle::write(&dir, "p-one", 1, &FILES);
+    let two = bundle::write(&dir, "p-two", 1, &FILES);
+    page(&f, "p-one", "draft", "noindex", 2, &[], &one, None).await;
+    page(&f, "p-two", "draft", "noindex", 2, &[], &two, None).await;
+    let api = Arc::new(FakeApi::new());
+    // p-one is applied, but its answer never comes back, every time the client tries.
+    api.script((0..5).map(|_| Fault::LoseAnswer));
+    let handlers = [
+        "preflight",
+        "discover",
+        "stories",
+        "plan",
+        "brief",
+        "write",
+        "render",
+        "spotcheck",
+        "promote",
+    ]
+    .into_iter()
+    .fold(Handlers::default(), |h, s| {
+        h.with(&format!("edition.{s}"), Arc::new(Done))
+    })
+    .with("edition.review", Arc::new(Skip))
+    .with(
+        "edition.publish",
+        Arc::new(Outbox {
+            work: dir.clone(),
+            api: api.clone(),
+        }),
+    );
+    let ch = Chief::builder(f.pool.clone(), Arc::new(ManualClock::new(t0())))
+        .handlers(handlers)
+        .build();
+    let status = |id: Uuid| {
+        let f = &f;
+        async move {
+            f.scalar_str(&format!("select status from runs where run_id = '{id}'"))
+                .await
+        }
+    };
+    let mut runs = Vec::new();
+    for want in ["failed", "succeeded"] {
+        let run = ch
+            .start(StartReq::board("edition", Map::new(), IfBusy::Offer))
+            .await
+            .unwrap()
+            .run()
+            .clone();
+        ch.ensure_drivers().await.unwrap();
+        for _ in 0..200 {
+            if status(run.run_id).await == want {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+        assert_eq!(status(run.run_id).await, want);
+        runs.push(run.run_id);
+    }
+
+    // Each page went once, under its own key; the lost answer was replayed, not written twice.
+    let key = |id: &str, sha: &[u8; 32]| page_key(id, 1, &gates::hex(sha), "put_page").unwrap();
+    assert_eq!(api.applied(), vec![key("p-one", &one), key("p-two", &two)]);
+    assert!(
+        api.requests()
+            .iter()
+            .all(|r| [key("p-one", &one), key("p-two", &two)].contains(&r.idempotency_key))
+    );
+    assert_eq!(
+        f.scalar_str("select string_agg(status, ',' order by page_id) from pages")
+            .await,
+        "published,published"
+    );
+    assert_eq!(
+        f.scalar_i64("select count(*) from publish_outbox where sent_at is null")
+            .await,
+        0
+    );
+    // p-one's row moved to the later run; p-two's stays the failed run's, sent by the later drain.
+    assert_eq!(
+        f.scalar_str(&format!(
+            "select string_agg(case run_id when '{}' then 'later' when '{}' then 'failed' end, ',' order by page_id)
+               from publish_outbox",
+            runs[1], runs[0]
+        ))
+        .await,
+        "later,failed"
+    );
     let _ = std::fs::remove_dir_all(&dir);
 }

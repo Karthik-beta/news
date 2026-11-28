@@ -44,7 +44,8 @@ fn need_page(auth: &Authorized<'_>, page_id: &str) -> NewsResult<()> {
     }
 }
 
-/// Insert an outbox row, or return the one this key already has (staging is idempotent).
+/// Insert an outbox row, or return the one this key already has (staging is idempotent). An unsent
+/// row staged again moves to the run staging it, so that run's drain sends it under the same key.
 #[allow(clippy::too_many_arguments)]
 async fn insert_row(
     conn: &mut PgConnection,
@@ -61,7 +62,8 @@ async fn insert_row(
         "insert into publish_outbox (page_id, version, bundle_sha, idempotency_key, op, run_id, payload, created_at)
          values ($1, $2, $3, $4, $5, $6, $7, $8)
          on conflict (idempotency_key) do update
-            set dead_at = case when publish_outbox.sent_at is null then null else publish_outbox.dead_at end
+            set dead_at = case when publish_outbox.sent_at is null then null else publish_outbox.dead_at end,
+                run_id = case when publish_outbox.sent_at is null then excluded.run_id else publish_outbox.run_id end
          returning outbox_id",
     )
     .bind(page_id)
@@ -99,12 +101,14 @@ pub async fn stage_put(
             .await
             .map_err(map_err)?;
     if let Some(id) = staged {
-        // Staging a dead row again puts it back on the list to send.
+        // Staging an unsent row again makes it this run's to send; a dead one goes back on the list.
         sqlx::query(
-            "update publish_outbox set dead_at = null, last_error = null
-              where outbox_id = $1 and dead_at is not null and sent_at is null",
+            "update publish_outbox set run_id = $2,
+                    last_error = case when dead_at is null then last_error end, dead_at = null
+              where outbox_id = $1 and sent_at is null",
         )
         .bind(id)
+        .bind(run_id)
         .execute(&mut *conn)
         .await
         .map_err(map_err)?;
@@ -362,9 +366,11 @@ fn request(row: &OutRow, work: &Path) -> Result<ApiRequest, String> {
 async fn next_row(db: &PgPool, run: Option<Uuid>) -> NewsResult<Option<OutRow>> {
     let r = sqlx::query(
         "select outbox_id, page_id, version, bundle_sha, idempotency_key, op, payload
-           from publish_outbox
+           from publish_outbox o
           where sent_at is null and dead_at is null and op <> 'home_curation'
-            and ($1::uuid is null or run_id = $1)
+            and ($1::uuid is null or run_id = $1
+                 or not exists (select 1 from runs r where r.run_id = o.run_id
+                                  and r.status not in ('succeeded', 'failed', 'cancelled', 'skipped')))
           order by outbox_id limit 1",
     )
     .bind(run)
@@ -485,7 +491,9 @@ async fn mark_sent(
     tx.commit().await.map_err(map_err)
 }
 
-/// Send the outbox in order (optionally only one run's rows). Per-row failures never stop the drain:
+/// Send the outbox in order (optionally only one run's rows, plus the unsent rows of runs that have
+/// ended, which nobody else would send: a failed or cancelled run's row goes again under its key).
+/// Per-row failures never stop the drain:
 /// a 4xx puts the row on the dead list and the next row goes, except 401 and 403 (the key, not the row,
 /// is wrong), which stop the drain and leave the row to send. A row with no answer after the retries
 /// stops it (order matters, and the API may be down); the row keeps its key and is sent again by the

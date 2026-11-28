@@ -5,6 +5,10 @@
 //! records and their hubs (`ent/<id>`) are written from each page's `meta.json` when it is published, so
 //! neither has a route of its own. A renamed hub is a new node plus a redirect from the old path.
 //! Keys are the hash of the body: an unchanged taxonomy sends the same key and writes nothing.
+//!
+//! shortcut: nothing calls [`sync_taxonomy`] or [`sync_redirects`] yet, and they send without an
+//! `Authorized` or an outbox row; when they are wired, stage them as outbox rows behind `authorize`
+//! like page writes (key = body hash, as now).
 
 use news_chief::gates::hex;
 use news_core::NewsResult;

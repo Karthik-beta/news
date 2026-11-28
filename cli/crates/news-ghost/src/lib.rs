@@ -441,7 +441,7 @@ impl Ghost {
                 return Ok(
                     json!({"step": step, "valid": true, "stored": verdict.stored,
                                  "repair_round": round, "output": call.output_file,
-                                 "tokens": spent_here}),
+                                 "tokens": spent_here, "model": call.model}),
                 );
             }
             if round >= repairs {

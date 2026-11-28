@@ -61,15 +61,19 @@ fn is_public(ip: std::net::IpAddr) -> bool {
                 || v4.is_broadcast()
                 || v4.is_multicast()
                 || o[0] == 0
-                || (o[0] == 100 && (o[1] & 0xc0) == 64)) // 100.64.0.0/10, carrier-grade NAT
+                || (o[0] == 100 && (o[1] & 0xc0) == 64) // 100.64.0.0/10, carrier-grade NAT
+                || (o[0] == 198 && (o[1] & 0xfe) == 18) // 198.18.0.0/15, benchmarking
+                || o[0] >= 240) // 240.0.0.0/4, reserved
         }
         IpAddr::V6(v6) => match v6.to_ipv4_mapped() {
             Some(v4) => is_public(IpAddr::V4(v4)),
             None => {
-                let first = v6.segments()[0];
+                let [first, second, ..] = v6.segments();
                 !(v6.is_loopback()
                     || v6.is_unspecified()
                     || v6.is_multicast()
+                    || (first == 0x64 && second == 0xff9b) // 64:ff9b::/32, NAT64 (well-known and local)
+                    || first == 0x2002 // 2002::/16, 6to4
                     || (first & 0xfe00) == 0xfc00 // fc00::/7, unique local
                     || (first & 0xffc0) == 0xfe80) // fe80::/10, link local
             }
@@ -351,5 +355,15 @@ mod tests {
         }
         assert!(is_public("8.8.8.8".parse().unwrap()));
         assert!(is_public("2606:4700::1111".parse().unwrap()));
+        for private in [
+            "198.18.0.1",
+            "198.19.255.255",
+            "240.0.0.1",
+            "64:ff9b::7f00:1",
+            "2002:7f00:1::",
+        ] {
+            assert!(!is_public(private.parse().unwrap()), "{private}");
+        }
+        assert!(is_public("198.20.0.1".parse().unwrap()));
     }
 }

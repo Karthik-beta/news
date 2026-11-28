@@ -522,6 +522,8 @@ pub(crate) mod tests {
             serde_json::from_str(&std::fs::read_to_string(dir.join("manifest.json")).unwrap())
                 .unwrap();
         assert_eq!(m["bundle_sha256"], b.sha256);
+        // What the checks read hashes to the manifest's bundle, so register can hold Proof to it.
+        assert_eq!(crate::bundle::Bundle::load(&dir).bundle_sha256(), b.sha256);
         std::fs::remove_dir_all(dir).unwrap();
     }
 }
