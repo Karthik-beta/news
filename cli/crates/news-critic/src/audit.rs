@@ -260,17 +260,27 @@ async fn fresh_writer(cx: &StepCx, root: &Path, version: &str) -> Result<StepOut
     if live > 0 {
         return Ok(StepOutcome::Wait);
     }
-    let done: Vec<(String, i64, String, Option<Value>)> = sqlx::query_as(
-        "select unique_key, job_id, state, result from jobs where run_id = $1 and step_seq = $2",
+    type Job = (i64, String, Option<Value>, Option<String>, Option<String>);
+    type Row = (
+        String,
+        i64,
+        String,
+        Option<Value>,
+        Option<String>,
+        Option<String>,
+    );
+    let done: Vec<Row> = sqlx::query_as(
+        "select unique_key, job_id, state, result, error_class, errors->0->>'message'
+           from jobs where run_id = $1 and step_seq = $2",
     )
     .bind(cx.run_id)
     .bind(cx.seq)
     .fetch_all(&cx.db)
     .await
     .map_err(db_err)?;
-    let done: HashMap<String, (i64, String, Option<Value>)> = done
+    let done: HashMap<String, Job> = done
         .into_iter()
-        .map(|(k, id, state, result)| (k, (id, state, result)))
+        .map(|(k, id, state, result, class, error)| (k, (id, state, result, class, error)))
         .collect();
     // Only calls that reached a verdict count; a usage-limit or timed-out call is not a try.
     let rows: Vec<(i64, String, String, i16, i64)> = sqlx::query_as(
@@ -283,8 +293,9 @@ async fn fresh_writer(cx: &StepCx, root: &Path, version: &str) -> Result<StepOut
     .map_err(db_err)?;
     let mut lines = String::new();
     let mut failed = 0;
+    let mut unmeasured = Vec::new();
     for (id, ..) in &jobs {
-        let (job, state, result) = done.get(&key(id)).cloned().unwrap_or_default();
+        let (job, state, result, class, error) = done.get(&key(id)).cloned().unwrap_or_default();
         let output = result
             .as_ref()
             .filter(|_| state == "completed")
@@ -292,7 +303,6 @@ async fn fresh_writer(cx: &StepCx, root: &Path, version: &str) -> Result<StepOut
             .and_then(|f| std::fs::read_to_string(f).ok())
             .and_then(|t| serde_json::from_str::<Value>(&t).ok())
             .filter(Value::is_object);
-        failed += usize::from(output.is_none());
         let calls: Vec<Value> = rows
             .iter()
             .filter(|r| r.0 == job)
@@ -300,11 +310,38 @@ async fn fresh_writer(cx: &StepCx, root: &Path, version: &str) -> Result<StepOut
                 json!({"step": step, "validation": validation, "repair_round": round, "tokens": tokens})
             })
             .collect();
+        // A Copy refused after its repair is a measurement of the candidate; any other failure (a
+        // crash, a timeout, a cancelled job) measured nothing, and the stored set must not count it.
+        let refused = class.as_deref() == Some("ai_invalid_output") && !calls.is_empty();
+        if output.is_none() && !refused {
+            unmeasured.push(format!(
+                "{id}: {}",
+                error.unwrap_or_else(|| format!("job {state} without an output"))
+            ));
+            continue;
+        }
+        failed += usize::from(output.is_none());
         let _ = writeln!(
             lines,
             "{}",
             json!({"case": id, "output": output, "calls": calls})
         );
+    }
+    if !unmeasured.is_empty() {
+        return Err(StepError::Fail {
+            class: ErrorClass::Transient,
+            message: format!(
+                "{} of {} fresh A1 calls for {version} failed, so nothing was stored; start Audit again: {}",
+                unmeasured.len(),
+                jobs.len(),
+                unmeasured
+                    .iter()
+                    .take(5)
+                    .cloned()
+                    .collect::<Vec<_>>()
+                    .join("; ")
+            ),
+        });
     }
     let path = golden::outputs_path(root, "g1", version).map_err(step_err)?;
     let tmp = path.with_extension("jsonl.tmp");
@@ -316,7 +353,7 @@ async fn fresh_writer(cx: &StepCx, root: &Path, version: &str) -> Result<StepOut
     Ok(StepOutcome::Done(json!({
         "calls": jobs.len(), "failed": failed,
         "outputs": format!("pipeline/eval/g1/outputs/{version}.jsonl"),
-        "summary": {"text": format!("{} fresh A1 calls for {version}: {failed} without an output", jobs.len())},
+        "summary": {"text": format!("{} fresh A1 calls for {version}: {failed} refused after repair", jobs.len())},
     })))
 }
 

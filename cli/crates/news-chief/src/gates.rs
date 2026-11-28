@@ -317,6 +317,29 @@ impl Chief {
             .with_details(json!({"reason": "subject_changed", "form_sha": held}))
             .with_text("The questions have changed since Board showed them. Open the run again to see the current form."));
         }
+        // Pairwise labels answer only the pairs the form asked, so a bad answer is refused here, not
+        // when the step stores it.
+        if let (Some(asked), Some(labels)) = (
+            summary["form"]["questions"].as_array(),
+            a.answer["labels"].as_array(),
+        ) {
+            let pair = |x: &Value, y: &Value| Some((x.as_i64()?, y.as_i64()?));
+            let asked: std::collections::HashSet<(i64, i64)> = asked
+                .iter()
+                .filter_map(|q| pair(&q["a"]["story_id"], &q["b"]["story_id"]))
+                .map(|(x, y)| (x.min(y), x.max(y)))
+                .collect();
+            for l in labels {
+                match pair(&l["a"], &l["b"]) {
+                    Some((x, y)) if x != y && asked.contains(&(x.min(y), x.max(y))) => {}
+                    _ => {
+                        return Err(NewsError::validation(format!(
+                            "label {l} is not one of the form's questions"
+                        )));
+                    }
+                }
+            }
+        }
         if let Some(o) = output.as_object_mut() {
             o.insert("answer".into(), a.answer);
             o.insert("answered_at".into(), json!(now));

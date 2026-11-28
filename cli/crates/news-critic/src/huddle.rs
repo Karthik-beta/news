@@ -9,9 +9,10 @@ use news_chief::driver::{Handlers, StepCx, StepError, StepHandler, StepOutcome};
 use news_chief::gates::{self, GRequest, GateOpen};
 use news_chief::presets::GCommand;
 use news_core::ErrorCode;
+use news_nose::config::Weights;
 use news_nose::huddle::{self, Proposal};
 use news_store::map_err;
-use serde_json::json;
+use serde_json::{Value, json};
 use std::fmt::Write as _;
 use std::sync::Arc;
 
@@ -66,13 +67,21 @@ impl StepHandler for Huddle {
                     let Some(version) = p["version"].as_str() else {
                         return Ok(StepOutcome::Skip("no change was proposed".into()));
                     };
+                    // The approval binds the row's exact weights; `apply` adopts only those.
+                    let weights: Value = sqlx::query_scalar(
+                        "select weights from scorer_versions where version = $1 and status = 'proposed'",
+                    )
+                    .bind(version)
+                    .fetch_one(&cx.db)
+                    .await
+                    .map_err(|e| step_err(map_err(e)))?;
                     Ok(StepOutcome::OpenGates(vec![GateOpen {
                         gate: format!("change:{version}"),
                         subject: json!({"change": "weights", "version": version,
-                                        "parent": p["parent"], "diff": p["diff"]}),
+                                        "parent": p["parent"], "diff": p["diff"], "weights": weights}),
                         summary: json!({"text": out["summary"]["text"], "labels": p["labels"],
                                         "agreement_before": p["agreement_before"],
-                                        "agreement_after": p["agreement_after"]}),
+                                        "agreement_after": p["agreement_after"], "weights": weights}),
                         preview: None,
                     }]))
                 }
@@ -168,7 +177,25 @@ async fn apply(cx: &StepCx) -> Result<StepOutcome, StepError> {
         )
         .await
         .map_err(step_err)?;
-        let a = huddle::adopt_in(auth.conn(), version)
+        // The weights the approved gate held (its summary is written with its subject, whose hash
+        // the approval names).
+        let approved: Value = sqlx::query_scalar(
+            "select g.summary->'weights' from gates g
+               join approvals a on a.run_id = g.run_id and a.gate = g.gate and a.round = g.round
+                               and a.subject_sha = g.subject_sha
+              where g.run_id = $1 and g.gate = $2 and a.decision = 'approved'
+              order by g.round desc limit 1",
+        )
+        .bind(cx.run_id)
+        .bind(format!("change:{version}"))
+        .fetch_one(auth.conn())
+        .await
+        .map_err(|e| step_err(map_err(e)))?;
+        let expected: Weights = serde_json::from_value(approved).map_err(|e| StepError::Fail {
+            class: news_core::job::ErrorClass::Bug,
+            message: format!("the approval of change:{version} holds no weights: {e}"),
+        })?;
+        let a = huddle::adopt_in(auth.conn(), version, Some(&expected))
             .await
             .map_err(step_err)?;
         adopted.push(json!(a));

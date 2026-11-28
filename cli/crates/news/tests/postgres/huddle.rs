@@ -438,15 +438,15 @@ async fn eventually<T, Fut: std::future::Future<Output = Option<T>>>(
     panic!("never happened: {what}");
 }
 
-#[tokio::test(flavor = "multi_thread")]
-#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
-async fn huddle_runs_end_to_end_with_board_answering_the_form_and_adopts_only_after_approval() {
-    let f = Fixture::migrated().await;
-    seed_stories(&f, 40, Utc::now()).await;
+/// Start Huddle from Board over the Hotline, answer its form as Board (checking the refusals on the
+/// way) and return when the `change:v2` gate waits, with nothing adopted yet: the service side, Chief
+/// and a test Board client.
+async fn to_change_gate(f: &Fixture) -> (Arc<Bureau>, Chief, String, Value) {
+    seed_stories(f, 40, Utc::now()).await;
     let ch = Chief::builder(f.pool.clone(), Arc::new(news_core::clock::SystemClock))
         .handlers(news_critic::huddle::register(Handlers::default()))
         .build();
-    let b = bureau(&f, ch.clone());
+    let b = bureau(f, ch.clone());
     let terminal = Peer {
         argv1_is_board: false,
         ..Peer::board()
@@ -483,7 +483,7 @@ async fn huddle_runs_end_to_end_with_board_answering_the_form_and_adopts_only_af
     assert!(questions.len() >= 10 && questions.len() <= 30, "{form}");
     assert_eq!(
         f.scalar_str(&format!(
-            "select status from run_steps s join runs r using (run_id) where r.short_id = '{short}' and s.step = 'debrief'"
+            "select s.status from run_steps s join runs r using (run_id) where r.short_id = '{short}' and s.step = 'debrief'"
         ))
         .await,
         "done"
@@ -525,6 +525,11 @@ async fn huddle_runs_end_to_end_with_board_answering_the_form_and_adopts_only_af
     later["round"] = json!(2);
     let env = hotline(&b, Peer::board(), "form.submit", later).await;
     assert_eq!(env["error"]["code"], "precondition", "{env}");
+    // A label for a pair the form did not ask is refused at once.
+    let mut unasked = args.clone();
+    unasked["answer"]["labels"][0] = json!({"a": 1, "b": 1, "winner": "a"});
+    let env = hotline(&b, Peer::board(), "form.submit", unasked).await;
+    assert_eq!(env["error"]["code"], "validation_failed", "{env}");
     assert_eq!(f.scalar_i64("select count(*) from score_labels").await, 0);
 
     // Board's answer is kept and the run goes on to the fit.
@@ -565,6 +570,27 @@ async fn huddle_runs_end_to_end_with_board_answering_the_form_and_adopts_only_af
     );
     assert_eq!(huddle::live(&f.pool).await.unwrap().version, "v1");
     assert_eq!(f.call(&["scores", "weights"]).0["data"]["version"], "v1");
+    (b, ch, short, gate)
+}
+
+/// Poll the run until it has ended; its final status.
+async fn ended(f: &Fixture, short: &str) -> String {
+    eventually("the run ends", || async move {
+        let st = f
+            .scalar_str(&format!(
+                "select status from runs where short_id = '{short}'"
+            ))
+            .await;
+        matches!(st.as_str(), "succeeded" | "failed" | "cancelled").then_some(st)
+    })
+    .await
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn huddle_runs_end_to_end_with_board_answering_the_form_and_adopts_only_after_approval() {
+    let f = Fixture::migrated().await;
+    let (b, ch, short, gate) = to_change_gate(&f).await;
 
     // Board approves the change; the apply step adopts it.
     let env = hotline(
@@ -576,24 +602,48 @@ async fn huddle_runs_end_to_end_with_board_answering_the_form_and_adopts_only_af
     .await;
     assert_eq!(env["ok"], true, "{env}");
     ch.ensure_drivers().await.unwrap();
-    eventually("the run succeeds", || {
-        let f = &f;
-        let short = &short;
-        async move {
-            let st = f
-                .scalar_str(&format!(
-                    "select status from runs where short_id = '{short}'"
-                ))
-                .await;
-            assert!(
-                !matches!(st.as_str(), "failed" | "cancelled"),
-                "the run ended {st}"
-            );
-            (st == "succeeded").then_some(())
-        }
-    })
-    .await;
+    assert_eq!(ended(&f, &short).await, "succeeded");
     let live = huddle::live(&f.pool).await.unwrap();
     assert_eq!(live.version, "v2");
     assert!(live.weights.i > 0.30, "{:?}", live.weights);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "needs Postgres: `bun run infra:up`, then `bun run test:integration`"]
+async fn a_proposal_changed_after_its_approval_is_not_adopted() {
+    let f = Fixture::migrated().await;
+    let (b, ch, short, gate) = to_change_gate(&f).await;
+    // While the gate waits, the terminal cannot replace the proposal under it.
+    let (env, code, _, _) = f.call(&["scores", "propose", "--from-labels"]);
+    assert_eq!(env["error"]["code"], "conflict", "{env}");
+    assert_ne!(code, 0);
+    let env = hotline(
+        &b,
+        Peer::board(),
+        "gate.approve",
+        json!({"run": short, "gate": "change:v2", "round": gate["round"], "subject_sha": gate["subject_sha"]}),
+    )
+    .await;
+    assert_eq!(env["ok"], true, "{env}");
+    // Approved, and still not adopted: the terminal is refused again, and a row changed behind the
+    // gate's back (as an older `propose` would have done) is refused by `apply`.
+    let (env, _, _, _) = f.call(&["scores", "propose", "--from-labels"]);
+    assert_eq!(env["error"]["code"], "conflict", "{env}");
+    sqlx::query(
+        "update scorer_versions set weights = jsonb_set(weights, '{I}', to_jsonb(0.5)) where version = 'v2'",
+    )
+    .execute(&f.pool)
+    .await
+    .unwrap();
+    ch.ensure_drivers().await.unwrap();
+    assert_eq!(ended(&f, &short).await, "failed");
+    let err = f
+        .scalar_str(&format!(
+            "select s.error->>'message' from run_steps s join runs r using (run_id)
+              where r.short_id = '{short}' and s.step = 'apply' and s.status = 'failed'"
+        ))
+        .await;
+    assert!(err.contains("not the ones approved"), "{err}");
+    assert_eq!(huddle::live(&f.pool).await.unwrap().version, "v1");
+    assert_eq!(f.call(&["scores", "weights"]).0["data"]["version"], "v1");
 }

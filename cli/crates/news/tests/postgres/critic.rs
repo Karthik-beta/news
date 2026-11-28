@@ -308,6 +308,7 @@ static FAKE: std::sync::OnceLock<(news_store::PgPool, PathBuf)> = std::sync::Onc
 /// Ghost with a fake `claude` behind it, at the `ai` job boundary: each `ai.write` call answers with a
 /// Copy, records its `ai_calls` rows through Ghost's own store and returns what Ghost returns. A brief
 /// with an injection fails C4 on the first try and passes after the A2 repair; the rest pass at once.
+/// For the candidate `broken-v1`, `claude` crashes on those briefs instead and records no call.
 fn fake_claude(input: JobInput) -> JobFuture {
     Box::pin(async move {
         let (db, dir) = FAKE
@@ -316,6 +317,12 @@ fn fake_claude(input: JobInput) -> JobFuture {
             .ok_or_else(|| JobFailure::new(ErrorClass::Bug, "the fake claude is not set up"))?;
         let brief = input.args["input"].as_str().unwrap_or_default().to_owned();
         let prefix = input.args["prefix"].as_str().unwrap_or_default();
+        if prefix.contains("/broken-v1/") && brief.contains("injection") {
+            return Err(JobFailure::new(
+                ErrorClass::Bug,
+                "claude -p failed (exit 2)",
+            ));
+        }
         let file = dir.join(format!("{}.out.json", input.job_id));
         std::fs::write(
             &file,
@@ -382,17 +389,19 @@ async fn audit_makes_fresh_a1_calls_with_a_fake_claude_and_promotes_only_after_a
         })
         .count();
     // The candidate's prompt: one prefix per page type in G1.
-    let prefixes = root.join("work/prefix/fresh-v1");
-    std::fs::create_dir_all(&prefixes).unwrap();
-    for t in [
-        "earnings",
-        "macro-release",
-        "major-report",
-        "news-story",
-        "policy-decision",
-        "science",
-    ] {
-        std::fs::write(prefixes.join(format!("{t}.md")), "# candidate prefix").unwrap();
+    for v in ["fresh-v1", "broken-v1"] {
+        let prefixes = root.join("work/prefix").join(v);
+        std::fs::create_dir_all(&prefixes).unwrap();
+        for t in [
+            "earnings",
+            "macro-release",
+            "major-report",
+            "news-story",
+            "policy-decision",
+            "science",
+        ] {
+            std::fs::write(prefixes.join(format!("{t}.md")), "# candidate prefix").unwrap();
+        }
     }
     let out = root.join("work/fake-claude");
     std::fs::create_dir_all(&out).unwrap();
@@ -466,6 +475,50 @@ async fn audit_makes_fresh_a1_calls_with_a_fake_claude_and_promotes_only_after_a
     )
     .await;
     wait_for(&f, run, "succeeded").await;
+    assert_eq!(
+        news_critic::eval::live(&f.pool, "A1")
+            .await
+            .unwrap()
+            .as_deref(),
+        Some("fresh-v1")
+    );
+
+    // Calls that crashed measured nothing: the step fails, naming them, and stores no outputs, so the
+    // next Audit of that version makes its calls again.
+    let run = audit_suite(&ch, "writer", "broken-v1").await;
+    let mut status = String::new();
+    for _ in 0..600 {
+        status = f
+            .scalar_str(&format!("select status from runs where run_id = '{run}'"))
+            .await;
+        if matches!(status.as_str(), "succeeded" | "failed" | "cancelled") {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    assert_eq!(status, "failed");
+    let err = f
+        .scalar_str(&format!(
+            "select error->>'message' from run_steps where run_id = '{run}' and step = 'candidate'"
+        ))
+        .await;
+    assert!(
+        err.contains(&format!("{injections} of {cases} fresh A1 calls")),
+        "{err}"
+    );
+    assert!(err.contains("claude -p failed"), "{err}");
+    assert!(
+        !root
+            .join("pipeline/eval/g1/outputs/broken-v1.jsonl")
+            .exists()
+    );
+    assert_eq!(
+        f.scalar_i64(&format!(
+            "select count(*) from jobs where run_id = '{run}' and state = 'discarded'"
+        ))
+        .await,
+        injections as i64
+    );
     assert_eq!(
         news_critic::eval::live(&f.pool, "A1")
             .await
