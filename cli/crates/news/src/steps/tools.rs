@@ -30,10 +30,11 @@ pub struct Rendered {
     pub renderer_version: String,
 }
 
-/// Proof's verdict on a page. `Fail` lists `{check, where, message}` for each blocking failure.
+/// Proof's verdict on a page. `Pass` carries the `bundle_sha256` of the bytes it checked (register
+/// takes no other); `Fail` lists `{check, where, message}` for each blocking failure.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Check {
-    Pass,
+    Pass(String),
     Fail(Vec<Value>),
 }
 
@@ -128,6 +129,7 @@ impl PageTools for LocalTools {
         Box::pin(async move {
             let dir = work.page(story);
             let b = Bundle::load(&dir);
+            let checked = b.bundle_sha256();
             let page_id = b.page_id();
             let story_id: Option<i64> = story.parse().ok();
             let slugs: Vec<String> = {
@@ -229,7 +231,7 @@ impl PageTools for LocalTools {
             .await
             .map_err(|e| NewsError::internal(e.to_string()))?;
             if markup.pass {
-                return Ok(Check::Pass);
+                return Ok(Check::Pass(checked));
             }
             let v =
                 serde_json::to_value(&markup).map_err(|e| NewsError::internal(e.to_string()))?;

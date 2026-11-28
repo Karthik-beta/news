@@ -217,7 +217,7 @@ async fn publish(ctx: Option<&Ctx>, cx: &StepCx) -> Result<StepOutcome, StepErro
     let (flipped, mut dead) = revise::flips(cx, ctx, &flips).await?;
     // The drafts `rerender` registered (and the flips just finished) are the Budget's pages' pending versions.
     let stories = pipeline::stories_of(cx, &pipeline::budget_ids(cx, "items")).await?;
-    let (staged, sent, dead_rows) = pipeline::publish(cx, ctx, &stories).await?;
+    let (staged, sent, dead_rows) = pipeline::publish(cx, ctx, &stories, None).await?;
     if let Some(r) = cx.outputs.get("rerender") {
         dead.extend(r["dead"].as_array().cloned().unwrap_or_default());
     }

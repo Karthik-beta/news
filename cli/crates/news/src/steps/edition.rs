@@ -362,7 +362,7 @@ async fn publish(ctx: &Ctx, cx: &StepCx) -> Result<StepOutcome, StepError> {
     story_ids.sort_unstable();
     story_ids.dedup();
     let revised = by_code.len() + flipped.len();
-    let (staged, sent, dead_rows) = pipeline::publish(cx, ctx, &story_ids).await?;
+    let (staged, sent, dead_rows) = pipeline::publish(cx, ctx, &story_ids, None).await?;
     let tier1: i64 = sqlx::query_scalar(
         "select count(*) from pages where story_id = any($1) and tier = 1 and status = 'published'",
     )
