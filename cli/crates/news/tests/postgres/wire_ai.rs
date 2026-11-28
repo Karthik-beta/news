@@ -59,8 +59,9 @@ fn root_for(f: &Fixture) -> PathBuf {
     root
 }
 
-/// Run the child half: the installed handlers work the `ai` pool until no job is left.
-fn run_child(f: &Fixture, root: &Path, plate: &str) {
+/// Run the child half: the installed handlers work the `ai` pool until no job is left. Returns its
+/// output, for a failure message.
+fn run_child(f: &Fixture, root: &Path, plate: &str) -> String {
     let name = module_path!().split_once("::").unwrap().1;
     let out = std::process::Command::new(std::env::current_exe().unwrap())
         .args([
@@ -74,12 +75,13 @@ fn run_child(f: &Fixture, root: &Path, plate: &str) {
         .env("NEWS_PLATE_URL", plate)
         .output()
         .unwrap();
-    assert!(
-        out.status.success(),
-        "{}\n{}",
+    let text = format!(
+        "child stdout:\n{}\nchild stderr:\n{}",
         String::from_utf8_lossy(&out.stdout),
         String::from_utf8_lossy(&out.stderr)
     );
+    assert!(out.status.success(), "{text}");
+    text
 }
 
 async fn child(v: &str) {
@@ -127,12 +129,29 @@ async fn enqueue(f: &Fixture, args: Value, story: Option<&str>) -> i64 {
     queue::enqueue(&f.pool, &new).await.unwrap().job_id
 }
 
-async fn result(f: &Fixture, job: i64) -> (String, Value) {
-    sqlx::query_as("select state, coalesce(result, 'null'::jsonb) from jobs where job_id = $1")
+/// The job's state and result, and why it failed: its error class, attempts and errors, and the
+/// `ai_calls` rows of its calls.
+async fn result(f: &Fixture, job: i64) -> (String, Value, String) {
+    let (state, result, class, attempt, errors): (String, Value, Option<String>, i16, Value) =
+        sqlx::query_as(
+            "select state, coalesce(result, 'null'::jsonb), error_class, attempt, errors
+               from jobs where job_id = $1",
+        )
         .bind(job)
         .fetch_one(&f.pool)
         .await
-        .unwrap()
+        .unwrap();
+    let calls: Vec<(String, String, String, Option<String>)> = sqlx::query_as(
+        "select step, subtype, validation, output_file from ai_calls where job_id = $1",
+    )
+    .bind(job)
+    .fetch_all(&f.pool)
+    .await
+    .unwrap();
+    let why = format!(
+        "job {job} {state}: class {class:?}, attempt {attempt}, errors {errors}, calls {calls:?}, result {result}"
+    );
+    (state, result, why)
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -154,9 +173,9 @@ async fn the_installed_ghost_stores_a_preset_copy_and_only_validates_an_audit_on
         None,
     )
     .await;
-    run_child(&f, &root, &plate);
-    let (state, r) = result(&f, audit).await;
-    assert_eq!(state, "completed", "{r}");
+    let out = run_child(&f, &root, &plate);
+    let (state, r, why) = result(&f, audit).await;
+    assert_eq!(state, "completed", "{why}\n{out}");
     assert_eq!(
         (r["valid"].as_bool(), r["stored"].as_bool()),
         (Some(true), Some(false)),
@@ -179,9 +198,9 @@ async fn the_installed_ghost_stores_a_preset_copy_and_only_validates_an_audit_on
         Some("81234"),
     )
     .await;
-    run_child(&f, &root, &plate);
-    let (state, r) = result(&f, write).await;
-    assert_eq!(state, "completed", "{r}");
+    let out = run_child(&f, &root, &plate);
+    let (state, r, why) = result(&f, write).await;
+    assert_eq!(state, "completed", "{why}\n{out}");
     assert_eq!(r["stored"], true, "{r}");
     let stored: Value = serde_json::from_str(
         &std::fs::read_to_string(root.join("work/pages/81234/copy.json")).unwrap(),
