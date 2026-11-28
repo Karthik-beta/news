@@ -2,11 +2,10 @@
   "brief_version": 1,
   "item": {
     "story_id": 91005,
-    "event_key": "policy:boc:2026-10-28",
+    "event_key": null,
     "page_type": "news-story",
     "tier": 2,
-    "action": "new",
-    "slug_hint": "policy-boc-2026-10-28"
+    "action": "new"
   },
   "entities": [
     {

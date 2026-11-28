@@ -505,10 +505,11 @@ fn boc_statement(doc_id: i64) -> (Doc, Document, Option<String>) {
 
 /// The Bank of Canada's announcement of 28 October 2026, quoted.
 fn news_story() -> Fixture {
-    let (statement, doc, event_key) = boc_statement(7001);
+    // A news story gets no event key (Bureau Design: clustering assigns it), so it never shares the decision's path.
+    let (statement, doc, _) = boc_statement(7001);
     let inputs = Inputs {
         story_id: 91005,
-        event_key,
+        event_key: None,
         page_type: "news-story".into(),
         tier: 2,
         action: Action::New,
@@ -674,11 +675,15 @@ fn copy(name: &str) -> Value {
 fn built_files(f: &Fixture) -> (Built, BTreeMap<String, String>) {
     let built = news_fixer::brief(&f.inputs).unwrap();
     let data = data(&f.inputs, &built, &f.prov).unwrap();
-    let page = json!({
+    let mut page = json!({
         "categories": [f.inputs.categories.join("/")],
         "region": f.region,
         "tags": f.tags,
     });
+    // A keyless story has no slug hint, so page.json names the page after its story.
+    if f.inputs.event_key.is_none() {
+        page["page_id"] = json!(format!("story-{}", f.inputs.story_id));
+    }
     let n = f.name;
     // The stored Copy, through `news save`'s own code, in a scratch work directory.
     let scratch = Path::new(env!("CARGO_TARGET_TMPDIR"))

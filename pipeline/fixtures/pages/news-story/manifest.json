@@ -1,5 +1,5 @@
 {
-  "bundle_sha256": "af5e629609e0ff63bf5a4bb639d3aa015a0d5a872aebd8a6ec9c2319edc88308",
+  "bundle_sha256": "df13ad72aac3a2bba75584dec564a6075a54409679b31d147abe3200aef2cb2f",
   "files": [
     {
       "bytes": 453,
@@ -17,9 +17,9 @@
       "sha256": "8379e1740ec1de604bcde6b95d2ff321f86b419d62bb3ac6ec85a928f576299e"
     },
     {
-      "bytes": 879,
+      "bytes": 859,
       "path": "meta.json",
-      "sha256": "c31b0e5665e70acc4db3a972ee0170f582399f25ad4fb2632e9902bc08eb8bb0"
+      "sha256": "0dec0e542804500a27d43a356ab63b6aa8b404a1aff733ae3634eb12617cdf92"
     },
     {
       "bytes": 496,
@@ -32,7 +32,7 @@
       "sha256": "d03b6c3adb3907e1046f70674a23674ff0137e7310405c6c87ca2595b66897d4"
     }
   ],
-  "page_id": "policy-boc-2026-10-28",
+  "page_id": "story-91005",
   "schema": "manifest.v1",
   "version": 1
 }
