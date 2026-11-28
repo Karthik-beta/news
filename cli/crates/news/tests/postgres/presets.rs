@@ -675,7 +675,7 @@ async fn followup_counts_a_flip_with_no_stored_copy_as_dead_and_still_reaches_pu
             run.run_id
         ))
         .await,
-        "succeeded",
+        "done",
         "the dead flip does not stop the run before publish"
     );
     let _ = std::fs::remove_dir_all(&root);
