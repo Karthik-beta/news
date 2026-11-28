@@ -169,6 +169,89 @@ pub fn oui_tokens(oui: &str) -> Vec<OuiToken> {
     out
 }
 
+/// Where `.oui` source types an image's credit or licence, which the renderer takes from the image record: an
+/// `ImageFigure`'s fifth or sixth argument, or a `credit` or `licence` key (ImageGallery's images), that is not
+/// `null`. Plate's `handSetImageCredits` without the parser, for `news save`.
+pub fn typed_image_credits(oui: &str) -> Vec<RuleError> {
+    // (line, token, is a string literal)
+    let mut toks: Vec<(usize, String, bool)> = Vec::new();
+    let mut chars = oui.chars().peekable();
+    let mut line = 1;
+    while let Some(c) = chars.next() {
+        match c {
+            '\n' => line += 1,
+            '"' | '\'' => {
+                let start = line;
+                let mut text = String::new();
+                while let Some(d) = chars.next() {
+                    match d {
+                        '\\' => text.extend(chars.next()),
+                        d if d == c => break,
+                        d => {
+                            line += usize::from(d == '\n');
+                            text.push(d);
+                        }
+                    }
+                }
+                toks.push((start, text, true));
+            }
+            c if c.is_alphanumeric() || c == '_' => {
+                let mut word = c.to_string();
+                while let Some(d) = chars.next_if(|d| d.is_alphanumeric() || *d == '_' || *d == '.')
+                {
+                    word.push(d);
+                }
+                toks.push((line, word, false));
+            }
+            c if !c.is_whitespace() => toks.push((line, c.to_string(), false)),
+            _ => {}
+        }
+    }
+    let punct = |i: usize, p: &str| toks.get(i).is_some_and(|(_, t, s)| !s && t == p);
+    let mut out = Vec::new();
+    for (i, (line, t, string)) in toks.iter().enumerate() {
+        let typed_at = if *string {
+            None
+        } else if t == "ImageFigure" && punct(i + 1, "(") {
+            let (mut depth, mut arg) = (0usize, 0usize);
+            let mut found = None;
+            for (l, u, s) in &toks[i + 1..] {
+                let p = |x: &str| !s && u == x;
+                if depth == 1 && (4..=5).contains(&arg) && !p(",") && !p(")") && !p("null") {
+                    found = Some(*l);
+                    break;
+                }
+                if p("(") || p("[") || p("{") {
+                    depth += 1;
+                } else if p(")") || p("]") || p("}") {
+                    depth -= 1;
+                    if depth == 0 {
+                        break;
+                    }
+                } else if depth == 1 && p(",") {
+                    arg += 1;
+                }
+            }
+            found
+        } else if (t == "credit" || t == "licence")
+            && punct(i + 1, ":")
+            && !toks.get(i + 2).is_some_and(|(_, n, s)| !s && n == "null")
+        {
+            Some(*line)
+        } else {
+            None
+        };
+        if let Some(l) = typed_at {
+            out.push(RuleError::new(
+                "props",
+                format!("oui:{l}"),
+                "credit and licence come from the image record: leave them null",
+            ));
+        }
+    }
+    out
+}
+
 /// Every reference a text cites: `{ref}` tokens and a whole string that is a reference (a component prop).
 pub fn refs_in(text: &str) -> Vec<String> {
     if is_ref(text) {
@@ -341,6 +424,9 @@ pub fn validate(copy: &Value, brief: Option<&Brief>, plate: Option<&Checked>) ->
     }
 
     errors.extend(props);
+    if plate.is_none() {
+        errors.extend(typed_image_credits(&copy.oui));
+    }
 
     let headline = rendered_estimate(&copy.headline, brief).chars().count();
     if headline > HEADLINE_MAX {
@@ -497,7 +583,7 @@ pub(crate) mod tests {
             with(
                 "oui",
                 json!(format!(
-                    "root = Page([p])\np = ImageFigure(\"{url}\", \"The rocket at lift-off.\", {w}, 1280, \"NASA\", \"Public domain\")"
+                    "root = Page([p])\np = ImageFigure(\"{url}\", \"The rocket at lift-off.\", {w}, 1280, null, null)"
                 )),
             )
         };
@@ -649,5 +735,44 @@ c = LineChart(\"Prices rose in 2024\", \"CPI, %\", [\"sr_cpi\"], null, null, 3)"
         );
         assert_eq!(refs_in("dp_a"), ["dp_a"]);
         assert_eq!(refs_in("to {dp_a} in { pd_b } {nope} {"), ["dp_a", "pd_b"]);
+    }
+
+    #[test]
+    fn refuses_a_typed_image_credit_or_licence_without_plate() {
+        // `news save` has no Plate: the credit and licence must still come from the image record.
+        let props = |oui: &str| {
+            let e = validate(&with("oui", json!(oui)), None, None);
+            e.into_iter()
+                .filter(|e| e.rule == "props")
+                .map(|e| e.at)
+                .collect::<Vec<_>>()
+        };
+        let fig = |credit: &str, licence: &str| {
+            format!(
+                "root = Page([p])\np = ImageFigure(\"/a.jpg\", \"A (b, c).\", w, h, {credit}, {licence}, \"Lift-off.\")"
+            )
+        };
+        assert!(props(&fig("null", "null")).is_empty());
+        assert!(props("root = Page([p])\np = ImageFigure(\"/a.jpg\", \"A.\", w, h)").is_empty());
+        assert_eq!(props(&fig("\"NASA\"", "null")), ["oui:2"]);
+        assert_eq!(props(&fig("null", "\"Public domain\"")), ["oui:2"]);
+        let gallery = |extra: &str| {
+            format!(
+                "root = Page([g])\ng = ImageGallery([\n{{src: \"/a.jpg\", alt: \"credit: none\", width: w, height: h, credit: null}},\n{{src: \"/b.jpg\", alt: \"B.\", width: w, height: h{extra}}}], \"Two.\")"
+            )
+        };
+        assert!(props(&gallery("")).is_empty());
+        assert_eq!(props(&gallery(", licence: \"CC BY\"")), ["oui:4"]);
+        // With Plate, its own check reports it (Plate's `handSetImageCredits`); no second report.
+        let plate = Checked::default();
+        assert!(
+            validate(
+                &with("oui", json!(fig("\"NASA\"", "null"))),
+                None,
+                Some(&plate)
+            )
+            .iter()
+            .all(|e| e.rule != "props")
+        );
     }
 }

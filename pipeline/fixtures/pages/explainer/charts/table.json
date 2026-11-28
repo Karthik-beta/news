@@ -1,0 +1,162 @@
+{
+  "title": "The index month by month, as published",
+  "subtitle": "Consumer price index, all urban consumers, all items, not seasonally adjusted",
+  "unit": "Index 1982-1984=100",
+  "currency": null,
+  "scale": null,
+  "columns": [
+    {
+      "key": "label",
+      "label": "Period"
+    },
+    {
+      "key": "sr_2lqxjpnitr44",
+      "label": "All items in U.S. city average, all urban consumers, not seasonally adjusted, January 2024 to October 2026 (Index 1982-1984=100)"
+    }
+  ],
+  "rows": [
+    {
+      "label": "January 2024",
+      "sr_2lqxjpnitr44": "308.417"
+    },
+    {
+      "label": "February 2024",
+      "sr_2lqxjpnitr44": "310.326"
+    },
+    {
+      "label": "March 2024",
+      "sr_2lqxjpnitr44": "312.332"
+    },
+    {
+      "label": "April 2024",
+      "sr_2lqxjpnitr44": "313.548"
+    },
+    {
+      "label": "May 2024",
+      "sr_2lqxjpnitr44": "314.069"
+    },
+    {
+      "label": "June 2024",
+      "sr_2lqxjpnitr44": "314.175"
+    },
+    {
+      "label": "July 2024",
+      "sr_2lqxjpnitr44": "314.540"
+    },
+    {
+      "label": "August 2024",
+      "sr_2lqxjpnitr44": "314.796"
+    },
+    {
+      "label": "September 2024",
+      "sr_2lqxjpnitr44": "315.301"
+    },
+    {
+      "label": "October 2024",
+      "sr_2lqxjpnitr44": "315.664"
+    },
+    {
+      "label": "November 2024",
+      "sr_2lqxjpnitr44": "315.493"
+    },
+    {
+      "label": "December 2024",
+      "sr_2lqxjpnitr44": "315.605"
+    },
+    {
+      "label": "January 2025",
+      "sr_2lqxjpnitr44": "317.671"
+    },
+    {
+      "label": "February 2025",
+      "sr_2lqxjpnitr44": "319.082"
+    },
+    {
+      "label": "March 2025",
+      "sr_2lqxjpnitr44": "319.799"
+    },
+    {
+      "label": "April 2025",
+      "sr_2lqxjpnitr44": "320.795"
+    },
+    {
+      "label": "May 2025",
+      "sr_2lqxjpnitr44": "321.465"
+    },
+    {
+      "label": "June 2025",
+      "sr_2lqxjpnitr44": "322.561"
+    },
+    {
+      "label": "July 2025",
+      "sr_2lqxjpnitr44": "323.048"
+    },
+    {
+      "label": "August 2025",
+      "sr_2lqxjpnitr44": "323.976"
+    },
+    {
+      "label": "September 2025",
+      "sr_2lqxjpnitr44": "324.800"
+    },
+    {
+      "label": "November 2025",
+      "sr_2lqxjpnitr44": "324.122"
+    },
+    {
+      "label": "December 2025",
+      "sr_2lqxjpnitr44": "324.054"
+    },
+    {
+      "label": "January 2026",
+      "sr_2lqxjpnitr44": "325.252"
+    },
+    {
+      "label": "February 2026",
+      "sr_2lqxjpnitr44": "326.785"
+    },
+    {
+      "label": "March 2026",
+      "sr_2lqxjpnitr44": "330.213"
+    },
+    {
+      "label": "April 2026",
+      "sr_2lqxjpnitr44": "333.020"
+    },
+    {
+      "label": "May 2026",
+      "sr_2lqxjpnitr44": "335.123"
+    },
+    {
+      "label": "June 2026",
+      "sr_2lqxjpnitr44": "333.952"
+    },
+    {
+      "label": "July 2026",
+      "sr_2lqxjpnitr44": "333.918"
+    },
+    {
+      "label": "August 2026",
+      "sr_2lqxjpnitr44": "334.980"
+    },
+    {
+      "label": "September 2026",
+      "sr_2lqxjpnitr44": "336.940"
+    },
+    {
+      "label": "October 2026",
+      "sr_2lqxjpnitr44": "337.511"
+    }
+  ],
+  "sources": [
+    {
+      "id": "src_bls_cpi",
+      "title": "Consumer Price Index for All Urban Consumers: all items, U.S. city average",
+      "publisher": "U.S. Bureau of Labor Statistics",
+      "url": "https://data.bls.gov/timeseries/CUUR0000SA0",
+      "licence": "Public domain",
+      "retrieved_at": "2026-11-16"
+    }
+  ],
+  "generator": "news-renderer 1.1.0"
+}

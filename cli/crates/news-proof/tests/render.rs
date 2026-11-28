@@ -94,12 +94,13 @@ fn an_assembled_bundle_meets_the_bundle_contracts() {
     let inputs = bundle::load_inputs(&work, STORY).unwrap();
     let rendered: Rendered = serde_json::from_value(json!({
         "rendererVersion": "1.1.0",
-        "files": {"index.html": "<!doctype html>", "index.md": "# x\n", "charts/cpi.csv": "a\r\n"},
+        "files": {"index.html": "<!doctype html>", "index.md": "# x\n", "charts/cpi.csv": "a\r\n", "charts/cpi.json": "{}\n"},
         "charts": ["cpi"],
         "refsUsed": ["dp_7kq2", "dv_3ab8", "pd_2026_10"]
     }))
     .unwrap();
     let b = bundle::assemble(&inputs, &rendered).unwrap();
+    assert!(b.files.contains_key("charts/cpi.json"));
     assert_bundle_contracts(&b);
     std::fs::remove_dir_all(dir).unwrap();
 }

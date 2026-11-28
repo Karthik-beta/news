@@ -43,9 +43,8 @@
   "item": {
     "action": "new",
     "data_as_of": "2026-11-18",
-    "event_key": "macro:ea.policy_rate:2026-09-16",
+    "event_key": null,
     "page_type": "policy-decision",
-    "slug_hint": "macro-ea-policy-rate-2026-09-16",
     "story_id": 81400,
     "tier": 1
   },

@@ -22,7 +22,7 @@ pub fn is_page_id(id: &str) -> bool {
 }
 
 /// The manifest schema's path allowlist (`contracts/bundle/manifest.schema.json`), by hand: `index.html`,
-/// `index.md`, `data.json`, `sources.json`, `meta.json`, `page.oui`, or `charts/<slug>.csv` with a slug of
+/// `index.md`, `data.json`, `sources.json`, `meta.json`, `page.oui`, or `charts/<slug>.csv` or `.json` with a slug of
 /// `[a-z0-9][a-z0-9-]{0,63}`. No `\`, `:`, `..` or absolute path can match.
 pub fn is_bundle_path(path: &str) -> bool {
     if matches!(
@@ -32,7 +32,7 @@ pub fn is_bundle_path(path: &str) -> bool {
         return true;
     }
     path.strip_prefix("charts/")
-        .and_then(|r| r.strip_suffix(".csv"))
+        .and_then(|r| r.strip_suffix(".csv").or_else(|| r.strip_suffix(".json")))
         .is_some_and(|slug| {
             (1..=64).contains(&slug.len())
                 && !slug.starts_with('-')
@@ -205,7 +205,12 @@ mod tests {
             assert!(e.contains("not a bundle path"), "{p}: {e}");
             let _ = std::fs::remove_dir_all(&work);
         }
-        for p in ["index.html", "page.oui", "charts/a-1.csv"] {
+        for p in [
+            "index.html",
+            "page.oui",
+            "charts/a-1.csv",
+            "charts/a-1.json",
+        ] {
             assert!(is_bundle_path(p), "{p}");
         }
         assert!(is_bundle_path(&format!("charts/{}.csv", "a".repeat(64))));

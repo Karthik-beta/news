@@ -174,6 +174,9 @@ impl StatSource for BocValet {
             // No event key: the observation is dated the day the new target took effect, not the decision
             // day, so it would open a second story for one decision. Like an 8-K, it carries the bank as its
             // entity and Taster groups it with the `cb-boc` statement's `policy:boc:<decision_date>` story.
+            // shortcut: that join is Taster similarity plus the shared entity, not a rule (a Taster candidate has
+            // no effective date or series family, and the rate can arrive before the statement); add a
+            // deterministic same-bank, effective-date-after-decision join if rates start opening their own stories.
             out.candidates.push(CandidateDraft {
                 event_key: None,
                 url: item.url.clone(),

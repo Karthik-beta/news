@@ -1,0 +1,162 @@
+{
+  "title": "The unemployment rate edged down in October 2026",
+  "subtitle": "Unemployment rate, seasonally adjusted, %, monthly from January 2024",
+  "unit": "Percent",
+  "currency": null,
+  "scale": null,
+  "columns": [
+    {
+      "key": "label",
+      "label": "Period"
+    },
+    {
+      "key": "sr_yahxrdyv7qax",
+      "label": "Unemployment rate, 16 years and over, seasonally adjusted, January 2024 to October 2026 (%)"
+    }
+  ],
+  "rows": [
+    {
+      "label": "January 2024",
+      "sr_yahxrdyv7qax": "3.7"
+    },
+    {
+      "label": "February 2024",
+      "sr_yahxrdyv7qax": "3.9"
+    },
+    {
+      "label": "March 2024",
+      "sr_yahxrdyv7qax": "3.9"
+    },
+    {
+      "label": "April 2024",
+      "sr_yahxrdyv7qax": "3.9"
+    },
+    {
+      "label": "May 2024",
+      "sr_yahxrdyv7qax": "3.9"
+    },
+    {
+      "label": "June 2024",
+      "sr_yahxrdyv7qax": "4.1"
+    },
+    {
+      "label": "July 2024",
+      "sr_yahxrdyv7qax": "4.2"
+    },
+    {
+      "label": "August 2024",
+      "sr_yahxrdyv7qax": "4.2"
+    },
+    {
+      "label": "September 2024",
+      "sr_yahxrdyv7qax": "4.1"
+    },
+    {
+      "label": "October 2024",
+      "sr_yahxrdyv7qax": "4.1"
+    },
+    {
+      "label": "November 2024",
+      "sr_yahxrdyv7qax": "4.2"
+    },
+    {
+      "label": "December 2024",
+      "sr_yahxrdyv7qax": "4.1"
+    },
+    {
+      "label": "January 2025",
+      "sr_yahxrdyv7qax": "4.0"
+    },
+    {
+      "label": "February 2025",
+      "sr_yahxrdyv7qax": "4.2"
+    },
+    {
+      "label": "March 2025",
+      "sr_yahxrdyv7qax": "4.2"
+    },
+    {
+      "label": "April 2025",
+      "sr_yahxrdyv7qax": "4.2"
+    },
+    {
+      "label": "May 2025",
+      "sr_yahxrdyv7qax": "4.3"
+    },
+    {
+      "label": "June 2025",
+      "sr_yahxrdyv7qax": "4.1"
+    },
+    {
+      "label": "July 2025",
+      "sr_yahxrdyv7qax": "4.3"
+    },
+    {
+      "label": "August 2025",
+      "sr_yahxrdyv7qax": "4.3"
+    },
+    {
+      "label": "September 2025",
+      "sr_yahxrdyv7qax": "4.4"
+    },
+    {
+      "label": "November 2025",
+      "sr_yahxrdyv7qax": "4.5"
+    },
+    {
+      "label": "December 2025",
+      "sr_yahxrdyv7qax": "4.4"
+    },
+    {
+      "label": "January 2026",
+      "sr_yahxrdyv7qax": "4.3"
+    },
+    {
+      "label": "February 2026",
+      "sr_yahxrdyv7qax": "4.4"
+    },
+    {
+      "label": "March 2026",
+      "sr_yahxrdyv7qax": "4.3"
+    },
+    {
+      "label": "April 2026",
+      "sr_yahxrdyv7qax": "4.3"
+    },
+    {
+      "label": "May 2026",
+      "sr_yahxrdyv7qax": "4.3"
+    },
+    {
+      "label": "June 2026",
+      "sr_yahxrdyv7qax": "4.2"
+    },
+    {
+      "label": "July 2026",
+      "sr_yahxrdyv7qax": "4.1"
+    },
+    {
+      "label": "August 2026",
+      "sr_yahxrdyv7qax": "4.1"
+    },
+    {
+      "label": "September 2026",
+      "sr_yahxrdyv7qax": "4.2"
+    },
+    {
+      "label": "October 2026",
+      "sr_yahxrdyv7qax": "4.1"
+    }
+  ],
+  "sources": [
+    {
+      "id": "src_bls_cps",
+      "title": "Current Population Survey: unemployment rate",
+      "publisher": "U.S. Bureau of Labor Statistics",
+      "url": "https://data.bls.gov/timeseries/LNS14000000",
+      "licence": "Public domain",
+      "retrieved_at": "2026-11-16"
+    }
+  ],
+  "generator": "news-renderer 1.1.0"
+}
