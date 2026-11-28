@@ -239,18 +239,21 @@ async fn the_installed_ghost_stores_a_preset_copy_and_only_validates_an_audit_on
     .remove(0);
     let new = news::steps::pipeline::update_job(&root, &flip, "81234").unwrap();
     let update = queue::enqueue(&f.pool, &new).await.unwrap().job_id;
+    // The rewritten Copy differs from the first: `work::save` keeps an identical Copy as it was stored.
+    let reply_path = root.join("reply.json");
+    let mut reply: Value =
+        serde_json::from_str(&std::fs::read_to_string(&reply_path).unwrap()).unwrap();
+    reply["structured_output"]["fly_title"] = json!("America's prices");
+    std::fs::write(&reply_path, reply.to_string()).unwrap();
     let out = run_child(&f, &root, &plate);
     let (state, r, why) = result(&f, update).await;
-    assert_eq!(
-        state, "completed",
-        "{why}
-{out}"
-    );
+    assert_eq!(state, "completed", "{why}\n{out}");
     assert_eq!(r["stored"], true, "{r}");
     let stored: Value = serde_json::from_str(
         &std::fs::read_to_string(root.join("work/pages/81234/copy.json")).unwrap(),
     )
     .unwrap();
     assert_eq!(stored["job"], update);
+    assert_eq!(stored["copy"]["fly_title"], "America's prices");
     let _ = std::fs::remove_dir_all(&root);
 }
