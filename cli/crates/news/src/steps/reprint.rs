@@ -246,6 +246,7 @@ fn review(cx: &StepCx) -> StepOutcome {
     let n = all.len();
     StepOutcome::OpenGates(vec![GateOpen {
         gate: "sample".into(),
+        whole_subject: false,
         subject: json!({"items": ids, "pages": all}),
         summary: json!({"text": format!("Reprint {n} pages; before and after shown for {}", sample.len()),
                     "subject_items": ids, "count": n}),
