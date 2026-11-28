@@ -1,19 +1,25 @@
 // A chart's social image (design/charts.md, "Social images"): a 1200×675 light-mode PNG of one chart as the site
 // draws it, with the page URL at the bottom left and the wordmark at the bottom right, rendered on the laptop by
 // Playwright's Chromium (never in the Worker). The page is laid out at 720×405 CSS px and captured at 5/3 device
-// pixels, so the smallest chart text (12px) is 20px in the image. A chart too tall to fit is an error, never shrunk.
+// pixels, so the smallest chart text (12px) is 20px in the image. A chart too tall for that card gets a 1200×1200
+// square (720×720 CSS px); one too tall for the square is an error, never shrunk.
 //   bun scripts/social-image.ts <page path> <chart id> [--base http://127.0.0.1:4321] [--out chart.png]
 // The site must be running at --base (`bun run dev`, or the built Worker). The chart id is its statement name.
 import { writeFileSync } from "node:fs";
 import { basename } from "node:path";
 import type { Browser, Page } from "@playwright/test";
 
-export const SOCIAL = { width: 1200, height: 675, minTextPx: 20 } as const;
+export const SOCIAL = { width: 1200, height: 675, squareHeight: 1200, minTextPx: 20 } as const;
 /** The site's origin (astro.config.mjs `site`), for pages without a canonical link (fixture pages). Not imported from
  * src/config/site.ts, which imports JSON that Playwright's loader cannot. */
 const ORIGIN = "https://news.karthik.nz";
 const SCALE = 5 / 3;
 const VIEWPORT = { width: SOCIAL.width / SCALE, height: SOCIAL.height / SCALE };
+/** The card's heights in image px, tried in order: the 16:9 card, then the square for a chart too tall for it. */
+const HEIGHTS = [SOCIAL.height, SOCIAL.squareHeight] as const;
+
+/** The chart is taller than the card, even with its plot given up to the smallest height allowed. */
+export class TooTallError extends Error {}
 /** 48px of padding in the image, in CSS px. */
 const PAD = `${48 / SCALE}px`;
 
@@ -31,7 +37,8 @@ body > :not(.social-card) { display: none !important; }
 .social-card__wordmark { color: var(--color-ink-3); }
 `;
 
-/** Lays the page out as the social card for one chart. Throws when the chart is missing or too tall. */
+/** Lays the page out as the social card for one chart, at the page's viewport. Throws when the chart is missing or
+ * has no data, and `TooTallError` when it does not fit. */
 export async function layoutSocialCard(page: Page, chart: string, url: string): Promise<void> {
   await page.evaluate(() => document.fonts.ready.then(() => undefined));
   await page.addStyleTag({ content: CARD_CSS });
@@ -75,11 +82,12 @@ export async function layoutSocialCard(page: Page, chart: string, url: string): 
         }
       }
       return fig.scrollHeight > fig.clientHeight + 1
-        ? `chart "${chart}" is ${fig.scrollHeight}px tall; the card has room for ${fig.clientHeight}px`
+        ? `too tall: chart "${chart}" is ${fig.scrollHeight}px tall; the card has room for ${fig.clientHeight}px`
         : null;
     },
     { chart, url },
   );
+  if (problem?.startsWith("too tall: ")) throw new TooTallError(problem.slice("too tall: ".length));
   if (problem) throw new Error(problem);
 }
 
@@ -100,7 +108,8 @@ export async function smallestTextPx(page: Page): Promise<{ px: number; text: st
   }, SCALE);
 }
 
-/** Opens the page in a fresh light-mode context sized for the card and returns the PNG. */
+/** Opens the page in a fresh light-mode context sized for the card and returns the PNG: 1200×675, or the 1200×1200
+ * square when the chart is too tall for that. */
 export async function socialImage(
   browser: Browser,
   { base, path, chart }: { base: string; path: string; chart: string },
@@ -117,12 +126,22 @@ export async function socialImage(
     reducedMotion: "reduce",
   });
   const page = await context.newPage();
-  await page.goto(target.href);
-  const canonical = await page.evaluate(() => document.querySelector("link[rel='canonical']")?.getAttribute("href"));
-  const url = new URL(canonical ?? new URL(path, ORIGIN).href);
-  await layoutSocialCard(page, chart, `${url.host}${url.pathname}`);
-  const png = await page.screenshot({ clip: { x: 0, y: 0, ...VIEWPORT }, animations: "disabled", caret: "hide" });
-  return { png, page };
+  for (const height of HEIGHTS) {
+    const viewport = { width: VIEWPORT.width, height: height / SCALE };
+    await page.setViewportSize(viewport);
+    await page.goto(target.href); // a fresh load for each size: the layout rewrites the page
+    const canonical = await page.evaluate(() => document.querySelector("link[rel='canonical']")?.getAttribute("href"));
+    const url = new URL(canonical ?? new URL(path, ORIGIN).href);
+    try {
+      await layoutSocialCard(page, chart, `${url.host}${url.pathname}`);
+    } catch (error) {
+      if (error instanceof TooTallError && height !== HEIGHTS.at(-1)) continue;
+      throw error;
+    }
+    const png = await page.screenshot({ clip: { x: 0, y: 0, ...viewport }, animations: "disabled", caret: "hide" });
+    return { png, page };
+  }
+  throw new Error("unreachable: the last size returns or throws");
 }
 
 if (import.meta.main) {
@@ -146,7 +165,8 @@ if (import.meta.main) {
     const smallest = await smallestTextPx(page);
     if (smallest.px < SOCIAL.minTextPx) throw new Error(`text under 20px: "${smallest.text}" at ${smallest.px}px`);
     writeFileSync(out, png);
-    console.log(`${out}: ${SOCIAL.width}×${SOCIAL.height}, smallest text ${smallest.px.toFixed(1)}px`);
+    // PNG header: width and height are the big-endian words at bytes 16 and 20.
+    console.log(`${out}: ${png.readUInt32BE(16)}×${png.readUInt32BE(20)}, smallest text ${smallest.px.toFixed(1)}px`);
   } finally {
     await browser.close();
   }
