@@ -17,6 +17,8 @@ struct PageJob {
     id: i64,
     kind: String,
     story: String,
+    /// `ai.write` in update mode (Rewrite's direction flips): the figures that changed.
+    update_diff: Option<Value>,
 }
 
 async fn page_job(job: i64, verb: &str) -> NewsResult<PageJob> {
@@ -37,10 +39,12 @@ async fn page_job(job: i64, verb: &str) -> NewsResult<PageJob> {
         NewsError::validation(format!("job {job} names no story (args.story or item_ref)"))
     })?;
     check_story(&story)?;
+    let update_diff = (j.args["mode"] == "update").then(|| j.args["diff"].clone());
     Ok(PageJob {
         id: job,
         kind: j.kind,
         story,
+        update_diff,
     })
 }
 
@@ -66,7 +70,19 @@ pub async fn run(cmd: AiCmd) -> NewsResult<Reply> {
 fn input(work: &Work, job: PageJob) -> NewsResult<Reply> {
     let brief_path = work.brief(&job.story);
     brief(work, &job.story)?;
-    let path = if job.kind == "ai.write" {
+    let path = if let Some(diff) = &job.update_diff {
+        // A1 in update mode (skills/news-reporter): the stored Copy is the previous one.
+        let previous = work::load(work, &job.story)?;
+        let composed = json!({
+            "mode": "update",
+            "brief": work::read_json(&brief_path)?,
+            "previous_copy": previous.copy,
+            "diff": diff,
+        });
+        let path = work.ai_input(job.id);
+        write_atomic(&path, &pretty(&composed))?;
+        path
+    } else if job.kind == "ai.write" {
         brief_path
     } else {
         let rejected = work::read_json(&work.rejected(&job.story)).map_err(|e| {

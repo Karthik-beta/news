@@ -1,0 +1,10 @@
+{
+  "id": "g6-major-report-control-full",
+  "brief_case": "g1-major-report-recorded",
+  "page": "# US GDP reaches {dp_4stpfufc74tc24cy} in {pd_2025}\n\nThe value of US output in current dollars rose from {pd_2024}.\n\nUS gross domestic product was {dp_4stpfufc74tc24cy} in {pd_2025}, measured in current US dollars, up {dv_kzlk4w44czg7dxrt} from {dp_2kkf6eorryn4eygg} in {pd_2024}. That is the highest of the observations held, which begin in {pd_2021}.\n",
+  "fault": null,
+  "provenance": {
+    "from": "cli/crates/news-fixer/tests/golden/major-report.json",
+    "change": "hand-written faithful page in ref tokens; no fault (control)"
+  }
+}

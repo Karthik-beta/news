@@ -129,6 +129,7 @@ pub async fn service(cmd: ServiceCmd) -> NewsResult<Reply> {
         ServiceCmd::Install {
             dry_run,
             account,
+            root,
             elevated,
             sid,
         } => Ok(Reply::new(news_service::install::install(
@@ -136,6 +137,7 @@ pub async fn service(cmd: ServiceCmd) -> NewsResult<Reply> {
                 dry_run,
                 elevated,
                 account,
+                root: root.or_else(|| news_critic::golden::find_root().ok()),
                 sid,
             },
         )?)),

@@ -1,0 +1,18 @@
+{
+  "id": "g2-boc-feed-3",
+  "item": {
+    "title": "Bank of Canada raises the policy rate by 25 basis points to 2½%",
+    "source": "Bank of Canada, central bank press release feed",
+    "opening": "The Bank of Canada today increased its target for the overnight rate by 25 basis points to 2.5%, with the Bank Rate at 2.75% and the deposit rate at 2.45%."
+  },
+  "label": {
+    "page_type": "policy-decision",
+    "categories": ["economy", "monetary-policy"],
+    "region": "ca"
+  },
+  "labelled_by": "opus-draft",
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/centralbank/boc-feed.xml",
+    "change": null
+  }
+}

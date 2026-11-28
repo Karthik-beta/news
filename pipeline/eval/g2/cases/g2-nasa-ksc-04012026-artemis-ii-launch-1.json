@@ -1,0 +1,18 @@
+{
+  "id": "g2-nasa-ksc-04012026-artemis-ii-launch-1",
+  "item": {
+    "title": "Artemis II Launch",
+    "source": "NASA Image and Video Library, agency media",
+    "opening": "Four astronauts aboard NASA’s Orion spacecraft atop the SLS (Space Launch System) rocket launch on the agency’s Artemis II test flight, Wednesday, April 1 from Launch Complex 39B at NASA’s Kennedy Space Center in Florida. Artemis II lifted off at 6:35 p.m. ET. Artemis II is the first crewed mission of the agency’s Artemis campaign. The mission will send NASA astronauts Reid Wiseman, Victor Glover, and Christina Koch and CSA (Canadian Space Agency) astronaut Jeremy Hansen on an approximately 10-day journey around the Moon and back to Earth."
+  },
+  "label": {
+    "page_type": "science",
+    "categories": ["science"],
+    "region": "us"
+  },
+  "labelled_by": "opus-draft",
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/nasa/search-artemis.json",
+    "change": null
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "set": "g2",
+  "name": "Classification",
+  "suite": "classify",
+  "version": 1,
+  "step": "A3",
+  "target_cases": 200,
+  "targets": {
+    "page_type_accuracy": { "min": 0.95 }
+  },
+  "notes": "Recorded items with hand labels; category F1 and region accuracy are reported without a target."
+}

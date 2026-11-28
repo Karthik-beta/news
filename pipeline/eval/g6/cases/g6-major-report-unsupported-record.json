@@ -1,0 +1,14 @@
+{
+  "id": "g6-major-report-unsupported-record",
+  "brief_case": "g1-major-report-recorded",
+  "page": "# US GDP reaches {dp_4stpfufc74tc24cy} in {pd_2025}\n\nThe value of US output in current dollars rose from {pd_2024}.\n\nUS gross domestic product was {dp_4stpfufc74tc24cy} in {pd_2025}, measured in current US dollars, up {dv_kzlk4w44czg7dxrt} from {dp_2kkf6eorryn4eygg} in {pd_2024}. That is an all-time high for the US economy.\n",
+  "fault": {
+    "kind": "unsupported_claim",
+    "where": "an all-time high for the US economy",
+    "note": "cx_1 says only that it is the highest of the observations held, which begin in 2021."
+  },
+  "provenance": {
+    "from": "cli/crates/news-fixer/tests/golden/major-report.json",
+    "change": "hand-written page in ref tokens with one seeded fault"
+  }
+}

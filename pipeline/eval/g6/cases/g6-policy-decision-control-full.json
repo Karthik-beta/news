@@ -1,0 +1,10 @@
+{
+  "id": "g6-policy-decision-control-full",
+  "brief_case": "g1-policy-decision-recorded",
+  "page": "# ECB policy rate at {dp_ayvmv67k6qwi2tu5} from {pd_2026_09_16}\n\nThe European Central Bank's policy rate is at its highest since {pd_2025_03_12}.\n\nThe European Central Bank's policy rate stood at {dp_ayvmv67k6qwi2tu5} from {pd_2026_09_16}, up from {dp_zqmtgkcrnjro6jq4} set on {pd_2026_06_17}. That is the highest level since {pd_2025_03_12}.\n",
+  "fault": null,
+  "provenance": {
+    "from": "cli/crates/news-fixer/tests/golden/policy-decision.json",
+    "change": "hand-written faithful page in ref tokens; no fault (control)"
+  }
+}

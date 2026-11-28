@@ -1,0 +1,18 @@
+{
+  "id": "g2-boe-feed-14",
+  "item": {
+    "title": "Minutes of the Money Market Committee meeting – September 2026",
+    "source": "Bank of England, central bank news feed",
+    "opening": "The Money Markets Committee is a forum for market participants and authorities to discuss the UK unsecured deposits and funding market and securities lending and repo markets."
+  },
+  "label": {
+    "page_type": "news-story",
+    "categories": ["finance"],
+    "region": "uk"
+  },
+  "labelled_by": "opus-draft",
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/centralbank/boe-feed.xml",
+    "change": null
+  }
+}

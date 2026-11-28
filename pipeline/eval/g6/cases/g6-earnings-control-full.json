@@ -1,0 +1,10 @@
+{
+  "id": "g6-earnings-control-full",
+  "brief_case": "g1-earnings-recorded",
+  "page": "# Apple's revenue and profit rise in fiscal year {pd_20250928_20260926}\n\nRevenue, net income and diluted earnings per share all rose from the previous fiscal year.\n\nApple Inc. reported revenue of {dp_kjfhexdo774vzbdy} for its fiscal year {pd_20250928_20260926}, up {dv_p2i5dzw4nh7n65e6} from {dp_r4zwqi6pratb2pgl} in fiscal year {pd_20240929_20250927}. Net income attributable to the company rose {dv_ybnfbllfvrimgdn5} to {dp_rurnaplntzkg2tzo}, from {dp_4naomxhk45ywoxbi}. Diluted earnings per share were {dp_3khm4dm4sqqxqm66}, up {dv_pm7a6pdcvbd7opg6} from {dp_zs3q4ryr6qdpeoso}. The company's fiscal year ended on {pd_2026_09_26}.\n",
+  "fault": null,
+  "provenance": {
+    "from": "cli/crates/news-fixer/tests/golden/earnings.json",
+    "change": "hand-written faithful page in ref tokens; no fault (control)"
+  }
+}

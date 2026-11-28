@@ -1,0 +1,14 @@
+{
+  "id": "g6-policy-decision-tone-prediction",
+  "brief_case": "g1-policy-decision-recorded",
+  "page": "# ECB policy rate at {dp_ayvmv67k6qwi2tu5} from {pd_2026_09_16}\n\nThe European Central Bank's policy rate is at its highest since {pd_2025_03_12}.\n\nThe European Central Bank's policy rate stood at {dp_ayvmv67k6qwi2tu5} from {pd_2026_09_16}, up from {dp_zqmtgkcrnjro6jq4} set on {pd_2026_06_17}. That is the highest level since {pd_2025_03_12}. Further increases are likely before the end of the year.\n",
+  "fault": {
+    "kind": "tone",
+    "where": "Further increases are likely before the end of the year.",
+    "note": "A prediction; the brief has no forecast or guidance."
+  },
+  "provenance": {
+    "from": "cli/crates/news-fixer/tests/golden/policy-decision.json",
+    "change": "hand-written page in ref tokens with one seeded fault"
+  }
+}

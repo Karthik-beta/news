@@ -280,6 +280,12 @@ pub fn checked_origin(input: &str) -> Result<String, NewsError> {
     Ok(url.origin().ascii_serialization())
 }
 
+/// The write-API key for the Hotline's `home.rollback` (a Board-only action that calls the same API as
+/// `news home publish`). Press is the only crate that reads the key, so every read goes through here.
+pub fn write_key() -> Result<String, NewsError> {
+    news_core::secrets::write_api_key()
+}
+
 impl ReqwestApi {
     pub fn from_credentials(origin: &str) -> Result<Self, NewsError> {
         let origin = checked_origin(origin)?;

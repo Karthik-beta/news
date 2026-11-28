@@ -1,0 +1,18 @@
+{
+  "id": "g2-boe-feed-5",
+  "item": {
+    "title": "Regulators explore credit union reforms to support growth, innovation and better outcomes for members",
+    "source": "Bank of England, central bank news feed",
+    "opening": "Credit unions could benefit from several ideas put forward today by the Prudential Regulation Authority and Financial Conduct Authority aimed at helping the sector grow, innovate and meet the changing needs of their members."
+  },
+  "label": {
+    "page_type": "news-story",
+    "categories": ["finance"],
+    "region": "uk"
+  },
+  "labelled_by": "opus-draft",
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/centralbank/boe-feed.xml",
+    "change": null
+  }
+}

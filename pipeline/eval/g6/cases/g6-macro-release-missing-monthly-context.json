@@ -1,0 +1,14 @@
+{
+  "id": "g6-macro-release-missing-monthly-context",
+  "brief_case": "g1-macro-release-recorded",
+  "page": "# US inflation at {dv_posldrq654yeigxx}\n\nThe latest reading of the consumer price index.\n\nInflation was {dv_posldrq654yeigxx} in {pd_2026_10}. The index stood at {dp_4yog6v5qhiqchdrb}.\n",
+  "fault": {
+    "kind": "missing_context",
+    "where": "Inflation was {dv_posldrq654yeigxx} in {pd_2026_10}.",
+    "note": "The brief's change is from the previous month (label: change from 2026-09-01); the page drops that, so it reads as the annual inflation rate."
+  },
+  "provenance": {
+    "from": "cli/crates/news-fixer/tests/golden/macro-release.json",
+    "change": "hand-written page in ref tokens with one seeded fault"
+  }
+}

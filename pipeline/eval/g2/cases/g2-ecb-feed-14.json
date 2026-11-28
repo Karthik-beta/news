@@ -1,0 +1,18 @@
+{
+  "id": "g2-ecb-feed-14",
+  "item": {
+    "title": "Decisions taken by the Governing Council of the ECB (in addition to decisions setting interest rates)",
+    "source": "European Central Bank, central bank press feed",
+    "opening": ""
+  },
+  "label": {
+    "page_type": "policy-decision",
+    "categories": ["finance", "economy"],
+    "region": "eu"
+  },
+  "labelled_by": "opus-draft",
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/centralbank/ecb-feed.xml",
+    "change": null
+  }
+}

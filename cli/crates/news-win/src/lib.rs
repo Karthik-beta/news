@@ -7,7 +7,8 @@
 //! rejected), the facts about a connected client (pid, user, integrity, image path, command line,
 //! membership of the root marker job), the client's check of the server's image, and Job Objects (the
 //! root marker job with kill-on-close and no breakaway, nested per-run jobs, terminate, emptiness, and
-//! adopting a suspended child: Ghost's spawn marker, #18). The Low-integrity token is still to come.
+//! adopting a suspended child: Ghost's spawn marker, #18), and Low-integrity processes
+//! (`spawn_low_suspended`) with Low-labelled work folders (`label_low`).
 
 #[cfg(not(windows))]
 use std::io;

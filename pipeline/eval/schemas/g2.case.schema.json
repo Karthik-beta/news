@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/pipeline/eval/schemas/g2.case.schema.json",
+  "title": "G2 classification case",
+  "description": "One recorded item for A3 and its hand label. `labelled_by` is opus-draft until Karthik confirms the label; Critic reports both counts.",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string", "pattern": "^g2-[a-z0-9-]+$" },
+    "item": {
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "minLength": 1 },
+        "source": { "type": "string", "minLength": 1 },
+        "opening": { "type": "string" }
+      },
+      "required": ["title", "source", "opening"],
+      "additionalProperties": false
+    },
+    "label": {
+      "type": "object",
+      "properties": {
+        "page_type": {
+          "enum": ["earnings", "macro-release", "major-report", "policy-decision", "science", "news-story", "explainer"]
+        },
+        "categories": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1, "maxItems": 3 },
+        "region": { "type": "string", "minLength": 1 }
+      },
+      "required": ["page_type", "categories", "region"],
+      "additionalProperties": false
+    },
+    "labelled_by": { "enum": ["karthik", "opus-draft"] },
+    "provenance": { "$ref": "provenance.schema.json" }
+  },
+  "required": ["id", "item", "label", "labelled_by", "provenance"],
+  "additionalProperties": false
+}

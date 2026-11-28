@@ -1,0 +1,18 @@
+{
+  "id": "g2-arxiv-2112-14514",
+  "item": {
+    "title": "Coal Mining, Women's Work, and Local Demographic Change: Evidence from Interwar Japan",
+    "source": "arXiv, preprint server",
+    "opening": "This paper examines how coal mining shaped local demographic change in interwar Japan, focusing on the role of women's work. Coal mines initially employed married couples as underground teams, offering women wages well above those in textile mills. The mechanization of haulage and the subsequent revision of labor regulations, enforced in 1933, removed most women from the pits. Linking mine locations with municipal-level census and vital statistics, I find that coal mining substantially increased local populations, mainly through the inflow of workers, whereas marriage and fertility rates in mining areas were lower than in surrounding areas. After women were removed from the pits, these gaps narrowed. Early-life mortality was higher in mining areas and increased with the number of female miners, consistent with occupational hazards to pregnant women, whereas there is little evidence of pollution channels."
+  },
+  "label": {
+    "page_type": "science",
+    "categories": ["science", "economy"],
+    "region": "global"
+  },
+  "labelled_by": "opus-draft",
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/arxiv/record-2112.14514.xml",
+    "change": null
+  }
+}

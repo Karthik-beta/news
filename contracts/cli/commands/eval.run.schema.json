@@ -4,7 +4,7 @@
   "title": "news eval run",
   "description": "Run an evaluation suite. Input is the command's arguments as an object; output is the envelope's data.",
   "x-news-tier": "W",
-  "x-news-status": "stub until #19",
+  "x-news-status": "built",
   "x-news-errors": ["budget_exceeded", "not_found"],
   "$defs": {
     "input": {

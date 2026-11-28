@@ -1,0 +1,18 @@
+{
+  "id": "g2-boe-feed-19",
+  "item": {
+    "title": "Minutes of the London FXJSC Main Committee Meeting – 24 June 2026",
+    "source": "Bank of England, central bank news feed",
+    "opening": "The Bank of England chairs the London Foreign Exchange Joint Standing Committee (FXJSC), which is a forum for discussion of the wholesale foreign exchange market. The FXJSC is made up of market participants, infrastructure providers and the UK financial regulators."
+  },
+  "label": {
+    "page_type": "news-story",
+    "categories": ["finance"],
+    "region": "uk"
+  },
+  "labelled_by": "opus-draft",
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/centralbank/boe-feed.xml",
+    "change": null
+  }
+}

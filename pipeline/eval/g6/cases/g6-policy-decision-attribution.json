@@ -1,0 +1,14 @@
+{
+  "id": "g6-policy-decision-attribution",
+  "brief_case": "g1-policy-decision-recorded",
+  "page": "# Policy rate rises to {dp_ayvmv67k6qwi2tu5}\n\nA central bank raised its policy rate on {pd_2026_09_16}.\n\nThe Federal Reserve raised its policy rate to {dp_ayvmv67k6qwi2tu5} on {pd_2026_09_16}, from {dp_zqmtgkcrnjro6jq4}. That is the highest level since {pd_2025_03_12}.\n",
+  "fault": {
+    "kind": "attribution",
+    "where": "The Federal Reserve raised its policy rate to {dp_ayvmv67k6qwi2tu5}",
+    "note": "The decision is the European Central Bank's (the brief's only entity), not the Federal Reserve's."
+  },
+  "provenance": {
+    "from": "cli/crates/news-fixer/tests/golden/policy-decision.json",
+    "change": "hand-written page in ref tokens with one seeded fault"
+  }
+}

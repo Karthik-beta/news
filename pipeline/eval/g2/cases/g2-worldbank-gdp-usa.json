@@ -1,0 +1,18 @@
+{
+  "id": "g2-worldbank-gdp-usa",
+  "item": {
+    "title": "GDP (current US$), United States",
+    "source": "World Bank Open Data, statistical indicator",
+    "opening": ""
+  },
+  "label": {
+    "page_type": "major-report",
+    "categories": ["economy", "growth"],
+    "region": "us"
+  },
+  "labelled_by": "opus-draft",
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/worldbank/GDP.USA-history.json",
+    "change": "title is the indicator name followed by the country name, both from the same file; the file has no text, so opening is empty"
+  }
+}

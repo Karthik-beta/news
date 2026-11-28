@@ -1,0 +1,10 @@
+{
+  "id": "g6-macro-release-control-full",
+  "brief_case": "g1-macro-release-recorded",
+  "page": "# US consumer prices rise in {pd_2026_10}\n\nThe consumer price index for all urban consumers rose from the previous month.\n\nThe Consumer Price Index for All Urban Consumers stood at {dp_4yog6v5qhiqchdrb} in {pd_2026_10}, according to the U.S. Bureau of Labor Statistics. That was up {dv_posldrq654yeigxx} from {dp_4gbuxf2ixs5amiee} in {pd_2026_09}.\n",
+  "fault": null,
+  "provenance": {
+    "from": "cli/crates/news-fixer/tests/golden/macro-release.json",
+    "change": "hand-written faithful page in ref tokens; no fault (control)"
+  }
+}

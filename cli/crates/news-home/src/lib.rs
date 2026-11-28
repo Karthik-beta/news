@@ -7,8 +7,7 @@
 //! * [`preview`] - the local SSR with the draft, and the four views.
 //! * [`api`] - the write API's curation route and `publish` (G tier).
 //! * [`ops`] - `save`, `check`, `preview` and `show` as the CLI runs them.
-//!
-//! `rollback` is H tier: Board sends it over the Hotline and the command has no CLI form.
+//! * [`rollback`] - `home.rollback`, the H-tier Hotline command (Board only; no CLI form).
 
 pub mod api;
 pub mod candidates;
@@ -17,6 +16,7 @@ pub mod draft;
 pub mod facts;
 pub mod ops;
 pub mod preview;
+pub mod rollback;
 pub mod store;
 
 #[cfg(test)]

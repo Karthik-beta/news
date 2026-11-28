@@ -1,0 +1,18 @@
+{
+  "id": "g2-boe-feed-7",
+  "item": {
+    "title": "Bank of England sets out approach to tokenised collateral in central clearing",
+    "source": "Bank of England, central bank news feed",
+    "opening": "The Bank of England has today launched a consultation supporting central counterparties (CCPs) acceptance of tokenised forms of eligible collateral."
+  },
+  "label": {
+    "page_type": "news-story",
+    "categories": ["finance"],
+    "region": "uk"
+  },
+  "labelled_by": "opus-draft",
+  "provenance": {
+    "from": "cli/crates/news-connectors/tests/fixtures/centralbank/boe-feed.xml",
+    "change": null
+  }
+}

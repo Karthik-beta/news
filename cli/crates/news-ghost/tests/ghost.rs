@@ -505,6 +505,103 @@ async fn a_failed_call_is_transient() {
     assert!(f.message.contains("fake claude failed"), "{}", f.message);
 }
 
+/// The first record a live fake `claude` writes in `dir`.
+#[cfg(windows)]
+async fn first_record(dir: &std::path::Path) -> Value {
+    loop {
+        let found = std::fs::read_dir(dir).ok().and_then(|rd| {
+            rd.flatten()
+                .find(|e| e.file_name().to_string_lossy().starts_with("fake-claude-"))
+                .and_then(|e| std::fs::read_to_string(e.path()).ok())
+                .and_then(|t| serde_json::from_str::<Value>(&t).ok())
+        });
+        if let Some(r) = found {
+            return r;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+    }
+}
+
+#[cfg(windows)]
+#[tokio::test]
+async fn the_call_runs_at_low_integrity_and_writes_only_its_work_folder() {
+    // The probe aims at the repository root, outside the call's work folder (`work/20`).
+    let s = Arc::new(setup(
+        "low",
+        json!({"fake": {"mode": "spawn", "probe": "../../repo/probe.txt"}}),
+        MemStore::default(),
+        true,
+    ));
+    // Plain std spawns all through the call, as the service's other jobs make: none may inherit the
+    // call's handles and so keep Ghost waiting after `claude` exits. They live until `sleepers/go`.
+    let sleepers = s.dir.join("sleepers");
+    std::fs::create_dir_all(&sleepers).unwrap();
+    let stop = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let spawner = {
+        let (stop, sleepers) = (stop.clone(), sleepers.clone());
+        std::thread::spawn(move || {
+            let mut kids = Vec::new();
+            while !stop.load(std::sync::atomic::Ordering::Relaxed) {
+                kids.push(
+                    std::process::Command::new(env!("CARGO_BIN_EXE_fake-claude"))
+                        .arg("--fake-sleep")
+                        .current_dir(&sleepers)
+                        .stdin(std::process::Stdio::null())
+                        .stdout(std::process::Stdio::null())
+                        .stderr(std::process::Stdio::null())
+                        .spawn()
+                        .unwrap(),
+                );
+                std::thread::sleep(std::time::Duration::from_millis(20));
+            }
+            kids
+        })
+    };
+    let s2 = s.clone();
+    let task = tokio::spawn(async move { s2.ghost.run(job("ai.write", 20, Uuid::new_v4())).await });
+    let dir = s.ghost.work.join("20");
+    let rec = first_record(&dir).await;
+    for key in ["pid", "grandchild"] {
+        let pid = u32::try_from(rec[key].as_u64().unwrap()).unwrap();
+        let t = news_win::process_token(pid).unwrap();
+        assert_eq!(t.integrity_rid, 0x1000, "{key} is not at Low integrity");
+        assert!(!t.admins_enabled, "{key} has Administrators enabled");
+        assert_eq!(
+            t.privileges_enabled,
+            ["SeChangeNotifyPrivilege"],
+            "{key} keeps privileges"
+        );
+    }
+    assert_eq!(
+        rec["probe_written"], false,
+        "it wrote outside its work folder"
+    );
+    assert!(!s.ghost.root.join("probe.txt").exists());
+    // Its record above was written in the work folder, and its temp files go there too.
+    let temp: Vec<String> = env_of(&rec)
+        .into_iter()
+        .filter(|(k, _)| k.eq_ignore_ascii_case("TEMP") || k.eq_ignore_ascii_case("TMP"))
+        .map(|(_, v)| v)
+        .collect();
+    assert_eq!(temp, [dir.to_string_lossy(), dir.to_string_lossy()]);
+    std::fs::write(dir.join("go"), "").unwrap();
+    // The call's output is read as soon as it exits, while the sleepers still live.
+    let out = tokio::time::timeout(std::time::Duration::from_secs(60), task)
+        .await
+        .expect("Ghost still waits after claude exited")
+        .unwrap()
+        .unwrap();
+    assert_eq!(out["valid"], true);
+    stop.store(true, std::sync::atomic::Ordering::Relaxed);
+    let kids = spawner.join().unwrap();
+    assert!(!kids.is_empty());
+    std::fs::write(sleepers.join("go"), "").unwrap();
+    for mut k in kids {
+        k.wait().unwrap();
+    }
+    s.ghost.job.as_ref().unwrap().terminate().unwrap();
+}
+
 #[cfg(windows)]
 #[tokio::test]
 async fn the_call_and_a_process_it_starts_are_both_in_the_ai_job() {
@@ -517,18 +614,7 @@ async fn the_call_and_a_process_it_starts_are_both_in_the_ai_job() {
     let s2 = s.clone();
     let task = tokio::spawn(async move { s2.ghost.run(job("ai.write", 18, Uuid::new_v4())).await });
     let dir = s.ghost.work.join("18");
-    let rec = loop {
-        let found = std::fs::read_dir(&dir).ok().and_then(|rd| {
-            rd.flatten()
-                .find(|e| e.file_name().to_string_lossy().starts_with("fake-claude-"))
-                .and_then(|e| std::fs::read_to_string(e.path()).ok())
-                .and_then(|t| serde_json::from_str::<Value>(&t).ok())
-        });
-        if let Some(r) = found {
-            break r;
-        }
-        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
-    };
+    let rec = first_record(&dir).await;
     let job_object = s.ghost.job.as_ref().unwrap();
     let pid = u32::try_from(rec["pid"].as_u64().unwrap()).unwrap();
     let grandchild = u32::try_from(rec["grandchild"].as_u64().unwrap()).unwrap();

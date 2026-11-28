@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/pipeline/eval/schemas/g1.case.schema.json",
+  "title": "G1 writer case",
+  "description": "One frozen Fixer brief for A1. The brief must also validate against contracts/cli/ai/brief.v1.schema.json.",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string", "pattern": "^g1-[a-z0-9-]+$" },
+    "page_type": {
+      "enum": ["earnings", "macro-release", "major-report", "policy-decision", "science", "news-story", "explainer"]
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "recorded",
+          "injection",
+          "missing_data",
+          "restatement",
+          "fiscal_year",
+          "long_statement",
+          "negative_values"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "provenance": { "$ref": "provenance.schema.json" },
+    "brief": { "type": "object" }
+  },
+  "required": ["id", "page_type", "tags", "provenance", "brief"],
+  "additionalProperties": false
+}

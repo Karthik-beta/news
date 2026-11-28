@@ -1,0 +1,12 @@
+{
+  "set": "g5",
+  "name": "Curator",
+  "suite": "curator",
+  "version": 1,
+  "step": "A8",
+  "target_cases": 4,
+  "targets": {
+    "excluded_violations": { "max": 0 }
+  },
+  "notes": "Development Plan fixtures: busy week, quiet week, one region dominating, withdrawn lead. The check pass rate and breadth are reported."
+}

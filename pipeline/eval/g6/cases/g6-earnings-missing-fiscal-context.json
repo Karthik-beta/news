@@ -1,0 +1,14 @@
+{
+  "id": "g6-earnings-missing-fiscal-context",
+  "brief_case": "g1-earnings-recorded",
+  "page": "# Apple's annual revenue rises\n\nApple's annual revenue and profit both rose.\n\nApple's revenue for the year was {dp_kjfhexdo774vzbdy}, up {dv_p2i5dzw4nh7n65e6}. Net income attributable to the company rose {dv_ybnfbllfvrimgdn5} to {dp_rurnaplntzkg2tzo}.\n",
+  "fault": {
+    "kind": "missing_context",
+    "where": "Apple's revenue for the year was {dp_kjfhexdo774vzbdy}, up {dv_p2i5dzw4nh7n65e6}.",
+    "note": "The brief's fiscal_note says the periods are Apple's fiscal periods (year ending in late September); the page gives no period and calls it the year."
+  },
+  "provenance": {
+    "from": "cli/crates/news-fixer/tests/golden/earnings.json",
+    "change": "hand-written page in ref tokens with one seeded fault"
+  }
+}

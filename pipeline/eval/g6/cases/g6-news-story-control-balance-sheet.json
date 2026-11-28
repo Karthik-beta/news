@@ -1,0 +1,10 @@
+{
+  "id": "g6-news-story-control-balance-sheet",
+  "brief_case": "g1-news-story-recorded",
+  "page": "# Fed cuts rates as downside risks to employment rise\n\nThe Committee lowered the target range for the federal funds rate and will keep reducing its securities holdings.\n\nThe Federal Open Market Committee said growth of economic activity moderated in the first half of the year. It will continue reducing its holdings of Treasury securities and agency debt and agency mortgage-backed securities. Stephen I. Miran dissented, preferring a larger cut.\n",
+  "fault": null,
+  "provenance": {
+    "from": "cli/crates/news-fixer/tests/golden/news-story.json",
+    "change": "hand-written faithful page in ref tokens; no fault (control)"
+  }
+}
