@@ -442,6 +442,10 @@ async fn paths_outside_the_work_and_contracts_folders_are_refused() {
             job_with("schema", json!(schema_in_work)),
         ),
         (
+            "prefix outside work/prefix",
+            job_with("prefix", json!(schema_in_work)),
+        ),
+        (
             "input outside work",
             job_with("input", json!("contracts/cli/ai/page-draft.v1.schema.json")),
         ),

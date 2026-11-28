@@ -359,6 +359,41 @@ mod tests {
         assert!(build("horoscope", &index()).is_err());
     }
 
+    /// A fresh process names every page type's prefix file the same (no per-process state, such as
+    /// hash-map seeds or the clock, reaches the hash).
+    #[test]
+    fn prefix_hash_is_stable_across_runs() {
+        let names = || {
+            SKILLS
+                .iter()
+                .map(|(t, _)| build(t, &index()).unwrap().file_name())
+                .collect::<Vec<_>>()
+                .join(" ")
+        };
+        if std::env::var_os("NEWS_PREFIX_CHILD").is_some() {
+            println!("NAMES<{}>", names());
+            return;
+        }
+        let out = std::process::Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "prefix::tests::prefix_hash_is_stable_across_runs",
+                "--nocapture",
+                "--test-threads=1",
+            ])
+            .env("NEWS_PREFIX_CHILD", "1")
+            .output()
+            .unwrap();
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        let child = stdout
+            .split_once("NAMES<")
+            .and_then(|(_, r)| r.split_once('>'))
+            .map(|(n, _)| n)
+            .unwrap_or_else(|| panic!("the child run printed no names: {stdout}"));
+        assert_eq!(child, names());
+        assert_eq!(child.split(' ').count(), SKILLS.len());
+    }
+
     #[test]
     fn write_is_content_addressed() {
         let dir = std::env::temp_dir().join(format!("news-prefix-{}", std::process::id()));
