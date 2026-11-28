@@ -12,4 +12,5 @@ description = "Series-reference column keys in fixture chart JSON"
 condition = "AND"
 paths = ['''^pipeline/fixtures/pages/[a-z0-9-]+/charts/[a-z0-9-]+\.json$''']
 regexTarget = "line"
-regexes = ['''^\s*"key": "sr_[a-z0-9]+",?\s*$''']
+# Unanchored: in a git scan the line carries the diff's leading "+".
+regexes = ['''"key": "sr_[a-z0-9]+"''']
