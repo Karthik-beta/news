@@ -3197,6 +3197,7 @@ dependencies = [
  "news-proof",
  "news-store",
  "news-taster",
+ "rustls",
  "serde",
  "serde_json",
  "sha2 0.11.1",

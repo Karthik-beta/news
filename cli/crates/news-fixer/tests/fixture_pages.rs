@@ -787,6 +787,8 @@ async fn plate() -> Option<Plate> {
         eprintln!("skipped: Plate needs Bun and `bun install` at the repository root");
         return None;
     }
+    // The `news` binary installs the TLS provider in `main`; a test builds Plate's client without it.
+    let _ = rustls::crypto::ring::default_provider().install_default();
     Some(Plate::connect().await.expect("Plate starts"))
 }
 
