@@ -433,6 +433,14 @@ pub enum EvalCmd {
     },
     /// An evaluation run's report
     Report { eval_run: String },
+    /// Draft what Karthik labels in Board: judge items and G3 story pairs
+    Draft {
+        /// How many story pairs to draft
+        #[arg(long, value_parser = clap::value_parser!(u32).range(1..=1000))]
+        pairs: Option<u32>,
+    },
+    /// Write Karthik's labels into pipeline/eval: the G3 set and the judges' rates
+    Export,
     /// Promote a prompt version (G tier)
     Promote {
         step: String,

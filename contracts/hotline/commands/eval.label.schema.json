@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/hotline/commands/eval.label.schema.json",
+  "title": "Hotline eval.label",
+  "description": "Store one of Karthik's labels from Board's labelling screens: whether a stored output passes one A12 judge's failure mode (`kind` judge), or whether two stories are the same story (`kind` pair, G3). Labelling an item again replaces its label. Labels are human work: Board only, never a terminal or a process the service started. `news eval export` writes them into pipeline/eval/. Input is the request's args; output is the reply envelope's data.",
+  "x-news-tier": "H",
+  "x-hotline-from": ["board"],
+  "x-news-status": "#19",
+  "x-news-cli": null,
+  "x-news-errors": ["usage", "not_found", "precondition", "upstream_unavailable"],
+  "$defs": {
+    "input": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "judge"
+            },
+            "judge": {
+              "$ref": "eval.items.schema.json#/$defs/judgeId"
+            },
+            "item": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "pass": {
+              "type": "boolean",
+              "description": "True when the text has none of this judge's failure"
+            }
+          },
+          "required": ["kind", "judge", "item", "pass"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "pair"
+            },
+            "item": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "same": {
+              "type": "boolean",
+              "description": "True when both describe the same story"
+            }
+          },
+          "required": ["kind", "item", "same"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": ["judge", "pair"]
+        },
+        "item": {
+          "type": "string"
+        },
+        "labelled": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Labels now stored for this judge, or for G3"
+        },
+        "target": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "text": {
+          "$ref": "../common.schema.json#/$defs/text"
+        }
+      },
+      "required": ["kind", "item", "labelled", "target", "text"],
+      "additionalProperties": false
+    }
+  }
+}

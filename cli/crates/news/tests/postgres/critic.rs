@@ -16,7 +16,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 
-fn repo() -> PathBuf {
+pub(super) fn repo() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..")
 }
 
@@ -36,7 +36,7 @@ fn copy_dir(from: &Path, to: &Path) {
 /// A copy of the golden sets (and the brief schema they check against) in a scratch folder under the
 /// build's own temporary directory, so a test can add stored outputs without touching the repository.
 /// One folder per test: they run in parallel.
-fn scratch_root(tag: &str) -> PathBuf {
+pub(super) fn scratch_root(tag: &str) -> PathBuf {
     let root = Path::new(env!("CARGO_TARGET_TMPDIR"))
         .join(format!("news-critic-{}-{tag}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);

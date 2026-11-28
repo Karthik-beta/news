@@ -5,9 +5,9 @@
   "description": "pipeline/eval/<set>/set.json: what the set is, which suite runs it and its starting targets (Bureau §9.1). Cases are pipeline/eval/<set>/cases/<id>.json.",
   "type": "object",
   "properties": {
-    "set": { "enum": ["g1", "g2", "g5", "g6"] },
+    "set": { "enum": ["g1", "g2", "g3", "g5", "g6"] },
     "name": { "type": "string", "minLength": 1 },
-    "suite": { "enum": ["writer", "classify", "curator", "spotcheck"] },
+    "suite": { "enum": ["writer", "classify", "storymatch", "curator", "spotcheck"] },
     "version": { "type": "integer", "minimum": 1 },
     "step": { "type": "string", "pattern": "^A[0-9]{1,2}$" },
     "target_cases": { "type": "integer", "minimum": 1 },

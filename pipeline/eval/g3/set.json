@@ -1,0 +1,12 @@
+{
+  "set": "g3",
+  "name": "Story pairs",
+  "suite": "storymatch",
+  "version": 1,
+  "step": "A4",
+  "target_cases": 200,
+  "targets": {
+    "join_precision": { "min": 0.97 }
+  },
+  "notes": "Pairs Taster drafted either side of its join threshold, labelled same or different by Karthik in Board (news eval draft, then news eval export). No case is written by hand. join_precision and join_recall are measured at the live join threshold; join_threshold is the lowest cosine whose precision meets the target."
+}

@@ -508,7 +508,7 @@ impl Chief {
                 .await
                 .map_err(map_err)?;
                 let round = earlier.map_or(0, |o| o["summary"]["round"].as_i64().unwrap_or(0)) + 1;
-                let sha = gates::hex(&gates::subject_sha(&f));
+                let sha = gates::hex(&news_core::tier::form_sha(&f));
                 let text = f["text"]
                     .as_str()
                     .unwrap_or("A form waits for your answers")

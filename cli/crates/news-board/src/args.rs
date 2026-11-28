@@ -8,12 +8,13 @@ pub enum Screen {
     Runs,
     Settings,
     Docker,
+    Labels,
 }
 
 /// What a toast's click (`news board --open <kind>:<id>`) points at.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OpenTarget {
-    /// `gate`, `run`, `lineup`, `usage`, `source`, `huddle`, `settings` or `docker`.
+    /// `gate`, `run`, `lineup`, `usage`, `source`, `huddle`, `settings`, `docker` or `labels`.
     pub kind: String,
     /// A run's short id (a gate adds `.<gate>`), a source id, or empty.
     pub id: String,
@@ -23,12 +24,11 @@ impl OpenTarget {
     pub fn parse(s: &str) -> Result<Self, String> {
         let (kind, id) = s.split_once(':').unwrap_or((s, ""));
         match kind {
-            "gate" | "run" | "lineup" | "usage" | "source" | "huddle" | "settings" | "docker" => {
-                Ok(Self {
-                    kind: kind.to_owned(),
-                    id: id.to_owned(),
-                })
-            }
+            "gate" | "run" | "lineup" | "usage" | "source" | "huddle" | "settings" | "docker"
+            | "labels" => Ok(Self {
+                kind: kind.to_owned(),
+                id: id.to_owned(),
+            }),
             other => Err(format!("unknown item kind {other:?}")),
         }
     }
@@ -37,6 +37,7 @@ impl OpenTarget {
         match self.kind.as_str() {
             "settings" | "usage" => Screen::Settings,
             "docker" => Screen::Docker,
+            "labels" => Screen::Labels,
             _ => Screen::Runs,
         }
     }
@@ -84,7 +85,8 @@ pub struct Args {
 
 pub const HELP: &str = "news board [--minimized] [--open <kind:id>]\n\
     news board autostart on|off|status\n\n\
-    Board is the desktop app: runs and approvals, settings and schedules, Docker health.\n\
+    Board is the desktop app: runs and approvals (with Huddle's form), settings and schedules, Docker\n\
+    health, and the labelling screens (judges, story pairs).\n\
     It talks only to the Bureau service over the Hotline. --minimized starts it in the taskbar\n\
     (the log-on entry uses this); --open opens it on an item, e.g. gate:r_51d2.plan.";
 
@@ -141,6 +143,14 @@ mod tests {
                 .unwrap()
                 .screen(),
             Screen::Docker
+        );
+        assert_eq!(
+            parse(&v(&["--open", "labels"]))
+                .unwrap()
+                .open
+                .unwrap()
+                .screen(),
+            Screen::Labels
         );
         assert_eq!(
             parse(&v(&["autostart", "on"])).unwrap().action,

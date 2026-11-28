@@ -1,6 +1,6 @@
 # ADR 0015: Evaluation and promotion (Critic, Audit, Huddle)
 
-- Status: proposed (judges, fresh candidate calls and Huddle's Chief steps are not built yet)
+- Status: proposed (the A12 judges and fresh candidate calls for the classify, curator and spotcheck suites are not built yet)
 - Date: 2026-11-28
 - Issue: #19 (Phase 7): runtime skills, Critic, Audit and Huddle
 - Context documents: Bureau Design §4.7 (ranking calibration), §7 (A12), §8.11 (Audit), §8.12 (Huddle), §9.1 (golden sets and judges); ADR 0008 §6.3 (G tier); ADR 0012 (scoring); `pipeline/eval/README.md`; `pipeline/eval/judges.md`
@@ -17,6 +17,8 @@ Every AI step runs on a prompt (a runtime skill in `skills/`) and a model. A cha
 4. **Promotion is G tier.** `news eval promote` from a terminal is always `gated`. The only path is the Audit run: the `promote` approval in Board, then the `promote` step writes `prompt_promotions` inside Chief's authorised transaction. The latest row per step (A1, A3, A7, A8) is the live version.
 5. **Ranking calibration is a constrained fit, adopted by approval.** `news scores propose` fits the six weights of S to Karthik's labels with a Bradley–Terry model by projected gradient ascent: every weight at least zero, the six summing to one, each within ±0.05 of its live value per week. A proposal is stored and changes nothing; `news scores adopt` is G tier, and in Huddle the `apply` step adopts a change only after that change's approval.
 
+6. **Karthik's labels are Board's, stored in Postgres, exported to files.** `eval.label` (H tier, so Board only) stores one label per item: pass or fail for one A12 judge's failure mode on a stored output, or same or different for a G3 pair. `eval.items` (R) hands Board the next unlabelled items, which carry no ground truth (no seeded-fault kind, no cosine, no judge verdict) and opaque ids. `news eval draft` stores the items (G6 pages, G1 outputs a version stored, and pairs Taster's embeddings put either side of the join threshold); `news eval export` writes `pipeline/eval/g3/` and the rates in `judges.md`, computed by code from the labels and the judge's verdicts. A pass is the positive class: the true-positive rate is the share of Karthik's passes the judge also passes. G3 cases hold ids and the label only; outlet text stays in PostgreSQL. G3's join threshold is the lowest cosine whose join precision meets its target, computed from the labels (`news-critic/src/g3.rs`).
+
 ## Consequences
 
 - A prompt or model change is reviewable as a diff of a skill plus an Audit report; a regression is traceable to the `prompt_version` stored with each AI output.
@@ -27,5 +29,5 @@ Every AI step runs on a prompt (a runtime skill in `skills/`) and a model. A cha
 ## Not yet built
 
 - Fresh candidate calls in Audit, and therefore Audit end to end with a fake `claude`.
-- The A12 judges and their rates (`judges.md` waits for Karthik's labels).
-- Huddle's preset steps in Chief (`huddle.debrief`, `huddle.calibration`, `huddle.propose`, `huddle.apply`): the pieces exist (`news review weekly`, `news scores label|propose|adopt`, `huddle.questions` and `huddle.answer` over the Hotline), but Chief has no way yet to complete a form step, so the preset cannot run end to end.
+- The A12 judges themselves, and the `judges` step that writes `judge_verdicts`; `judges.md` has Karthik's label counts and gets rates from those verdicts.
+- Karthik's labels: none exist yet. G3 has no cases and `judges.md` shows 0 labels until he labels in Board.

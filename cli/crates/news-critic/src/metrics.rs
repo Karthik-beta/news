@@ -50,6 +50,10 @@ pub fn score(set: &Set, outputs: Option<&[Output]>) -> Score {
         s.case(id, Some(format!("invalid case: {p}")));
     }
     s.put("cases", set.cases.len() as f64);
+    if set.manifest.suite == "storymatch" {
+        storymatch(&mut s, set);
+        return s;
+    }
     let Some(outputs) = outputs else {
         s.passed += set.cases.len() as u32;
         return s;
@@ -71,6 +75,21 @@ pub fn score(set: &Set, outputs: Option<&[Output]>) -> Score {
         _ => {}
     }
     s
+}
+
+/// G3: every valid case passes; the metrics come from Karthik's labels (`crate::g3`).
+fn storymatch(s: &mut Score, set: &Set) {
+    s.passed += set.cases.len() as u32;
+    let precision = set
+        .manifest
+        .targets
+        .get("join_precision")
+        .and_then(|b| b.min)
+        .unwrap_or(crate::g3::DEFAULT_PRECISION);
+    let live = news_taster::config::v1().ok().map(|t| t.join);
+    for (k, v) in crate::g3::metrics(&crate::g3::pairs_of(&set.cases), precision, live) {
+        s.put(&k, v);
+    }
 }
 
 type Cases<'a> = [(&'a str, &'a Value, Option<&'a Output>)];

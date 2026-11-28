@@ -7,6 +7,7 @@
 //! * [`input`]: `stories.score_input`, the story input Nose scores.
 //! * [`edit`]: H-tier `merge` and `split`. Board calls them over the Hotline; no shell command does.
 //! * [`read`]: what `news stories show|members|similar` print.
+//! * [`pairs`]: G3 candidates, pairs of a candidate and a story either side of the join threshold.
 //!
 //! The `story.detect` job handler still fails with class `bug` ("not built yet"): like Clerk's it needs
 //! the service context (database pool, the embedder), which lands with the step handlers.
@@ -16,6 +17,7 @@ pub mod detect;
 pub mod edit;
 pub mod embed;
 pub mod input;
+pub mod pairs;
 pub mod read;
 
 use news_core::NewsError;

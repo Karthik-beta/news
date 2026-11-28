@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://news.karthik.nz/contracts/hotline/commands/eval.items.schema.json",
+  "title": "Hotline eval.items",
+  "description": "What Board's labelling screens show next: unlabelled stored outputs for one A12 judge (`kind` judge, one failure mode at a time) or unlabelled G3 story pairs (`kind` pair), in a fixed pseudo-random order, with how far each label set has got. Items carry no ground truth: no seeded-fault kind, no cosine, no judge verdict, so a label is blind. Drafted by `news eval draft`. Input is the request's args; output is the reply envelope's data.",
+  "x-news-tier": "R",
+  "x-hotline-from": ["board", "terminal"],
+  "x-news-status": "#19",
+  "x-news-cli": null,
+  "x-news-errors": ["usage", "not_found", "upstream_unavailable"],
+  "$defs": {
+    "judgeId": {
+      "enum": ["wrong_direction", "unsupported_claim", "attribution", "missing_context", "tone"]
+    },
+    "input": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": ["judge", "pair"]
+        },
+        "judge": {
+          "$ref": "#/$defs/judgeId",
+          "description": "Required for kind judge"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
+        }
+      },
+      "required": ["kind"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": ["judge", "pair"]
+        },
+        "judge": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/judgeId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "item": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Opaque; what eval.label names"
+              },
+              "text": {
+                "type": "string",
+                "description": "A judge item: the text to read, as stored"
+              },
+              "facts": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "A judge item: the recorded figures the text is read against, as the source states them"
+              },
+              "a": {
+                "type": "object",
+                "description": "A pair item: the candidate (source, title, the start of its text)"
+              },
+              "b": {
+                "type": "object",
+                "description": "A pair item: the story (title and some member titles)"
+              }
+            },
+            "required": ["item"],
+            "additionalProperties": false
+          }
+        },
+        "judges": {
+          "type": "array",
+          "description": "Every judge: its rubric question and how many labels it has",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/judgeId"
+              },
+              "name": {
+                "type": "string"
+              },
+              "question": {
+                "type": "string"
+              },
+              "labelled": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "waiting": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "target": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "required": ["id", "name", "question", "labelled", "waiting", "target"],
+            "additionalProperties": false
+          }
+        },
+        "pairs": {
+          "type": "object",
+          "properties": {
+            "labelled": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "waiting": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "target": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": ["labelled", "waiting", "target"],
+          "additionalProperties": false
+        },
+        "text": {
+          "$ref": "../common.schema.json#/$defs/text"
+        }
+      },
+      "required": ["kind", "judge", "items", "judges", "pairs", "text"],
+      "additionalProperties": false
+    }
+  }
+}
