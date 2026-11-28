@@ -20,6 +20,7 @@ use news_core::clock::{Clock, ManualClock};
 use news_core::job::{ErrorClass, Handler, JobFailure, JobFuture, JobInput};
 use news_dispatch::queue::{self, Lease, NewJob};
 use news_dispatch::worker::{self, ActiveJobs, Resolver, WorkOptions};
+use news_ghost::claude::{ClaudeOutcome, classify, last_json};
 use news_hotline::{Bus, Peer, Service};
 use serde_json::{Map, Value, json};
 use std::future::Future;
@@ -196,36 +197,8 @@ impl Drop for FakeClaude {
     }
 }
 
-enum Claude {
-    Ok(Value),
-    UsageLimit { resets_at: Option<DateTime<Utc>> },
-    Failed(String),
-}
-
-/// ADR 0008 §1's provisional rule, written here because Ghost's `classify` is not built yet (#18): a
-/// non-zero exit with `is_error: true` is a usage limit, and a trailing `|<epoch seconds>` in the
-/// message is its reset time. The real shape is unsettled (no limit has been hit yet); when #18 lands
-/// this goes and the test calls `news_ghost::claude::classify`.
-fn classify(code: i32, stdout: &str) -> Claude {
-    let Ok(v) = serde_json::from_str::<Value>(stdout.trim()) else {
-        return Claude::Failed(format!("not JSON: {stdout}"));
-    };
-    if code == 0 && v["is_error"] != true {
-        return Claude::Ok(v);
-    }
-    if v["is_error"] == true {
-        let resets_at = v["result"]
-            .as_str()
-            .and_then(|r| r.rsplit_once('|'))
-            .and_then(|(_, epoch)| epoch.trim().parse::<i64>().ok())
-            .and_then(|epoch| DateTime::from_timestamp(epoch, 0));
-        return Claude::UsageLimit { resets_at };
-    }
-    Claude::Failed(format!("exit {code}: {stdout}"))
-}
-
 /// The `ai` job handler of these tests: runs the fake `claude` and turns its reply into the job's
-/// result or failure, as Ghost will.
+/// result or failure with Ghost's own classifier, so the test follows the shape the service reads.
 fn ask_claude(input: JobInput) -> JobFuture {
     Box::pin(async move {
         let bin = input.args["claude"].as_str().unwrap_or_default().to_owned();
@@ -248,19 +221,20 @@ fn ask_claude(input: JobInput) -> JobFuture {
             )
         })?;
         let stdout = String::from_utf8_lossy(&out.stdout).into_owned();
-        match classify(out.status.code().unwrap_or(-1), &stdout) {
-            Claude::Ok(v) => Ok(v),
-            Claude::UsageLimit {
+        match classify(out.status.code(), &stdout) {
+            ClaudeOutcome::Ok => last_json(&stdout)
+                .ok_or_else(|| JobFailure::new(ErrorClass::AiInvalidOutput, stdout.clone())),
+            ClaudeOutcome::UsageLimit {
                 resets_at: Some(at),
             } => Err(
                 JobFailure::new(ErrorClass::AiUsageLimit, "usage limit reached")
                     .with_retry_after((at - now).to_std().unwrap_or_default()),
             ),
-            Claude::UsageLimit { resets_at: None } => Err(JobFailure::new(
+            ClaudeOutcome::UsageLimit { resets_at: None } => Err(JobFailure::new(
                 ErrorClass::AiUsageLimit,
                 "usage limit reached, no reset time",
             )),
-            Claude::Failed(m) => Err(JobFailure::new(ErrorClass::AiInvalidOutput, m)),
+            ClaudeOutcome::Failed => Err(JobFailure::new(ErrorClass::AiInvalidOutput, stdout)),
         }
     })
 }

@@ -509,9 +509,14 @@ async fn a_failed_call_is_transient() {
     assert!(f.message.contains("fake claude failed"), "{}", f.message);
 }
 
-/// The first record a live fake `claude` writes in `dir`.
+/// The first record a live fake `claude` writes in `dir`. Panics with the call's own result if it
+/// ends first, or after 60 s, so a call that never starts fails the test instead of hanging it.
 #[cfg(windows)]
-async fn first_record(dir: &std::path::Path) -> Value {
+async fn first_record(
+    dir: &std::path::Path,
+    task: &mut tokio::task::JoinHandle<Result<Value, JobFailure>>,
+) -> Value {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(60);
     loop {
         let found = std::fs::read_dir(dir).ok().and_then(|rd| {
             rd.flatten()
@@ -522,6 +527,16 @@ async fn first_record(dir: &std::path::Path) -> Value {
         if let Some(r) = found {
             return r;
         }
+        if task.is_finished() {
+            match task.await.unwrap() {
+                Ok(v) => panic!("the call ended without a record: {v}"),
+                Err(f) => panic!("the call ended without a record: {:?}: {f}", f.class),
+            }
+        }
+        assert!(
+            std::time::Instant::now() < deadline,
+            "no record from the fake claude in 60 s"
+        );
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
     }
 }
@@ -562,9 +577,10 @@ async fn the_call_runs_at_low_integrity_and_writes_only_its_work_folder() {
         })
     };
     let s2 = s.clone();
-    let task = tokio::spawn(async move { s2.ghost.run(job("ai.write", 20, Uuid::new_v4())).await });
+    let mut task =
+        tokio::spawn(async move { s2.ghost.run(job("ai.write", 20, Uuid::new_v4())).await });
     let dir = s.ghost.work.join("20");
-    let rec = first_record(&dir).await;
+    let rec = first_record(&dir, &mut task).await;
     for key in ["pid", "grandchild"] {
         let pid = u32::try_from(rec[key].as_u64().unwrap()).unwrap();
         let t = news_win::process_token(pid).unwrap();
@@ -616,9 +632,10 @@ async fn the_call_and_a_process_it_starts_are_both_in_the_ai_job() {
         true,
     ));
     let s2 = s.clone();
-    let task = tokio::spawn(async move { s2.ghost.run(job("ai.write", 18, Uuid::new_v4())).await });
+    let mut task =
+        tokio::spawn(async move { s2.ghost.run(job("ai.write", 18, Uuid::new_v4())).await });
     let dir = s.ghost.work.join("18");
-    let rec = first_record(&dir).await;
+    let rec = first_record(&dir, &mut task).await;
     let job_object = s.ghost.job.as_ref().unwrap();
     let pid = u32::try_from(rec["pid"].as_u64().unwrap()).unwrap();
     let grandchild = u32::try_from(rec["grandchild"].as_u64().unwrap()).unwrap();
@@ -632,7 +649,10 @@ async fn the_call_and_a_process_it_starts_are_both_in_the_ai_job() {
     );
     assert!(!job_object.contains_pid(std::process::id()).unwrap());
     std::fs::write(dir.join("go"), "").unwrap();
-    assert_eq!(task.await.unwrap().unwrap()["valid"], true);
+    let out = tokio::time::timeout(std::time::Duration::from_secs(60), task)
+        .await
+        .expect("Ghost still waits after claude exited");
+    assert_eq!(out.unwrap().unwrap()["valid"], true);
     job_object.terminate().unwrap();
 }
 
